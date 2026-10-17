@@ -215,7 +215,7 @@ Start with [`AGENTS.md`](../AGENTS.md), a map of the repo for people and AI agen
 ## Credits and license
 
 - **VLC:** [VideoLAN](https://www.videolan.org) and the VLC contributors. GPL-2.0-or-later ([`COPYING`](../COPYING)); libVLC is LGPL-2.1-or-later ([`COPYING.LIB`](../COPYING.LIB)).
-- **Design and mock artwork:** Juxtopposed ([video](https://www.youtube.com/watch?v=ERFeOgqk324)), from the [VLC redesign Figma file](https://www.figma.com/community/file/1691465999134370980), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The video itself is not part of this repository.
+- **Design and mock artwork:** [Juxtopposed](https://www.youtube.com/@juxtopposed) ([video](https://www.youtube.com/watch?v=ERFeOgqk324)), from the [VLC redesign Figma file](https://www.figma.com/community/file/1691465999134370980), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The video itself is not part of this repository.
 - **Font:** [Inter](https://github.com/rsms/inter) by The Inter Project Authors, SIL Open Font License 1.1 (bundled with its license).
 - **This fork:** GPL-2.0-or-later.
 
