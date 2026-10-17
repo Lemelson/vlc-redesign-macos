@@ -1,0 +1,847 @@
+{
+  "meta": {
+    "source": {
+      "file": "redesign/design/figma/figma_file.json",
+      "figmaFileName": "VLC Redesign (Community)",
+      "figmaVersion": "2409521707817118521",
+      "lastModified": "2026-10-12T17:33:47Z",
+      "communityFile": "https://www.figma.com/community/file/1691465999134370980",
+      "license": "CC BY 4.0 - VLC Redesign by Juxtopposed (attribution required)"
+    },
+    "units": "hex sRGB + alpha 0..1",
+    "howDerived": "Each Figma paint style was resolved from the fills/strokes of the nodes that reference it (usageCount = number of paints). Styles that no node references cannot be resolved from figma_file.json (the REST /files response does not carry style values); for those the value comes from redesign/design/figma/palette/tokens.json (a Figma style dump made by another fork) and resolvedFrom says so.",
+    "lightThemeCoverage": "Only 11 of 24 Light styles are referenced, all inside frame \"Player - Light\" (2425:13624); that frame still uses many Dark styles (e.g. Dark/FG/A2 on control-bar icons, Dark/FG/A1 on library rows). Treat the Light palette as a mapping table, not as a verified design.",
+    "issues": [],
+    "lightThemeCorrections": "Light fg1, fg2 and fgA4 are corrected per DECISIONS D032 (figmaHex keeps the Figma value). rawColors items carry lightHex/lightAlpha so app-defined colors also follow the theme. Contrast >= 4.5:1 for fg1/fg2/fgA1 on bgB1/bgA1 in both themes is enforced by ThemeContrastTests."
+  },
+  "dark": {
+    "accentBright": {
+      "hex": "#FC9729",
+      "alpha": 1,
+      "figmaStyle": "Dark/Accent/Bright",
+      "styleId": "217:228",
+      "usageCount": 0,
+      "resolvedFrom": "palette/tokens.json (style not referenced by any node in figma_file.json)",
+      "note": "Defined but never used by any node; hover/pressed accent per spec (estimate)."
+    },
+    "accentDim": {
+      "hex": "#AB6314",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/Accent/DIm",
+      "styleId": "536:1030",
+      "usageCount": 496,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "2493:9296",
+        "2461:9724",
+        "2493:9255"
+      ],
+      "note": "Figma style name is misspelled \"Accent/DIm\""
+    },
+    "accentLogo": {
+      "hex": "#D37918",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/Accent/Logo",
+      "styleId": "217:226",
+      "usageCount": 60,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "I187:332;51:799",
+        "I187:332;51:800",
+        "I187:332;51:801"
+      ]
+    },
+    "accentMain": {
+      "hex": "#D37918",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/Accent/Main",
+      "styleId": "217:219",
+      "usageCount": 713,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "2238:9236",
+        "2238:9234",
+        "1803:3072"
+      ]
+    },
+    "bgA1": {
+      "hex": "#222222",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/BG/A1",
+      "styleId": "463:899",
+      "usageCount": 42,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "6309:14029",
+        "3021:9848",
+        "3046:9293"
+      ]
+    },
+    "bgA2": {
+      "hex": "#1F1F1F",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/BG/A2",
+      "styleId": "2107:5949",
+      "usageCount": 24,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "2107:5954",
+        "2107:6007",
+        "2107:5993"
+      ]
+    },
+    "bgA3": {
+      "hex": "#1B1B1B",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/BG/A3",
+      "styleId": "855:2125",
+      "usageCount": 142,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "6586:17373",
+        "187:329",
+        "491:2000"
+      ]
+    },
+    "bgA3Transparent": {
+      "hex": "#191919",
+      "alpha": 0.95,
+      "figmaStyle": "Dark/BG/A3 Transparent",
+      "styleId": "1702:4100",
+      "usageCount": 244,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "970:3310",
+        "970:3794",
+        "970:2705"
+      ]
+    },
+    "bgA4": {
+      "hex": "#191919",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/BG/A4",
+      "styleId": "217:222",
+      "usageCount": 659,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "I856:2450;858:5375",
+        "970:3325",
+        "970:3809"
+      ]
+    },
+    "bgA5": {
+      "hex": "#151515",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/BG/A5",
+      "styleId": "1002:5214",
+      "usageCount": 98,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "1040:2864",
+        "1040:2870",
+        "2107:7063"
+      ]
+    },
+    "bgAccentBright": {
+      "hex": "#371F06",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/BG/Accent Bright",
+      "styleId": "217:220",
+      "usageCount": 267,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "I491:2000;1908:7388",
+        "I970:3588;970:3060",
+        "I970:3927;970:3060"
+      ]
+    },
+    "bgAccentDark": {
+      "hex": "#1A1611",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/BG/Accent Dark",
+      "styleId": "217:224",
+      "usageCount": 1060,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "3056:10879",
+        "3056:10880",
+        "3056:10881"
+      ],
+      "note": "Mostly used for slider tick marks drawn over the filled (accent) part of sliders (\"degrees\" vectors in settings/sidebar sliders), plus selected accent-swatch frame."
+    },
+    "bgB1": {
+      "hex": "#0E0E0E",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/BG/B1",
+      "styleId": "217:221",
+      "usageCount": 46,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "970:3324",
+        "970:3344",
+        "970:3808"
+      ]
+    },
+    "bgB1Transparent": {
+      "hex": "#0E0E0E",
+      "alpha": 0.95,
+      "figmaStyle": "Dark/BG/B1 Transparent",
+      "styleId": "1702:4102",
+      "usageCount": 192,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "I856:2450;858:5382",
+        "I856:2587;848:1872",
+        "I4767:23749;848:1872"
+      ]
+    },
+    "bgB2": {
+      "hex": "#090909",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/BG/B2",
+      "styleId": "217:223",
+      "usageCount": 1391,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "I491:2000;1908:7387",
+        "I491:2000;491:1733;244:211",
+        "I970:3588;970:3056"
+      ]
+    },
+    "bgB2Transparent": {
+      "hex": "#000000",
+      "alpha": 0.8,
+      "figmaStyle": "Dark/BG/B2 Transparent",
+      "styleId": "3654:12414",
+      "usageCount": 0,
+      "resolvedFrom": "palette/tokens.json (style not referenced by any node in figma_file.json)",
+      "note": "Defined but never used in the file; intended for modal scrims (spec-part2 token table)."
+    },
+    "dividerBright": {
+      "hex": "#373737",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/Divider/Bright",
+      "styleId": "217:230",
+      "usageCount": 87,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "I187:337;71:867",
+        "I247:458;71:867",
+        "I4767:23737;71:867"
+      ]
+    },
+    "dividerDim": {
+      "hex": "#222222",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/Divider/Dim",
+      "styleId": "217:233",
+      "usageCount": 161,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "I856:2450;858:5397",
+        "6841:15989",
+        "6841:16094"
+      ]
+    },
+    "fg1": {
+      "hex": "#EAEAEA",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/FG/1",
+      "styleId": "970:2498",
+      "usageCount": 77,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "I3021:9848;3021:9838",
+        "I3046:9293;3021:9838",
+        "I3046:10069;3021:9838"
+      ]
+    },
+    "fg2": {
+      "hex": "#C6C6C6",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/FG/2",
+      "styleId": "1922:9585",
+      "usageCount": 118,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "6261:15098",
+        "1922:9584",
+        "4767:23751"
+      ]
+    },
+    "fgA1": {
+      "hex": "#969696",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/FG/A1",
+      "styleId": "247:711",
+      "usageCount": 529,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "I856:2450;2464:9237;2459:9359",
+        "I856:2450;2464:9247;2459:9359",
+        "6153:13631"
+      ]
+    },
+    "fgA2": {
+      "hex": "#8F8F8F",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/FG/A2",
+      "styleId": "217:218",
+      "usageCount": 7107,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "1803:3008",
+        "1803:3042",
+        "2493:9295"
+      ]
+    },
+    "fgA3": {
+      "hex": "#6B6B6B",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/FG/A3",
+      "styleId": "217:229",
+      "usageCount": 1363,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "I856:2450;2139:8868;247:438",
+        "I856:2450;2139:8868;247:440",
+        "I856:2450;2139:8868;247:442"
+      ]
+    },
+    "fgA4": {
+      "hex": "#404040",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/FG/A4",
+      "styleId": "536:1042",
+      "usageCount": 1878,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "6153:13626",
+        "6153:13628",
+        "6153:13630"
+      ]
+    },
+    "fgB1": {
+      "hex": "#161616",
+      "alpha": 1.0,
+      "figmaStyle": "Dark/FG/B1",
+      "styleId": "217:232",
+      "usageCount": 111,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "I491:2000;3603:12304;848:1707;45:5",
+        "I491:1928;3603:12304;848:1707;45:5",
+        "1922:9582"
+      ]
+    }
+  },
+  "light": {
+    "accentBright": {
+      "hex": "#FFA13B",
+      "alpha": 1,
+      "figmaStyle": "Light/Accent/Bright",
+      "styleId": "2425:13967",
+      "usageCount": 0,
+      "resolvedFrom": "palette/tokens.json (style not referenced by any node in figma_file.json)"
+    },
+    "accentDim": {
+      "hex": "#965916",
+      "alpha": 1,
+      "figmaStyle": "Light/Accent/DIm",
+      "styleId": "2425:13969",
+      "usageCount": 0,
+      "resolvedFrom": "palette/tokens.json (style not referenced by any node in figma_file.json)",
+      "note": "Figma style name is misspelled \"Accent/DIm\""
+    },
+    "accentLogo": {
+      "hex": "#C2711A",
+      "alpha": 1.0,
+      "figmaStyle": "Light/Accent/Logo",
+      "styleId": "2425:13968",
+      "usageCount": 3,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "I2425:13629;51:799",
+        "I2425:13629;51:800",
+        "I2425:13629;51:801"
+      ]
+    },
+    "accentMain": {
+      "hex": "#E8851A",
+      "alpha": 1.0,
+      "figmaStyle": "Light/Accent/Main",
+      "styleId": "2425:13966",
+      "usageCount": 2,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "I2425:13645;1908:7389",
+        "I2425:13646;2139:8518;856:2210"
+      ]
+    },
+    "bgA1": {
+      "hex": "#EDEDED",
+      "alpha": 1,
+      "figmaStyle": "Light/BG/A1",
+      "styleId": "2425:13972",
+      "usageCount": 0,
+      "resolvedFrom": "palette/tokens.json (style not referenced by any node in figma_file.json)"
+    },
+    "bgA2": {
+      "hex": "#DDDDDD",
+      "alpha": 1,
+      "figmaStyle": "Light/BG/A2",
+      "styleId": "2425:13973",
+      "usageCount": 0,
+      "resolvedFrom": "palette/tokens.json (style not referenced by any node in figma_file.json)"
+    },
+    "bgA3": {
+      "hex": "#D5D5D5",
+      "alpha": 1,
+      "figmaStyle": "Light/BG/A3",
+      "styleId": "2425:13974",
+      "usageCount": 0,
+      "resolvedFrom": "palette/tokens.json (style not referenced by any node in figma_file.json)"
+    },
+    "bgA3Transparent": {
+      "hex": "#D5D5D5",
+      "alpha": 0.75,
+      "figmaStyle": "Light/BG/A3 Transparent",
+      "styleId": "2425:13979",
+      "usageCount": 6,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "2425:13626",
+        "2425:13645",
+        "I2425:13646;848:1867"
+      ]
+    },
+    "bgA4": {
+      "hex": "#B3B3B3",
+      "alpha": 1,
+      "figmaStyle": "Light/BG/A4",
+      "styleId": "2425:13975",
+      "usageCount": 0,
+      "resolvedFrom": "palette/tokens.json (style not referenced by any node in figma_file.json)"
+    },
+    "bgA5": {
+      "hex": "#F4F4F4",
+      "alpha": 1.0,
+      "figmaStyle": "Light/BG/A5",
+      "styleId": "2425:13976",
+      "usageCount": 1,
+      "resolvedFrom": "DECISIONS D032 (Figma Light value is unreadable under text; corrected)",
+      "exampleNodes": [
+        "I2425:13645;491:1733;244:226"
+      ],
+      "figmaHex": "#888888",
+      "note": "D032: BG/A5 is the search and text-field surface. Figma Light/BG/A5 (#888888, used once, on the volume cone in Player - Light) puts body text at about 3:1 and hides placeholders, so light input fields use a near-white surface as macOS does. figmaHex keeps the original."
+    },
+    "bgAccentBright": {
+      "hex": "#D8BA9A",
+      "alpha": 1.0,
+      "figmaStyle": "Light/BG/Accent Bright",
+      "styleId": "2425:13970",
+      "usageCount": 1,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "I2425:13645;1908:7388"
+      ]
+    },
+    "bgAccentDark": {
+      "hex": "#C6AB89",
+      "alpha": 1,
+      "figmaStyle": "Light/BG/Accent Dark",
+      "styleId": "2425:13971",
+      "usageCount": 0,
+      "resolvedFrom": "palette/tokens.json (style not referenced by any node in figma_file.json)"
+    },
+    "bgB1": {
+      "hex": "#E7E7E7",
+      "alpha": 1,
+      "figmaStyle": "Light/BG/B1",
+      "styleId": "2425:13977",
+      "usageCount": 0,
+      "resolvedFrom": "palette/tokens.json (style not referenced by any node in figma_file.json)"
+    },
+    "bgB1Transparent": {
+      "hex": "#E7E7E7",
+      "alpha": 0.8,
+      "figmaStyle": "Light/BG/B1 Transparent",
+      "styleId": "2425:13980",
+      "usageCount": 2,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "I2425:13646;848:1872"
+      ]
+    },
+    "bgB2": {
+      "hex": "#DEDEDE",
+      "alpha": 1.0,
+      "figmaStyle": "Light/BG/B2",
+      "styleId": "2425:13978",
+      "usageCount": 2,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "I2425:13645;1908:7387"
+      ]
+    },
+    "dividerBright": {
+      "hex": "#9B9B9B",
+      "alpha": 1.0,
+      "figmaStyle": "Light/Divider/Bright",
+      "styleId": "2425:13981",
+      "usageCount": 1,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "I2425:13635;71:867"
+      ]
+    },
+    "dividerDim": {
+      "hex": "#ACACAC",
+      "alpha": 1.0,
+      "figmaStyle": "Light/Divider/Dim",
+      "styleId": "2425:13982",
+      "usageCount": 2,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "2425:13645"
+      ]
+    },
+    "fg1": {
+      "hex": "#161616",
+      "alpha": 1,
+      "figmaStyle": "Light/FG/1",
+      "styleId": "2425:13959",
+      "usageCount": 0,
+      "resolvedFrom": "DECISIONS D032 (Figma Light value is unreadable; corrected)",
+      "note": "D032: Figma Light/FG/1 duplicates Dark/FG/1 (#EAEAEA, ~1.1:1 on Light/BG/B1). Corrected to #161616 (same as Light/FG/B1); figmaHex keeps the original.",
+      "figmaHex": "#EAEAEA"
+    },
+    "fg2": {
+      "hex": "#2E2E2E",
+      "alpha": 1,
+      "figmaStyle": "Light/FG/2",
+      "styleId": "2425:13960",
+      "usageCount": 0,
+      "resolvedFrom": "DECISIONS D032 (Figma Light value is unreadable; corrected)",
+      "note": "D032: Figma Light/FG/2 duplicates Dark/FG/2 (#C6C6C6). Corrected to #2E2E2E (same as Light/FG/A2); figmaHex keeps the original.",
+      "figmaHex": "#C6C6C6"
+    },
+    "fgA1": {
+      "hex": "#3C3C3C",
+      "alpha": 1,
+      "figmaStyle": "Light/FG/A1",
+      "styleId": "2425:13961",
+      "usageCount": 0,
+      "resolvedFrom": "palette/tokens.json (style not referenced by any node in figma_file.json)"
+    },
+    "fgA2": {
+      "hex": "#2E2E2E",
+      "alpha": 1.0,
+      "figmaStyle": "Light/FG/A2",
+      "styleId": "2425:13962",
+      "usageCount": 54,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "I2425:13632;247:438",
+        "I2425:13632;247:440",
+        "I2425:13632;247:442"
+      ]
+    },
+    "fgA3": {
+      "hex": "#6B6B6B",
+      "alpha": 1.0,
+      "figmaStyle": "Light/FG/A3",
+      "styleId": "2425:13963",
+      "usageCount": 12,
+      "resolvedFrom": "nodes",
+      "exampleNodes": [
+        "I2425:13646;1851:3229;247:438",
+        "I2425:13646;1851:3229;247:440",
+        "I2425:13646;1851:3229;247:442"
+      ]
+    },
+    "fgA4": {
+      "hex": "#9A9A9A",
+      "alpha": 1,
+      "figmaStyle": "Light/FG/A4",
+      "styleId": "2425:13964",
+      "usageCount": 0,
+      "resolvedFrom": "DECISIONS D032 (Figma Light value is unreadable; corrected)",
+      "figmaHex": "#3B3B3B",
+      "note": "D032: Figma Light/FG/A4 (#3B3B3B) is as dark as body text, so placeholders, info icons and the OFF knob read as content. Corrected to a light gray for placeholders and disabled text; figmaHex keeps the original."
+    },
+    "fgB1": {
+      "hex": "#161616",
+      "alpha": 1,
+      "figmaStyle": "Light/FG/B1",
+      "styleId": "2425:13965",
+      "usageCount": 0,
+      "resolvedFrom": "palette/tokens.json (style not referenced by any node in figma_file.json)"
+    }
+  },
+  "accentSwatches": {
+    "note": "The 9 accent options, in display order, as used by the Onboarding theme/color step (Onboarding-1, -3 ... -10) and the Settings > General \"Accent color\" row. Only orange has a named style set (Accent/Main, Bright, Dim, Logo, BG/Accent Bright, BG/Accent Dark); for the other 8 the designer applied the raw hex to the same elements and replaced Dark/BG/Accent Bright (seek-bar fill) with the accent at 24% opacity, except blue at 30% (node 1925:9940 in frame 1902:5245). The selected color-dot ring uses the accent at 30% opacity (verified in frames 1902:4020 ... 1902:6465). Derive Bright/Dim/BG tints for non-orange accents with these rules; record the method in code.",
+    "derivationRule": {
+      "bgAccentBright": "accent @ alpha 0.24 over the surface; blue uses bgAccentBrightOverrides (orange reference: #D37918@0.24 over #090909 = #39240D vs style #371F06)",
+      "bgAccentBrightOverrides": {
+        "blue": {
+          "alpha": 0.3,
+          "node": "1925:9940",
+          "frame": "1902:5245"
+        }
+      },
+      "selectedRing": "accent @ alpha 0.30, 4 px",
+      "text/glyph on accent": "Dark/FG/B1 #161616"
+    },
+    "swatches": [
+      {
+        "order": 1,
+        "name": "orange",
+        "hex": "#D37918",
+        "default": true,
+        "verifiedIn": {
+          "node": "1902:3670",
+          "render": "renders/Onboarding-1.png",
+          "how": "fill of the \"Next\" button and the selected color dot"
+        },
+        "settingsSwatchNode": "3046:9875"
+      },
+      {
+        "order": 2,
+        "name": "red",
+        "hex": "#E15032",
+        "default": false,
+        "verifiedIn": {
+          "node": "1902:4020",
+          "render": "renders/Onboarding-3.png",
+          "how": "fill of the \"Next\" button and the selected color dot"
+        },
+        "settingsSwatchNode": "3046:9877"
+      },
+      {
+        "order": 3,
+        "name": "olive",
+        "hex": "#C49E23",
+        "default": false,
+        "verifiedIn": {
+          "node": "1902:4325",
+          "render": "renders/Onboarding-4.png",
+          "how": "fill of the \"Next\" button and the selected color dot"
+        },
+        "settingsSwatchNode": "3046:9879"
+      },
+      {
+        "order": 4,
+        "name": "green",
+        "hex": "#19A234",
+        "default": false,
+        "verifiedIn": {
+          "node": "1902:4634",
+          "render": "renders/Onboarding-5.png",
+          "how": "fill of the \"Next\" button and the selected color dot"
+        },
+        "settingsSwatchNode": "3046:9881"
+      },
+      {
+        "order": 5,
+        "name": "teal",
+        "hex": "#18AAD3",
+        "default": false,
+        "verifiedIn": {
+          "node": "1902:4940",
+          "render": "renders/Onboarding-6.png",
+          "how": "fill of the \"Next\" button and the selected color dot"
+        },
+        "settingsSwatchNode": "3046:9883"
+      },
+      {
+        "order": 6,
+        "name": "blue",
+        "hex": "#185DD3",
+        "default": false,
+        "verifiedIn": {
+          "node": "1902:5245",
+          "render": "renders/Onboarding-7.png",
+          "how": "fill of the \"Next\" button and the selected color dot"
+        },
+        "settingsSwatchNode": "3046:9885"
+      },
+      {
+        "order": 7,
+        "name": "purple",
+        "hex": "#8E42FF",
+        "default": false,
+        "verifiedIn": {
+          "node": "1902:5550",
+          "render": "renders/Onboarding-8.png",
+          "how": "fill of the \"Next\" button and the selected color dot"
+        },
+        "settingsSwatchNode": "3046:9887"
+      },
+      {
+        "order": 8,
+        "name": "pink",
+        "hex": "#F052B3",
+        "default": false,
+        "verifiedIn": {
+          "node": "1902:6160",
+          "render": "renders/Onboarding-9.png",
+          "how": "fill of the \"Next\" button and the selected color dot"
+        },
+        "settingsSwatchNode": "3046:9889"
+      },
+      {
+        "order": 9,
+        "name": "gray",
+        "hex": "#AFAFAF",
+        "default": false,
+        "verifiedIn": {
+          "node": "1902:6465",
+          "render": "renders/Onboarding-10.png",
+          "how": "fill of the \"Next\" button and the selected color dot"
+        },
+        "settingsSwatchNode": "3046:9891"
+      }
+    ]
+  },
+  "rawColors": {
+    "note": "Frequently used colors that are NOT bound to a style (count = paints in the whole file). Use these only where noted.",
+    "items": [
+      {
+        "hex": "#FFFFFF",
+        "alpha": 0.06,
+        "use": "Icon Wrapper hover background (177:99); library rail icon hover",
+        "node": "177:99",
+        "lightHex": "#000000",
+        "lightAlpha": 0.06,
+        "lightNote": "Light: the dark-theme white hover tint inverted to black."
+      },
+      {
+        "hex": "#303030",
+        "alpha": 1,
+        "use": "placeholder thumbnail background in library rows / icon \"thumbnail\" (417 paints)",
+        "node": "2404:9202",
+        "lightHex": "#CACACA",
+        "lightAlpha": 1,
+        "lightNote": "Light: mirrors the dark offset from BG/B1 (250 - dark gray level)."
+      },
+      {
+        "hex": "#262626",
+        "alpha": 1,
+        "use": "volume cone body behind the gradient fill (244:213)",
+        "node": "244:213",
+        "lightHex": "#262626",
+        "lightAlpha": 1,
+        "lightNote": "Light: unchanged; Player - Light keeps the body #262626 (node I2425:13645;491:1733;244:228)."
+      },
+      {
+        "hex": "#000000",
+        "alpha": 0.2,
+        "use": "darkening overlay on the volume gradient and on thumbnail images",
+        "node": "244:214",
+        "lightHex": "#000000",
+        "lightAlpha": 0.2,
+        "lightNote": "Light: unchanged (darkens imagery, not chrome)."
+      },
+      {
+        "hex": "#171717",
+        "alpha": 1,
+        "use": "Home grid card background under thumbnail images (r12)",
+        "node": "6841:14982",
+        "lightHex": "#E1E1E1",
+        "lightAlpha": 1,
+        "lightNote": "Light: mirrors the dark offset from BG/B1 (250 - dark gray level)."
+      },
+      {
+        "hex": "#FFFFFF",
+        "alpha": 0.14,
+        "use": "subtitle-timeline cue blocks on the seek bar (20x24 r1)",
+        "node": "3749:12473",
+        "lightHex": "#000000",
+        "lightAlpha": 0.14,
+        "lightNote": "Light: the white cue tint inverted to black."
+      },
+      {
+        "hex": "#FFFFFF",
+        "alpha": 0.21,
+        "use": "1.5 px stroke around the white color-field swatch (Settings > Subtitles text color)",
+        "node": "3191:18739",
+        "lightHex": "#000000",
+        "lightAlpha": 0.21,
+        "lightNote": "Light: the white swatch outline inverted to black so a white swatch stays visible."
+      },
+      {
+        "hex": "#5C5C5C",
+        "alpha": 0.25,
+        "use": "keycap bottom \"3D\" drop shadow (0,6,0) in Onboarding shortcuts",
+        "node": "1902:7075",
+        "lightHex": "#5C5C5C",
+        "lightAlpha": 0.25,
+        "lightNote": "Light: unchanged (shadow)."
+      },
+      {
+        "hex": "#2D2B29",
+        "alpha": 1,
+        "use": "the video under Player - Light's translucent bars: the frame's image fill (imageRef 6b15ac5a, the same as Player 187:328) reads #2D2B29 in the render at y 42-60 and above the control bar; BG/A3 Transparent (#D5D5D5 @ 0.75) over it is the bars' #ABABAA. The base the pinned Light bars are composed over (D053)",
+        "node": "2425:13624",
+        "lightHex": "#2D2B29",
+        "lightAlpha": 1,
+        "lightNote": "Light: unchanged; it is the video, not chrome (the frame is Player - Light)."
+      }
+    ]
+  },
+  "gradients": {
+    "volumeCone": {
+      "node": "244:214",
+      "type": "linear, left to right across the full 86 px cone",
+      "stops": [
+        {
+          "hex": "#95D318",
+          "rgb": [0.583007, 0.827451, 0.094118],
+          "pos": 0
+        },
+        {
+          "hex": "#B2A918",
+          "rgb": [0.696083, 0.664186, 0.094118],
+          "pos": 0.5788
+        },
+        {
+          "hex": "#D37918",
+          "rgb": [0.827451, 0.474510, 0.094118],
+          "pos": 0.7924
+        },
+        {
+          "hex": "#FF3737",
+          "rgb": [1.0, 0.215013, 0.215013],
+          "pos": 1.0
+        }
+      ],
+      "stopsNote": "rgb and pos are 244:214's paint values (gradientStops); hex is their rounded name. The rounded #95/#B2 reds drew the fill 1-2/255 redder than Figma at every volume.",
+      "overlay": "#000000 @ 0.20",
+      "body": "#262626",
+      "track": "Dark/BG/B2 #090909",
+      "light": {
+        "frame": "Player - Light (2425:13624), instance I2425:13645;491:1733",
+        "overlay": "#FFFFFF @ 0.20 (node I2425:13645;491:1733;244:229, solid paint over the gradient)",
+        "track": "Light/BG/A5 #888888 (node I2425:13645;491:1733;244:226, style 2425:13976; the token bgA5 is corrected for text fields by D032, so the cone keeps the Figma value here)",
+        "note": "The body (244:228) stays #262626 in Player - Light."
+      },
+      "note": "The fill is a clip of fixed width per volume step (see metrics.json volume.fillWidthByStep); the gradient is mapped to the full cone, so higher volume reveals orange/red."
+    },
+    "onboardingSystemTile": {
+      "node": "1902:3991",
+      "stops": [
+        {
+          "hex": "#AFAFAF",
+          "pos": 0.5
+        },
+        {
+          "hex": "#222222",
+          "pos": 0.5
+        }
+      ],
+      "note": "hard diagonal split for the \"System\" theme tile"
+    }
+  }
+}

@@ -1,0 +1,48 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lemelson <97357844+Lemelson@users.noreply.github.com>
+Date: Wed, 14 Oct 2026 15:07:20 +0300
+Subject: [PATCH 5/5] clock: anchor the monotonic fallback on the pause date
+ while paused
+
+When no clock reference exists yet, vlc_clock_monotonic_to_system()
+creates the wait_sync_ref fallback at the current wall time. If this
+happens while paused (references recreated after a paused seek), the
+reference is created at "now" but is shifted again by the whole pause
+length on resume, so the elapsed part of the pause is counted twice.
+
+Public clock API probe: pause at t=11 s, fallback reference created at
+t=13 s, resume at t=14 s. target+250 ms maps to 16.250 s instead of
+14.250 s. In the player, an audio-only WAV seek while paused followed
+by resume scheduled the first AUHAL buffer 3.12 s in the future.
+Ordinary pause/resume without a seek is not affected.
+
+While the main clock is paused, use the frozen pause date as "now" for
+both the PCR delay and the reference date. Playing behaviour, priority
+selection and the clock lock are unchanged.
+
+Depends on the previous clock patch (pause date kept across a reset).
+Test: redesign/patches/engine/tests/test-clock-pause-reset.sh covers
+the late-reference cases (2 failures without this patch) and the
+unpaused controls.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/clock/clock.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/src/clock/clock.c b/src/clock/clock.c
+index 0c87e54..da0bce2 100644
+--- a/src/clock/clock.c
++++ b/src/clock/clock.c
+@@ -677,6 +677,11 @@ vlc_clock_monotonic_to_system(vlc_clock_t *clock, struct vlc_clock_context *ctx,
+      && ctx == main_clock->context
+      && main_clock->first_pcr.system != VLC_TICK_INVALID)
+     {
++        /* A reference created during paused buffering must share the pause
++         * origin; Resume will shift it by the elapsed pause exactly once. */
++        if (main_clock->paused)
++            now = main_clock->pause_date;
++
+         /* XXX: This input_delay calculation is needed until we (finally) get
+          * ride of the input clock. This code is adapted from input_clock.c and
+          * is used to introduce the same delay than the input clock (first PTS

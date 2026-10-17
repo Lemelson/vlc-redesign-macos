@@ -1,0 +1,222 @@
+{
+ "area": "A-window",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "A-window refix round 2. Before continuing, I checked what the stopped refixer had left in HEAD. All four of the verifier's minor items are done and correct in code:\n- The S72 note now cites D046, not D043.\n- `.mxrHelp` adds no empty tooltip for network media.\n- The PiP placeholder icon uses `MXRPlayerMetrics.pictureInPictureIcon` (the 24 pt `Theme.Metric.iconSize` × 2), no longer the play button's width.\n- The A-08 toast is rewritten with ViewThatFits. At 640 pt with the compact library it drops the message and keeps only Continue Watching and close; no more \"You alr…\". I checked the narrow and wide renders by eye.\n\nThe Player-6 gate cause (cross-item 2) was the media fixture. It had 2 queue items with the current one last, so Next was disabled and dimmed, while Player-6 shows Next enabled. The refixer changed it to 3 items. `testShippingWindowMatchesFigmaPlayer6OutsideDocumentedDeviations` now returns PASS in all four regions, and a crop of the transport region matches Figma by eye.\n\nF-06 (cross-item 1) is new in this round: a documented per-entry deviation mechanism for the snapshot tool.\n- `GalleryEntry.figmaDeviations: [FigmaDeviation]` declares two kinds, each with a decision id and a reason:\n  - `.removed(figmaNode, gap:, decision:)` cuts that Figma row or section band out of the reference. The rows below it shift up and are still compared pixel for pixel at their product position. Only the strip the cut uncovers at the bottom of the column is skipped.\n  - `.differs(rect, decision:)` leaves out a rect where the product intentionally draws something else, for example a different default value.\n- `FigmaIndex.applying(_:render:reference:)` applies them, cutting bottom-up and checking that each node descends from the entry's frame. No thresholds were changed.\n- `mxr-snapshot check` applies the deviations, lists them in the report with the share of the canvas not compared, and takes `--ignore-deviations` for raw output.\n- The declarations live in a new file, SettingsFigmaDeviations.swift. Rows removed under D035 are declared in general, general-advanced, interface, privacy, controls, playback, library, network, performance and recording. Product defaults that differ from Figma are declared too: D035 dialogs ON, D030 Continue \"Ask\", D030 Play locally OFF.\n\nS48 results at 2× after declaring:\n- PASS or REVIEW: general, playback, privacy, video, subtitles, controls, library, network, recording.\n- Still FAIL on differences no decision covers: interface, general-advanced, audio, performance, extensions. These are listed in the gate test with XCTExpectFailure (non-strict) and reported below.\n\nNew tests: FigmaDeviationTests (4) and ContinueWatchingToastTests (2). These targeted suites pass: WindowCompositionTests 12, GalleryRenderTests 13, AnchoredPopupPinPolicyTests 3, PlayerProgressRegressionTests 4, OSDLayoutTests 2. My files build with no new warnings.\n\nA-05 (the real-app check) is still open only because no live UI was allowed this wave; its steps are in liveChecks.",
+   "fixed": [
+    "Verifier minor items from the stopped refixer, each checked in code: S72 note now cites D046; mxrHelp adds no empty tooltip; PiP icon uses MXRPlayerMetrics.pictureInPictureIcon (Theme.Metric.iconSize x2, D042); A-08 toast drops the message at narrow widths instead of 'You alr…'",
+    "A-08: new behaviour test ContinueWatchingToastTests checks the drawn size. With room the toast is 552x52; at 350 pt it is only the two actions and fits the video. The old code stretched to 350 and truncated, so it would fail this test",
+    "Cross-item 2: the Player-6 'transport and elapsed time' REVIEW came from the fixture: 2 items with the current one last, so Next was disabled. With 3 items, current second, the test passes in all 4 regions and the crop matches Figma",
+    "Cross-item 1 / F-06: added the per-entry FigmaDeviation mechanism (removed node band, differs rect, each citing an accepted decision) to the tool and the snapshot CLI, plus --ignore-deviations and report lines. Declared it on 10 Settings entries; their 'check' went from FAIL to PASS/REVIEW where only decision-backed differences existed",
+    "F-06 gate tests:\n- testRemovedRowRealignsTheRowsBelowIt: raw FAIL, then not FAIL; excluded pixel count is exact; the Tracks heading compares PASS at its product position.\n- testDeviationsDoNotHideRegressionsOutsideThem: a block drawn into the render still FAILs.\n- testDeviationsCiteAcceptedDecisionsAndOwnNodes.\n- testSettingsCategoriesMatchFigmaOutsideDocumentedDeviations at 2x."
+   ],
+   "notFixed": [
+    {
+     "id": "A-05 runtime",
+     "why": "This wave allows no live UI. Real-window captures, CPU, cursor hiding and PiP are listed in liveChecks."
+    },
+    {
+     "id": "F-06 residual (interface)",
+     "why": "Figma 'Notifications and System Tray' is now 'Menu Bar and Notifications', a macOS term. No DECISIONS entry covers it, so I did not declare it as a deviation, and the gate expects a failure until one exists."
+    },
+    {
+     "id": "F-06 residual (general-advanced)",
+     "why": "The product drops 'Show minor warnings' and 'Additional command line options'. D035 does not list either. F-settings must either restore them or add them to D035."
+    },
+    {
+     "id": "F-06 residual (performance)",
+     "why": "The product drops 'Give VLC real-time priority', 'Rescan plugins' and 'Encoder'. They are not in D035's list."
+    },
+    {
+     "id": "F-06 residual (audio)",
+     "why": "'Target level' is drawn disabled while Normalize loudness is off; Figma draws it enabled. Value units differ too: the product shows '1 %' and '0 dB', Figma '1' and '0.0'. No decision covers either."
+    },
+    {
+     "id": "F-06 residual (extensions)",
+     "why": "'Remove' is disabled when nothing is selected, while Figma shows it enabled. It is reasonable native behaviour but undocumented, and it relates to D045, which is pending."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/FigmaDeviation.swift (new)",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/GalleryCatalog.swift (GalleryEntry.figmaDeviations)",
+    "modules/gui/macosx_redesign/Sources/MXRSnapshot/SnapshotCLI.swift (check applies deviations, --ignore-deviations, report)",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/SettingsFigmaDeviations.swift (new)",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/SettingsGallery.swift (2 one-line figmaDeviations: arguments)",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/FigmaDeviationTests.swift (new)",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/ContinueWatchingToastTests.swift (new)"
+   ],
+   "editsOutsideOwnership": [
+    "Sources/MXRGalleryCatalog/Entries/SettingsGallery.swift (F-settings): two arguments added, `figmaDeviations: figmaDeviations[categoryID] ?? []` on the category entries and `figmaDeviations: figmaDeviations[\"general-advanced\"] ?? []` on general-advanced. The task assigned this edit. The data lives in the new SettingsFigmaDeviations.swift."
+   ],
+   "evidence": [
+    "Renders and checks are under <scratch> s48/ is before deviations, s48d/ after (side-by-side.png shows the cuts and excluded areas as checker), r/ has the toast and window renders and transport.png (Player-6 transport crop against Figma)",
+    "S48 verdicts at 2×:\n- Before: FAIL in 11 of 14.\n- After: PASS/REVIEW for general, playback, privacy, video, subtitles, controls, library, network and recording; FAIL for interface, general-advanced, audio, performance and extensions.",
+    "swift test --filter 'WindowCompositionTests|AnchoredPopupPinPolicyTests|PlayerProgressRegressionTests|GalleryRenderTests|OSDLayoutTests': 34 tests, 0 failures. FigmaDeviationTests: 4 pass, with 5 expected (non-strict) Settings failures. ContinueWatchingToastTests: 2 pass."
+   ],
+   "liveChecks": [
+    {
+     "id": "A-05-S01",
+     "steps": "Install via tools/install-app.sh (integrator). Open a 1080p file in /Applications/VLC Redesign.app at 1920×1080, pause at 00:02:10 and capture the window with screencapture -l.",
+     "expect": "Matches S01.Window/shipping and Player-6 (247:445). Only the documented D022 left and right top-bar differences remain. One 40 pt top bar with centred traffic lights."
+    },
+    {
+     "id": "A-05-S72",
+     "steps": "Set Light theme in Settings > General, open the compact library on The Wand S01 folder while paused, then capture.",
+     "expect": "Bars read about #ABABAA and the compact library about #C2C2C1 over the video (D046); the layout matches S72.Window/light."
+    },
+    {
+     "id": "A-05-queue-hideui",
+     "steps": "Open the queue (S13), capture. Then View > Hide UI, capture.",
+     "expect": "The queue overlays the video on the right, with the OSD left of it. Hide UI shows a thin 10 pt frame and no bars, matching S06.Window/hidden-ui."
+    },
+    {
+     "id": "A-05-cpu",
+     "steps": "Play a 1080p H.264 file for 60 s with the bars shown, then 60 s with Hide UI. Sample CPU with top -pid every 5 s.",
+     "expect": "CPU with the bars shown is within a few percent of Hide UI. The bars add no constant redraw."
+    },
+    {
+     "id": "A-05-cursor",
+     "steps": "Enter fullscreen while playing, leave the mouse still for the auto-hide delay, then move it.",
+     "expect": "The cursor and bars hide after the delay. Moving the mouse brings back the cursor; the top or bottom bar returns only near its edge (D023)."
+    },
+    {
+     "id": "A-05-pip",
+     "steps": "Click the PiP button in the top bar while playing, then click the placeholder in the main window, then close the PiP window.",
+     "expect": "Video moves to the native PiP window. The main window shows the fg2 PiP icon with its caption. Clicking the placeholder or closing PiP returns the video to the main window."
+    },
+    {
+     "id": "A-08-live",
+     "steps": "Reopen a partially watched file with the window at 640 pt wide and the compact library open.",
+     "expect": "The resume toast sits centred in the visible video and shows only Continue Watching and close, with no truncated text. At full width it shows 'You already watched till hh:mm:ss'. Return resumes and the hover holds the toast."
+    }
+   ],
+   "ownerDecisions": [
+    "Pending owner decisions this work depends on: D041 (bars stay visible while paused), D045 (Extensions page per D035, opaque light dialogs, track numbers from 1), the C-09 HDR trade-off and the D033 subtitle-size slider order. The current implementation is unchanged for all of them. D045 affects the extensions Settings gate entry, which stays an expected failure.",
+    "Settings difference not covered by any decision: the Interface category renames 'Notifications and System Tray' to 'Menu Bar and Notifications' (macOS term). A DECISIONS entry would let it be declared as a deviation. The other undocumented Settings differences are F-settings items, listed in notFixed and notesForOthers."
+   ],
+   "notesForOthers": "[\"F-settings: the gate testSettingsCategoriesMatchFigmaOutsideDocumentedDeviations (Tests/MXRUISnapshotTests/FigmaDeviationTests.swift) holds an `openSettingsDifferences` list for interface, general-advanced, audio, performance and extensions. When you fix one or add its decision, either declare it in Sources/MXRGalleryCatalog/Entries/SettingsFigmaDeviations.swift (`.removed(node, decision:)` / `.differs(rect, decision:)`) or fix the product, then remove the entry from the list. Run `.build/debug/mxr-snapshot check --id S48.Settings/<cat>`; it prints the deviations it applied. Privacy still shows ~2 pt vertical offsets on the text-field and button rows (REVIEW).\", \"Integrator: two new test files (FigmaDeviationTests, ContinueWatchingToastTests) and two new source files (MXRGalleryCatalog/FigmaDeviation.swift, Entries/SettingsFigmaDeviations.swift). The Settings gate renders 14 entries at 2× and takes about 40 s. One earlier run died with signal 10, most likely because a concurrent build replaced the test bundle mid-run; the rerun passed.\"]"
+  },
+  {
+   "status": "done",
+   "summary": "A-window refix round 3. I fixed the verifier's major finding and its anchoring minor. The third item belongs to the library owner and is passed on below.\n\n**Major: the Settings gate depended on test order.** I found the root cause by experiment. The `AppleFontSmoothing` setting is read once per process, the first time AppKit is touched: `NSApplication.shared`, any `NSFont`, or measuring a hosting view. A setting made after that changes nothing. Pre-check reruns:\n- the pair `ContinueWatchingToastTests|FigmaDeviationTests` failed every time;\n- `DialogsTests|PanelsTests|<gate>` failed too, so any earlier test that touches AppKit triggers it, not only the toast test.\n\nI tried two ways to apply the setting before every test and dropped both:\n- An early hook in the test bundle. Overriding `defaultTestSuite` makes filtered XCTest runs silently drop the class, which I checked in a scratch package.\n- Turning smoothing off on the drawing context. SwiftUI text ignores it.\n\nThe gate now runs each S48 Settings check in its own `mxr-snapshot check --id … --scale 2` process, four at a time. The CLI applies the setting first thing in main, so the gate's verdict is exactly what the CLI reports. The run time dropped from about 40 s to about 18 s.\n\n**Recording.** Its verdict is now a steady REVIEW (1532 px, the CLI figure). Its differences have no covering decision:\n- '~/Movies' where Figma shows '~/Videos';\n- 'Default (Medium)' where Figma shows 'Medium';\n- ⓘ icons on Include video and Include subtitles.\n\nSo I listed recording in `openSettingsDifferences` with that reason, as the verifier allowed.\n\n**Minor: hard-coded `differs` y positions.** I added `FigmaDeviation.differs(node:outset:)` (kind `.differsAt`). The area left out is the box of a Figma node, moved up by every removed band above it in its column. The general, general-advanced, playback and recording value deviations now point at the Figma Toggle or Dropdown node instead of a rect worked out by hand. They are tighter, too: the playback area is now 320×36 instead of 320×46. The citation check also covers anchored nodes. A new test, `testNodeAnchoredDifferenceFollowsRemovedRows`, checks two things in Recording:\n- the area left out is at the product's toggle position, 147 pt above Figma's (the removed Casting section);\n- the row now drawn at Figma's position is still compared.\n\nI did not edit DECISIONS.md for the D030 product-default citations. That is the owner's and orchestrator's call; see ownerDecisions.\n\nResults:\n- Pair `ContinueWatchingToastTests|FigmaDeviationTests`: passes twice in a row.\n- `ContinueWatchingToastTests|DialogsTests|FigmaDeviationTests`: passes, with DialogsTests touching AppKit first.\n- The full targeted set (WindowComposition, AnchoredPopupPinPolicy, PlayerProgressRegression, GalleryRender, OSDLayout, ContinueWatchingToast, FigmaDeviation): 41 tests, 0 failures.\n- GalleryRenderTests and WindowCompositionTests also pass when DialogsTests and PanelsTests run before them, so only the Settings gate was order-sensitive.\n- `swift build`: clean.",
+   "fixed": [
+    "Major (gate order dependence): the cause is that the font-smoothing setting is read once per process, the first time AppKit is touched, so any earlier test that touches AppKit made recording FAIL. testSettingsCategoriesMatchFigmaOutsideDocumentedDeviations now runs each S48 Settings check in its own mxr-snapshot process (4 in parallel), so it gives the same verdict as the CLI in any order. Checked: the pair passes twice in a row, the run with DialogsTests first passes, and the targeted set is 41/41.",
+    "Major (b) recording: its undocumented differences are listed in openSettingsDifferences with the exact reason: ~/Movies, Default (Medium), and the ⓘ on Include video and Include subtitles. Its verdict is now a steady REVIEW, 1532 px, the same as the CLI.",
+    "Minor (hard-coded differs rects): added FigmaDeviation.differs(node:outset:), placed from the Figma node box minus the removed bands above it. The general, general-advanced, playback and recording deviations now point at the Toggle or Dropdown node: 3046:9900, 3046:9356, 3062:12858 and 6571:16804. New test testNodeAnchoredDifferenceFollowsRemovedRows; the citation and ancestry test also covers anchored nodes."
+   ],
+   "notFixed": [
+    {
+     "id": "Minor D030 citation note",
+     "why": "Adding a DECISIONS.md line that records the product defaults would be a decision entry. I do not own that file and should not decide it. The defaults in question are Continue 'Ask', Play locally OFF and ~/Movies. Listed under ownerDecisions."
+    },
+    {
+     "id": "Minor S12 library row file names",
+     "why": "This belongs to the library area. Passed to the library owner in notesForOthers."
+    },
+    {
+     "id": "Recording undocumented differences",
+     "why": "These are F-settings product details: ~/Movies vs ~/Videos, 'Default (Medium)' vs 'Medium', and the ⓘ on Include video and Include subtitles. They are not in my files. Recording is listed as an open difference until they are fixed or documented."
+    },
+    {
+     "id": "A-05 runtime",
+     "why": "This wave allows no live UI. The checks stay in liveChecks from the previous report: A-05-S01, S72, queue-hideui, cpu, cursor, pip, A-08-live."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/FigmaDeviationTests.swift",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/FigmaDeviation.swift",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/SettingsFigmaDeviations.swift"
+   ],
+   "editsOutsideOwnership": [],
+   "evidence": [
+    "Latch experiment (scratchpad final2/A-window/exp/exp.swift). Ink value when the setting is made before any AppKit use: 154265. When it is made after NSApplication.shared, after an NSFont, or after measuring a hosting controller, the value is unchanged from before: 192356. Setting a no-smoothing CGContext changes nothing either (exp2.swift).",
+    "Scratch XCTest package (exp/pkg): overriding defaultTestSuite makes `swift test --filter 'ATests|ZTests'` skip ZTests entirely, so that hook was rejected.",
+    "Before the fix: `swift test --filter 'DialogsTests|PanelsTests|FigmaDeviationTests/testSettings'` FAILs on S48.Settings/recording. After the fix, the same order with DialogsTests first passes.",
+    "`mxr-snapshot check` with the node-anchored deviations:\n- recording: REVIEW, 12.95 % not compared\n- playback: REVIEW, 4.90 %\n- general: REVIEW, 7.85 %\n- general-advanced: FAIL, open, 3.05 % flat-colour difference\nOutputs are in scratchpad final2/A-window/r3/<cat>/.",
+    "Recording rows compared by eye (r3/recording/rows.png): the product shows ⓘ on Include video and Include subtitles and 'Default (Medium)'; Figma shows plain labels and 'Medium'."
+   ],
+   "liveChecks": [
+    {
+     "id": "A-05-S01",
+     "steps": "Install via tools/install-app.sh (integrator). Open a 1080p file in /Applications/VLC Redesign.app at 1920x1080, pause at 00:02:10, then capture the window with screencapture -l.",
+     "expect": "Matches S01.Window/shipping and Player-6 (247:445) apart from the documented D022 top-bar differences. One 40 pt top bar with centred traffic lights."
+    },
+    {
+     "id": "A-05-cursor",
+     "steps": "Enter fullscreen while playing, leave the mouse still for the auto-hide delay, then move it.",
+     "expect": "The cursor and bars hide after the delay. Moving the mouse brings the cursor back; each bar returns only near its edge (D023)."
+    },
+    {
+     "id": "A-05-pip",
+     "steps": "Click the PiP button in the top bar while playing, then click the placeholder, then close the PiP window.",
+     "expect": "The video moves to native PiP and the main window shows the fg2 PiP icon with its caption. Clicking the placeholder or closing PiP brings the video back."
+    },
+    {
+     "id": "A-08-live",
+     "steps": "Reopen a partially watched file with the window at 640 pt wide and the compact library open.",
+     "expect": "The resume toast is centred in the visible video and shows only Continue Watching and close, with no truncated text. At full width it shows the 'You already watched till' text."
+    }
+   ],
+   "ownerDecisions": [
+    "Pending and unchanged: D041 (pause pin), D045 (extensions page, light dialogs, track numbers), C-09 HDR trade-off (D039), D033 subtitle-size slider order. D045 affects the extensions Settings gate entry, which stays an expected failure.",
+    "Three deviations cite D030 for product defaults that differ from Figma: Continue where you left off 'Ask', Play locally while streaming OFF, and (still undeclared) recording path ~/Movies. A one-line DECISIONS note naming these defaults would make the citation exact; D035 already names the dialogs-ON default.",
+    "Interface 'Menu Bar and Notifications' rename: no decision covers it yet."
+   ],
+   "notesForOthers": "Integrator:\n- testSettingsCategoriesMatchFigmaOutsideDocumentedDeviations now launches `mxr-snapshot` from the same build products directory as the test bundle. `swift build --build-tests` or `swift test` builds it. If the binary is missing, the test fails with an error rather than skipping.\n- Any new pixel-exact Figma gate that renders text in-process can depend on test order. Font smoothing is set once per process, by whichever test first touches AppKit (NSApplication, any NSFont). Such a gate should run through mxr-snapshot as this one does.\n\nF-settings: S48.Settings/recording is now in openSettingsDifferences:\n- '~/Movies' vs Figma '~/Videos'\n- 'Default (Medium)' vs 'Medium'\n- ⓘ icons on Include video and Include subtitles that Figma does not have.\nFix these or document them, then remove the entry. A changed product default can be declared with `.differs(node: <Figma control node>, decision:)` in SettingsFigmaDeviations.swift.\n\nLibrary owner: in S12.Window/continue-narrow, the compact library rows show the raw file name 'The_Wand_S01E…' with underscores, while the top-bar title is clean (A-04)."
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "Tests/MXRUISnapshotTests/FigmaDeviationTests.swift openSettingsDifferences",
+    "description": "Six S48 Settings entries are non-strict expected failures: general-advanced, interface, audio, performance, extensions and recording. While they stay open, the gate cannot catch a new regression in those six categories. Each reason is specific and I checked general-advanced by eye: Show minor warnings and Additional command line options really are missing. F-settings or the owner still has to close these entries."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Player/PlayerView.swift MXRContinueWatchingToast",
+    "description": "ViewThatFits falls back to the actions-only toast. If the video is narrower than that layout (about 400 pt), the toast overflows instead of shrinking further. This does not happen in any state the gallery covers. The 640 pt window with the compact library renders correctly."
+   },
+   {
+    "severity": "minor",
+    "where": "S12.Window/continue-narrow (library area)",
+    "description": "The compact library rows show the raw file name 'The_Wand_S01E…' with underscores, while the top-bar title is clean. This belongs to the library owner, and the fixer already passed it on."
+   }
+  ],
+  "summary": "A-window round 3 holds up: no blocker or major issue that code, tests or renders can establish. The only remaining part is the real-window check for A-05, which goes to liveChecks.\n\n**Build and tests**\n- `swift build --build-tests` is clean.\n- Order test: I ran `ContinueWatchingToastTests`, `DialogsTests`, `FigmaDeviationTests` and `PanelsTests` together. `DialogsTests` touches AppKit before the gate runs, and all 32 tests passed. The Settings gate no longer depends on test order, because each check runs in its own mxr-snapshot process.\n- Targeted set: `WindowCompositionTests` (12), `AnchoredPopupPinPolicyTests` (3), `PlayerProgressRegressionTests` (4), `GalleryRenderTests` (13) and `OSDLayoutTests` (2). All 34 passed.\n- Logs are in `<scratch>`.\n\n**Cross-area items**\n- **(1) F-06 deviation mechanism.** `FigmaDeviation` supports three kinds of deviation:\n  - `removed`: a Figma row the product leaves out; it is cut from the reference and the rows below are still compared.\n  - `differs`: a rect where the product draws something else.\n  - `differsAt`: the same, anchored to a Figma node and moved up by the rows removed above it.\n  \n  Every deviation must cite an accepted decision, and a test checks that each one does and that each anchored node belongs to the entry's Figma frame. Another test draws a wrong block outside every declared area and confirms the check still FAILs. There is no global threshold change. The edit to SettingsGallery.swift is minimal.\n  \n  My CLI runs gave these verdicts:\n  - recording: REVIEW\n  - playback: REVIEW\n  - general: REVIEW\n  - general-advanced: FAIL. This is a real open difference: I looked at the side-by-side, and Show minor warnings and Additional command line options are missing.\n  - performance: FAIL, listed as open with its reason.\n- **(2) Player-6 transport region.** The strict test now gets a PASS for \"transport and elapsed time\" and the other three regions. The whole-entry check still reports FAIL at the playhead (346,1040). That is the documented position difference: Figma's own times put the playhead at 8.4 %.\n- **(3) A-08 resume toast.** I rendered S12.Window/continue-narrow and looked at it. The toast now shows only Continue Watching and close, sits in the middle of the visible video to the right of the compact library, and nothing is truncated. A test measures the toast's real fitted size at the narrow and wide widths.\n\n**Earlier minor issues are fixed**\n- The title tooltip uses `mxrHelp(optional)`, so non-file media no longer get an empty tooltip.\n- The PiP icon has its own metric, `MXRPlayerMetrics.pictureInPictureIcon`.\n- The S72 note now cites D046 instead of the superseded D043.\n\n**Hard rules**\n- No engine edits: `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty.\n- No literal design values were added.\n- No masks or thresholds hide differences.",
+  "liveChecks": [
+   {
+    "id": "A-05-S01",
+    "steps": "The integrator runs tools/install-app.sh under lock.sh on an idle Mac. Open a 1080p file in /Applications/VLC Redesign.app at 1920x1080, pause at 00:02:10, and capture the window with screencapture -l.",
+    "expect": "The capture matches S01.Window/shipping and Player-6 (247:445), apart from the D022 top-bar differences. There is one 40 pt top bar with centred traffic lights."
+   },
+   {
+    "id": "A-05-cpu",
+    "steps": "Play 1080p media for 60 s with the bars shown, then for 60 s with Hide UI on. Sample the CPU with top -pid.",
+    "expect": "CPU with the bars shown is not much higher than with Hide UI on: no constant redraw while idle."
+   },
+   {
+    "id": "A-05-cursor",
+    "steps": "Enter fullscreen while playing, keep the mouse still for the auto-hide delay, then move it.",
+    "expect": "The cursor and the bars hide after the delay. Moving the mouse brings the cursor back, and each bar returns only when the pointer is near its edge (D023)."
+   },
+   {
+    "id": "A-05-pip",
+    "steps": "While playing, click PiP in the top bar. Then click the placeholder. Then close the PiP window.",
+    "expect": "The video moves into the native PiP window, and the main window shows the fg2 PiP icon with its caption. Clicking the placeholder or closing PiP brings the video back."
+   },
+   {
+    "id": "A-08-live",
+    "steps": "Reopen a partially watched file with the window 640 pt wide and the compact library open. Then widen the window to full width.",
+    "expect": "At 640 pt the resume toast is centred in the visible video and shows only Continue Watching and close, with nothing truncated. At full width it also shows 'You already watched till <time>'."
+   }
+  ],
+  "ownerDecisions": [
+   "D041 pause pin, D045 (extensions page, opaque light dialogs, track numbers from 1), the C-09 HDR trade-off (D039) and the D033 subtitle-size slider order are still pending and unchanged.",
+   "The D030 citations for the product defaults that differ from Figma: Continue 'Ask', Play locally while streaming OFF, and the recording path ~/Movies. A DECISIONS.md line naming these defaults would make the citations exact.",
+   "The rename to 'Menu Bar and Notifications' has no decision yet. It is open in the Settings gate."
+  ]
+ }
+}

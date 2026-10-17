@@ -1,0 +1,146 @@
+{
+ "codexAssessment": "I reviewed this area read-only on claude/final (HEAD a215064366). Most of Codex's fixes here are real and aimed at the root cause. I found no wave-1 regression in this area.\n\nWhat is correct:\n- LIBSET-01, LIBSET-07 and LIBSET-V01 (startup profile rollback). ProfileStore.connect no longer replays the profile. It refreshes the active profile from the engine. Profiles are filtered to SettingsCatalog.referencedOptions minus macosx-redesign-key-*, and legacy profiles.json is migrated on load. This is documented as D037 and matches what the Claude audit asked for.\n- SET-01 (subtitle delay units). A general engineUnitsPerUnit field converts seconds to deciseconds both ways, with step 0.1 and rounding. This is minimal and correct; the integer bridge accepts the rounded float.\n- SET-03 (playback order). The live playlist and player setters are now in MXRServicesBridge setConfig and apply by option name. The new apply:{live:\"playlist\"} entries in settings-map.json5 are only labels; the bridge never reads them.\n- SET-05 (profile switch and hotkeys). This is now mostly moot because profiles no longer carry key-* options, and key-*/global-key-* writes raise the Shortcuts topic.\n- SET-06. The help text now matches the confirmation.\n- PNL-02 (presets keep Automatic). Correct, plus a heuristic to recover legacy presets.\n- COMP-V01 (info popup). The Settings ⓘ uses the design popup.\n- COMP-06. The dead \"Rescan plugins\" row is removed.\n- CODE-06 (part). Audio and camera device lists moved into a typed backend worker; the Capture dialog uses it too.\n- Settings→Keyboard Shortcuts return. The route moved from MXRDialogHost into InterfaceModel.present/dismissSheet and works, including Esc and ⌘W.\n\nWhat is weak or wrong:\n- COMP-04 (Esc while recording a shortcut) was marked \"not reproduced\" using a test that calls NSWindow.sendEvent directly. That skips NSApplication's key-equivalent pass, which is exactly where the bug lives. Per code, the responder's performKeyEquivalent still records any plain key, including Esc and Delete. Codex did not build or launch the app, so this is unverified at runtime.\n- COMP-10 (extensions). Codex disabled what does not work but left \"unavailable in this VLC build\" text and permanently disabled buttons on screen. D035 forbids exactly that.\n- COMP-V01 only fixed one of two NSPopovers: the \"Find more extensions\" catalog still uses SwiftUI .popover with an arrow.\n- SET-08 and SET-09 (remembered subtitles) are correct but over-engineered. There are Task.isCancelled checks after almost every in-memory operation, an actor that runs blocking FileManager reads on the cooperative thread pool, and dead legacy code: isAutodetected is now unused, and the files dictionary is still written next to fileSelections.\n- SET-07 (failed save) is only half done. A save failure becomes a generic operation error, but Settings has no dirty or failed state and still shows \"Settings restored to their defaults.\" before the save even runs.\n- LIBSET-05 (Settings gallery check) was honestly left as not done. 10 of 13 categories still FAIL in mxr-snapshot check. When I look at them, the failures are almost entirely rows removed under D035. The visual gate is therefore useless as a regression check for Settings.\n\nI also found real bugs in this area that were not in Codex's scope (track-number rows showing \"-1\", raw file URL in Media Info). These are listed below.\n\nDesign parity, from my renders: Settings dark (all categories), Subtitles, Keyboard Shortcuts, Add Subtitles (folder, file, results) and the Profile submenu match Figma closely once D035/D034 decisions are accounted for. Light theme (LIBSET-04) is still not accepted and needs a real window screenshot.\n\nNot done:\n- No live run. The installed /Applications/VLC Redesign.app dates from Oct 15 04:32 and predates a215064366, and rebuilding while 10 agents edit the tree would not show a coherent state.\n- I did not trace SET-02 or SET-10; they live mainly in bridge and player code.\n\nMy renders are in <scratch>",
+ "confirmed": [
+  {
+   "id": "F-01",
+   "severity": "major",
+   "title": "Shortcut recorder records plain Esc/Delete as hotkeys via performKeyEquivalent; Codex test bypasses that path",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Settings/MXRKeyboardShortcutsView.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/ModalCaptureTests.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/SettingsUITests.swift"
+   ],
+   "evidence": "MXRKeyboardShortcutsView.swift:290-297: performKeyEquivalent, when first responder, records any KeyBinding(event:) except ⌘Q. It does not special-case keyCode 53 or 51/117, and it does not check isARepeat. ShortcutValues.swift:119 maps 0x35 to \"Esc\" and 0x33 to \"Backspace\". NSApplication.sendEvent offers every keyDown to keyWindow.performKeyEquivalent before keyDown. Plain-key equivalents such as Esc and Return on buttons work through that path. So in the app, plain Esc and Delete are recorded and the keyDown cases at 284-287 are dead. While recording, MXRDialogHost.closeKeys (line 58) removes the .cancelAction button, so nothing else takes Esc. ModalCaptureTests calls window.sendEvent, which goes straight to keyDown. SettingsUITests:141-150 call keyDown directly. Neither test reaches the real path. AUDIT_FIXES marks COMP-04 as 'О не воспроизведено'.",
+   "fix": "Add one private handle(_ event:) -> Bool with the keyDown switch: skip isARepeat; plain 53 → finish{cancel}; plain 51/117 → finish{capture(nil)}; ⌘Q → return false; otherwise record. Call it from both keyDown and performKeyEquivalent (after the firstResponder/keyDown guard), and have performKeyEquivalent return its result. Replace the ModalCaptureTests body with window.performKeyEquivalent(with: esc/delete) and assert cancel / capture(nil), plus a test that a repeat is ignored. Verify live under the lock and idle rule: Settings → Controls → record → Esc leaves the old binding, and Delete shows None."
+  },
+  {
+   "id": "F-02",
+   "severity": "major",
+   "title": "Default audio/subtitle track rows show raw engine -1 and treat VLC's 0-based stream index as a track number",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRCore/Resources/settings-map.json5",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Settings/SettingsControls.swift",
+    "modules/gui/macosx_redesign/Sources/MXRCore/Models/SettingsModel.swift"
+   ],
+   "evidence": "settings-map.json5:189-190 define control:number, min -1, mock:1, and the help text 'The track number…'. src/libvlc-module.c:1861/1864 register default -1, a 0-based stream index. SettingsTextEditor.reload (SettingsControls.swift:216-223) shows settings.string(row) unchanged, so a clean config shows '-1', and typing 1 picks the second stream. The S48.Settings/playback check side-by-side (scratchpad F-settings-triage/playback) shows '1' only because of the mock value, which goes against D030. Figma (spec-part2:410) shows '1' for the first track.",
+   "fix": "Add an index offset to the row (for example displayOffset: 1 in the map, read in SettingsModel/SettingsValueEditing.number), so the field shows engine+1 and writes input-1. Show -1 as an empty field with the placeholder 'Auto' (row.placeholder), and treat empty input as writing -1. Valid display range: 1…100. Change the help text to 'Which audio track to play first when a file has several. Auto uses the preferred language.' (subtitles likewise). Set the mock to the product default -1, or to 0 if a Figma-state fixture must show '1', and name it as such."
+  },
+  {
+   "id": "F-03",
+   "severity": "major",
+   "title": "Extensions page shows 'unavailable' reasons and dead Find/Add/Remove buttons; dialog-needing extensions get a disabled toggle with an explanation",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Settings/SettingsExtensionsView.swift"
+   ],
+   "evidence": "SettingsExtensionsView.swift:20-27 and 102-105 render the availability reasons as caption text under the button bar. Lines 79-94 keep Find more/Add/Remove visible but .disabled. The bridge reports addons:@NO (MXRServicesBridge.m:755), so the shipping app always shows a dead 'Find more extensions' button and the catalog message. Lines 40 and 51-54 show a disabled toggle plus reason text for extensions that need a dialog. D035 says nothing is listed as unavailable. Codex's D039 (accepted 2026-10-15) says to disable activation 'with an explanation', which contradicts D035. Report this to the owner rather than silently overriding it. D039 does not cover the catalog or folder messages.",
+   "fix": "Delete unavailableMessages and its ForEach. Wrap each button in `if extensions.availability(for: op).isAvailable` (Remove: also hide it when nothing removable is selected, or keep it disabled only for 'no selection'). Drop the inline reason Text at line 40. For extensions whose activation is unavailable because they need a dialog provider, leave them out of filteredExtensions until the provider exists. Flag the D035/D039 conflict in DECISIONS for the owner. Implementing the Lua extension-dialog provider is the real fix, but it is a large item, so track it separately."
+  },
+  {
+   "id": "F-04",
+   "severity": "minor",
+   "title": "'Find more extensions' catalog still uses an arrowed NSPopover (D024)",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Settings/SettingsExtensionsView.swift"
+   ],
+   "evidence": "SettingsExtensionsView.swift:109 `.popover(isPresented: $showsCatalog)` with .background(Theme.Color.bgA1). D024 says 'No NSPopover arrows anywhere'. Codex fixed only the ⓘ popover (MXRSettingsView). In the shipping app the button is disabled (addons:@NO), so users see this only when the catalog is supported.",
+   "fix": "Replace it with .mxrPopup(isPresented: $showsCatalog, surface: …) using the same surface as the Settings ⓘ popup, or with an in-place panel in the extensions detail like the module browser. No arrow, Theme.Color.bgA1 surface, fade+slide motion per D024. If F-03 hides the button when addons are unsupported, keep this fix for builds that support the catalog."
+  },
+  {
+   "id": "F-05",
+   "severity": "minor",
+   "title": "Subtitle folder lookup: excessive cancellation checks, blocking I/O on an actor in the cooperative pool, dead isAutodetected, double-written legacy map",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRCore/Settings/SubtitleFolderRules.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/DialogInput.swift"
+   ],
+   "evidence": "SubtitleFolderRules.swift:56-110 has about 14 Task.isCancelled checks inside in-memory loops, and files(in:) at line 147 throws checkCancellation inside the sort. isAutodetected (line 124) has no callers in Sources or Tests. remember() writes both fileSelections (40) and the legacy files map (41). DialogInput.swift:111-127: the actor SubtitleFilesystemWorker runs FileManager reads synchronously on a cooperative-pool thread from a Task.detached.",
+   "fix": "Keep one cancellation check before the directory read and one after it in files(in:). Remove the checks from the loops and the sort. Delete isAutodetected. In load(from:), migrate files[path] into fileSelections[path] once, then stop writing files (keep it decode-only). Replace the actor with a private serial DispatchQueue wrapped in withCheckedContinuation inside withTaskCancellationHandler."
+  },
+  {
+   "id": "F-06",
+   "severity": "minor",
+   "title": "Settings Figma checks FAIL in most categories, mostly from D035 row removals, so the gate catches no regressions; one real row difference is hidden in the noise",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/SettingsGallery.swift",
+    "modules/gui/macosx_redesign/Sources/MXRCore/Resources/settings-map.json5"
+   ],
+   "evidence": "Ran check on S48.Settings/playback: FAIL 8.41% (and audio FAIL 1.17%). The playback side-by-side shows the difference is mainly the D035-removed 'Pause when another app uses audio' row shifting the content below it, plus the product default 'Ask' against Figma 'Always' (allowed under D030). It also shows a real mismatch: Figma has an ⓘ on 'When playback finishes' and the product has none, because settings-map.json5:201 has no info. S48.Settings/extensions-unavailable has no figmaNode.",
+   "fix": "Add the missing info to the when-finished row, for example 'What happens after the last item in the queue.'. Make the gate D035-aware without thresholds: add per-entry compare regions to SettingsGallery entries covering the sections D035 does not touch (the comparison tool is outside this area, so coordinate with its owner), then require PASS/REVIEW for every S48 entry with a figmaNode."
+  },
+  {
+   "id": "F-07",
+   "severity": "minor",
+   "title": "Media Info shows the raw percent-encoded MRL as Location",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/MediaInfoDialogs.swift"
+   ],
+   "evidence": "MediaInfoDialogs.swift:18 `info(\"Location\", media.mrl)`. That shows file:///…%20… in a user-facing dialog. The reviewer's claim about the Close button position is not supported: this view has no Close button of its own (DialogShell owns the chrome), so that part is dropped.",
+   "fix": "Add a computed location string. For a file URL, use (url.path as NSString).abbreviatingWithTildeInPath, or the parent folder plus a 'Show in Finder' text button (NSWorkspace.activateFileViewerSelecting). For other schemes, use url.absoluteString.removingPercentEncoding ?? mrl. Keep .textSelection(.enabled)."
+  },
+  {
+   "id": "F-08",
+   "severity": "minor",
+   "title": "Dialog host leaves the content behind the scrim reachable by VoiceOver and Full Keyboard Access",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/MXRDialogHost.swift"
+   ],
+   "evidence": "MXRDialogHost.swift:21-34: only the dialog frame gets .accessibilityAddTraits(.isModal). `content` (the player and library) is neither accessibilityHidden nor disabled. The scrim blocks the mouse only, so focusable controls (mxrKeyboardFocusable seek and volume) stay in the Tab and VoiceOver order.",
+   "fix": "In body, before .overlay, apply `.accessibilityHidden(app.interface.sheet != nil)` and `.disabled(app.interface.sheet != nil)` to content (both inside the overlay-less part, so the dialog is unaffected). Make sure video rendering and playback are not paused by .disabled. Add a UI test that the focusable seek bar is not reachable while a sheet is up."
+  },
+  {
+   "id": "F-09",
+   "severity": "minor",
+   "title": "Profile Delete runs immediately with no confirmation, uses a native contextMenu (D025), and orphans the profile's layouts",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Customization/MXRProfilesView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRCore/Stores/AppStores.swift",
+    "modules/gui/macosx_redesign/Sources/MXRCore/Stores/LayoutStore.swift"
+   ],
+   "evidence": "MXRProfilesView.swift:79-87: `.contextMenu { … Button(\"Delete\", role: .destructive) { MXRProfileEditing.delete } }`. MXRProfileEditing.delete (115-118) calls ProfileStore.delete (AppStores.swift:259-264), which removes and persists immediately. LayoutStore keys layouts by \"<profileID>/<kind>\" (LayoutStore.swift:247), and nothing removes them. D035 says 'Destructive resets ask first', and D025 says menus are design cards. MXRProfilesView and LayoutStore are outside F-settings ownership.",
+   "fix": "Present the row menu with .mxrPopup using the contextMenu surface (Theme.Metric.Menus.contextMenuRow). Route Delete through the existing confirmation sheet: title 'Delete Profile “X”?', body 'Its settings and player layout are removed.', buttons Cancel / Delete (destructive). On confirm, call ProfileStore.delete plus a new LayoutStore.removeLayouts(profileID:) that drops both kinds. Coordinate with the Customization owner."
+  },
+  {
+   "id": "F-11",
+   "severity": "minor",
+   "title": "Device hot-plug reuses SettingsEvent.reloaded (re-snapshots and persists profiles.json); device fetch is started from the view body",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRVLCBackend/VLCSettingsBackend.swift",
+    "modules/gui/macosx_redesign/Sources/MXRCore/Models/SettingsModel.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Settings/MXRSettingsView.swift"
+   ],
+   "evidence": "VLCSettingsBackend.swift:72-73 maps .playerDevices to events.send(.reloaded). AppModel.swift:378 handles .reloaded with profiles.captureCurrentSettings(), which writes profiles.json (AppStores.swift:231-235). AppearanceAndPreviewModels.swift:35 also reloads. SettingsModel.deviceChoices(for:) (46-62) creates a Task while the view body is evaluated. The stale list is kept while it refreshes, so only the first open shows the fallback.",
+   "fix": "Add SettingsEvent.devicesChanged. Send it for .playerDevices; SettingsModel invalidates only its device cache on it, and AppModel and AppearanceModel ignore it. Change deviceChoices(for:) to a pure read, and add `func loadDeviceChoices(for:) async` awaited from MXRSettingsView.task (line 93) for the kinds whose rows are visible."
+  },
+  {
+   "id": "F-12",
+   "severity": "minor",
+   "title": "Light-theme Settings content pane renders as muddy grey with the cone artwork showing through",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Settings/MXRSettingsView.swift"
+   ],
+   "evidence": "Rendered S48.App/settings-light with --engine shipping-window (scratchpad F-settings-triage/app-settings-light.png). The content pane is about #BDBDBD with the pixel cone clearly visible. The cause is MXRSettingsView.swift:86/169 using the Light bgB1Transparent token (#E7E7E7 @ 0.8, colors.json:478) over the dark player and scrim, so it mixes to mid-grey. A real window's blur would not lighten it, so this is probably not just an offscreen artefact. Figma has no light Settings frame, and the 17m44 video frame is mid-transition (still dark), so it does not support a 'solid light-grey' claim either way.",
+   "fix": "Under the lock and idle rule, set Theme Light and capture the real window with screencapture -l. If it is confirmed, use an opaque light surface (Light bgB1, #E7E7E7, alpha 1) for the Settings and Add Subtitles dialog bodies in Light only (Theme token change scoped to the light scheme), and record it as a D032 addendum."
+  },
+  {
+   "id": "F-13",
+   "severity": "minor",
+   "title": "File-name title bar includes the extension and underscores, unlike Figma's title bar",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRCore/App/AppModel+Preferences.swift"
+   ],
+   "evidence": "AppModel+Preferences.swift:40-44 returns url.lastPathComponent. In Figma, the centred title text in the Player title bar is 'The Wand S01E04', 'The Wand S01E11' and 'untangle' (no extension) for files named 'The_Wand_S01E04.mp4' and 'The Wand_S01E04.mp4' elsewhere in the file. The video shows 'Don't Look Up >:('. Spec-part2:394 has 'Show the file name in the title bar' defaulting to ON.",
+   "fix": "Return url.deletingPathExtension().lastPathComponent, decoded by URL, when it is not empty. Keep representedURL or the proxy icon on the window with the full file. Record this in DECISIONS as a deliberate deviation from VLC's full-filename title. Update the test that expects the extension."
+  },
+  {
+   "id": "F-14",
+   "severity": "minor",
+   "title": "apply:{live:\"playlist\"} in settings-map is never read; the bridge hard-codes the playlist options by name",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRCore/Resources/settings-map.json5",
+    "modules/gui/macosx_redesign/Sources/MXRCore/Settings/SettingsCatalog.swift"
+   ],
+   "evidence": "Four rows use live:\"playlist\" (json5:199-201 and Repeat). MXRServicesBridge.m:1322 applies loop, repeat, random and play-and-* by name, and lines 1340-1342 handle only instance, aout and vout. SettingsCatalog.swift:163 documents \"playlist\" as an apply scope.",
+   "fix": "The smallest change is to remove apply:{live:\"playlist\"} from the four rows and \"playlist\" from the SettingsCatalog doc comment, and add a comment that playlist order options are applied live by the bridge. Alternatively, the bridge owner can switch line 1322 to `[apply isEqual:@\"playlist\"]`, which is out of this area."
+  }
+ ]
+}

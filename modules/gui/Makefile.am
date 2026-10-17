@@ -32,4 +32,5 @@ EXTRA_LTLIBRARIES += libminimal_macosx_plugin.la
 gui_PLUGINS += $(LTLIBminimal_macosx)
 
 include gui/macosx/Makefile.am
+include gui/macosx_redesign/Makefile.am
 include gui/skins2/Makefile.am

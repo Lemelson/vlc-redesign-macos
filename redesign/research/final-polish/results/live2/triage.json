@@ -1,0 +1,331 @@
+{
+ "summary": "Triage of live-acceptance wave final5. I spot-checked the evidence (the 4 crash .ips files, crumb-widths.png, the customize before/after crop, dq-pair.png) and the suspected code paths at HEAD ddd9d23a9d. The working tree still has many uncommitted polish-wave edits, so some items may already be fixed in source. Every re-check needs a fresh install after the wave commits.\n\nTwo builds were tested:\n- Groups 0-2: bundle mtime 1792196668 (03:24 install).\n- Groups 6-11: bundle mtime 1792204890 (05:41:30 reinstall). Groups 8, 9 and 10 call this the \"03:24\" install, but the mtime shows it is the 05:41 one.\n\nMost FAILs are real product defects:\n- **Crashes (confirmed):** both crash pairs are reproducible app crashes with the same stack each time. One is in MXREffectsServices writeOptions → var_SetChecked → TriggerFilterCallback. The other is a SwiftUI TooltipBridge hit-test on a freed responder.\n- **Convert Replace (confirmed in code):** the alert's isPresented setter calls keepExistingFile() before the Replace action runs (OpenMediaDialogs.swift:530-531 together with replace() at :450).\n- **Customize (confirmed):** the crop proves that opening Customize switches the video to aspect-fill.\n- **Breadcrumb (confirmed):** at 680 pt it falls back to the 0-crumb row, though the code comment intends a truncated current crumb.\n- **Drag to queue (plausible):** dq-pair.png shows the queue reduced to 1 item. The drag was synthetic, so it stays PLAUSIBLE until confirmed by hand.\n\nRe-classified:\n- **D-shadow-pip-wording:** shadow and PiP pass. The failure was only that the ⋯ PiP path is missing from the default layout, so the check text is stale. What is left is a minor 'This Mac' vs 'Local' wording defect.\n- **D-disabled-submenus:** the Speed half is a harness artefact (the test stream was not fixed-rate). The only defect is that Keyboard Shortcuts… stays enabled behind Settings (minor).\n- **S25-scrim-blur:** the \"scrim darkens\" expectation conflicts with the D035 amendment. The owner needs to decide; it is not a defect.\n- **H-customize-video-visible:** the dialog body opacity (#10 vs #18) is the offscreen-blur limit already recorded in parity.json, so it is an owner/design call. The fill/crop switch is a real defect.\n- **H-customize-tiles:** passes against the Figma render. The check wording (\"level with\") needs correcting.\n- **G-S20-sliders:** downgraded to minor. Only the cue already on screen keeps its old size; new cues follow the setting.\n\nTotals:\n- 2 blockers (both crashes).\n- 10 majors: Repeat One does not loop, bookmarks fail silently for media not in the library, drag to queue replaces the queue, arrow keys do not move the library selection, the minimum window size is not enforced, the mini player does not scale, Convert Replace does nothing, the HTTP stream is not paced, Convert/Stream mark the source as played, and the C4 motion asymmetry. C4 is kept as major because it is an owner complaint, even though its visual severity is minor.\n- Many minors.\n\nOwner complaints from group 1 (A-fs-exit-windowed and the fullscreen checks) are still unrun. Groups 3-5 never ran because the Mac was in use.",
+ "fixes": [
+  {
+   "area": "G-panels / J-media-io",
+   "severity": "blocker",
+   "title": "Crash on fast Brightness drag (Essential card)",
+   "observed": "2 of 4 fast drags out and back crashed the app with EXC_BAD_ACCESS (SIGBUS, then SIGSEGV). Top of stack: vlc_mutex_lock ← Lookup ← var_SetChecked ← TriggerFilterCallback ← var_SetChecked ← -[MXREffectsServices writeOptions:target:] ← VLCPlayerBackend.send. After the crash the app relaunched and the playback position was lost.",
+   "expected": "Slider drags never crash, and the final picture matches the slider.",
+   "evidence": "../build/evidence/final5/live/6-panels/crash/VLC-2026-10-17-081449.ips, VLC-2026-10-17-081548.ips (stacks verified identical in triage)",
+   "cause": "modules/gui/macosx_redesign/module/bridge/MXREffectsServices.m:199-215 (writeOptions) together with the setVideoEffects branch (:244-259). Each update toggles filters['adjust'] = isEnabled and rewrites video-filter, then var_Set*s the adjust options on the vout. The vout proxies those variables to the adjust filter instance, which the chain rebuild just freed. The fix is to coalesce or serialize the updates, avoid rebuilding the chain when only the values change, and keep adjust in the chain while the drag is in progress.",
+   "build": "1792204890 (05:41 install)",
+   "recheck": "Play S01E03 and open the gear sidebar ▸ Video ▸ Essential. Drag Brightness quickly left and right back to its start value 10 times. Expect no crash (no new ~/Library/Logs/DiagnosticReports/VLC-*.ips) and a neutral picture."
+  },
+  {
+   "area": "J-media-io / E-library",
+   "severity": "blocker",
+   "title": "Crash when playing an http Network item from its card",
+   "observed": "Choosing Play on an http:// Network card (served by a local python http server) started the GETs and then crashed the app, 2 of 2. The main thread was in SwiftUI TooltipBridge.responder(at:) → ViewResponder.hitTest → NSViewResponder.platformCurrentEvent → objc_opt_class on a freed object (0x1e). Playing a local item the same way does not crash.",
+   "expected": "The http item plays in the player with no crash.",
+   "evidence": "../build/evidence/final5/live/7-library/crash/VLC-2026-10-17-085212.ips, VLC-2026-10-17-085249.ips (verified); shots/nw13-small.png",
+   "cause": "A .help() tooltip on the Network card or its context menu is hit-tested after its view is torn down, when playback starts and the library or mini player re-renders. Look in Sources/MXRUI/Library (Network card / context menu .help) and at the full-library → player transition. Workarounds: drop .help from transient context-menu content, or defer the library teardown until the menu has closed.",
+   "build": "1792204890",
+   "recheck": "Run python3 -m http.server in the media folder. In the library use Network ▸ Open Network Stream with http://127.0.0.1:8000/Test%20Show%20S01E01.mp4 and Save. Right-click the card ▸ Play, twice (relaunch in between). Expect it to play with no crash report."
+  },
+  {
+   "area": "B-player / C-bridge",
+   "severity": "major",
+   "title": "Repeat does not loop a single item",
+   "observed": "With Playback ▸ Repeat checked (the queue's repeat icon orange) and only S01E03 in the queue, playback stops at 09:59 and does not restart. Seen 2/2: once from natural play to the end, once after seeking to 98%.",
+   "expected": "With Repeat on, the item restarts from 0:00 at its end.",
+   "evidence": "../build/evidence/final5/live/10-menus-osd-engine/shots/rep-queue-crop.png, rep-bars.png, rep-after.png; rss.log (CPU drops to 0 at 09:59:56)",
+   "cause": "modules/gui/macosx_redesign/Sources/MXRCore/Values/QueueValues.swift repeat mapping (off/all/one → vlc_playlist_playback_repeat): the menu's Repeat probably maps to a value that does not loop a 1-item queue, or the end-of-media handling in PlayerModel stops the player before the playlist can loop.",
+   "build": "1792204890",
+   "recheck": "Queue only S01E01 (60 s), turn on Playback ▸ Repeat, seek to 0:55. Expect it to restart at 0:00. Then also run the 10-min RSS loop from C-startup-memory."
+  },
+  {
+   "area": "G-panels / E-library",
+   "severity": "major",
+   "title": "Bookmarks silently fail for media not in the media library",
+   "observed": "For S01E03 (opened via open -a, not in the ML), ⌘B and the Bookmarks tab's + both show the OSD 'Bookmark added' but nothing is stored: the tab shows 0 Bookmarks and the ML Bookmark table is empty. With S01E01 (in the ML) the whole flow works.",
+   "expected": "⌘B adds a bookmark for any playing local file, and the OSD reports success only when it worked.",
+   "evidence": "../build/evidence/final5/live/6-panels/shots/bm-01-cmdb-s.png, bm-03-list-c.png, bm-04-plus-c.png, bm-05-e01-c.png",
+   "cause": "The bookmark backend writes through vlc_ml bookmarks for a media id that does not exist, and the ⌘B handler shows the OSD without checking the result. Add the media to the ML on demand (or fall back to input bookmarks) and show the OSD only on success. See Sources/MXRCore (bookmark command / QueueAndLibraryBackends.swift).",
+   "build": "1792204890",
+   "recheck": "Copy a clip to a folder that is not indexed and open it with open -a. Press ⌘B twice and open the queue ▸ Bookmarks. Expect 2 bookmarks. Clicking one seeks to it."
+  },
+  {
+   "area": "G-panels / E-library",
+   "severity": "major",
+   "title": "Dragging a library row onto the queue replaces the queue and plays the row",
+   "observed": "3 synthetic drags (dropped below the last row, between rows, and a slow 2 s drag) from the compact library onto the open 3-item queue. Each time the queue became '1 item' with the dragged file playing. Verified in dq-pair.png. Synthetic CGEvent drag, so marked PLAUSIBLE.",
+   "expected": "The row is appended, or inserted at the drop point (VIDEO_BREAKDOWN §10 MUST).",
+   "evidence": "../build/evidence/final5/live/6-panels/shots/dq-02-s.png, dq-pair.png, dq-06-slow-s.png",
+   "cause": "The queue list has no drop destination for library items (or loses priority to the window-wide open-and-play drop handler), or the row drag ends as a click. Check .dropDestination/onDrop on the queue list (Sources/MXRUI queue panel) and the player-surface drop handler.",
+   "build": "1792204890",
+   "recheck": "By hand: queue 3 items and open the queue. Drag a compact-library row between rows 1 and 2. Expect 4 items with the new one at position 2 and the current playback unchanged. Repeat from the full library."
+  },
+  {
+   "area": "E-library",
+   "severity": "major",
+   "title": "Arrow keys do not move the library selection; ↓ changes volume",
+   "observed": "In the Recent grid (3 columns) ↓ ↑ ← → never change the selection, while Shift+↓ extends it. In the compact list ↓ lowered the player volume instead of moving the selection.",
+   "expected": "Arrows move the selection in the grid and list and scroll it into view; Shift extends it.",
+   "evidence": "../build/evidence/final5/live/7-library/shots/ak-grid.png, ak-r1-down.png, ak-r2-right.png, ak5-shiftdown.png, ck-strip.png, ck-bar.png",
+   "cause": "The player hotkey monitor consumes plain arrow keys (volume/seek) before the focused library grid or list gets them. Route plain arrows to the library when it has key focus (Sources/MXRUI/Library selection handling plus the plugin's hotkey monitor).",
+   "build": "1792204890",
+   "recheck": "Open the full library ▸ Recent and click a card, then press ↓ → ↑ ←. Expect the selection to move and the volume OSD not to appear. Repeat in the compact list."
+  },
+  {
+   "area": "A-window",
+   "severity": "major",
+   "title": "Minimum window size 480×270 not enforced",
+   "observed": "A corner drag shrank the window to 201×161 pt, and an AX resize to 300×200 also succeeded, leaving a broken layout.",
+   "expected": "The window cannot go below 480×270 pt.",
+   "evidence": "../build/evidence/final5/live/7-library/shots/min-drag.png, min1.png",
+   "cause": "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRAppController.swift:80 sets contentMinSize before contentView = NSHostingView. The hosting view's sizingOptions or minimum size then override it. Set contentMinSize after installing the hosting view, or give the root view a minimum frame (.frame(minWidth:480,minHeight:270)) and set sizingOptions accordingly. (This file is modified in the wave's working tree.)",
+   "build": "1792204890",
+   "recheck": "Drag the window's bottom-right corner as far up-left as it goes. Expect it to stop at 480×270 (check with osascript window size)."
+  },
+  {
+   "area": "E-library",
+   "severity": "major",
+   "title": "Full-library mini player does not scale with the window",
+   "observed": "At 480×270 the mini player covers almost the whole library and the sidebar labels clip ('Hor', 'Vid', 'Mu'). At 680 pt it covers most of the content grid.",
+   "expected": "The mini player keeps a proportionate size so the library stays usable at narrow and minimum sizes.",
+   "evidence": "../build/evidence/final5/live/7-library/shots/min480-gohome2.png, w680-home.png",
+   "cause": "E-library full-library mini player has a fixed size (Sources/MXRUI/Library mini player / PlayerGeometry).",
+   "build": "1792204890",
+   "recheck": "Play S01E03, open View ▸ Go Home, and resize to 680 and 480 wide. Expect the grid and sidebar labels to stay readable."
+  },
+  {
+   "area": "J-media-io",
+   "severity": "major",
+   "title": "Convert 'already exists' alert: Replace does nothing",
+   "observed": "The alert appears correctly and Cancel works. Replace re-presents the alert and the file is never touched (md5 and mtime unchanged after 3 attempts with click and AXPress). Overwriting does work through the system Save panel's own Replace.",
+   "expected": "Replace overwrites the existing file and the conversion runs.",
+   "evidence": "../build/evidence/final5/live/11-media-io/shots/overwrite-mp4-alert.png, replace2-alert.png, replace2-after.png; md5-mp3.txt, md5-verify-before.txt",
+   "cause": "Confirmed in code: modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/OpenMediaDialogs.swift:530 has isPresented Binding set: { if !$0 { form.keepExistingFile() } }, which clears replaceCandidate when SwiftUI dismisses the alert, before the Replace action calls form.replace() (:450). replace() then skips target.confirmReplacing and startOrStop runs with overwrite=false. Fix: capture the URL in the button closure (e.g. let url = form.replaceCandidate) and pass it in, or make the setter a no-op.",
+   "build": "1792204890",
+   "recheck": "Convert S01E01 to verify.mp4 twice. On the second run press Replace in the alert. Expect progress to start and verify.mp4's md5 to change."
+  },
+  {
+   "area": "J-media-io / C-bridge",
+   "severity": "major",
+   "title": "HTTP stream is not paced to real time",
+   "observed": "Stream with Play locally on: the receiver got 52 s of media in 4 s of wall time. About 45 s in, the stream was at pts ~570 s while the local copy showed 0:40. The stream ended about 70 s after Start, with VLC at ~620 % CPU.",
+   "expected": "Like stock VLC, the HTTP stream is paced to the input clock, so a 10-min file streams for about 10 min.",
+   "evidence": "../build/evidence/final5/live/11-media-io/curl1.txt, curl2.txt, shots/stream-aux-t2.png",
+   "cause": "The sout chain built for Stream probably omits pacing (no display / no #sync, or input runs without the clock when the local display is a separate duplicate). Check the stream sout composition in the OutputModel backend / bridge (MXR output services).",
+   "build": "1792204890",
+   "recheck": "Stream S01E03 to http :8080/live and run curl -o /dev/null -w for 10 s. Expect about 10 s of media (~3-4 MB at this bitrate), not 50+ s."
+  },
+  {
+   "area": "J-media-io / E-library",
+   "severity": "major",
+   "title": "Convert and Stream jobs mark the source as played",
+   "observed": "S01E03 was never played, but after a conversion and a stream it gained last_played_date and a Continue Watching tile (Home went from 4 to 5 items). A pure conversion bumped S01E01's last_played_date.",
+   "expected": "Convert and Stream do not touch the playback history.",
+   "evidence": "../build/evidence/final5/live/11-media-io/ml-history-before.txt vs ml-history-after.txt; shots/stop-just-after.png",
+   "cause": "The output jobs run through a player or input that the media library's history tracking observes. Run them with an input that the ML ignores (e.g. a separate libvlc player not registered with the ML, or :no-media-library style option). See the J-media-io output backend.",
+   "build": "1792204890",
+   "recheck": "Note the last_played_date of an unwatched item in ml.db, convert it, and check again. Expect no change and no new Continue Watching tile."
+  },
+  {
+   "area": "G-panels",
+   "severity": "major",
+   "title": "Right panels close with no fade-out (C4, owner complaint)",
+   "observed": "The track popover, settings sidebar and queue fade in over 0.12-0.15 s but vanish within one frame (~33 ms) on Esc, click outside or toggle. The ⋯ menu, right-click menu and dialog do fade out (0.06-0.1 s). Esc and click outside never pause playback, and only one panel is open at a time (both OK).",
+   "expected": "D024: every popup opens and closes with the same short motion (fade plus 6 pt slide, 0.15 s in, 0.1 s out).",
+   "evidence": "../build/evidence/final5/live/6-panels/motion/track-open-close.mov, sidebar-esc.mov, queue-outside.mov, queue-toggle.mov; shots/sheet-*.png",
+   "cause": "modules/gui/macosx_redesign/Sources/MXRUI/MXRAppView.swift:93-118. The panel is inserted only while `if let panel = interface.rightPanel`, and the content view reads interface.rightPanel itself, so the outgoing view is empty when its removal transition plays. The .animation uses Theme.Popup.appearDuration rather than the removal timing. Capture the panel value in the outgoing view and use MXRPopupMotion.removal. (InterfaceModel.swift is modified in the wave tree.)",
+   "build": "1792204890",
+   "recheck": "Record the screen at 60 fps. Open and close the queue with Q, the sidebar with Esc and the track popover with a click outside. Expect a visible fade of about 0.1 s on close."
+  },
+  {
+   "area": "E-library",
+   "severity": "minor",
+   "title": "Breadcrumb at ~680 pt shows only '…' and drops the current folder",
+   "observed": "At 680 pt, two folders deep, the crumb row is just '…'. At 900 pt it reads '… ▸ Season One With A Really Quite Long Folder Name…'. The '…' menu lists the parents correctly.",
+   "expected": "'… ▸ <current folder>' with the name middle-truncated.",
+   "evidence": "../build/evidence/final5/live/7-library/shots/w680-home.png, crumb-widths.png (verified), w680-crumbmenu-crop.png",
+   "cause": "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibraryNavigation.swift:114 ViewThatFits tries 2, 1, then 0 crumbs. The 1-crumb row does not fit because the crumb label has no truncation or compression, so it falls through to 0. Let the last crumb compress (lineLimit(1), truncationMode(.middle), layoutPriority) so the 1-crumb option always fits.",
+   "build": "1792204890",
+   "recheck": "Use the compact library at 680 pt window width, inside zz-live Show Collection ▸ Season One…. Expect '… ▸ Season One…Truncation'."
+  },
+  {
+   "area": "H-design / A-window",
+   "severity": "minor",
+   "title": "Customize switches the paused video to aspect-fill (crops it)",
+   "observed": "The paused frame was fitted with pillarbox bars. In Customize it fills edge to edge, the burnt-in timecode is cropped and the bars are ~7.5 % wider. It returns to fitted on Cancel or Save. Verified on the crop.",
+   "expected": "The video keeps its fitted placement in Customize.",
+   "evidence": "../build/evidence/final5/live/9-design-customize-onboarding/shots/c-video-before-after-topleft.png, 01-playing-paused.png vs 02-customize-dark.png",
+   "cause": "The customize-mode video layout (MXRAppView / customization layout adding the 54 pt band) applies fill instead of aspect-fit.",
+   "build": "1792204890",
+   "recheck": "Pause S01E01 and open View ▸ Customize Player. Expect the timecode at the top-left to stay fully visible."
+  },
+  {
+   "area": "A-window",
+   "severity": "minor",
+   "title": "Video rect shifts and stretches after a Hide UI round trip",
+   "observed": "After ⌘\\ on and off with the queue open, the video's left and right edges moved from 129/3325 to 125/3328 px with the same height (~0.2 % horizontal stretch). The change persists.",
+   "expected": "The video rect returns exactly to where it was.",
+   "evidence": "../build/evidence/final5/live/1-window-fullscreen/shots/C5-before.png vs Q3b-unhide-later.png",
+   "cause": "PlayerView / MXRVideoHost does not re-fit the video after Hide UI is turned off.",
+   "build": "1792196668 (03:24 install)",
+   "recheck": "Open the queue, press ⌘\\ twice and compare the video edges with tools/scan.py."
+  },
+  {
+   "area": "A-window",
+   "severity": "minor",
+   "title": "Light and Dark place the picture differently (D055)",
+   "observed": "Dark's 10 pt video frame starts 1 pt lower (y 82 vs 80 px), so the picture is ~2.5 pt narrower than in Light. Switching theme rescales the video by ~0.3 %. The compact library itself no longer rescales it.",
+   "expected": "D055: switching theme never rescales the video.",
+   "evidence": "../build/evidence/final5/live/2-light-theme/shots/A1-play.png, A3-dark.png",
+   "cause": "The Dark video card's top inset is 1 pt more than the Light canvas (MXRAppView frame layout).",
+   "build": "1792196668",
+   "recheck": "Use a 960×540 window with a paused clip. Switch Light/Dark and measure the picture rect. Expect it identical."
+  },
+  {
+   "area": "E-library",
+   "severity": "minor",
+   "title": "Light compact library: current crumb is FG/A2, not FG/1",
+   "observed": "The current crumb 'Home' and the back arrow peak at #2E2E2E (FG/A2) instead of #161616 (FG/1). Row text also differs between pages: Home rows are FG/A3, Recent rows FG/A1.",
+   "expected": "Current crumb FG/1; consistent row tint across pages.",
+   "evidence": "../build/evidence/final5/live/2-light-theme/shots/E2-home.png, E3-recent.png",
+   "cause": "LibraryNavigation.swift breadcrumb label tint for the current segment; page-specific row styles.",
+   "build": "1792196668",
+   "recheck": "In Light open the compact library ▸ Home and sample the crumb colour."
+  },
+  {
+   "area": "G-panels / J-media-io",
+   "severity": "minor",
+   "title": "Subtitle Font Size change does not re-render the visible cue",
+   "observed": "New cues follow the stops (80/102/274 px for Smaller/Auto/Larger), but the cue already on screen keeps its old size until the next cue.",
+   "expected": "Changing the stop visibly resizes the cue on screen.",
+   "evidence": "../build/evidence/final5/live/6-panels/shots/s20-live-d-s.png, s20-live-f.png",
+   "cause": "The relative font size is set without forcing the current subpicture to re-render. Re-select the SPU track or flush the subpicture channel after the change.",
+   "build": "1792204890",
+   "recheck": "While a long cue is visible, step Font Size from Larger to Smaller. Expect the cue to shrink immediately."
+  },
+  {
+   "area": "F-settings",
+   "severity": "minor",
+   "title": "Extra args --sub-margin is applied but has no visible effect",
+   "observed": "The log shows '--sub-margin applied' and the restart note behaves correctly, but the cue stays at rows 1587-1809 with and without --sub-margin 40.",
+   "expected": "Subtitles sit visibly higher.",
+   "evidence": "../build/evidence/final5/live/8-settings-dialogs/ea-run2.log, shots/ea-sub-margin40.png, ea-sub-baseline.png",
+   "cause": "MXRApplyStartupCommandLineOptions sets sub-margin on the libvlc instance, then MXREffectsServices.m setUserSubtitleMargin / safe-inset code sets each vout's own sub-margin (saved offset 0 plus the inset), which overrides it. Seed the app's Subtitle Offset from the command-line value, or add it to the per-vout value.",
+   "build": "1792204890",
+   "recheck": "Set Settings ▸ Advanced ▸ Additional options to --sub-margin 40, relaunch, and compare the cue position with and without it at 00:07."
+  },
+  {
+   "area": "F-settings",
+   "severity": "minor",
+   "title": "Compact dialogs sit flush under the top bar (no panelInset)",
+   "observed": "At 960×540 the Settings and Convert headers start exactly at the bottom of the 40 pt top bar; at 600×360 Properties & Metadata does too. Disc and Capture are correct.",
+   "expected": "A panelInset gap above the header.",
+   "evidence": "../build/evidence/final5/live/8-settings-dialogs/shots/cm-settings-top.png, cm-convert-top.png, mi-tiny.png",
+   "cause": "Sources/MXRUI/Dialogs/MXRDialogHost.swift (DialogShell): when the dialog is clamped to a short window the top inset becomes 0.",
+   "build": "1792204890",
+   "recheck": "Open Settings in a 960×540 window. Expect the header to start panelInset below the top bar."
+  },
+  {
+   "area": "D-menus",
+   "severity": "minor",
+   "title": "Keyboard Shortcuts… stays enabled behind Settings (re-classified)",
+   "observed": "Every other row is grey behind Settings, but App ▸ Keyboard Shortcuts… and Help ▸ Keyboard Shortcuts… stay enabled and swap Settings for the Shortcuts dialog. The Speed half of the check was a harness artefact: the test HTTP-TS stream accepted rate changes, so it is not fixed-rate.",
+   "expected": "All menu rows are disabled behind a modal.",
+   "evidence": "../build/evidence/final5/live/10-menus-osd-engine/menubar-behind-settings.txt (lines 75, 292), shots/behind-settings-kbs2.png",
+   "cause": "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRNativeMenus.swift: the isBehindModal gating is not applied to the Keyboard Shortcuts items.",
+   "build": "1792204890",
+   "recheck": "Open Settings (⌘,) and check the App and Help menus. Expect Keyboard Shortcuts… to be grey."
+  },
+  {
+   "area": "D-menus",
+   "severity": "minor",
+   "title": "Renderer wording mismatch 'This Mac' vs 'Local' (re-classified from FAIL)",
+   "observed": "Shadow (~14 pt at the sides) and PiP gating pass. The ⋯ ▸ PiP path does not exist in the default layout, so that part of the check is stale. The local renderer is 'This Mac' in right-click ▸ Renderer but 'Local' in the Video sidebar's Render dropdown.",
+   "expected": "The same wording in both places.",
+   "evidence": "../build/evidence/final5/live/10-menus-osd-engine/shots/rclick-renderer.png, render-dropdown-crop.png",
+   "cause": "PlayerMenus.swift vs EffectsSidebars.swift labels.",
+   "build": "1792204890",
+   "recheck": "Compare the two menus."
+  },
+  {
+   "area": "H-design",
+   "severity": "minor",
+   "title": "Customize: Esc does not close it, and there is no undo",
+   "observed": "Esc twice left Customize open. Edit ▸ Undo is disabled after Move to New Row, so Cancel is the only way back. Several control-bar tiles (Prev, Next, Audio, Subtitles, Playback settings, Queue) expose no accessibility move/remove actions, and one top-bar element has no label.",
+   "expected": "Esc cancels like other sheets; undo works; every tile has the AX actions.",
+   "evidence": "../build/evidence/final5/live/9-design-customize-onboarding/shots/06-esc2.png, c-10-undo-bar.png, ax-customize-actions.txt",
+   "cause": "Customization dialog key handling and accessibility actions (Sources/MXRUI/Customization).",
+   "build": "1792204890",
+   "recheck": "Open Customize and press Esc. Then move a tile and press ⌘Z."
+  },
+  {
+   "area": "G-panels",
+   "severity": "minor",
+   "title": "Panel/menu polish items",
+   "observed": "(1) The same sidecar is named 'Test Show S01E01.srt' for E01 but 'Track 1' for E03. (2) The track popover stays open when a new file opens. (3) Move Up and Move Down are enabled for a 1-item queue. (4) Esc with nothing open shows the OSD 'Pressed esc' in lowercase. (5) Properties & Metadata is unreachable for the playing item (no ⌘I and no menu entry), and library rows show only Location/Type. (6) A new custom preset is not selected after it is created. (7) In Light, Add Subtitles leaves the track popover drawn behind it.",
+   "expected": "Consistent naming; menu items disabled when they cannot apply; Media Info reachable for the playing item.",
+   "evidence": "../build/evidence/final5/live/6-panels/shots/c2-02-subs.png, c4-queue-rowmenu-s.png, c4-info-try-s.png; 8-settings-dialogs/shots/cf-preset-list-crop.png, s25-light-addsubs.png",
+   "build": "1792204890",
+   "recheck": "Check each item by hand."
+  },
+  {
+   "area": "E-library",
+   "severity": "minor",
+   "title": "Library polish items",
+   "observed": "(1) Network cards read '1 items'. (2) Continue Watching puts the latest item last, and the header says '5 items' while 4 cards show. (3) Grid cards show no selection background or ring. (4) The titlebar chip says 'Videos' on Recent or Playlists. (5) Subtitles are cut under the compact library. (6) The sort icon shows the non-default dot on the default sort. (7) Playlist ⋯ ▸ Add File adds to the library, not to the playlist. (8) The resume toast covers the first subtitle cue and the seek-preview label, and resume is offered for a file played to the end.",
+   "expected": "As described in the design.",
+   "evidence": "../build/evidence/final5/live/7-library/shots/nw4-small.png, relaunch2.png, ak0.png, compact-recent.png, min480-lib.png; 2-light-theme/shots/A5-sub-3.png, A4-sub-4.png",
+   "build": "1792204890 / 1792196668",
+   "recheck": "Check each item by hand."
+  },
+  {
+   "area": "J-media-io",
+   "severity": "minor",
+   "title": "Media I/O polish items",
+   "observed": "(1) The stream's local-copy window is titled with the main player's media. (2) Save As defaults to the source's own name and folder. (3) 'To This Folder' shows 'No matching subtitle' for a same-name .srt and the path chip reads 'Home'. (4) The title OSD shows the '.mp4' extension. (5) Open Network Stream's primary button is 'Save' only and does not play. (6) solid-2D2D2D renders #2D2D2D on the first open and #212121 later (colour-range inconsistency). (7) A new user extension appears only after a relaunch.",
+   "expected": "As described in the design.",
+   "evidence": "../build/evidence/final5/live/11-media-io/shots/stream-aux-window.png, save-panel.png; 9-design-customize-onboarding/shots/24-to-this-folder.png; 8-settings-dialogs/shots/mi-menu.png; 10-menus-osd-engine/shots/netdlg-typed.png, ext-settings2.png; 2-light-theme/shots/H2b-nolib.png",
+   "build": "1792204890",
+   "recheck": "Check each item by hand."
+  },
+  {
+   "area": "F-settings / H-design",
+   "severity": "minor",
+   "title": "Owner decision: dialog scrim and Customize body opacity (not code defects)",
+   "observed": "Dark Settings and Add Subtitles do not darken the video outside the dialog (pixels identical), which matches the D035 amendment but not the check's 'moderate scrim'. The Customize dialog body reads #10 over dark video vs Figma's #18 (≈3 % of the video comes through), which parity.json records as an offscreen blur limit.",
+   "expected": "The owner decides which spec wins, and the check text is updated.",
+   "evidence": "../build/evidence/final5/live/8-settings-dialogs/shots/s25-dark-noscrim.png; 9-design-customize-onboarding/shots/05-customize-darkvideo.png",
+   "cause": "Spec conflict (redesign/docs/DECISIONS.md D035 amendment, ~line 479).",
+   "build": "1792204890",
+   "recheck": "After the decision, adjust the check wording and re-measure."
+  }
+ ],
+ "ownerSteps": [
+  "F-08-live (FKA-on half) and the G-queue-keyboard-menu keyboard part: turn on System Settings > Keyboard > Keyboard navigation. Then: (a) open Settings, About and New Playlist, press Tab and confirm the focus ring stays inside each dialog and typing never reaches the library; (b) queue 3 items, open the queue, Tab to a row, press Return (plays it), ↑/↓ (moves), ⌥↑/⌥↓ (reorders), Space (play/pause) and Delete (removes). Turn Keyboard navigation off afterwards.",
+  "F-02-voiceover: press ⌘F5 to turn on VoiceOver, open Settings > Playback, move to Default audio track and confirm it reads 'Default audio track, Auto'. Press ⌘F5 again.",
+  "D-voiceover-menus: with VoiceOver on, play a video, open ⋯ with VO-Space and move through the rows. Confirm '✓/checked' on Default, 'dimmed' on Next Item, and 'submenu' on Open Recent, Profile and the right-click Playback/Video rows. Then open Settings and press the play/pause media key; it should toggle playback.",
+  "J-hardware camera: File ▸ Open Capture Device…, pick FaceTime HD Camera, open it and click Allow in the macOS prompt. Confirm live video plays. Close it, reopen it and confirm there is no second prompt.",
+  "J-hardware CD and Chromecast: if available, insert an audio CD (Open Disc should preselect Audio CD and play it) and put a Chromecast on the LAN (it should appear in Renderer and stay checked after rediscovery).",
+  "E-network shares: make an SMB share reachable (a NAS, or another Mac with File Sharing on). In Library ▸ Network confirm the share is listed, browse it and play a file.",
+  "G-drag-to-queue: by hand, drag a compact-library row and then a full-library row onto the open queue. They should be inserted at the drop point, not replace the queue.",
+  "Decide the D035 scrim question (no dimming vs a moderate scrim) and whether Customize's #10 body opacity is acceptable compared with Figma's #18."
+ ],
+ "notRun": [
+  "L0-smoke, L0-launch: the idle gate failed (Mac in use). A later live run can do them: rerun on the post-wave install.",
+  "L0-noop-make: the precondition was not met because the polish wave was still editing. Run it under the native lock after the wave commits.",
+  "Group 1: A-fs-topedge, A-fs-bars-independent, A-05-cursor, A-tooltip, A-fs-exit-windowed (owner complaint), A-fs-end, A-05-pip. The owner returned mid-group. A later live run can do them; this is high priority because it covers the owner complaint and the fullscreen checks that failed in live run 1.",
+  "Group 2: H-light-band-no-flash, J-light-dialog-buttons, LS-light (rename sheet and Add Subtitles dialog). The owner returned. A later live run can do them.",
+  "Group 3 (resume-and-subtitles): all checks. The Mac was in use (gate waited 63.5 min). A later live run can do them, and it also needs to create the sidecar fixture (group 9 created final5/sidecar).",
+  "Group 4 (controls-seek): all checks. The Mac was in use (27 min). A later live run can do them.",
+  "Group 5 (volume-focus-music-cpu): all checks. The Mac was in use (30 min). A later live run can do them.",
+  "C-15-folder: blocked by the Claude Code permission classifier (moving the lua/extensions folder, clicking Advanced Options). A later run can do it if those actions are pre-approved, or the owner can click Settings > Extensions > Open.",
+  "C-startup-memory 10-min RSS loop: blocked by the Repeat defect and the time budget. Re-run once Repeat loops, or loop with a 2-item queue. The first-frame part passed (0.73 s).",
+  "Partial items: G-S20-presets saved-preset rows (the owner has no saved presets, so create a temporary one); the G-queue submenu second look and the comparison with the mini player; the E-network full-library drag; the J-stop-hint 'Stopping…' state (too short to observe at a 0.37 s poll); D-extensions late-fill. A later live run can do all of these."
+ ],
+ "passedHighlights": [
+  "Owner complaints C3 (single 40 pt top bar), C5 (the sidebar overlays without moving the video) and C2 (track popover) pass with pixel measurements.",
+  "A-hideui-queue: the queue reopens after Hide UI, which fixes the minor issue from live run 1. The compact library no longer rescales the video (live run 1 major fixed).",
+  "Light bars are neutral #A7A7A7 whatever the clip; the library tint and cone colours are correct in both themes.",
+  "Settings: all 13 pages match Figma in Dark and Light; confirmations, replacement-dialog focus and F-13 title pass.",
+  "Customize tiles, move to new row (menu and AX action), drag with a single exported UTType, accent propagation, and an isolated-HOME onboarding all pass.",
+  "Menus, OSD lines, start-paused, the VLSub extension, quit latency 0.35-0.43 s and a cold first frame in 0.73 s all pass.",
+  "Convert (h264+aac, 60 s, no .vlc-partial), audio-only outputs, Stop hint and Stream UI and hostname all pass.",
+  "Every group restored the owner's settings and data and released the locks."
+ ]
+}

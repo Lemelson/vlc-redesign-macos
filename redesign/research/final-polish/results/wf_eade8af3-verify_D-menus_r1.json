@@ -1,0 +1,36 @@
+{
+ "pass": true,
+ "issues": [
+  {
+   "severity": "minor",
+   "where": "Live real-app verification (D-01 media keys behind a sheet, D-02 VoiceOver/Accessibility Inspector on ⋯ and right-click menus, D-05 View vs Video Full Screen, Esc)",
+   "description": "Not done in this verification either. wait-idle.sh returned 'Mac in use (idle 101s) after 150s', exit 1, because the owner was using the Mac. Nothing was built, installed or launched. The integrator still owes the live check after install. I verified the code paths by reading them, and the unit tests cover them (ModalIsolationTests, MenuAuditRegressionTests.testPresentedMenuIsAnAXMenuOfMenuItems)."
+  },
+  {
+   "severity": "minor",
+   "where": "Sources/MXRDesign/Popup/MXRMenuCard.swift MXRPopupShadowImage (D-12)",
+   "description": "S68.ProfileSubmenu/movies still gets a FAIL verdict. The only difference is a faint shadow tail: render #000000 at 2% against Figma at 1%, Δ 2/255. Cards, rows and text match, apart from the documented D026 Mac glyphs, which I checked on side-by-side.png. The shadow is now a CG bitmap, so the capture engines agree, and no threshold was loosened. To get to PASS, retune the bitmap blur sigma or extent."
+  },
+  {
+   "severity": "minor",
+   "where": "Sources/MXRPlugin/MXRNativeMenus.swift rebuild()",
+   "description": "`item.isEnabled = row.isEnabled` on submenu rows has no effect while the menu autoenables items. AppKit enables any item that has a submenu, so a disabled shared-model submenu row would still look enabled in the menu bar. The old code behaved the same way, so this is not a regression."
+  },
+  {
+   "severity": "minor",
+   "where": "Sources/MXRUI/Player/PlayerMenus.swift overflow() .pictureInPicture",
+   "description": "PiP in the overflow menu uses canPerform(.toggleFullscreen) as its gate, borrowing another command's policy. This matches the menu bar's PiP validation, so the two agree, but it is the same kind of borrowed-policy pattern that D-05 removed elsewhere."
+  },
+  {
+   "severity": "minor",
+   "where": "Sources/MXRUI/Panels/QueuePanel.swift:346",
+   "description": "The queue row still uses its own 'Add to Playlist…' sheet flow instead of the shared MXRPlayerMenus.addToPlaylist submenu. The library, mini player and player Playlist submenu all share it now. D-07 asked for the queue to share it too."
+  },
+  {
+   "severity": "minor",
+   "where": "Sources/MXRGalleryCatalog/Entries/MenusGallery.swift S10.Overflow/compact-bar",
+   "description": "The gallery frame is taller than the card, so empty space is left below it in the render. This affects the gallery only, not the product."
+  }
+ ],
+ "summary": "All 12 confirmed D-menus findings are fixed, and none of the remaining issues is a blocker or major. Live real-app verification is still not done: the owner was using the Mac (wait-idle exit 1). I checked against HEAD (951f073be2 WIP) plus the working tree, not the fixer's narration.\n\nBuild and tests: `swift build` is green. Targeted suites pass: MenuAuditRegressionTests 8/8, AnchoredPopupPinPolicyTests 3/3, PopupMenuTests 13/13, ModalIsolationTests 6/6, ShortcutDefaultsTests 7/7.\n\nCode checks, finding by finding:\n- **D-01:** `CommandSource` (.ui/.system) and `AppCommand.isTransport` are in. `canPerform(_:from:)` blocks UI commands behind a modal and lets system transport through (`playPause` only when there is media or a queue). MXRRemoteControl runs actions synchronously and returns `.commandFailed` when refused. The status item uses `.system`.\n- **D-02:** Popup levels are an `AXMenu` (MXRPopupHostingView). Rows are `NSAccessibilityElement` `AXMenuItem`s with MarkChar, CmdChar/Glyph/Modifiers, enabled state, press and the submenu child. Open/close and highlight notifications are posted. The 'Selected' value and the button trait are gone.\n- **D-03:** No `.contextMenu`, `Menu`, `.popover` or `.menuStyle` is left under Sources/MXRUI, and a source-lint test enforces it. D034 is updated.\n- **D-04:** `hdrModes` gives Auto, Off, HDR10, HDR10+, Dolby Vision, HLG with only Auto checked and enabled, then a separator and a secondary 'Manual modes unavailable' row. The render matches the order and titles in Figma HDR Options.png.\n- **D-05:** `video(includesFullscreen:false)` is used for the menu bar. Native rows are gated by the row's own state plus `isBehindModal`, with no borrowed policies.\n- **D-06:** LazyMenuSource rebuilds a menu only when Observation marks it dirty, and submenus are lazy.\n- **D-07:** One shared `addToPlaylist`/`playlistItems` is used by the player, LibraryPopup and the mini player. It has the separator and an `onError` hook, and playlists load through `onOpen`, which both the presenter and `menuWillOpen` call. The queue is the one exception (see issues).\n- **D-08:** `overflowMenu` no longer repeats context rows. Every row carries `PlayerControl.barIcon`, which is the same mapping PlayerBars uses. Rows are gated by canPerform or capabilities.\n- **D-09:** ',' is removed from the hasModal allow-list.\n- **D-10:** `anchoredOwner` with `.mxrPopupOwner` pins only the bar that owns the popup.\n- **D-12:** The shadow is a CG bitmap.\n- **D-13:** Product-built S10 gallery entries are added with no fixture overrides.\n\nRenders (outputs under scratchpad/final/D-menus-verify-r1/):\n- S07 and S09: REVIEW, and the only differences are the D026 Mac glyphs.\n- S32 sort: PASS.\n- S68: FAIL on a 2/255 shadow-alpha tail only. The side-by-side shows the cards, rows and text identical apart from the glyphs.\n- S10 hdr, overflow and playlist submenu: correct and in Figma style.\n\nHygiene: no threshold changes or masks, and no Swift 6 diagnostics in the build. No literal design values in the new view code. No engine edits in the area. The fixer listed its edits outside its ownership: two test files, only to fix compile errors."
+}

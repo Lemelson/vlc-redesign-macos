@@ -1,0 +1,410 @@
+{
+ "area": "H-design",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "H-design is finished for this wave. The report covers both passes: the earlier fixes (a)-(d), re-checked on the current tree, and the new items (e) and (f).\n\nNew fixes:\n- \"Move to New Row\" now fills the empty Customize band nearest the video, the same as a drop on the band. The video at 19m26.3 → 19m27.6 builds the seek row above the transport, so this is the expected behaviour.\n\nNew items I checked and kept, with evidence:\n- **Light bars and compact library (live FAIL A-05-S72).** The material is not too translucent. Figma's #ABABAA and #C2C2C1 are the Light tints composed over Figma's own #2D2B29 video, which I sampled in the Player - Light render. The live run used the bright colour-bar test media. Over that video, Figma's own maths gives lighter, coloured values: #E0A0E0 for the bars over magenta and #ECB9B9 for the library over red. The live values (#BBB7BB and #D3B7B4) fall between Figma over black and Figma over that video. So the dark material base is working, and making it opaque would remove the video showing through that Figma's design draws. I documented this in the new D053. I made a 30 s solid #2D2D2D clip and a 30 s solid red clip for a correct live check.\n- **S34 music window background.** The token is correct: Figma's top bar 4767:23728 is opaque #1B1B1B. The render reads #1D1D1D only because the cover art sits above the bar in Figma's layer order and its white 3 % glow spills over it. Kept and documented in D053.\n- **Customize dim.** The live reading #303030 is exactly the opaque thumbPlaceholder token. Figma's #2D2B29 comes from a picture fill in the frame. Documented in D053; a live check is listed.\n\nRe-checks on the current tree:\n- Light cone still samples #C2711A, identical to Figma.\n- gen-icons --check and gen-tokens --check pass.\n- 31 targeted tests pass: IconLogoRoleTests 3, CustomizationPaletteGeometryTests, CustomizationInteractionTests 11, the new CustomizationNewRowTests 2, WindowShippingParityTests 6, FigmaDeviationTests 5. The new-row tests fail when the old append-below behaviour is put back; I checked by temporarily reverting it.\n- S66.Customization/default: FAIL. The cause is the dialog body #0E0E0E vs #181818, the same backdrop artefact listed as not fixed in my earlier report.\n- S67 and S25: REVIEW.\n- S70 teal: FAIL on 2 pt edge strips that match if moved by 1 pt, plus a seek-head offset.\n- S71: FAIL on the ⌘L keycap (D026).",
+   "fixed": [
+    "(earlier, still holds) S72 Light cone uses Light/Accent/Logo via the new 'logo' icon role in gen-icons.py and MXRIcon (SwiftUI and AppKit). Re-check: the S72.Window/light shipping-window render's cone samples (194,113,26) = #C2711A, Figma #C2711A. Evidence: ../build/evidence/final4/H-design/recheck/S72_Window_light/. IconLogoRoleTests pass.",
+    "(earlier, still holds) Subtitle-file glyph folded corner (S25/S26/S27): gen-icons.py EXPORT_FIXES adds the fold edge. testSubtitleGlyphDrawsTheFoldedCorner passes and S25.AddSubtitles/folder gives REVIEW (mean delta 0.32). Evidence: ../build/evidence/final4/H-design/recheck/S25_AddSubtitles_folder/",
+    "(earlier, still holds) S66/S67 tile labels: tiles hug their content and rows are as tall as their tallest tile (MXRCustomizationPalette rowHeight/contentHeight). S67 gives REVIEW (mean delta 0.87). On S66 the rest of the frame compares except the dialog-body backdrop (not fixed, see notFixed). CustomizationPaletteGeometryTests pass. Evidence: ../build/evidence/final4/H-design/recheck/S66_Customization_default/ and S67_Customization_two-row-edit/",
+    "(earlier) S66 edit-mode play tile: the 48 pt fill sits 3 pt inside the 54 pt dashed box (token customization.outline.playFillInset). This also closes A-window's notFixed item 'S66 #2'.",
+    "(earlier) S71 footer hint top-aligned with the buttons (text rows 679.0-690.5, identical to Figma). Current S71 FAIL is only the ⌘L keycap (D026). Evidence: ../build/evidence/final4/H-design/recheck/S71_Onboarding_shortcuts/",
+    "(earlier) S70 alternate-accent frames keep Back (D049); the 8 alternate entries declare a FigmaDeviation citing D049.",
+    "(earlier) Light play button stays #E8851A (D049 bullet 1); ~/Movies pre-fill has its own D049 line; the customization.tile metrics note was corrected.",
+    "(f, new) 'Move to New Row' now starts the row in the Customize band nearest the video (LayoutZone.newFirstRow), exactly like a drop on the band. Before, it appended a row below the transport and left the band empty. The video at 19m26.3 → 19m27.6 builds the seek row above the transport. Implementation: MXRLayoutDragPayload.moveToNewRow(app:) in Sources/MXRUI/Customization/LayoutDrag.swift; the item menu and a new VoiceOver action 'Move to new row' both use it. Test: Tests/MXRUISnapshotTests/CustomizationNewRowTests.swift (2 tests). Both fail with the old append-below target and pass with the fix. D051 is amended and D053 bullet 4 records the change.",
+    "(f, new) Light bars and compact library (live A-05-S72): the root cause is the test expectation, not the material. Figma's #ABABAA and #C2C2C1 are BG/A3 Transparent (#D5D5D5 @ 0.75) and BG/B1 Transparent (#E7E7E7 @ 0.8) composed over Player - Light's #2D2B29 video, sampled from the render at 60 pt. The live media are full-screen saturated colour bars (frame at ../build/evidence/final4/H-design/media-frame-10s.png). Figma's own maths over that video gives #E0A0E0 for the bars over magenta and #ECB9B9 for the library over red. The live values #BBB7BB and #D3B7B4 lie between Figma over black (#A0A0A0, #B9B9B9) and Figma over that video. The darkAqua base therefore works: the result is darker and less tinted than Figma, not more translucent. I kept the material and documented it in D053 bullet 1, plus a comment on MXRBackdropSurface. Test clips for the live check: ../build/evidence/final4/H-design/media/solid-2D2D2D.mp4 (decodes to 45,45,45 with BT.709) and solid-FF0000.mp4. Both decode headlessly with the build's vlc.",
+    "(f, new) S34.Player/music window background #1B1B1B vs #1D1D1D: the token is correct. Figma's top bar 4767:23728 is an opaque #1B1B1B fill. The render reads #1D1D1D only between x 542 and 1370, because the cover 4777:24028 sits above the bar in Figma's layer order and its white 3 % drop-shadow glow (spread 64, radius 90.5) spills over it. Samples: the ref goes 27→29→27 across the bar, the render stays a flat 27. Kept per D053 bullet 2. Evidence: ../build/evidence/final4/H-design/S34_music/",
+    "(f, new) Customize dim: the live #303030 is exactly the opaque thumbPlaceholder token (Dark #303030). Figma 2107:5604 fills its frame with an IMAGE of a dimmed video, which reads #2D2B29 at the sampled points of 'Player - customize.png'. Kept per D053 bullet 3; a live check is listed.",
+    "(e) A-window's notes for H-design: the edit-mode play-tile inset was already fixed (see above); the dim colour is now a live check and covered by D053. B-controls/G-panels' note on 'Move to New Row' is implemented (see above)."
+   ],
+   "notFixed": [
+    {
+     "id": "S66 dialog body #0E0E0E vs #181818 (S66.Customization/default FAIL)",
+     "why": "Not new: it was already in my earlier report's notFixed. The isolated render draws the dialog's bgB1 Transparent backdrop over an empty canvas, while Figma composes it over the video. The rest of the S66 frame compares. Needs the real window (liveChecks)."
+    },
+    {
+     "id": "S70 title 0.5 pt high; S69/S70 edge strips of 2 pt",
+     "why": "Unchanged from my earlier report: half a point is below a 1x device pixel. The edge strips (now reported at the top and left, 'matches if moved -1,+1') are the rounded corner and shadow alpha of the isolated render, not a layout difference."
+    },
+    {
+     "id": "S70/S72 seek head a few points right of Figma (onboarding preview about 3.5 pt, S72 about 14 pt)",
+     "why": "Not in H-design files. The product places the head from the fixture's real time ratio (02:10 of 25:40, PlayerGeometry.seekHeadX, B-controls/A-window), while Figma's head is static. Passed on in notesForOthers."
+    },
+    {
+     "id": "Light-only video rescale when the compact library opens (live extra finding)",
+     "why": "That is the video-host layout in PlayerView/MXRAppView (A-window), not the material. Passed on in notesForOthers."
+    },
+    {
+     "id": "S72 offscreen bars #B1B1B1 vs #ABABAA (S72.Window/light and S72.App/light)",
+     "why": "Offscreen renders get no window-server blur. What the NSVisualEffectView draws offscreen is not the real composition (D053), so I did not tune the tint against it. The real check is the solid-#2D2D2D live check below."
+    },
+    {
+     "id": "PiP light scheme in mxr-snapshot; S72 library divider and crumb colours; S50 light accent segment",
+     "why": "Unchanged from my earlier report: these belong to other areas or are not Figma differences. WindowShippingParityTests.testSchemeOverrideReachesWindowEntries now passes, so A-window appears to have fixed the scheme override."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Customization/LayoutDrag.swift",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Materials/MXRBackdropSurface.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/CustomizationNewRowTests.swift",
+    "redesign/docs/DECISIONS.md",
+    "(earlier this wave) modules/gui/macosx_redesign/tools/gen-icons.py",
+    "(earlier) modules/gui/macosx_redesign/Sources/MXRDesign/Generated/Icons.swift",
+    "(earlier) modules/gui/macosx_redesign/Sources/MXRDesign/Generated/Tokens.swift",
+    "(earlier) modules/gui/macosx_redesign/Sources/MXRDesign/Resources/Icons.xcassets/subtitle.imageset/subtitle.svg",
+    "(earlier) modules/gui/macosx_redesign/Sources/MXRDesign/Resources/Icons.xcassets/subtitle-2461-9663-layer1.imageset/subtitle-2461-9663-layer1.svg",
+    "(earlier) modules/gui/macosx_redesign/Sources/MXRDesign/Icons/MXRIcon.swift",
+    "(earlier) modules/gui/macosx_redesign/Sources/MXRUI/Customization/MXRCustomizationView.swift",
+    "(earlier) modules/gui/macosx_redesign/Sources/MXRUI/Customization/MXROnboardingView.swift",
+    "(earlier) modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/CustomizationGallery.swift",
+    "(earlier) modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerControls.swift",
+    "(earlier) modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/IconLogoRoleTests.swift",
+    "(earlier) modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/CustomizationPaletteGeometryTests.swift",
+    "(earlier) modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/FigmaDeviationTests.swift",
+    "(earlier) redesign/design/tokens/metrics.json"
+   ],
+   "editsOutsideOwnership": [
+    "redesign/docs/DECISIONS.md: appended D053 and changed one sentence of D051 (agent-written, Customize band) from '\"Move to New Row\" keeps adding the row below.' to '... starts the row in the same place (amended in D053).' I re-read the file right before each edit.",
+    "Tests/MXRUISnapshotTests/CustomizationNewRowTests.swift: new test file for the customization behaviour I own.",
+    "(earlier this wave) Sources/MXRUI/Player/PlayerControls.swift: edit-mode play fill inset (B-controls); FigmaDeviationTests.swift: accepts the '· accepted (' heading form."
+   ],
+   "decisionsWritten": [
+    "D053 — Light backdrops over bright video, the music top bar and Move to New Row · accepted (agent, 2026-10-17). (1) Light bars and the compact library are the tint over the blurred video: #ABABAA and #C2C2C1 hold over Figma's #2D2B29 video and are checked over a solid #2D2D2D clip, not over colour bars. Offscreen renders are not evidence. (2) The music top bar stays BG/A3 #1B1B1B; Figma's #1D1D1D is the cover glow drawn above the bar. (3) The Customize dim is the flat thumbPlaceholder gray, while Figma's frame uses a picture. (4) Move to New Row starts the row in the band nearest the video (amends D051).",
+    "D051 amended: one sentence now points to D053 for Move to New Row.",
+    "(earlier this wave) D049 — Light accent, onboarding Back and the media folder · accepted (agent, 2026-10-17)."
+   ],
+   "ownerDecisions": [
+    "D053 (agent-written, new): Light backdrops stay native blurred material with a dark base. Over bright video they take on the video's colour, as Figma's blur does, instead of fixed #ABABAA/#C2C2C1 grays. Music top bar #1B1B1B. Flat #303030 Customize dim. Move to New Row fills the band nearest the video.",
+    "D049 (agent-written, awaiting the owner): Light play button #E8851A; Back kept on the alternate-accent onboarding frames; ~/Movies pre-fill.",
+    "Still pending from earlier waves (implementation kept): D042, D044, D046, D047, D048, D050, D051, D052, and the D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies)."
+   ],
+   "liveChecks": [
+    {
+     "id": "H-light-backdrop-dark-clip",
+     "steps": "Set the theme to Light (Settings ▸ General). Open ../build/evidence/final4/H-design/media/solid-2D2D2D.mp4 and pause so the bars stay visible. Open the compact library. Take a screencapture in sRGB (or convert from Display P3). Sample the top bar, the control bar and the compact library panel away from text and icons.",
+     "expect": "Bars about #ABABAA and compact library about #C2C2C1, each within about 6/255 per channel and neutral gray (no channel more than 4 apart)."
+    },
+    {
+     "id": "H-light-backdrop-red-clip",
+     "steps": "Same as above with solid-FF0000.mp4.",
+     "expect": "Bars: R between 160 and 224, G and B between 150 and 175, so reddish but darker than Figma's own #E0A0A0. Compact library: R between 185 and 236, G and B about 175-190. Values lighter than the Figma-over-video maths would mean the material is too translucent; values that are neutral gray would mean the base is opaque."
+    },
+    {
+     "id": "H-customize-dim-live",
+     "steps": "Dark theme. Play the colour-bar file Test Show S01E01.mp4 and open Customize Player. Sample the dimmed video area outside the palette and the bars.",
+     "expect": "Flat #303030 everywhere (thumbPlaceholder); no video colour shows through. Figma's #2D2B29 is a picture fill, documented in D053."
+    },
+    {
+     "id": "H-move-to-new-row",
+     "steps": "Open Customize Player with the default one-row video layout. Right-click the seek bar tile and choose Move to New Row. Save.",
+     "expect": "The seek bar fills the empty band above the transport, as at 19m27.6; no third row appears below. After Save the player shows two rows with the seek bar on top. VoiceOver offers a 'Move to new row' action on tiles."
+    },
+    {
+     "id": "H-cone-light",
+     "steps": "Light theme. Open a video and sample the cone in the top bar and in Media Information.",
+     "expect": "Cone #C2711A (Light/Accent/Logo), darker than the play button #E8851A. In Dark, the cone and the play button are both #D37918."
+    },
+    {
+     "id": "H-subtitle-glyph",
+     "steps": "Open a video with sidecar .srt files. Open Add Subtitles ▸ To This Folder, then To This File ▸ From Computer.",
+     "expect": "Each .srt glyph has a folded top-left corner as in Figma 1911:8286."
+    },
+    {
+     "id": "H-customize-tiles",
+     "steps": "Open Customize Player with the default video layout.",
+     "expect": "The Forward/Backward 15s labels sit level with the first line of 'Forward 10s'. The last row starts 116 pt below the third. The play tile shows a 48 pt orange fill 3 pt inside its dashed box. The dialog body reads close to Figma #181818 over the dimmed video."
+    },
+    {
+     "id": "H-02/H-03/H-07 (carried over)",
+     "steps": "Onboarding: Next then Esc on an isolated profile, then check ml.db for the folder. Drag a palette tile using the declared UTType.",
+     "expect": "As in the previous wave's liveChecks."
+    }
+   ],
+   "evidence": [
+    "../build/evidence/final4/H-design/S34_music/ (S34 check; ref top-bar samples 27→29→27 vs render 27)",
+    "../build/evidence/final4/H-design/recheck/ (S72 Window/App light, S66, S67, S25, S70 teal, S71 re-checks; S72_bars_ref_vs_render.png; S70_teal_swatch_crop.png)",
+    "../build/evidence/final4/H-design/media-frame-10s.png (the live test media is full-frame saturated colour bars)",
+    "../build/evidence/final4/H-design/media/solid-2D2D2D.mp4 and solid-FF0000.mp4 (live-check clips)",
+    "Figma Player - Light.png samples: bars (171,171,170), video under the bars (45,43,41), compact library (194,194,193). Player - customize.png dim (45,43,41).",
+    "Targeted tests: 31 pass (IconLogoRoleTests 3, CustomizationPaletteGeometryTests, CustomizationInteractionTests 11, CustomizationNewRowTests 2, WindowShippingParityTests 6, FigmaDeviationTests 5). CustomizationNewRowTests failed in 3 assertions with the old append-below target. gen-icons --check and gen-tokens --check exit 0."
+   ],
+   "notesForOthers": "[\"B-controls / A-window: the seek head sits right of Figma in the onboarding preview (about 3.5 pt) and in S72 (Figma about 349 vs render about 363 pt), because the product places it from the fixture's time ratio. Document it or match it.\", \"A-window: live extra finding. In Light, opening the compact library rescales the video to the full window width (aspect fill); Dark does not. This is the video-host layout, not the material (D053).\", \"Live-acceptance wave: judge the Light bars and library over ../build/evidence/final4/H-design/media/solid-2D2D2D.mp4, not over the colour-bar test files (D053).\", \"Music view owner: Figma's 3 % white cover glow (4777:24028, spread 64, radius 90.5) is drawn above the top bar only because of Figma's layer order. The product keeps chrome above the glow (D053).\", \"Integrator: MXRLayoutDragPayload.moveToNewRow(app:) is new public API in LayoutDrag.swift.\"]"
+  },
+  {
+   "status": "done",
+   "summary": "H-design is finished for this wave. This report covers all of the wave's work. The verifier's major item is fixed: Customize now leaves the paused video visible and no longer paints a gray fill over it. As a result, S66.App/customization drops from 58.6 % to 4.9 % of pixels differing; what remains is the dialog body at #151515 against Figma's #181818 (a 3-level gap), because offscreen renders get no blur. I withdrew D053 bullet 3 and corrected the §15 rule in VIDEO_BREAKDOWN.md and spec-part2.md. The tile's context menu and its VoiceOver actions are now built from one command list, MXRLayoutEditCommand.all, and a test runs the menu's own \"Move to New Row\" command. Both new tests fail when the old code is put back (checked by temporarily restoring it), and the 48 targeted tests pass. I kept the music top-bar glow (D053 bullet 2) and explain why below. S70 teal still fails the check: I located the cause, the rounded corners at the frame edges, and it is not a layout difference.",
+   "fixed": [
+    "(verifier, major) Customize dim removed. Figma's Player - customize frames (2107:5604, 2160:6137) use the same video image fill (imageRef 6b15ac5a…) as Player 187:328 and Player - Light 2425:13624; I confirmed this in figma_file.json. Key frame 19m12.4 also shows the video through the dialog. I deleted the opaque Theme.Color.thumbPlaceholder rectangle that MXRAppView drew while customizing, and removed 'Customize scrim' from the layer comment there. S66.App/customization goes from FAIL at 58.6 % (#303030 vs #2D2B29) to 4.9 %, and the cat now shows through the dialog. The remaining difference is the dialog body, #151515 vs #181818 (3 levels), because the offscreen render has no blur. New test Tests/MXRUISnapshotTests/CustomizationBackdropTests.swift compares video pixels in S66.Window/customization with S01.Window/shipping. It fails at 5 points when the fill is put back. Evidence: ../build/evidence/final4/H-design/r2/S66_App_customization/",
+    "(verifier, major) Docs corrected. D053 bullet 3 is now marked 'Customize dim: withdrawn' and gives the evidence. VIDEO_BREAKDOWN.md §15 MUST rule now says the paused video stays visible behind the translucent dialog. spec-part2.md §15A now says that #272622/#22211D is the paused video frame itself, not a scrim.",
+    "(verifier, minor) The menu and VoiceOver wiring is now covered by a test. LayoutDrag.swift builds both the tile's context menu and its accessibility actions from one list (MXRLayoutEditCommand.all). The new test CustomizationNewRowTests.testTheMenuCommandMoveToNewRowFillsTheBand runs the menu's own 'Move to New Row' command. It fails when that command is changed back to the old append-below (.bottom(count)).",
+    "(verifier, minor) S70 teal is described correctly now. At 2x scale the 1090x7 strip at y 752 is only corner antialiasing: across the bottom 28 px, at most 106 pixels differ by more than 3, the largest by 13/255, all in the extreme left and right corner columns. The rest is identical (#0E0E0E). At 1x the strips sit on the top and left edges instead. Their cause is the Figma crop starting between pixels (x 23.6, y 15.6) and the resampling that follows; it is not a layout difference. Evidence: ../build/evidence/final4/H-design/r2/S70_teal_2x/",
+    "(earlier this wave, still holds) S72 Light cone #C2711A (logo icon role); folded corner on the subtitle-file glyph; S66/S67 tile labels and row heights; play fill inset in the edit-mode play tile; S71 footer hint alignment; Back kept on the S70 alternate-accent frames (D049); Light play button #E8851A (D049); Move to New Row fills the band nearest the video (D051 amended, D053 bullet 4); the Light backdrop explanation (D053 bullet 1); the S34 music top-bar token check (D053 bullet 2)."
+   ],
+   "notFixed": [
+    {
+     "id": "Music top bar #1B1B1B vs #1D1D1D (D053 bullet 2, verifier minor)",
+     "why": "Kept. To match, MXRAppView (A-window) would need a new glow layer above the bars that reads the cover's position. That glow would also have to sit above the compact library, which is layered between the canvas and the bars. In Figma's own Player - Music-1 (4778:25123) the library is not lightened by the glow: library samples at x 300/420 pt read a flat 13 beside 14 at x 440. So Figma's layer order is not consistent, and the difference is 2/255. I passed this to A-window in notesForOthers rather than restructuring their layer stack while they are editing it."
+    },
+    {
+     "id": "S66.Customization/default dialog body #0E0E0E vs #181818",
+     "why": "The isolated entry draws the bgB1 Transparent body over an empty canvas. In the full composition (S66.App) the gap is now only #151515 vs #181818, and that remaining part needs real blur, so it is listed as a live check."
+    },
+    {
+     "id": "S70 title 0.5 pt high; edge and corner strips",
+     "why": "These are crop and resampling artefacts at the frame edges (see fixed). Half a point is below one device pixel at 1x."
+    },
+    {
+     "id": "Seek head offset (S70/S72), Light video rescale with the compact library, S72 offscreen bar tint",
+     "why": "Unchanged: these belong to other areas (B-controls/A-window), or are offscreen material renders that are not evidence (D053 bullet 1)."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/MXRAppView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Customization/LayoutDrag.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/CustomizationBackdropTests.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/CustomizationNewRowTests.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/WindowShippingParityTests.swift",
+    "redesign/docs/DECISIONS.md",
+    "redesign/docs/design/VIDEO_BREAKDOWN.md",
+    "redesign/design/spec/spec-part2.md",
+    "(earlier this wave) modules/gui/macosx_redesign/Sources/MXRDesign/Materials/MXRBackdropSurface.swift, tools/gen-icons.py, Generated/Icons.swift, Generated/Tokens.swift, the subtitle SVGs, Icons/MXRIcon.swift, Customization/MXRCustomizationView.swift, Customization/MXROnboardingView.swift, CustomizationGallery.swift, Player/PlayerControls.swift, IconLogoRoleTests.swift, CustomizationPaletteGeometryTests.swift, FigmaDeviationTests.swift, redesign/design/tokens/metrics.json"
+   ],
+   "editsOutsideOwnership": [
+    "Sources/MXRUI/MXRAppView.swift (A-window): deleted the 6-line `if interface.isCustomizing { Rectangle().fill(Theme.Color.thumbPlaceholder) … }` block and replaced it with a 2-line comment; removed 'Customize scrim' from the layer doc comment.",
+    "Tests/MXRUISnapshotTests/WindowShippingParityTests.swift (A-window): changed only a comment, from 'not the flat-gray dim above it' to 'not the video above it'. The assertion is unchanged and passes.",
+    "redesign/docs/DECISIONS.md: withdrew D053 bullet 3 (re-read the file right before editing).",
+    "redesign/docs/design/VIDEO_BREAKDOWN.md and redesign/design/spec/spec-part2.md: one §15 line each, the dim rule corrected.",
+    "(earlier) PlayerControls.swift play fill inset; FigmaDeviationTests heading form; the D051 sentence."
+   ],
+   "decisionsWritten": [
+    "D053 bullet 3 (Customize dim) withdrawn: there is no dim, and the paused video shows through Customize.",
+    "(earlier) D053 bullets 1, 2 and 4; the D051 amendment; D049."
+   ],
+   "ownerDecisions": [
+    "D053 (agent-written): Light backdrops stay a native blurred material with a dark base; the music top bar stays #1B1B1B (the Figma cover glow above the bar is not reproduced); Move to New Row fills the band nearest the video. Bullet 3 (the Customize dim) is withdrawn.",
+    "D049 (agent-written): Light play button #E8851A; Back kept on the alternate-accent onboarding frames; ~/Movies pre-fill.",
+    "Still pending: D042, D044, D046, D047, D048, D050, D051, D052, and the D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies)."
+   ],
+   "liveChecks": [
+    {
+     "id": "H-customize-video-visible",
+     "steps": "Dark theme. Play Test Show S01E01.mp4, pause, and open Customize Player. Sample the video area outside the dialog and the bars, and the dialog body over a bright part of the video.",
+     "expect": "The video area matches the paused frame before Customize was opened; there is no flat #303030. The blurred video shows through the dialog body, which reads close to Figma #181818 over a dark frame and lighter over bright content."
+    },
+    {
+     "id": "H-move-to-new-row",
+     "steps": "Open Customize Player with the default one-row layout. Right-click the seek bar tile and choose Move to New Row. Then, with VoiceOver on, use the 'Move to new row' action on another tile. Save.",
+     "expect": "The seek bar fills the empty band above the transport (19m27.6); no row appears below the transport. The VoiceOver action does the same. After Save the player shows two rows."
+    },
+    {
+     "id": "H-light-backdrop-dark-clip",
+     "steps": "Light theme. Open ../build/evidence/final4/H-design/media/solid-2D2D2D.mp4, pause, and open the compact library. Capture in sRGB and sample the top bar, the control bar and the library away from text.",
+     "expect": "Bars about #ABABAA and the library about #C2C2C1, each within 6/255 and neutral gray."
+    },
+    {
+     "id": "H-light-backdrop-red-clip",
+     "steps": "Same as above with solid-FF0000.mp4.",
+     "expect": "Bars: R 160-224, G and B 150-175. Library: R 185-236, G and B about 175-190."
+    },
+    {
+     "id": "H-cone-light",
+     "steps": "Light theme with a video open. Sample the cone in the top bar.",
+     "expect": "#C2711A, darker than the play button #E8851A."
+    },
+    {
+     "id": "H-subtitle-glyph",
+     "steps": "Add Subtitles ▸ To This Folder with sidecar .srt files.",
+     "expect": "The .srt glyph has the folded corner of Figma 1911:8286."
+    },
+    {
+     "id": "H-customize-tiles",
+     "steps": "Open Customize Player with the default layout.",
+     "expect": "The ±15s labels sit level with the first line of 'Forward 10s'; the play tile shows a 48 pt fill 3 pt inside its dashed box."
+    }
+   ],
+   "evidence": [
+    "figma_file.json: 187:328, 2425:13624, 2107:5604 and 2160:6137 all have the IMAGE fill imageRef 6b15ac5ab6… at opacity 1",
+    "../build/evidence/final4/H-design/r2/S66_App_customization/ (after the fix: 4.9 % flat-colour pixels, was 58.6 %; side-by-side shows the cat through the dialog)",
+    "../build/evidence/final4/H-design/r2/S66_Customization_default/",
+    "../build/evidence/final4/H-design/r2/S70_teal/ and S70_teal_2x/ (bottom strip: the largest difference is 13/255, only in the extreme corner columns)",
+    "Player - Music.png and Music-1.png top-bar samples 27/29/29/29/27; Music-1 library samples 13,13,14",
+    "Targeted tests: 48 pass (filter Customization|WindowShippingParityTests|WindowCompositionTests|FigmaDeviationTests|IconLogoRoleTests). CustomizationBackdropTests failed at 5 points with the fill restored, and testTheMenuCommandMoveToNewRowFillsTheBand failed with the old append-below command; both checked by temporarily restoring the old code. swift build shows no warnings in the changed files."
+   ],
+   "notesForOthers": "A-window: MXRAppView no longer draws the Customize fill (§15; Player - customize uses the normal video fill). If the cover's 3 % glow (Theme.Effect.albumArtGlow) should be drawn above the music top bar as in Player - Music 4767:23726, it needs a glow layer above the bars and below the compact library and panels; D053 bullet 2 keeps it under the bar for now. Integrator: MXRLayoutEditCommand (internal, LayoutDrag.swift) now drives both the tile's context menu and its VoiceOver actions; there is a new test file, CustomizationBackdropTests.swift."
+  },
+  {
+   "status": "done",
+   "summary": "H-design is done for this wave; this report covers the whole wave. I fixed the verifier's major item, the Light bars at #BB instead of #ABABAA (live A-05-S72), at its root cause. Under D055 the picture stays between the pinned Light bars, so the bars never sit over the video. The canvas bands under them were drawn in Light BG/B2 #DEDEDE, and the dark material blurred that into a mid gray whatever the clip. Those bands are now the dark base the backdrop is designed for: a new design-system style, MXRBackdropBase, which is Dark BG/B2 #090909 in both schemes. Offscreen the S72.Window/light bars now read #A7A7A7 against Figma #ABABAA (Δ4); before the fix they read #B1B1B1. The new regression test LightBarBackdropTests fails without the fix: with the old light base the top bar reads 177,177,177. I rewrote D053 bullet 1. It now separates the pinned bars (a difference that could be fixed, and now is) from the compact library, which floats over the picture, so the colour-bar explanation still applies to the library only. 53 targeted tests pass, and swift build shows no warnings in the changed files. Everything from the earlier report still stands: the Customize dim is removed, Move to New Row fills the band, and the tile menu and VoiceOver actions are built from one command list.",
+   "fixed": [
+    "(verifier, major) Light bars over a light canvas. Sources/MXRDesign/Materials/MXRBackdropSurface.swift adds `public struct MXRBackdropBase: ShapeStyle`, which resolves BG/B2 in the dark scheme (#090909) for both themes and documents why. In Sources/MXRUI/Player/PlayerView.swift (A-window), the canvas `.background(Theme.Color.bgB2)` is now `canvasFill`: a VStack of an MXRBackdropBase band of height pictureInsets.top, BG/B2, and an MXRBackdropBase band of height pictureInsets.bottom. The bands have height 0 in every style except underBars, so Dark, fullscreen, Customize and thinFrame are unchanged. Offscreen S72.Window/light top and control bars: #B1B1B1 before, #A7A7A7 after, Figma #ABABAA. In the real window the darkAqua material now blurs #090909 instead of #DEDEDE, the dark content D046 assumes.",
+    "(verifier, minor) D053 bullet 1 rewritten as 'Light bars sit over a dark base; the compact library is the tint over the blurred video'. The bars part states the cause (the #DEDEDE bands) and the fix. The colour-bar explanation is kept only for the compact library, which floats over the picture.",
+    "(verifier, minor) Fail-without-fix check for the new test: with MXRBackdropBase temporarily resolving in the light scheme, testLightBarsAreTheTintOverADarkBase fails ('bar at (600, 10) reads 177,177,177'). The file was restored and the test passes again.",
+    "(earlier this wave, still holds) Customize no longer draws a dim over the video: S66.App/customization went from 58.6 % to 4.9 % of pixels differing (CustomizationBackdropTests). The tile's context menu and its VoiceOver actions both come from MXRLayoutEditCommand.all (CustomizationNewRowTests). Move to New Row fills the band (D051/D053 bullet 4). The S72 Light cone is #C2711A. The subtitle-file glyph has its folded corner. S66/S67 tile labels and row heights are fixed. The play fill is inset in the edit-mode play tile. The S71 footer hint is aligned. Back is kept and the play button is #E8851A (D049). S70 teal is understood as corner antialiasing only."
+   ],
+   "notFixed": [
+    {
+     "id": "S72 offscreen bars Δ4 (#A7A7A7 vs #ABABAA)",
+     "why": "The offscreen engine has no window-server blur, so its approximation of the effect view gives #A7 over the dark base. Choosing a base colour to land exactly on #AB offscreen would be tuning to a non-evidence renderer. The real-window value is a live check."
+    },
+    {
+     "id": "Music top bar #1B1B1B vs #1D1D1D (D053 bullet 2)",
+     "why": "Kept, unchanged from the earlier report. Matching it would need a new cover-glow layer above the bars in A-window's stack, and Figma's own layer order is inconsistent. The gap is 2/255."
+    },
+    {
+     "id": "S72 seek head offset and playing-row styling",
+     "why": "These belong to other areas: the seek head offset to B-controls, the playing-row styling to E-library under D051. They are the remaining regions in the S72 check report."
+    },
+    {
+     "id": "S66.Customization/default dialog body, S70 sub-pixel strips",
+     "why": "Unchanged: the dialog body needs real blur (live check), and the S70 strips are crop and resampling artefacts at the frame edges."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Materials/MXRBackdropSurface.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerView.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/LightBarBackdropTests.swift",
+    "redesign/docs/DECISIONS.md",
+    "(earlier this wave) Sources/MXRUI/MXRAppView.swift, Sources/MXRUI/Customization/LayoutDrag.swift, Tests/MXRUISnapshotTests/CustomizationBackdropTests.swift, CustomizationNewRowTests.swift, WindowShippingParityTests.swift (comment), redesign/docs/design/VIDEO_BREAKDOWN.md, redesign/design/spec/spec-part2.md, tools/gen-icons.py, Generated/Icons.swift, Generated/Tokens.swift, the subtitle SVGs, Icons/MXRIcon.swift, Customization/MXRCustomizationView.swift, Customization/MXROnboardingView.swift, CustomizationGallery.swift, Player/PlayerControls.swift, IconLogoRoleTests.swift, CustomizationPaletteGeometryTests.swift, FigmaDeviationTests.swift, redesign/design/tokens/metrics.json"
+   ],
+   "editsOutsideOwnership": [
+    "Sources/MXRUI/Player/PlayerView.swift (A-window): `.background(Theme.Color.bgB2)` on videoSurface became `.background { canvasFill }`, plus a new private `canvasFill` with the two MXRBackdropBase bands sized by pictureInsets. The file was re-read right before the edit. Nothing else changed.",
+    "redesign/docs/DECISIONS.md: D053 bullet 1 rewritten (re-read right before editing).",
+    "(earlier) MXRAppView.swift: removed the Customize fill. WindowShippingParityTests.swift: one comment changed. PlayerControls.swift: play fill inset. FigmaDeviationTests heading form, the D051 sentence, and one §15 line each in VIDEO_BREAKDOWN.md and spec-part2.md."
+   ],
+   "decisionsWritten": [
+    "D053 bullet 1 amended (agent, 2026-10-17): the Light bars sit over the dark base MXRBackdropBase, so the difference is fixed rather than excused. The colour-bar explanation now covers only the compact library.",
+    "(earlier) D053 bullet 3 withdrawn (there is no Customize dim); D053 bullets 2 and 4; the D051 amendment; D049."
+   ],
+   "ownerDecisions": [
+    "D053 (agent-written): the Light bars use the dark base under their material; the compact library stays a native blurred material over the video; the music top bar stays #1B1B1B; Move to New Row fills the band nearest the video. Bullet 3 is withdrawn.",
+    "D049 (agent-written): Light play button #E8851A; Back kept on the alternate-accent onboarding frames; ~/Movies pre-fill.",
+    "Still pending: D042, D044, D046, D047, D048, D050, D051, D052, and the D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies)."
+   ],
+   "liveChecks": [
+    {
+     "id": "H-light-bars-dark-base",
+     "steps": "Light theme, windowed, bars pinned (paused). Play any video, including the colour-bar test media, and pause. Capture in sRGB and sample empty parts of the top bar and the control bar.",
+     "expect": "Neutral gray about #ABABAA (within 6/255) whatever the clip, because the bars sit over the dark band, not the video. Before the fix they read #BBB7BC."
+    },
+    {
+     "id": "H-light-library-dark-clip",
+     "steps": "Light theme. Open ../build/evidence/final4/H-design/media/solid-2D2D2D.mp4, pause, and open the compact library. Sample the library away from text.",
+     "expect": "About #C2C2C1, within 6/255, neutral."
+    },
+    {
+     "id": "H-light-library-red-clip",
+     "steps": "Same as above with solid-FF0000.mp4.",
+     "expect": "Library R 185-236, G and B about 175-190 (it floats over the picture). The bars stay about #ABABAA."
+    },
+    {
+     "id": "H-customize-video-visible",
+     "steps": "Dark theme. Play Test Show S01E01.mp4, pause, and open Customize Player. Sample the video outside the dialog, then the dialog body over a bright part of the video.",
+     "expect": "The video area matches the paused frame, with no flat #303030. The dialog body is close to #181818 over dark content."
+    },
+    {
+     "id": "H-move-to-new-row",
+     "steps": "Customize Player with the default one-row layout. Right-click the seek bar tile and choose Move to New Row. Then use the VoiceOver 'Move to new row' action on another tile. Save.",
+     "expect": "The tile fills the empty band above the transport (19m27.6), and no row is appended below it. After Save the player shows two rows."
+    },
+    {
+     "id": "H-cone-light",
+     "steps": "Light theme with a video open. Sample the cone in the top bar.",
+     "expect": "#C2711A."
+    },
+    {
+     "id": "H-subtitle-glyph",
+     "steps": "Add Subtitles ▸ To This Folder with sidecar .srt files.",
+     "expect": "The .srt glyph has the folded corner of Figma 1911:8286."
+    },
+    {
+     "id": "H-customize-tiles",
+     "steps": "Open Customize Player with the default layout.",
+     "expect": "The ±15s labels sit level with the first line of 'Forward 10s'; the play tile shows a 48 pt fill 3 pt inside its dashed box."
+    }
+   ],
+   "evidence": [
+    "Token arithmetic: Light BG/A3 Transparent is #D5D5D5 @ 0.75; over #2D2B29 that gives 171 (#AB), matching Figma.",
+    "Offscreen S72.Window/light (shipping-window) bar at (600,10): before 177,177,177; after 167,167,167. Figma ref 171,171,170. The picture region is unchanged (900,700 reads 224 in render and ref).",
+    "../build/evidence/final4/H-design/r3/S72_check/ (report.txt: bars #A7A7A7 vs #ABABAA Δ4; the other regions are the B-controls seek head and the D051 playing row)",
+    "LightBarBackdropTests fails with the light-scheme base ('reads 177,177,177') and passes with the fix.",
+    "Targeted tests: 53 pass (LightBarBackdropTests, Customization*, FigmaDeviationTests, IconLogoRoleTests, WindowShippingParityTests, WindowCompositionTests). swift build shows no warnings in MXRBackdropSurface.swift or PlayerView.swift.",
+    "Earlier evidence: ../build/evidence/final4/H-design/r2/ (S66_App_customization, S70_teal_2x)."
+   ],
+   "notesForOthers": "[\"A-window: PlayerView.videoSurface now draws `canvasFill`. In the underBars style (Light, D055) the bands under the pinned bars use MXRBackdropBase (Dark BG/B2 #090909) so the translucent bars read #ABABAA; the picture keeps BG/B2. In all other styles the bands have height 0. Integrator: there is a new test file, Tests/MXRUISnapshotTests/LightBarBackdropTests.swift. Live acceptance: re-run A-05-S72 and expect bars near #ABABAA regardless of the clip.\"]"
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "S72.Window/light offscreen (LightBarBackdropTests)",
+    "description": "Offscreen the bars read #A7A7A7 against Figma #ABABAA (Δ4), and the test allows ±5, so the margin is only 1. Over a #090909 base, the tint arithmetic alone gives about #A2. The real-window value depends on the hudWindow darkAqua material, so it has to be confirmed live."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Player/PlayerView.swift canvasFill (A-window file, a declared edit outside ownership)",
+    "description": "In Light, the bands under the pinned bars are now #090909. They are covered only while the style is underBars, which requires visible pinned bars, so the geometry is sound. A one-frame flash of black during a style change (bars auto-hiding, or entering or leaving Customize) can only be ruled out live."
+   },
+   {
+    "severity": "minor",
+    "where": "D053 bullet 2 (music top bar #1B1B1B vs #1D1D1D)",
+    "description": "Kept with a reason: Figma's cover glow sits above the bar in its layer order, and the gap is 2/255. This is acceptable, but the owner still has to approve it."
+   },
+   {
+    "severity": "minor",
+    "where": "S66.Customization/default, S70/S69 bottom strip",
+    "description": "These are unchanged from round 2. The dialog body reads #0E0E0E vs #181818 (21.9 %) because offscreen renders draw no real blur, so it is a live check. The S70/S69 1090×7 pt bottom strip disappears with a 2 pt shift, which points to crop and resampling at the frame edge."
+   }
+  ],
+  "summary": "I verified H-design round 3 independently.\n\n**Build and tests**\n- `swift build` is clean, with 0 warnings.\n- 54 targeted tests pass: LightBarBackdropTests, Customization*, FigmaDeviationTests, IconLogoRoleTests, WindowShippingParityTests, WindowCompositionTests and onboarding/store tests.\n- The new LightBarBackdropTests fails without the fix. I checked this in an isolated copy with MXRBackdropBase resolving in the environment's own scheme: it reads 177,177,177 at (600,10) and (900,25). The copy has since been deleted.\n\n**The Light-bar fix**\n- The root cause is fixed, not masked. Under D055 the canvas bands under the pinned bars were Light BG/B2 #DEDEDE, and the darkAqua material blurred that.\n- The bands now use MXRBackdropBase, which is BG/B2 resolved in the dark scheme. It is a token, not a literal value.\n- The bands are non-zero only in the underBars style, which requires visible pinned bars, so Dark, fullscreen, Customize and thinFrame are unchanged.\n- Offscreen, S72.Window/light (shipping-window) bars now read #A7A7A7 against Figma #ABABAA.\n- Looking at the side-by-side, the layout, the cone colour and the play button colour match. What remains belongs to other areas: the seek head (B-controls) and the playing-row styling (E-library, D051).\n\n**Other work-list items**\n- The Customize dim is gone: S66.App/customization differs on 4.9 % of pixels, against 58.6 % before.\n- Move to New Row now uses LayoutZone.newFirstRow, and the context menu and VoiceOver actions come from one list (MXRLayoutEditCommand).\n- S67 two-row edit gives REVIEW only. S25 AddSubtitles folder gives REVIEW for a small local difference.\n- The S71 differences (P/N vs </>, ⌘L) are covered by existing keyboard-shortcut decisions.\n- The S66 default dialog body and the S70/S69 edge strip are unchanged from round 2: one needs real blur, the other is a crop artefact.\n- The `image` engine cannot draw the Customize palette (it renders a placeholder). That is a limitation of the render engine, not a product problem, so I used the default engine at 2x.\n\n**Decisions**\n- The D053 bullet 1 rewrite now states that the bars difference was fixed rather than excusing it.\n- The compact-library tint over a bright video is a reasonable consequence of a material floating over the picture, and it is confirmed live.\n- The music bar gap of 2/255 is justified by Figma's layer order.\n\n**Rules**\n- The engine is untouched: the diff of src, lib, include and modules/gui/macosx against upstream-base-2026-10-14 is empty.\n- Ownership is respected: the only edits outside H-design are the declared one in PlayerView.swift and the declared DECISIONS.md amendment.\n- The settings gate is not loosened: H-design did not change FigmaDeviation.swift, and the SettingsFigmaDeviations.swift change belongs to F-settings.\n\nEvidence is in ../build/evidence/final4/H-design-verify-r3/ (one folder per checked entry with render, ref, side-by-side and heatmap, plus revert-test.log and build.log).",
+  "liveChecks": [
+   {
+    "id": "H-light-bars-dark-base",
+    "steps": "Light theme, windowed, paused so the bars are pinned. Play the default test media and a colour-bar or red clip. Capture in sRGB and sample empty parts of the top bar (around x 600, y 10) and the control bar.",
+    "expect": "Neutral gray about #ABABAA, within 6/255, whatever the clip. Before the fix they read #BBB7BC."
+   },
+   {
+    "id": "H-light-band-no-flash",
+    "steps": "Light theme. Start playback so the bars auto-hide if they do, pause again, then enter and leave Customize Player. Record the screen at 60 fps.",
+    "expect": "No #090909 strip is ever visible above the top bar or below the control bar, even for one frame."
+   },
+   {
+    "id": "H-light-library-dark-clip",
+    "steps": "Light theme. Open ../build/evidence/final4/H-design/media/solid-2D2D2D.mp4, pause, and open the compact library. Sample the library away from text.",
+    "expect": "About #C2C2C1, within 6/255, neutral."
+   },
+   {
+    "id": "H-light-library-red-clip",
+    "steps": "Same as above with solid-FF0000.mp4.",
+    "expect": "The library is tinted between about #B9B9B9 and #ECB9B9, and the bars stay about #ABABAA."
+   },
+   {
+    "id": "H-customize-video-visible",
+    "steps": "Dark theme. Play Test Show S01E01.mp4, pause, and open Customize Player. Sample the video outside the dialog.",
+    "expect": "It matches the paused frame, with no flat #303030. The dialog body is close to #181818 over dark content."
+   },
+   {
+    "id": "H-move-to-new-row",
+    "steps": "Customize Player with the default one-row layout. Right-click a tile and choose Move to New Row. Use the VoiceOver 'Move to new row' action on another tile. Save.",
+    "expect": "The tile fills the empty band above the transport, as in the video at 19m27.6, and no row is appended below. After Save the player shows two rows."
+   },
+   {
+    "id": "H-cone-light",
+    "steps": "Light theme with a video open. Sample the cone in the top bar.",
+    "expect": "#C2711A."
+   },
+   {
+    "id": "H-customize-dialog-body",
+    "steps": "Dark theme. Open Customize Player over the paused S01E01 video and sample the dialog body away from tiles.",
+    "expect": "Close to Figma #181818 over dark video, not #0E0E0E."
+   }
+  ],
+  "ownerDecisions": [
+   "D053 (agent-written, amended 2026-10-17): the Light bars sit over the dark base MXRBackdropBase; the compact library stays a native material that takes on part of the video's colour; the music top bar stays #1B1B1B; Move to New Row fills the band nearest the video. Bullet 3 (the Customize dim) is withdrawn.",
+   "D049 (agent-written): Light play button #E8851A; Back kept on the alternate-accent onboarding frames; ~/Movies pre-fill.",
+   "Still pending: D042, D044, D046, D047, D048, D050, D051, D052, and the D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies)."
+  ]
+ }
+}

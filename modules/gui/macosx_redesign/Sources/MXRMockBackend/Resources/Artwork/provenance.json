@@ -1,0 +1,2053 @@
+{
+  "source": "VLC Redesign by Juxtopposed",
+  "communityFile": "https://www.figma.com/community/file/1691465999134370980",
+  "figmaVersion": "2409521707817118521",
+  "license": "CC BY 4.0",
+  "usage": "Local mock media artwork and stills for native UI visual QA; no UI labels, menus, controls or full-screen mockups are bundled.",
+  "extraction": "Crop from committed Figma PNG renders at 2x using redesign/tools/figma/figma_ref.py; fractional origins are resampled bilinearly exactly as the crop tool.",
+  "limitations": [
+    "The original Figma image-fill binaries are unavailable; rendered crops preserve image-local overlays and corner clipping.",
+    "Grid Wand thumbnails include the Figma 20% black image-fill overlay. Home-specific named variants preserve the brighter Home image fills. Do not apply a second imageOverlay when comparing snapshots.",
+    "player-cat is a 20pt inset media-only crop of Hide UI, excluding all window chrome; it is not the original uncropped image fill.",
+    "dont-blink is the designed solid-black Home media thumbnail; it excludes its progress strip.",
+    "Home E05\u2013E07 retain full image geometry; the overlapping 4pt progress strip is excluded by replacing only its orange pixels with the known flat-black underlying media area. These are cropped media fixtures, never UI screenshots.",
+    "Compact/list32\u00d732pt image-only fixtures preserve their square FILL framing. E01\u2013E04 orange28\u00d73pt progress-child rectangles are replaced with the preceding media row, so the obscured raw-media strip is inferred and the native UI draws progress separately. Radius2 corner context is uncomposited using the flattened alpha and known surrounding panel RGBA;8-bit coverage rounding limits exact recovery of those28 corner pixels. Native UI clips once.",
+    "ListE05 uses its identical clean compact photo before source-selected black70% and warm20% image paints; native UI applies those selected layers and draws the play glyph. No glyph pixels are bundled.",
+    "Grid WandE01\u2013E04 preserve the full632\u00d7356px canvas. The excluded8pixel bottom progress strip is inferred from the preceding clean media row without rescaling the original632\u00d7348media pixels; native UI draws4pt progress separately."
+  ],
+  "assets": [
+    {
+      "file": "wand-s01e01.png",
+      "mediaID": "ml:wand-s01e01",
+      "figmaNode": "6270:13801",
+      "figmaFrame": "970:4028",
+      "render": "Player-4.png",
+      "imageRefs": [
+        "883aa6260100df380b36fe455829fdd95a938bfa"
+      ],
+      "sourceBoxPoints": {
+        "x": 16186.0,
+        "y": -4317.5,
+        "width": 316.0,
+        "height": 177.75001525878906
+      },
+      "cropPixels": [
+        1146.0,
+        1289.0,
+        632.0,
+        356.0
+      ],
+      "pixelSize": [
+        632,
+        356
+      ],
+      "sha256": "a942da8bab6008308371f7e16410e7c64b053e04f7e59d55d46c3283358bfaf9",
+      "note": "Preserves all632\u00d7348 clean media pixels byte-identically, then restores full316\u00d7177.75pt FILL canvas geometry by extending the last clean row into8excluded bottom pixels. Native4pt progress is drawn separately; the obscured raw image pixels are inferred.",
+      "sourceCleanCropSHA256": "3ecd3c90fa1f3f2736d831f95fed7d69c543e69a30da1e3666640ed4ce84e0e7",
+      "controlExclusions": [
+        {
+          "rectPixels": [
+            0,
+            348,
+            632,
+            8
+          ],
+          "replacement": "nearest preceding clean media row y347, extended without resizing or including any orange progress pixels."
+        }
+      ]
+    },
+    {
+      "file": "wand-s01e02.png",
+      "mediaID": "ml:wand-s01e02",
+      "figmaNode": "6270:13805",
+      "figmaFrame": "970:4028",
+      "render": "Player-4.png",
+      "imageRefs": [
+        "99edf9d9a8bf31dd8c34079a5ad1c141801788c1"
+      ],
+      "sourceBoxPoints": {
+        "x": 16522.0,
+        "y": -4317.5,
+        "width": 316.0,
+        "height": 177.75001525878906
+      },
+      "cropPixels": [
+        1818.0,
+        1289.0,
+        632.0,
+        356.0
+      ],
+      "pixelSize": [
+        632,
+        356
+      ],
+      "sha256": "be0321738fc34b3d7d88baa95260b3d3fe3789fd6b0afd4c182a5674b4d52295",
+      "note": "Preserves all632\u00d7348 clean media pixels byte-identically, then restores full316\u00d7177.75pt FILL canvas geometry by extending the last clean row into8excluded bottom pixels. Native4pt progress is drawn separately; the obscured raw image pixels are inferred.",
+      "sourceCleanCropSHA256": "32fe506b8c764fa0536f2cba4c804287344acff11b5753a72270341d637afba5",
+      "controlExclusions": [
+        {
+          "rectPixels": [
+            0,
+            348,
+            632,
+            8
+          ],
+          "replacement": "nearest preceding clean media row y347, extended without resizing or including any orange progress pixels."
+        }
+      ]
+    },
+    {
+      "file": "wand-s01e03.png",
+      "mediaID": "ml:wand-s01e03",
+      "figmaNode": "6270:13809",
+      "figmaFrame": "970:4028",
+      "render": "Player-4.png",
+      "imageRefs": [
+        "66eb30d57ba73c84e4fa75ce81154cb5777a58a0"
+      ],
+      "sourceBoxPoints": {
+        "x": 16858.0,
+        "y": -4317.5,
+        "width": 316.0,
+        "height": 177.75001525878906
+      },
+      "cropPixels": [
+        2490.0,
+        1289.0,
+        632.0,
+        356.0
+      ],
+      "pixelSize": [
+        632,
+        356
+      ],
+      "sha256": "c87972622467c81e05a91b96a8f40121db1e95b9eecb07d100cbae20225cad98",
+      "note": "Preserves all632\u00d7348 clean media pixels byte-identically, then restores full316\u00d7177.75pt FILL canvas geometry by extending the last clean row into8excluded bottom pixels. Native4pt progress is drawn separately; the obscured raw image pixels are inferred.",
+      "sourceCleanCropSHA256": "622aa3cfcdba558bde32d27b38351671832997595776139cb41c9ef82302d2b8",
+      "controlExclusions": [
+        {
+          "rectPixels": [
+            0,
+            348,
+            632,
+            8
+          ],
+          "replacement": "nearest preceding clean media row y347, extended without resizing or including any orange progress pixels."
+        }
+      ]
+    },
+    {
+      "file": "wand-s01e04.png",
+      "mediaID": "ml:wand-s01e04",
+      "figmaNode": "6270:13813",
+      "figmaFrame": "970:4028",
+      "render": "Player-4.png",
+      "imageRefs": [
+        "ad7f51c2bbeffd5cfab550caca4a90a04659171f"
+      ],
+      "sourceBoxPoints": {
+        "x": 17194.0,
+        "y": -4317.5,
+        "width": 316.0,
+        "height": 177.75001525878906
+      },
+      "cropPixels": [
+        3162.0,
+        1289.0,
+        632.0,
+        356.0
+      ],
+      "pixelSize": [
+        632,
+        356
+      ],
+      "sha256": "1d5b6915a8b4428f2f446f1ec9214cb88828892dcdb729659185e93b87c94e43",
+      "note": "Preserves all632\u00d7348 clean media pixels byte-identically, then restores full316\u00d7177.75pt FILL canvas geometry by extending the last clean row into8excluded bottom pixels. Native4pt progress is drawn separately; the obscured raw image pixels are inferred.",
+      "sourceCleanCropSHA256": "83797c3cb0d5472cff75bd984382fe33b8eb649824906545b40895b728af7b40",
+      "controlExclusions": [
+        {
+          "rectPixels": [
+            0,
+            348,
+            632,
+            8
+          ],
+          "replacement": "nearest preceding clean media row y347, extended without resizing or including any orange progress pixels."
+        }
+      ]
+    },
+    {
+      "file": "wand-s01e05.png",
+      "mediaID": "ml:wand-s01e05",
+      "figmaNode": "6270:13768",
+      "figmaFrame": "970:4028",
+      "render": "Player-4.png",
+      "imageRefs": [
+        "7f25dfccf6cb77a09a3904b11b9d3d04dc2009bc"
+      ],
+      "sourceBoxPoints": {
+        "x": 15850.0,
+        "y": -4831.0,
+        "width": 316.0,
+        "height": 177.75001525878906
+      },
+      "cropPixels": [
+        474.0,
+        262.0,
+        632.0,
+        356.0
+      ],
+      "pixelSize": [
+        632,
+        356
+      ],
+      "sha256": "9b66898dd7d7b99600edd5e4af7023fa835f7e4121e6a631833a0e4164176fbd"
+    },
+    {
+      "file": "wand-s01e06.png",
+      "mediaID": "ml:wand-s01e06",
+      "figmaNode": "6270:13771",
+      "figmaFrame": "970:4028",
+      "render": "Player-4.png",
+      "imageRefs": [
+        "fef8094e69b3723690a8cdf5d474d4dda62eedf2"
+      ],
+      "sourceBoxPoints": {
+        "x": 16186.0,
+        "y": -4831.0,
+        "width": 316.0,
+        "height": 177.75001525878906
+      },
+      "cropPixels": [
+        1146.0,
+        262.0,
+        632.0,
+        356.0
+      ],
+      "pixelSize": [
+        632,
+        356
+      ],
+      "sha256": "6209def4941867c2d1a860ef5ea05fa0032984b80389e28eb7f3ebd39a14ac11"
+    },
+    {
+      "file": "wand-s01e07.png",
+      "mediaID": "ml:wand-s01e07",
+      "figmaNode": "6270:13774",
+      "figmaFrame": "970:4028",
+      "render": "Player-4.png",
+      "imageRefs": [
+        "d3241fc4fb3d6347235c3f1242edc47e33829169"
+      ],
+      "sourceBoxPoints": {
+        "x": 16522.0,
+        "y": -4831.0,
+        "width": 316.0,
+        "height": 177.75001525878906
+      },
+      "cropPixels": [
+        1818.0,
+        262.0,
+        632.0,
+        356.0
+      ],
+      "pixelSize": [
+        632,
+        356
+      ],
+      "sha256": "49922400462a0153617d9603ac1732ec3868cebf53d32dd582f01a219ae1222e"
+    },
+    {
+      "file": "wand-s01e08.png",
+      "mediaID": "ml:wand-s01e08",
+      "figmaNode": "6270:13777",
+      "figmaFrame": "970:4028",
+      "render": "Player-4.png",
+      "imageRefs": [
+        "ff65d25396b0e8006cb885e84abcb7a941e2490b"
+      ],
+      "sourceBoxPoints": {
+        "x": 16858.0,
+        "y": -4831.0,
+        "width": 316.0,
+        "height": 177.75001525878906
+      },
+      "cropPixels": [
+        2490.0,
+        262.0,
+        632.0,
+        356.0
+      ],
+      "pixelSize": [
+        632,
+        356
+      ],
+      "sha256": "a252d385e1addb6ad8d71a037e770f5974dc46d07dd44785a4cde4317f157c23"
+    },
+    {
+      "file": "wand-s01e09.png",
+      "mediaID": "ml:wand-s01e09",
+      "figmaNode": "6270:13780",
+      "figmaFrame": "970:4028",
+      "render": "Player-4.png",
+      "imageRefs": [
+        "6286c7f917e594369bb32471fc3c112ce78cbe95"
+      ],
+      "sourceBoxPoints": {
+        "x": 17194.0,
+        "y": -4831.0,
+        "width": 316.0,
+        "height": 177.75001525878906
+      },
+      "cropPixels": [
+        3162.0,
+        262.0,
+        632.0,
+        356.0
+      ],
+      "pixelSize": [
+        632,
+        356
+      ],
+      "sha256": "9ae1d053b73dd6278b385f4d09d2be3d1748b681c977aad2401160f82dca782f"
+    },
+    {
+      "file": "wand-s01e10.png",
+      "mediaID": "ml:wand-s01e10",
+      "figmaNode": "6270:13783",
+      "figmaFrame": "970:4028",
+      "render": "Player-4.png",
+      "imageRefs": [
+        "09677f14be6b48f9fe38fe2cc8a043968d4f4e20"
+      ],
+      "sourceBoxPoints": {
+        "x": 15850.0,
+        "y": -4574.25,
+        "width": 316.0,
+        "height": 177.75001525878906
+      },
+      "cropPixels": [
+        474.0,
+        775.5,
+        632.0,
+        356.0
+      ],
+      "pixelSize": [
+        632,
+        356
+      ],
+      "sha256": "b36f3a3d07b0e8ab322a797637613cd1f07a8c49c3abb3fc56c5312e92057ea6"
+    },
+    {
+      "file": "wand-s01e11.png",
+      "mediaID": "ml:wand-s01e11",
+      "figmaNode": "6270:13786",
+      "figmaFrame": "970:4028",
+      "render": "Player-4.png",
+      "imageRefs": [
+        "7c1c7af0a3cbb13a0091bec943b672f85373facf"
+      ],
+      "sourceBoxPoints": {
+        "x": 16186.0,
+        "y": -4574.25,
+        "width": 316.0,
+        "height": 177.75001525878906
+      },
+      "cropPixels": [
+        1146.0,
+        775.5,
+        632.0,
+        356.0
+      ],
+      "pixelSize": [
+        632,
+        356
+      ],
+      "sha256": "fd797c9f1e6793720094c1515f2d3e79410d70e3abbc3c783a878d7d6bfbcb64"
+    },
+    {
+      "file": "wand-s01e12.png",
+      "mediaID": "ml:wand-s01e12",
+      "figmaNode": "6270:13789",
+      "figmaFrame": "970:4028",
+      "render": "Player-4.png",
+      "imageRefs": [
+        "1816c9dc2ae2e9774986d8b82812752e1ba28a35"
+      ],
+      "sourceBoxPoints": {
+        "x": 16522.0,
+        "y": -4574.25,
+        "width": 316.0,
+        "height": 177.75001525878906
+      },
+      "cropPixels": [
+        1818.0,
+        775.5,
+        632.0,
+        356.0
+      ],
+      "pixelSize": [
+        632,
+        356
+      ],
+      "sha256": "57af405e0cb6c2430b4dd2af2f9fe74ebc2cded78c6418915950f1dcf68ac494"
+    },
+    {
+      "file": "wand-s01e13.png",
+      "mediaID": "ml:wand-s01e13",
+      "figmaNode": "6270:13792",
+      "figmaFrame": "970:4028",
+      "render": "Player-4.png",
+      "imageRefs": [
+        "6105d77c386c152e60b48d2a1682a1cae31018d2"
+      ],
+      "sourceBoxPoints": {
+        "x": 16858.0,
+        "y": -4574.25,
+        "width": 316.0,
+        "height": 177.75
+      },
+      "cropPixels": [
+        2490.0,
+        775.5,
+        632.0,
+        356.0
+      ],
+      "pixelSize": [
+        632,
+        356
+      ],
+      "sha256": "7912a93998b5ac8655f29040bebf68a67e564b2548850c1a4b722fef50246825"
+    },
+    {
+      "file": "wand-s01e14.png",
+      "mediaID": "ml:wand-s01e14",
+      "figmaNode": "6270:13795",
+      "figmaFrame": "970:4028",
+      "render": "Player-4.png",
+      "imageRefs": [
+        "db42f55b2556d9d723a1010c41aa752147f43609"
+      ],
+      "sourceBoxPoints": {
+        "x": 17194.0,
+        "y": -4574.25,
+        "width": 316.0,
+        "height": 177.75
+      },
+      "cropPixels": [
+        3162.0,
+        775.5,
+        632.0,
+        356.0
+      ],
+      "pixelSize": [
+        632,
+        356
+      ],
+      "sha256": "f323946ce285ca591cf7800d8c872e1f47c194cc838395f1619748156eace055"
+    },
+    {
+      "file": "wand-s01e15.png",
+      "mediaID": "ml:wand-s01e15",
+      "figmaNode": "6270:13798",
+      "figmaFrame": "970:4028",
+      "render": "Player-4.png",
+      "imageRefs": [
+        "771f1d97432b966f0fe59a9fbaa6b232ed4113f1"
+      ],
+      "sourceBoxPoints": {
+        "x": 15850.0,
+        "y": -4317.5,
+        "width": 316.0,
+        "height": 177.75
+      },
+      "cropPixels": [
+        474.0,
+        1289.0,
+        632.0,
+        356.0
+      ],
+      "pixelSize": [
+        632,
+        356
+      ],
+      "sha256": "a1a15f727140f72c27c01e31aea1acd656338894f53621acb7e664f325c1ae07"
+    },
+    {
+      "file": "untangle.png",
+      "mediaID": "ml:song-untangle",
+      "figmaNode": "4777:24028",
+      "figmaFrame": "4767:23726",
+      "render": "Player - Music.png",
+      "imageRefs": [
+        "a114160d976f37678a2348f3f62d8a234f1458c3"
+      ],
+      "sourceBoxPoints": {
+        "x": 20499.0,
+        "y": -4848.66650390625,
+        "width": 738.0,
+        "height": 737.0
+      },
+      "cropPixels": [
+        1182.0,
+        226.6669921875,
+        1476.0,
+        1474.0
+      ],
+      "pixelSize": [
+        1476,
+        1474
+      ],
+      "sha256": "5055f4537401fddef6e0ae2108ede3ca9bed4f19418d98bfc596c34a1fb0390a"
+    },
+    {
+      "file": "moonlight.png",
+      "mediaID": "ml:song-moonlight",
+      "figmaNode": "6284:13922",
+      "figmaFrame": "6261:15078",
+      "render": "Player-5.png",
+      "imageRefs": [
+        "dfe07a9b32dbf3dfdaf28131bfefacc929a6eb2b"
+      ],
+      "sourceBoxPoints": {
+        "x": 18030.0,
+        "y": -4432.25,
+        "width": 200.0,
+        "height": 200.0
+      },
+      "cropPixels": [
+        914.0,
+        1059.5,
+        400.0,
+        400.0
+      ],
+      "pixelSize": [
+        400,
+        400
+      ],
+      "sha256": "fee56c2f576357a13009eaa505a21150c9030380c511617274e38db33477043b"
+    },
+    {
+      "file": "black-bird.png",
+      "mediaID": "ml:song-black-bird",
+      "figmaNode": "6284:13927",
+      "figmaFrame": "6261:15078",
+      "render": "Player-5.png",
+      "imageRefs": [
+        "dfe07a9b32dbf3dfdaf28131bfefacc929a6eb2b"
+      ],
+      "sourceBoxPoints": {
+        "x": 18250.0,
+        "y": -4432.25,
+        "width": 200.0,
+        "height": 200.0
+      },
+      "cropPixels": [
+        1354.0,
+        1059.5,
+        400.0,
+        400.0
+      ],
+      "pixelSize": [
+        400,
+        400
+      ],
+      "sha256": "fee56c2f576357a13009eaa505a21150c9030380c511617274e38db33477043b"
+    },
+    {
+      "file": "seek-preview.png",
+      "mediaID": null,
+      "figmaNode": "2151:9674",
+      "figmaFrame": "2151:9673",
+      "render": "thumbnail.png",
+      "imageRefs": [
+        "64d6d65c29e08ab9cc86ef24a65c6775134405e7"
+      ],
+      "sourceBoxPoints": {
+        "x": 1934.0,
+        "y": -3752.0,
+        "width": 252.0,
+        "height": 142.0
+      },
+      "cropPixels": [
+        20.0,
+        20.0,
+        504.0,
+        284.0
+      ],
+      "pixelSize": [
+        504,
+        284
+      ],
+      "sha256": "99564f2a58e466c9ad2a09ce635d38e43c23ceecdb19841eeb9a03d739bbf881"
+    },
+    {
+      "file": "player-cat.png",
+      "mediaID": null,
+      "figmaNode": "3328:11554",
+      "figmaFrame": "3328:11554",
+      "render": "Player - hide UI.png",
+      "imageRefs": [
+        "6b15ac5ab68a43557d24836ab39407fb95bc14ea"
+      ],
+      "sourceBoxPoints": {
+        "x": 42440.0,
+        "y": -4942.0,
+        "width": 1880.0,
+        "height": 1040.0
+      },
+      "cropPixels": [
+        40.0,
+        40.0,
+        3760.0,
+        2080.0
+      ],
+      "pixelSize": [
+        3760,
+        2080
+      ],
+      "sha256": "1302a660da504916912d066f571415864e32ba0a3fc241cdbae27b717c66e12f"
+    },
+    {
+      "file": "dont-blink.png",
+      "mediaID": "ml:film-dont-blink",
+      "figmaNode": "6272:13865",
+      "figmaFrame": "6261:15078",
+      "render": "Player-5.png",
+      "imageRefs": [],
+      "sourceBoxPoints": {
+        "x": 18820.0,
+        "y": -4768.0,
+        "width": 312.0,
+        "height": 169.75001525878906
+      },
+      "cropPixels": [
+        2494.0,
+        388.0,
+        624.0,
+        340.0
+      ],
+      "pixelSize": [
+        624,
+        340
+      ],
+      "sha256": "63d6be3056184164578100da1ac13f3c336ef6d0409e1bef261fd13c38134449"
+    },
+    {
+      "file": "home-wand-e05.png",
+      "mediaID": "ml:wand-s01e05",
+      "variant": "home",
+      "figmaNode": "6272:13853",
+      "figmaFrame": "6261:15078",
+      "render": "Player-5.png",
+      "imageRefs": [
+        "883aa6260100df380b36fe455829fdd95a938bfa",
+        "7f25dfccf6cb77a09a3904b11b9d3d04dc2009bc"
+      ],
+      "sourceBoxPoints": {
+        "x": 17810.0,
+        "y": -4770.0,
+        "width": 316.0,
+        "height": 177.75001525878906
+      },
+      "cropPixels": [
+        474.0,
+        384.0,
+        632.0,
+        356.0
+      ],
+      "pixelSize": [
+        632,
+        356
+      ],
+      "excludedProgressPixels": [
+        0,
+        348,
+        52,
+        8
+      ],
+      "sha256": "b4eb55a4901c95384f10fd59ebbb65a486d02c5686b45b2f0cc7d73c299fcad3",
+      "note": "Home-only framing and brightness. Orange progress pixels within the exact child progress-bar rectangle are replaced with the adjacent flat-black media background, preserving alpha and full 316\u00d7177.75pt image geometry; native progress is drawn separately."
+    },
+    {
+      "file": "home-wand-e06.png",
+      "mediaID": "ml:wand-s01e06",
+      "variant": "home",
+      "figmaNode": "6272:13857",
+      "figmaFrame": "6261:15078",
+      "render": "Player-5.png",
+      "imageRefs": [
+        "99edf9d9a8bf31dd8c34079a5ad1c141801788c1",
+        "fef8094e69b3723690a8cdf5d474d4dda62eedf2"
+      ],
+      "sourceBoxPoints": {
+        "x": 18146.0,
+        "y": -4770.0,
+        "width": 316.0,
+        "height": 177.75001525878906
+      },
+      "cropPixels": [
+        1146.0,
+        384.0,
+        632.0,
+        356.0
+      ],
+      "pixelSize": [
+        632,
+        356
+      ],
+      "excludedProgressPixels": [
+        0,
+        348,
+        18,
+        8
+      ],
+      "sha256": "6f2af5fb853b7f2b67b76aad0863e71b9232de3684828892008a2ea69361ca6f",
+      "note": "Home-only framing and brightness. Orange progress pixels within the exact child progress-bar rectangle are replaced with the adjacent flat-black media background, preserving alpha and full 316\u00d7177.75pt image geometry; native progress is drawn separately."
+    },
+    {
+      "file": "home-wand-e07.png",
+      "mediaID": "ml:wand-s01e07",
+      "variant": "home",
+      "figmaNode": "6272:13861",
+      "figmaFrame": "6261:15078",
+      "render": "Player-5.png",
+      "imageRefs": [
+        "66eb30d57ba73c84e4fa75ce81154cb5777a58a0",
+        "d3241fc4fb3d6347235c3f1242edc47e33829169"
+      ],
+      "sourceBoxPoints": {
+        "x": 18482.0,
+        "y": -4770.0,
+        "width": 316.0,
+        "height": 177.75001525878906
+      },
+      "cropPixels": [
+        1818.0,
+        384.0,
+        632.0,
+        356.0
+      ],
+      "pixelSize": [
+        632,
+        356
+      ],
+      "excludedProgressPixels": [
+        0,
+        348,
+        18,
+        8
+      ],
+      "sha256": "ff88507cc82d88b91a8a8460b5b4ff09c46c96388694fc977a763783d14bbcec",
+      "note": "Home-only framing and brightness. Orange progress pixels within the exact child progress-bar rectangle are replaced with the adjacent flat-black media background, preserving alpha and full 316\u00d7177.75pt image geometry; native progress is drawn separately."
+    },
+    {
+      "file": "player-cat-canonical.png",
+      "variant": "canonical-window-mapping",
+      "figmaNode": "3328:11554",
+      "figmaFrame": "3328:11554",
+      "render": "Player - hide UI.png",
+      "imageRefs": [
+        "6b15ac5ab68a43557d24836ab39407fb95bc14ea"
+      ],
+      "sourceAsset": "player-cat.png",
+      "sourceMediaInsetPoints": [
+        20,
+        20,
+        20,
+        20
+      ],
+      "edgeExtensionPixels": [
+        40,
+        40,
+        40,
+        40
+      ],
+      "pixelSize": [
+        3840,
+        2160
+      ],
+      "sha256": "082f7efb8a822bf572325831731ff55075a639d8f9b287abb2c55cecc3fa6ae2",
+      "note": "Retains the media-only 1880\u00d71040pt crop at global (20,20) within 1920\u00d71080pt; missing 20pt edges are extended from the nearest media pixels. Center image geometry is exact; extended border pixels are inferred because the original image-fill binary is unavailable. Contains no UI pixels. Render at full-window size then clip to the video area; do not rescale into its 1900\u00d7985pt interior."
+    },
+    {
+      "file": "compact-wand-e05.png",
+      "mediaID": "ml:wand-s01e05",
+      "figmaNode": "I6784:16226;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "7f25dfccf6cb77a09a3904b11b9d3d04dc2009bc"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5523.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        292.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "note": "Full32\u00d732pt source image-fill geometry; native rounded clipping and state/progress controls are drawn separately.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "01be241102c8a16a1a8f570714820a9a62dca406dff5dfe96022d63886f1048f"
+    },
+    {
+      "file": "compact-wand-e06.png",
+      "mediaID": "ml:wand-s01e06",
+      "figmaNode": "I6784:16228;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "fef8094e69b3723690a8cdf5d474d4dda62eedf2"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5481.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        376.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "note": "Full32\u00d732pt source image-fill geometry; native rounded clipping and state/progress controls are drawn separately.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "47ae264c2cfd1885eac5ebe4bc0d9c4028d315c0907536ab2078f005968b87af"
+    },
+    {
+      "file": "compact-wand-e07.png",
+      "mediaID": "ml:wand-s01e07",
+      "figmaNode": "I6784:16229;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "d3241fc4fb3d6347235c3f1242edc47e33829169"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5439.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        460.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "note": "Full32\u00d732pt source image-fill geometry; native rounded clipping and state/progress controls are drawn separately.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "6d3900b2c2a1e8812c1e5f9beab273ac85fe05891741db4a5e5bf2d82bfc2c0c"
+    },
+    {
+      "file": "compact-wand-e08.png",
+      "mediaID": "ml:wand-s01e08",
+      "figmaNode": "I6784:16230;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "ff65d25396b0e8006cb885e84abcb7a941e2490b"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5397.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        544.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "note": "Full32\u00d732pt source image-fill geometry; native rounded clipping and state/progress controls are drawn separately.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "ff82c25c7b4cbb34ef45891bd6d24384a073cdf73d8f9d3f204cd99ef0c82ae3"
+    },
+    {
+      "file": "compact-wand-e09.png",
+      "mediaID": "ml:wand-s01e09",
+      "figmaNode": "I6784:16231;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "6286c7f917e594369bb32471fc3c112ce78cbe95"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5355.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        628.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "note": "Full32\u00d732pt source image-fill geometry; native rounded clipping and state/progress controls are drawn separately.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "503e9e06c32d8fd6f68852e6595e8a5c16e36b4f642e4c61c63dd57a693edc56"
+    },
+    {
+      "file": "compact-wand-e10.png",
+      "mediaID": "ml:wand-s01e10",
+      "figmaNode": "I6784:16232;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "09677f14be6b48f9fe38fe2cc8a043968d4f4e20"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5313.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        712.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "note": "Full32\u00d732pt source image-fill geometry; native rounded clipping and state/progress controls are drawn separately.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "6b34649c31330f1b5a2abca70c878464893c567f8c5a037691ff5c02552c2399"
+    },
+    {
+      "file": "compact-wand-e11.png",
+      "mediaID": "ml:wand-s01e11",
+      "figmaNode": "I6784:16233;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "7c1c7af0a3cbb13a0091bec943b672f85373facf"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5271.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        796.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "note": "Full32\u00d732pt source image-fill geometry; native rounded clipping and state/progress controls are drawn separately.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "dd353a252e4748cc5989880e9138498e814291e2d29cdea37cb532792b6a9749"
+    },
+    {
+      "file": "compact-wand-e12.png",
+      "mediaID": "ml:wand-s01e12",
+      "figmaNode": "I6784:16234;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "1816c9dc2ae2e9774986d8b82812752e1ba28a35"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5229.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        880.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "note": "Full32\u00d732pt source image-fill geometry; native rounded clipping and state/progress controls are drawn separately.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "2c292b1077e980a545644d9200cad006e0379a8f6edd7e89d240a9cb9ae91a92"
+    },
+    {
+      "file": "compact-wand-e13.png",
+      "mediaID": "ml:wand-s01e13",
+      "figmaNode": "I6784:16235;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "6105d77c386c152e60b48d2a1682a1cae31018d2"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5187.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        964.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "note": "Full32\u00d732pt source image-fill geometry; native rounded clipping and state/progress controls are drawn separately.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "c8d9dea7c5461341562924f8d9db161d5e412452c510a8ec4f8561868f52d4d8"
+    },
+    {
+      "file": "compact-wand-e14.png",
+      "mediaID": "ml:wand-s01e14",
+      "figmaNode": "I6784:16236;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "db42f55b2556d9d723a1010c41aa752147f43609"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5145.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        1048.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "note": "Full32\u00d732pt source image-fill geometry; native rounded clipping and state/progress controls are drawn separately.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "661cc02a8c3922424aed65b8d251e30c31b0e8501a89f36ca61966dff20aa90f"
+    },
+    {
+      "file": "compact-wand-e15.png",
+      "mediaID": "ml:wand-s01e15",
+      "figmaNode": "I6784:16237;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "771f1d97432b966f0fe59a9fbaa6b232ed4113f1"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5103.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        1132.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "note": "Full32\u00d732pt source image-fill geometry; native rounded clipping and state/progress controls are drawn separately.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "b69b398780f4500193afe9d86c88293431683ffc3f8ce3673758270674f3030e"
+    },
+    {
+      "file": "compact-wand-e01.png",
+      "mediaID": "ml:wand-s01e01",
+      "figmaNode": "I6784:16238;2404:9234;2404:9213",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "883aa6260100df380b36fe455829fdd95a938bfa"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5061.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        1216.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "note": "Full32\u00d732pt source image-fill geometry; native rounded clipping and state/progress controls are drawn separately.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "controlExclusions": [
+        {
+          "figmaNode": "I6784:16238;2404:9234;2404:9214",
+          "rectPixels": [
+            0,
+            58,
+            56,
+            6
+          ],
+          "replacement": "nearest preceding clean media row at the same horizontal coordinate; obscured raw image pixels are unavailable, and native progress draws over this inferred strip."
+        }
+      ],
+      "sha256": "d3e8e22dd0b322ddc490a0f2636a54ec1a6af7f4cb467f01c3b77fd3befefe71"
+    },
+    {
+      "file": "compact-wand-e02.png",
+      "mediaID": "ml:wand-s01e02",
+      "figmaNode": "I6784:16239;2404:9234;2404:9213",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "99edf9d9a8bf31dd8c34079a5ad1c141801788c1"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5019.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        1300.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "note": "Full32\u00d732pt source image-fill geometry; native rounded clipping and state/progress controls are drawn separately.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "controlExclusions": [
+        {
+          "figmaNode": "I6784:16239;2404:9234;2404:9214",
+          "rectPixels": [
+            0,
+            58,
+            56,
+            6
+          ],
+          "replacement": "nearest preceding clean media row at the same horizontal coordinate; obscured raw image pixels are unavailable, and native progress draws over this inferred strip."
+        }
+      ],
+      "sha256": "6ab422131dc3f00d06c66120680f63866915abbb91bb954336f848f56c1c6fde"
+    },
+    {
+      "file": "compact-wand-e03.png",
+      "mediaID": "ml:wand-s01e03",
+      "figmaNode": "I6784:16240;2404:9234;2404:9213",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "66eb30d57ba73c84e4fa75ce81154cb5777a58a0"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -4977.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        1384.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "note": "Full32\u00d732pt source image-fill geometry; native rounded clipping and state/progress controls are drawn separately.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "controlExclusions": [
+        {
+          "figmaNode": "I6784:16240;2404:9234;2404:9214",
+          "rectPixels": [
+            0,
+            58,
+            56,
+            6
+          ],
+          "replacement": "nearest preceding clean media row at the same horizontal coordinate; obscured raw image pixels are unavailable, and native progress draws over this inferred strip."
+        }
+      ],
+      "sha256": "912f62b9bac23d3b10c6e7f331a2d27db6b67021fedb063d84f2960ab1759e90"
+    },
+    {
+      "file": "compact-wand-e04.png",
+      "mediaID": "ml:wand-s01e04",
+      "figmaNode": "I6784:16241;2404:9234;2404:9213",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "ad7f51c2bbeffd5cfab550caca4a90a04659171f"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -4935.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        1468.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "note": "Full32\u00d732pt source image-fill geometry; native rounded clipping and state/progress controls are drawn separately.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "controlExclusions": [
+        {
+          "figmaNode": "I6784:16241;2404:9234;2404:9214",
+          "rectPixels": [
+            0,
+            58,
+            56,
+            6
+          ],
+          "replacement": "nearest preceding clean media row at the same horizontal coordinate; obscured raw image pixels are unavailable, and native progress draws over this inferred strip."
+        }
+      ],
+      "sha256": "e80432d9cdef6c7dbc38c7ad965b6c657023c83830581fc831dc63b703e5492b"
+    },
+    {
+      "file": "list-wand-e05.png",
+      "mediaID": "ml:wand-s01e05",
+      "figmaNode": "I6784:16226;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "7f25dfccf6cb77a09a3904b11b9d3d04dc2009bc"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5523.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        292.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "intendedFigmaNode": "I6841:15992;2404:9180;2404:9202",
+      "note": "The compact and list sources use the same32\u00d732pt photo FILL framing; their interior media pixels match. This uses the compact source before surrounding panel compositing. List-selectedE05 has a native play glyph and selected70%black/20%warm paints above this same image fill. Neither the glyph nor selected paints are bundled; native UI applies them.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "01be241102c8a16a1a8f570714820a9a62dca406dff5dfe96022d63886f1048f"
+    },
+    {
+      "file": "list-wand-e06.png",
+      "mediaID": "ml:wand-s01e06",
+      "figmaNode": "I6784:16228;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "fef8094e69b3723690a8cdf5d474d4dda62eedf2"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5481.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        376.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "intendedFigmaNode": "I6841:15993;2404:9180;2404:9202",
+      "note": "The compact and list sources use the same32\u00d732pt photo FILL framing; their interior media pixels match. This uses the compact source before surrounding panel compositing.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "47ae264c2cfd1885eac5ebe4bc0d9c4028d315c0907536ab2078f005968b87af"
+    },
+    {
+      "file": "list-wand-e07.png",
+      "mediaID": "ml:wand-s01e07",
+      "figmaNode": "I6784:16229;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "d3241fc4fb3d6347235c3f1242edc47e33829169"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5439.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        460.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "intendedFigmaNode": "I6841:15994;2404:9180;2404:9202",
+      "note": "The compact and list sources use the same32\u00d732pt photo FILL framing; their interior media pixels match. This uses the compact source before surrounding panel compositing.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "6d3900b2c2a1e8812c1e5f9beab273ac85fe05891741db4a5e5bf2d82bfc2c0c"
+    },
+    {
+      "file": "list-wand-e08.png",
+      "mediaID": "ml:wand-s01e08",
+      "figmaNode": "I6784:16230;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "ff65d25396b0e8006cb885e84abcb7a941e2490b"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5397.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        544.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "intendedFigmaNode": "I6841:15995;2404:9180;2404:9202",
+      "note": "The compact and list sources use the same32\u00d732pt photo FILL framing; their interior media pixels match. This uses the compact source before surrounding panel compositing.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "ff82c25c7b4cbb34ef45891bd6d24384a073cdf73d8f9d3f204cd99ef0c82ae3"
+    },
+    {
+      "file": "list-wand-e09.png",
+      "mediaID": "ml:wand-s01e09",
+      "figmaNode": "I6784:16231;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "6286c7f917e594369bb32471fc3c112ce78cbe95"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5355.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        628.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "intendedFigmaNode": "I6841:15996;2404:9180;2404:9202",
+      "note": "The compact and list sources use the same32\u00d732pt photo FILL framing; their interior media pixels match. This uses the compact source before surrounding panel compositing.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "503e9e06c32d8fd6f68852e6595e8a5c16e36b4f642e4c61c63dd57a693edc56"
+    },
+    {
+      "file": "list-wand-e10.png",
+      "mediaID": "ml:wand-s01e10",
+      "figmaNode": "I6784:16232;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "09677f14be6b48f9fe38fe2cc8a043968d4f4e20"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5313.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        712.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "intendedFigmaNode": "I6841:15997;2404:9180;2404:9202",
+      "note": "The compact and list sources use the same32\u00d732pt photo FILL framing; their interior media pixels match. This uses the compact source before surrounding panel compositing.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "6b34649c31330f1b5a2abca70c878464893c567f8c5a037691ff5c02552c2399"
+    },
+    {
+      "file": "list-wand-e11.png",
+      "mediaID": "ml:wand-s01e11",
+      "figmaNode": "I6784:16233;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "7c1c7af0a3cbb13a0091bec943b672f85373facf"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5271.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        796.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "intendedFigmaNode": "I6841:15998;2404:9180;2404:9202",
+      "note": "The compact and list sources use the same32\u00d732pt photo FILL framing; their interior media pixels match. This uses the compact source before surrounding panel compositing.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "dd353a252e4748cc5989880e9138498e814291e2d29cdea37cb532792b6a9749"
+    },
+    {
+      "file": "list-wand-e12.png",
+      "mediaID": "ml:wand-s01e12",
+      "figmaNode": "I6784:16234;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "1816c9dc2ae2e9774986d8b82812752e1ba28a35"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5229.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        880.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "intendedFigmaNode": "I6841:15999;2404:9180;2404:9202",
+      "note": "The compact and list sources use the same32\u00d732pt photo FILL framing; their interior media pixels match. This uses the compact source before surrounding panel compositing.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "2c292b1077e980a545644d9200cad006e0379a8f6edd7e89d240a9cb9ae91a92"
+    },
+    {
+      "file": "list-wand-e13.png",
+      "mediaID": "ml:wand-s01e13",
+      "figmaNode": "I6784:16235;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "6105d77c386c152e60b48d2a1682a1cae31018d2"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5187.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        964.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "intendedFigmaNode": "I6841:16000;2404:9180;2404:9202",
+      "note": "The compact and list sources use the same32\u00d732pt photo FILL framing; their interior media pixels match. This uses the compact source before surrounding panel compositing.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "c8d9dea7c5461341562924f8d9db161d5e412452c510a8ec4f8561868f52d4d8"
+    },
+    {
+      "file": "list-wand-e14.png",
+      "mediaID": "ml:wand-s01e14",
+      "figmaNode": "I6784:16236;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "db42f55b2556d9d723a1010c41aa752147f43609"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5145.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        1048.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "intendedFigmaNode": "I6841:16001;2404:9180;2404:9202",
+      "note": "The compact and list sources use the same32\u00d732pt photo FILL framing; their interior media pixels match. This uses the compact source before surrounding panel compositing.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "661cc02a8c3922424aed65b8d251e30c31b0e8501a89f36ca61966dff20aa90f"
+    },
+    {
+      "file": "list-wand-e15.png",
+      "mediaID": "ml:wand-s01e15",
+      "figmaNode": "I6784:16237;2404:9180;2404:9202",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "771f1d97432b966f0fe59a9fbaa6b232ed4113f1"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5103.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        1132.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "intendedFigmaNode": "I6841:16002;2404:9180;2404:9202",
+      "note": "The compact and list sources use the same32\u00d732pt photo FILL framing; their interior media pixels match. This uses the compact source before surrounding panel compositing.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "sha256": "b69b398780f4500193afe9d86c88293431683ffc3f8ce3673758270674f3030e"
+    },
+    {
+      "file": "list-wand-e01.png",
+      "mediaID": "ml:wand-s01e01",
+      "figmaNode": "I6784:16238;2404:9234;2404:9213",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "883aa6260100df380b36fe455829fdd95a938bfa"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5061.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        1216.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "intendedFigmaNode": "I6841:16003;2404:9234;2404:9213",
+      "note": "The compact and list sources use the same32\u00d732pt photo FILL framing; their interior media pixels match. This uses the compact source before surrounding panel compositing.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "controlExclusions": [
+        {
+          "figmaNode": "I6784:16238;2404:9234;2404:9214",
+          "rectPixels": [
+            0,
+            58,
+            56,
+            6
+          ],
+          "replacement": "nearest preceding clean media row at the same horizontal coordinate; obscured raw image pixels are unavailable, and native progress draws over this inferred strip."
+        }
+      ],
+      "sha256": "d3e8e22dd0b322ddc490a0f2636a54ec1a6af7f4cb467f01c3b77fd3befefe71"
+    },
+    {
+      "file": "list-wand-e02.png",
+      "mediaID": "ml:wand-s01e02",
+      "figmaNode": "I6784:16239;2404:9234;2404:9213",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "99edf9d9a8bf31dd8c34079a5ad1c141801788c1"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -5019.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        1300.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "intendedFigmaNode": "I6841:16004;2404:9234;2404:9213",
+      "note": "The compact and list sources use the same32\u00d732pt photo FILL framing; their interior media pixels match. This uses the compact source before surrounding panel compositing.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "controlExclusions": [
+        {
+          "figmaNode": "I6784:16239;2404:9234;2404:9214",
+          "rectPixels": [
+            0,
+            58,
+            56,
+            6
+          ],
+          "replacement": "nearest preceding clean media row at the same horizontal coordinate; obscured raw image pixels are unavailable, and native progress draws over this inferred strip."
+        }
+      ],
+      "sha256": "6ab422131dc3f00d06c66120680f63866915abbb91bb954336f848f56c1c6fde"
+    },
+    {
+      "file": "list-wand-e03.png",
+      "mediaID": "ml:wand-s01e03",
+      "figmaNode": "I6784:16240;2404:9234;2404:9213",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "66eb30d57ba73c84e4fa75ce81154cb5777a58a0"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -4977.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        1384.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "intendedFigmaNode": "I6841:16005;2404:9234;2404:9213",
+      "note": "The compact and list sources use the same32\u00d732pt photo FILL framing; their interior media pixels match. This uses the compact source before surrounding panel compositing.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "controlExclusions": [
+        {
+          "figmaNode": "I6784:16240;2404:9234;2404:9214",
+          "rectPixels": [
+            0,
+            58,
+            56,
+            6
+          ],
+          "replacement": "nearest preceding clean media row at the same horizontal coordinate; obscured raw image pixels are unavailable, and native progress draws over this inferred strip."
+        }
+      ],
+      "sha256": "912f62b9bac23d3b10c6e7f331a2d27db6b67021fedb063d84f2960ab1759e90"
+    },
+    {
+      "file": "list-wand-e04.png",
+      "mediaID": "ml:wand-s01e04",
+      "figmaNode": "I6784:16241;2404:9234;2404:9213",
+      "figmaFrame": "848:1996",
+      "render": "sidebar.png",
+      "imageRefs": [
+        "27f4daa3eec49effb9d0d044b7bedd9b0432f19f",
+        "ad7f51c2bbeffd5cfab550caca4a90a04659171f"
+      ],
+      "sourceBoxPoints": {
+        "x": -19.0,
+        "y": -4935.0,
+        "width": 32.0,
+        "height": 32.0
+      },
+      "cropPixels": [
+        182.0,
+        1468.0,
+        64.0,
+        64.0
+      ],
+      "pixelSize": [
+        64,
+        64
+      ],
+      "intendedFigmaNode": "I6841:16006;2404:9234;2404:9213",
+      "note": "The compact and list sources use the same32\u00d732pt photo FILL framing; their interior media pixels match. This uses the compact source before surrounding panel compositing.",
+      "cornerContextExclusion": {
+        "partialAlphaPixelCount": 28,
+        "sourcePanelRGBA": [
+          14,
+          14,
+          14,
+          242
+        ],
+        "replacement": "uncomposite surrounding panel from partial-corner pixels using coverage=(observedAlpha-242)/13, preserving recovered media RGB and making alpha opaque for one native radius2 clip. Fully uncovered corner pixels receive black media extension. Coverage and recovery have8-bit quantization limits."
+      },
+      "controlExclusions": [
+        {
+          "figmaNode": "I6784:16241;2404:9234;2404:9214",
+          "rectPixels": [
+            0,
+            58,
+            56,
+            6
+          ],
+          "replacement": "nearest preceding clean media row at the same horizontal coordinate; obscured raw image pixels are unavailable, and native progress draws over this inferred strip."
+        }
+      ],
+      "sha256": "e80432d9cdef6c7dbc38c7ad965b6c657023c83830581fc831dc63b703e5492b"
+    }
+  ]
+}

@@ -1,0 +1,156 @@
+{
+ "area": "G-panels",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "G-panels work list closed. The root cause of most remaining slider differences was the slider geometry. Three changes, all taken from figma_file.json:\n- The thumb now travels 2 pt inside both track ends, so it sits at 2 at the minimum and at W−10 at the maximum.\n- Ticks spread over the 2…W−2 span of the `degrees` frame, and a stepped slider centres its thumb on its tick.\n- The fill runs to the thumb's far edge. A centred slider's fill spans the thumb at its value and the thumb at the zero point.\n\nI put this in one small, testable PanelSliderGeometry in PanelControls.swift. End ticks are gone. Ticks are now screen-blended like Figma's `degrees` frames (all 75 use SCREEN), so they read #4B3217 on the fill as in Figma. The selected narrow tab underline is now 70 pt. The Playback tab draws Figma's full-width #222 hairline at y 51. S19 compressor-open and stereoWidener-open now fail only on documented D054 deviations: REVIEW 0.022 % and PASS. One line added to D054 for the Audio tab's '-10 s' typo. Spatializer-open is now PASS (0.003 %). Essential-open structural 0.167 → 0.037 %. S20.Sidebar/subtitles structural 0.094 → 0.034 % with flat colour 0. S18 and S19 sidebars have flat colour 0. Tests: FilterCardParityTests 13/13, PanelAuditRegression 9, PanelsTests 5, SidePanelContent 3 and PanelValuesRegression 4, all passing. In an isolated copy with the HEAD sources, the new and updated tests fail with 9 assertions, so they catch the regression. FigmaDeviationTests validates my new deviations; its only failure is in S71.Onboarding, which another area owns.",
+   "fixed": [
+    "(d)/(a) S18 essential-open, S18 colors-open (Sepia), S19 spatializer-open, S19 stereoWidener-open and S20 Background Opacity: the end ticks are gone. Stepped sliders draw only inner ticks (tickFractions for stops = 1..<stops-1). Ticks now use Figma's 2…W−2 spread and its SCREEN blend. Essential structural 0.167 → 0.037 %, spatializer 0.319 → 0.003 % (PASS). Evidence: ../build/evidence/final5/polish/G-panels/after/S18_Filters_essential-open/side-by-side.png, after/S19_Filters_spatializer-open/, after/S20_appearance-sliders.png; before: ../build/evidence/final5/polish/G-panels/before/S18_Filters_essential-open/side-by-side.png",
+    "(d) Stepped thumbs sit on their tick, as in Figma 804:1299 (Font Size Auto at 212), 804:1315 (Outline at 235), 607:1136 (Size 8.0 at 234) and 673:1702. The S18 Banding thumb was 1.5 pt off and is now within REVIEW. Ticks match: in the render, Figma's Feedback slider has 10 marks (8 inner), the same count the product draws. The parity judge's 'Figma 6' was a miscount, so no decision is needed.",
+    "(d) Centred delay slider (S20 763:1986, Subtitle Track Delay at −4 s): the fill now ends at 204.0 pt, exactly where Figma does (before: 200). The thumb is at 126.5–134.5 against Figma's 127–135 (before: 125.5–133.5). The 0.5 pt left is Figma placing the −4 s value by hand; the uniform thumb model is checked against Figma's minimum, maximum and centre. S20.Sidebar/subtitles structural 0.094 → 0.034 %, flat colour 0.023 → 0 %. Evidence: after/S20_Sidebar_subtitles/side-by-side.png and before/S20_Sidebar_subtitles/",
+    "(a)(d) S18/S19 selected tab underline: it is now 70 pt, at 122–192 for Video and 208–278 for Audio (498:2969/536:1094); before it was 61 pt. The probe matches Figma pixel for pixel (244–383 and 416–555 px at y 97). Evidence: after/S18_Sidebar_video/, after/S19_Sidebar_audio/",
+    "(a)(d) S17 Playback tab: added the full-width hairline at y 51 (5187:24342/24374, stroke #222222). Only the Playback frame has it. Render and ref both have #22 or #21 at x 0–799, y 102 px. Evidence: ../build/evidence/final5/polish/G-panels/after/S17_top-vs-figma.png",
+    "(a)(b)(c) S19 compressor-open and stereoWidener-open no longer FAIL without explanation. figmaDeviations citing D054 now cover only the thumbs whose Figma position disagrees with the label (Compressor rows 536:1545/1604/1622/1654/1670/1686, Widener Delay 612:1236) and the 'FM5' / '%' labels. Results: compressor REVIEW (structural 0.022 %, flat 0); stereoWidener PASS (structural 0.001 %). Evidence: after/S19_Filters_compressor-open/report and side-by-side.png, after/S19_Filters_stereoWidener-open/",
+    "(d) The '+10 s' label against Figma 536:1087's '-10 s' typo is now recorded in a new D054 bullet.",
+    "(c) Verifier open issue 2: the old test pinned our own model; it now asserts Figma's geometry (fill to 184 pt and the thumb at 106.4 ± 1 pt). The new testSliderGeometryMatchesFigmaThumbsFillsAndTicks asserts the Figma node values directly.",
+    "S18 colors-open: the threshold sliders' fixture value is now 50 of 0–255. That is the value Figma 614:1483's thumb at 64 pt represents under the product geometry, and Figma shows no number for it. Structural 0.131 → 0.100 %; what is left is the FG/A3 #6B6B6B against #707070 colour of the disabled thumb, Δ5."
+   ],
+   "notFixed": [
+    {
+     "id": "S17.Sidebar/playback FAIL (9.15 % flat colour)",
+     "why": "The FAIL comes from the D033 row set (Show Waveform and Show Metadata added, video 09m17.5) and D014 (Reverse disabled), which push every row down 52 pt. The parity judge agreed. A figmaDeviation cannot model an inserted row; it would have to exclude most of the panel. The hairline difference the judge flagged is fixed."
+    },
+    {
+     "id": "S17 open Sleep Timer / Audio Visualizer dropdowns (2372:8639) have no gallery entry",
+     "why": "The panel uses the shared MXRDesign dropdown list (D-menus), which C.Dropdown/default-open (2372:8300) already compares. Opening PanelDropdown offscreen needs a child-window popup, so it is added as a live check."
+    },
+    {
+     "id": "Delay thumb 0.5 pt left of Figma 1905:7368",
+     "why": "The fill end matches exactly. The remaining 0.5 pt is one device pixel from Figma's hand-placed −4 s; the thumb model is verified against Figma's min/max/centre."
+    },
+    {
+     "id": "Banding Removal Radius thumb about 2 pt off (essential-open REVIEW)",
+     "why": "The fixture value 14 is Figma's; 0…32 has no integer value on Figma's 8-stop tick 3. Within REVIEW."
+    },
+    {
+     "id": "critic P2 PER-02 (blocking subtitle-folder syscall)",
+     "why": "The code is in Dialogs/DialogInput.swift and SubtitleFolderRules.swift, which are not G-panels files. The critic assigns it to the orchestrator."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Panels/PanelControls.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Panels/SettingsSidebar.swift",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/PanelsGallery.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/FilterCardParityTests.swift",
+    "redesign/docs/DECISIONS.md"
+   ],
+   "editsOutsideOwnership": [
+    "Tests/MXRUISnapshotTests/FilterCardParityTests.swift: the G-panels test file. I updated the delay test to Figma geometry and added 3 tests: slider geometry, inner screen-blended ticks, and the tab underline plus Playback hairline.",
+    "redesign/docs/DECISIONS.md: one bullet added at the end of D054, the Audio tab's '+10 s'."
+   ],
+   "decisionsWritten": [
+    "D054 amended (accepted (agent, 2026-10-17)): The Audio tab's delay sliders end in '+10 s'. Figma 536:1087 labels both ends '-10 s' (1905:7357/7360), a typo of the Subtitles tab's '+10 s' (1905:7372)."
+   ],
+   "ownerDecisions": [
+    "D054 amended 2026-10-17 (agent): '+10 s' on the Audio tab's delay sliders instead of Figma's '-10 s' typo. Still waiting for the owner, like the rest of D054."
+   ],
+   "evidence": [
+    "../build/evidence/final5/polish/G-panels/before/<entry>/{render,ref,side-by-side}.png + report.txt (HEAD sources)",
+    "../build/evidence/final5/polish/G-panels/after/<entry>/ for S14, S15, S17, S18 video/essential/colors/crop, S19 audio/compressor/equalizer/spatializer/stereoWidener, S20 subtitles/Presets, S22",
+    "../build/evidence/final5/polish/G-panels/after/S17_top-vs-figma.png (tab strip and hairline: render on top, Figma below)",
+    "../build/evidence/final5/polish/G-panels/after/S20_appearance-sliders.png (Font Size, Outline and Background Opacity: inner ticks only, thumbs on ticks)",
+    "Regression proof: an isolated copy with the HEAD PanelControls.swift and SettingsSidebar.swift fails 9 assertions in the updated and new tests. The copy is deleted."
+   ],
+   "liveChecks": [
+    {
+     "id": "G-live-1 sidebar tab underline",
+     "steps": "Open a video, open the settings sidebar, click the Video tab, then the Audio tab.",
+     "expect": "The orange underline under the selected Video/Audio tab is wider than the icon+title group (about 4.5 pt beyond it on each side, 70 pt in all). The Playback and Subtitles underlines span their whole cell minus 8 pt."
+    },
+    {
+     "id": "G-live-2 playback hairline",
+     "steps": "Open the sidebar on the Playback tab, then switch to Video.",
+     "expect": "On Playback, a faint 1 px grey line spans the full panel width directly under the tab strip. The Video, Audio and Subtitles tabs have no such line."
+    },
+    {
+     "id": "G-live-3 stepped sliders",
+     "steps": "Video tab > Essential > Expand Settings; drag Gamma and Film Grain through their stops. Repeat for Audio > Spatializer and Subtitles > Appearance > Background Opacity.",
+     "expect": "No tick marks inside the rounded track ends. Inner ticks are dim on the empty track and warmer brown on the fill. The thumb snaps to a stop and is centred on its tick. Dragging to the far left or right stops the thumb 2 pt inside the track end."
+    },
+    {
+     "id": "G-live-4 delay slider",
+     "steps": "Subtitles tab: type -4 into Subtitle Track Delay, then drag the slider through 0 to +4.",
+     "expect": "The fill runs from the thumb to just past the centre ('0 s'), covering where the thumb would be at 0. At +4 it runs from the centre to the thumb's right edge. At 0 the thumb sits centred above '0 s'. The value field follows the drag."
+    },
+    {
+     "id": "G-live-5 sleep timer / visualizer dropdowns",
+     "steps": "Playback tab: open Sleep Timer, pick a value; open Audio Visualizer, pick a value.",
+     "expect": "The list opens under the field in the shared dropdown style with the current value checked. Picking a value closes it and updates the field. Esc or a click outside closes it."
+    }
+   ],
+   "notesForOthers": "[\"Integrator: PanelSlider geometry changed for every panel slider. The thumb has a 2 pt travel inset, ticks spread over 2…W−2, stepped thumbs sit on their tick, and the fill runs to the thumb's far edge. Only Panels/* use PanelSlider. In check --all expect S18/S19/S20 panel entries to improve; compressor-open and stereoWidener-open should be REVIEW/PASS through the D054 deviations.\", \"A test file another area owns blocked compiling the shared test target for a few minutes: SettingsDialogsPolishTests.swift:104, 'Theme.Accent has no member default'. It compiled again later. FigmaDeviationTests currently fails only on S71.Onboarding/shortcuts (a deviation rect outside the entry), which is not a G-panels entry.\"]"
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "S19.Filters/equalizer-open (6114:13615); redesign/docs/DECISIONS.md D054",
+    "description": "The Preamp thumb for 12.0 dB is drawn at its value in VLC's −20…20 range, about 80 % along the track, while Figma draws it about 10 pt further right (about 82–84 %). This follows the same D054 rule as the other filter cards ('thumbs sit at their values in VLC's ranges'), but D054 only names Compressor and Stereo Widener. The parity judge asked for the Equalizer example to be added, and the entry has no figmaDeviation, so the check reports REVIEW with an unexplained flat-colour area at 270,104. It needs a one-line D054 example plus a matching figmaDeviation."
+   },
+   {
+    "severity": "minor",
+    "where": "PanelsGallery.swift filterCardDeviations (compressor-open, stereoWidener-open)",
+    "description": "The D054 deviations leave out whole slider rows (536:1545, 536:1604, …; 328×24 pt each), which is 25 % of the compressor canvas. That hides the track, fill and tick geometry of those rows as well as the thumb. The raw comparison (--ignore-deviations) confirms the only real differences are thumb position and fill length, which follow from the values, so the deviations are justified. But those rows' slider geometry is now only checked indirectly, through the same component in other entries."
+   },
+   {
+    "severity": "minor",
+    "where": "PanelControls.swift PanelSlider ticks .blendMode(.screen), Light scheme",
+    "description": "With screen blending in Light, the light BG/Accent Dark tick (#C6AB89) over the light track (#DEDEDE) comes out as about #F8F4F0. The tick is now lighter than the track, where it used to be darker. Figma has no Light frame for this and Dark matches Figma (#4B3217 on the fill). Whether the inverted tick reads well in Light needs a look in the real window."
+   },
+   {
+    "severity": "minor",
+    "where": "S20.Sidebar/subtitles delay thumb; S18 essential-open Banding thumb",
+    "description": "Two leftovers below the REVIEW threshold. The −4 s thumb is 0.5 pt left of Figma 1905:7368, while the fill end matches exactly at 184/204 pt. The Banding Removal Radius thumb is about 2 pt off: Figma's value 14 of 0–32 cannot land on tick 3 of the 8-stop track. Neither is covered by a decision; both are accepted as sub-pixel or fixture-level."
+   }
+  ],
+  "summary": "I re-checked every item on the G-panels work list myself. Every claimed fix holds, and a code review, build, tests and renders found no blocker or major issue.\n\n**Build and tests**\n- `swift build` is clean, with no warnings in Panels files.\n- All targeted suites pass: FilterCardParityTests 13, PanelAuditRegression 9, PanelsTests 5, SidePanelContent 3, PanelValuesRegression 4 and FigmaDeviationTests 6/6.\n- **The new tests catch the old behaviour.** In an isolated copy (since deleted) I put back the HEAD PanelControls.swift and SettingsSidebar.swift and dropped only the pure-geometry test so the rest compiles. The render-based tests then fail with 10 assertions: delay fill, underline at 126.5/187.5 against 122/192, missing hairline, an end tick at 4 pt, and an unblended tick colour.\n\n**What I confirmed against Figma**\n- **End ticks:** gone everywhere; tickFractions for `stops` now covers only the inner stops. Essential, Sepia, Spatializer, Stereo Widener and Background Opacity show inner ticks only and the thumbs sit on their ticks.\n- **Tick count and blend:** I confirmed in figma_file.json that all 75 `degrees` frames use SCREEN blending. The Feedback frame 612:1260 has 10 marks, 8 of them inner, so the parity judge's \"Figma 6\" was a miscount and needs no decision.\n- **Tab underline:** pixel probe at y 97 px matches exactly — 244–383 for Video, 416–555 for Audio, 28–210 for Playback, 589–771 for Subtitles.\n- **Playback hairline:** #222 across the full width at y 102 px against Figma's #212121, and only on the Playback tab, which matches Figma.\n- **Delay fill:** ends at 184 pt; the thumb is 0.5 pt left of Figma's.\n\n**Check results (my reruns)**\n- PASS: S19 spatializer-open (0.003 %), stereoWidener-open (0.001 %), S18 card-closed.\n- REVIEW: S19 compressor-open (0.022 %, flat 0), S18 essential-open (0.037 %), colors-open (0.100 %), S20 subtitles (0.034 %, flat 0), and everything else in S14–S24, with no regressions.\n- FAIL: S17.Sidebar/playback stays at 9.155 % flat colour. That comes only from the D033/D014 row shift, which the parity judge accepted.\n\n**The D054 deviations are legitimate.** The raw comparison with deviations ignored shows Figma's compressor thumbs really contradict their own labels (Ratio 4:1 drawn at 31 % where 16 % is correct), so the difference cannot be made to match. The new D054 bullet for the '+10 s' typo is a single line and is justified by 1905:7372.\n\n**Ownership and rules**\n- Only G-panels files changed, plus the minimal D054 bullet. The engine diff against upstream-base-2026-10-14 for src, lib, include and modules/gui/macosx is empty.\n- No thresholds were loosened.\n- The one new literal (`selectedNarrowTabUnderlineInset` 7.5) sits in the existing PanelMetric enum of Figma-sourced metrics, which follows the area's convention.\n\n**Open items not done by the fixer, both minor**\n- The Equalizer Preamp example was not added to D054 and has no figmaDeviation, so that entry still reports REVIEW with an unexplained area.\n- The Light-scheme look of screen-blended ticks is unchecked; it is in the live checks.\n\nEvidence is in ../build/evidence/final5/polish/G-panels-verify-r1/: a folder per entry with report, render, ref and side-by-side, plus appear.png, compact.png and subs-light.png.",
+  "liveChecks": [
+   {
+    "id": "GV-live-1 tab underline width",
+    "steps": "Open a video and open the settings sidebar. Click Video, then Audio, then Playback, then Subtitles.",
+    "expect": "The selected Video or Audio underline is 70 pt wide, about 4.5 pt beyond the icon and title on each side. The unselected narrow tabs keep a 61 pt grey underline. The Playback and Subtitles underlines span their cell minus 8 pt. Nothing jumps or shifts sideways when switching tabs."
+   },
+   {
+    "id": "GV-live-2 playback hairline",
+    "steps": "On the Playback tab, scroll the content a little. Then switch to Video.",
+    "expect": "Playback shows a 1 px #222 line across the full width directly under the tab strip, and it stays put while the content scrolls under it. The Video, Audio and Subtitles tabs have no such line."
+   },
+   {
+    "id": "GV-live-3 stepped slider drag",
+    "steps": "Video > Essential > Expand Settings, then drag Gamma and Film Grain from one end to the other. Audio > Spatializer: drag Size. Subtitles > Appearance: drag Background Opacity and Font Size.",
+    "expect": "There are no marks inside the rounded track ends. The thumb snaps to each stop, centred on its tick, and stops 2 pt inside the track at both ends. Dragging moves the thumb under the pointer with no lag or offset at the ends."
+   },
+   {
+    "id": "GV-live-4 light-scheme ticks",
+    "steps": "Switch the app to Light. Open Video > Essential (expanded) and Subtitles > Appearance.",
+    "expect": "The inner ticks stay visible as subtle marks on both the empty track and the fill. They are not invisible and do not clash, now that screen blending makes them lighter than the light track."
+   },
+   {
+    "id": "GV-live-5 delay slider",
+    "steps": "Subtitles tab: type -4 into Subtitle Track Delay, then drag the slider through 0 to +4. Repeat on the Audio tab's delay sliders.",
+    "expect": "At −4 s the fill runs from the thumb to the far edge of the 0 s position. At +4 s it runs from the 0 s position to the thumb's right edge. At 0 the thumb is centred over '0 s'. The labels read −10 s / 0 s / +10 s on both tabs. The value field follows the drag."
+   },
+   {
+    "id": "GV-live-6 sleep timer / visualizer dropdowns",
+    "steps": "Playback tab: open Sleep Timer and choose a value. Open Audio Visualizer and choose a value. Then press Esc on an open list.",
+    "expect": "The list opens below the field in the shared dropdown style, with the current value checked. Choosing a value closes the list and updates the field. Esc, or a click outside, closes it."
+   }
+  ],
+  "ownerDecisions": [
+   "D054 amended 2026-10-17 (agent): the Audio tab's delay sliders read '+10 s' where Figma 536:1087 has the '-10 s' typo. I verified it is justified (Subtitles tab 1905:7372, ±10 s range). It still waits for the owner, like the rest of D054.",
+   "Suggested follow-up, not written: add the Equalizer Preamp thumb (12 dB at its value in −20…20, where Figma draws about 82–84 %) as a D054 example with a matching figmaDeviation."
+  ]
+ }
+}

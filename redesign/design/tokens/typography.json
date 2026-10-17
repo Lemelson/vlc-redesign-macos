@@ -1,0 +1,717 @@
+{
+  "meta": {
+    "source": {
+      "file": "redesign/design/figma/figma_file.json",
+      "figmaFileName": "VLC Redesign (Community)",
+      "figmaVersion": "2409521707817118521",
+      "lastModified": "2026-10-12T17:33:47Z",
+      "communityFile": "https://www.figma.com/community/file/1691465999134370980",
+      "license": "CC BY 4.0 - VLC Redesign by Juxtopposed (attribution required)"
+    },
+    "howDerived": "Every TEXT node in figma_file.json grouped by (family, weight, size, line height, letter spacing). The file defines NO text styles (0 TEXT styles), so names below are proposed. textCase is ORIGINAL and italic false everywhere. Inline overrides (styleOverrideTable) exist on 21 nodes: SemiBold 600 for the time inside the resume toast, FG/A3 for \"(optional)\" and \"%\" suffixes, FG/1 for the edited time, strikethrough in one hidden toast.",
+    "fontFiles": "Inter (weights 300/400/500/600/700) and DM Mono 400 - bundle both (SIL OFL).",
+    "distinctCombos": 26
+  },
+  "styles": [
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 400,
+      "fontSize": 14.0,
+      "lineHeightPx": 16.94,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 2054,
+      "exampleNodes": [
+        "187:341",
+        "187:342",
+        "I856:2450;858:5395",
+        "I856:2450;858:5402"
+      ],
+      "sampleText": [
+        "Videos",
+        "VLC Media Player",
+        "2 items",
+        "Create playlist"
+      ],
+      "colors": {
+        "Dark/FG/A2": 1229,
+        "Dark/FG/A3": 444,
+        "Dark/FG/A1": 306,
+        "Dark/FG/A4": 30
+      },
+      "name": "body",
+      "role": "default UI text: labels, menu items, list rows, window title, setting labels"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 400,
+      "fontSize": 12.0,
+      "lineHeightPx": 14.52,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 287,
+      "exampleNodes": [
+        "I3046:9900;536:1339",
+        "I3046:9906;536:1339",
+        "I3062:10946;536:1339",
+        "I3062:10952;536:1012"
+      ],
+      "sampleText": [
+        "OFF",
+        "ON",
+        "0 s",
+        "5 s"
+      ],
+      "colors": {
+        "Dark/FG/A3": 173,
+        "Dark/Accent/Main": 71,
+        "Dark/FG/A2": 43
+      },
+      "name": "caption",
+      "role": "toggle ON/OFF, slider scale labels, small hints"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 400,
+      "fontSize": 16.0,
+      "lineHeightPx": 19.36,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 184,
+      "exampleNodes": [
+        "I856:2450;858:5388",
+        "6153:13625",
+        "6153:13627",
+        "6153:13629"
+      ],
+      "sampleText": [
+        "Playlists",
+        "Videos",
+        "Shows",
+        "The Wand"
+      ],
+      "colors": {
+        "Dark/FG/A1": 78,
+        "Dark/FG/A2": 76,
+        "Dark/FG/2": 14,
+        "#6B6B6B": 8
+      },
+      "name": "bodyLarge",
+      "role": "library breadcrumb/titles, settings page title, category headers"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 500,
+      "fontSize": 16.0,
+      "lineHeightPx": 19.36,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 85,
+      "exampleNodes": [
+        "3046:9859",
+        "3046:9894",
+        "3062:10940",
+        "3046:9315"
+      ],
+      "sampleText": [
+        "Appearance",
+        "Startup",
+        "Diagnostics",
+        "Developer Options"
+      ],
+      "colors": {
+        "Dark/FG/2": 77,
+        "Dark/FG/A1": 8
+      },
+      "name": "sectionHeader",
+      "role": "settings section headings (Dark/FG/2) and sidebar section headers"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 400,
+      "fontSize": 15.0,
+      "lineHeightPx": 18.15,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 66,
+      "exampleNodes": [
+        "I491:2000;1908:7386;1904:7236",
+        "I491:2000;1908:7390;1905:7314",
+        "I491:1928;1908:7386;1904:7236",
+        "I491:1928;1908:7390;1905:7314"
+      ],
+      "sampleText": [
+        "00:02:10",
+        "00:25:40",
+        "00:00:10",
+        "00:01:40"
+      ],
+      "colors": {
+        "Dark/FG/A2": 64,
+        "Light/FG/A2": 2
+      },
+      "name": "time",
+      "role": "control-bar current time / duration, seek-preview time"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 600,
+      "fontSize": 14.0,
+      "lineHeightPx": 16.94,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 61,
+      "exampleNodes": [
+        "1922:9582",
+        "4767:23753",
+        "4778:25153",
+        "3328:11581"
+      ],
+      "sampleText": [
+        "Continue Watching",
+        "Cancel",
+        "Save",
+        "Browse"
+      ],
+      "colors": {
+        "Dark/FG/A2": 32,
+        "Dark/FG/B1": 14,
+        "Dark/Accent/Main": 14,
+        "#D33718": 1
+      },
+      "name": "button",
+      "role": "dialog buttons (Cancel/Save), Continue Watching"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 400,
+      "fontSize": 8.0,
+      "lineHeightPx": 9.68,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 48,
+      "exampleNodes": [
+        "6153:13626",
+        "6153:13628",
+        "6153:13630",
+        "6153:13635"
+      ],
+      "sampleText": [
+        "▶"
+      ],
+      "colors": {
+        "Dark/FG/A4": 48
+      },
+      "name": "thumbGlyph",
+      "role": "\"▶\" placeholder glyph in library thumbnails"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 500,
+      "fontSize": 10.0,
+      "lineHeightPx": 12.1,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 38,
+      "exampleNodes": [
+        "45:27",
+        "45:35",
+        "45:31",
+        "45:39"
+      ],
+      "sampleText": [
+        "10",
+        "15"
+      ],
+      "colors": {
+        "Dark/FG/A2": 38
+      },
+      "name": "iconDigits",
+      "role": "\"10\"/\"15\" digits inside skip icons"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 300,
+      "fontSize": 16.0,
+      "lineHeightPx": 28.0,
+      "lineHeight": "28 px (175%)",
+      "letterSpacing": 0.0,
+      "usageCount": 35,
+      "exampleNodes": [
+        "1899:3058",
+        "1902:7077",
+        "1902:7123",
+        "1902:7098"
+      ],
+      "sampleText": [
+        "VLC is a free and open source cross-plat",
+        "Play / Pause",
+        "Seek Backward / Forward",
+        "Previous / Next Item"
+      ],
+      "colors": {
+        "Dark/FG/1": 18,
+        "Dark/FG/A1": 17
+      },
+      "name": "onboardingBody",
+      "role": "onboarding paragraph + shortcut labels"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 300,
+      "fontSize": 16.0,
+      "lineHeightPx": 19.36,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 27,
+      "exampleNodes": [
+        "1902:3971",
+        "1902:3982",
+        "1902:3992",
+        "1902:4040"
+      ],
+      "sampleText": [
+        "Light",
+        "Dark",
+        "System"
+      ],
+      "colors": {
+        "Dark/FG/A2": 27
+      },
+      "name": "onboardingTileLabel",
+      "role": "theme tile labels (Light/Dark/System)"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 600,
+      "fontSize": 16.0,
+      "lineHeightPx": 19.36,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 17,
+      "exampleNodes": [
+        "6153:13631",
+        "6153:13640",
+        "6153:13618",
+        "6153:13649"
+      ],
+      "sampleText": [
+        "S01",
+        "Next",
+        "Back",
+        "Finish"
+      ],
+      "colors": {
+        "Dark/FG/B1": 11,
+        "Dark/FG/A1": 4,
+        "Dark/FG/A2": 2
+      },
+      "name": "buttonLarge",
+      "role": "onboarding Next/Back/Finish, folder chip"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 400,
+      "fontSize": 14.0,
+      "lineHeightPx": 24.5,
+      "lineHeight": "24.5 px (175%)",
+      "letterSpacing": 0.0,
+      "usageCount": 16,
+      "exampleNodes": [
+        "6338:13885",
+        "6338:13886",
+        "6338:13888",
+        "6338:14144"
+      ],
+      "sampleText": [
+        "Action",
+        "Hotkey",
+        "Global Hotkey",
+        "Toggle fullscreen"
+      ],
+      "colors": {
+        "Dark/FG/2": 9,
+        "Dark/FG/A3": 7
+      },
+      "name": "dialogHint",
+      "role": "dialog helper text, Keyboard Shortcuts column headers"
+    },
+    {
+      "fontFamily": "DM Mono",
+      "fontWeight": 400,
+      "fontSize": 14.0,
+      "lineHeightPx": 24.5,
+      "lineHeight": "24.5 px (175%)",
+      "letterSpacing": 0.0,
+      "usageCount": 9,
+      "exampleNodes": [
+        "6338:14146",
+        "6338:14132",
+        "6338:14118",
+        "6338:14104"
+      ],
+      "sampleText": [
+        "F",
+        "esc",
+        "T",
+        "I"
+      ],
+      "colors": {
+        "Dark/FG/2": 9
+      },
+      "name": "keycap",
+      "role": "Keyboard Shortcuts key fields"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 700,
+      "fontSize": 7.467,
+      "lineHeightPx": 9.04,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 8,
+      "exampleNodes": [
+        "2146:9037",
+        "I6587:18918;177:88;2146:9037",
+        "I6587:18654;177:88;2146:9037",
+        "I6587:18390;177:88;2146:9037"
+      ],
+      "sampleText": [
+        "HDR"
+      ],
+      "colors": {
+        "Dark/FG/A2": 8
+      },
+      "name": "hdrBadge",
+      "role": "\"HDR\" text inside the HDR icon (icon artwork, not UI text)"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 400,
+      "fontSize": 16.0,
+      "lineHeightPx": 28.0,
+      "lineHeight": "28 px (175%)",
+      "letterSpacing": 0.0,
+      "usageCount": 8,
+      "exampleNodes": [
+        "2437:15000",
+        "6338:14170",
+        "6216:13624",
+        "6251:13901"
+      ],
+      "sampleText": [
+        "Basic",
+        "Playback",
+        "Network URL ",
+        "Playlist Name (optional)"
+      ],
+      "colors": {
+        "Dark/FG/2": 5,
+        "Dark/FG/A1": 2,
+        "Dark/FG/A3": 1
+      },
+      "name": "dialogSectionTitle",
+      "role": "dialog section titles (Network URL, Basic, Playback)"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 300,
+      "fontSize": 24.0,
+      "lineHeightPx": 42.0,
+      "lineHeight": "42 px (175%)",
+      "letterSpacing": 0.0,
+      "usageCount": 8,
+      "exampleNodes": [
+        "1902:3684",
+        "1902:4034",
+        "1902:4339",
+        "1902:4648"
+      ],
+      "sampleText": [
+        "Select your preferred theme and color."
+      ],
+      "colors": {
+        "Dark/FG/A1": 8
+      },
+      "name": "onboardingTitle",
+      "role": "onboarding step title"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 500,
+      "fontSize": 14.0,
+      "lineHeightPx": 16.94,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 5,
+      "exampleNodes": [
+        "6321:14070",
+        "6321:14170",
+        "6323:14173",
+        "6323:14177"
+      ],
+      "sampleText": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "colors": {
+        "Dark/Accent/Main": 5
+      },
+      "name": "chapterNumber",
+      "role": "chapter numbers (accent)"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 400,
+      "fontSize": 20.0,
+      "lineHeightPx": 24.2,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 3,
+      "exampleNodes": [
+        "6261:15648",
+        "6272:13895",
+        "6284:13938"
+      ],
+      "sampleText": [
+        "Continue Watching",
+        "Listen Again",
+        "Frequently Visited Folders"
+      ],
+      "colors": {
+        "Dark/FG/A1": 3
+      },
+      "name": "homeSectionTitle",
+      "role": "full-library Home section titles"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 500,
+      "fontSize": 24.0,
+      "lineHeightPx": 29.05,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 2,
+      "exampleNodes": [
+        "4778:24351",
+        "4778:25147"
+      ],
+      "sampleText": [
+        "untangle - juxtopposed"
+      ],
+      "colors": {
+        "Dark/FG/A1": 2
+      },
+      "name": "nowPlayingTitle",
+      "role": "music now-playing \"title - artist\""
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 400,
+      "fontSize": 24.0,
+      "lineHeightPx": 42.0,
+      "lineHeight": "42 px (175%)",
+      "letterSpacing": 0.0,
+      "usageCount": 2,
+      "exampleNodes": [
+        "1902:6784",
+        "1902:6479"
+      ],
+      "sampleText": [
+        "Learn the basic keyboard shortcuts.",
+        "Select your preferred theme and color."
+      ],
+      "colors": {
+        "Dark/FG/A1": 2
+      },
+      "name": "onboardingTitleRegular",
+      "role": "onboarding step title (regular variant)"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 300,
+      "fontSize": 32.0,
+      "lineHeightPx": 38.73,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 1,
+      "exampleNodes": [
+        "1899:3057"
+      ],
+      "sampleText": [
+        "Welcome to VLC!"
+      ],
+      "colors": {
+        "Dark/FG/1": 1
+      },
+      "name": "welcomeTitle",
+      "role": "\"Welcome to VLC!\""
+    },
+    {
+      "name": "osdTitle",
+      "derivedFrom": "onboardingTitleRegular",
+      "decision": "D027",
+      "sampleText": [
+        "Crop: 2.35:1"
+      ],
+      "role": "D027 OSD action text at its minimum size; scaled with the video height (PLAYER-V02) by Theme.OSD."
+    },
+    {
+      "name": "osdKey",
+      "derivedFrom": "homeSectionTitle",
+      "decision": "D027",
+      "sampleText": [
+        "Pressed C"
+      ],
+      "role": "D027 OSD key line at its minimum size; scaled with the OSD title (PLAYER-V02) by Theme.OSD."
+    }
+  ],
+  "excluded": [
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 400,
+      "fontSize": 7.7,
+      "lineHeightPx": 9.32,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 153,
+      "exampleNodes": [
+        "I1902:3683;2139:8516",
+        "I1902:3683;6784:16226;2404:9181",
+        "I1902:3683;6784:16228;2404:9181",
+        "I1902:3683;6784:16229;2404:9181"
+      ],
+      "sampleText": [
+        "15 items",
+        "The_Wand_S01E05.mp4",
+        "The_Wand_S01E06.mp4",
+        "The_Wand_S01E07.mp4"
+      ],
+      "colors": {
+        "Dark/FG/A1": 99,
+        "Dark/FG/A3": 45,
+        "Dark/FG/A2": 9
+      },
+      "note": "scaled copy (x0.55) of the player inside the Onboarding theme preview; not a real text style"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 400,
+      "fontSize": 8.8,
+      "lineHeightPx": 10.65,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 27,
+      "exampleNodes": [
+        "I1902:3683;6131:13671",
+        "I1902:3683;848:1878",
+        "I1902:3683;6131:13646",
+        "I1902:4033;6131:13671"
+      ],
+      "sampleText": [
+        "...",
+        "The Wand",
+        "S01"
+      ],
+      "colors": {
+        "Dark/FG/A2": 27
+      },
+      "note": "scaled copy (x0.55) of the player inside the Onboarding theme preview; not a real text style"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 400,
+      "fontSize": 8.25,
+      "lineHeightPx": 9.98,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 18,
+      "exampleNodes": [
+        "I1902:3682;1908:7386;1904:7236",
+        "I1902:3682;1908:7390;1905:7314",
+        "I1925:9671;1904:7236",
+        "I1925:9675;1905:7314"
+      ],
+      "sampleText": [
+        "00:02:10",
+        "00:25:40"
+      ],
+      "colors": {
+        "Dark/FG/A2": 18
+      },
+      "note": "scaled copy (x0.55) of the player inside the Onboarding theme preview; not a real text style"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 400,
+      "fontSize": 4.4,
+      "lineHeightPx": 5.32,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 18,
+      "exampleNodes": [
+        "I1902:3683;6131:13620",
+        "I1902:3683;6131:13475",
+        "I1902:4033;6131:13620",
+        "I1902:4033;6131:13475"
+      ],
+      "sampleText": [
+        "▶"
+      ],
+      "colors": {
+        "Dark/FG/A4": 18
+      },
+      "note": "scaled copy (x0.55) of the player inside the Onboarding theme preview; not a real text style"
+    },
+    {
+      "fontFamily": "Inter",
+      "fontWeight": 400,
+      "fontSize": 700.0,
+      "lineHeightPx": 847.16,
+      "lineHeight": "auto (Figma INTRINSIC, ~1.21 em for Inter)",
+      "letterSpacing": 0.0,
+      "usageCount": 2,
+      "exampleNodes": [
+        "6841:16196",
+        "6841:16197"
+      ],
+      "sampleText": [
+        "Components",
+        "Designs"
+      ],
+      "colors": {
+        "#FFFFFF": 2
+      },
+      "note": "Figma canvas section label (\"Components\"/\"Designs\"); not UI"
+    }
+  ],
+  "inlineOverrides": [
+    {
+      "node": "1922:9584",
+      "text": "You already watched till 00:04:80.",
+      "override": "time portion Inter 600"
+    },
+    {
+      "node": "6251:13901",
+      "text": "Playlist Name (optional)",
+      "override": "\"(optional)\" fill Dark/FG/A3"
+    },
+    {
+      "node": "1904:7242",
+      "text": "00:02:10",
+      "override": "Current Time click/edit state: fill Dark/FG/1, size 15"
+    },
+    {
+      "node": "2245:9804",
+      "text": "100 %",
+      "override": "\"%\" fill Dark/FG/A3"
+    },
+    {
+      "node": "774:1026",
+      "text": "0 px",
+      "override": "unit fill Dark/FG/A4"
+    }
+  ]
+}

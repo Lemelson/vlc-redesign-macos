@@ -1,0 +1,155 @@
+{
+ "area": "F-settings",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "I checked the refixer's work from 4c457baa03 in the code and it is correct. I then finished C-15 and ran the Settings and dialog tests.\n\n**What the refixer had already finished:**\n- **F-13 (major regression):** fixed. In `AppModel+Preferences.swift`, the \"Show the file name in the title bar\" toggle works again. ON shows the file name with no extension and underscores read as spaces (`The_Wand_S01E04.mp4` → \"The Wand S01E04\"). OFF shows the media title, and drops the extension when that title is only the file name. `SettingsWorkflowTests` now checks that ON and OFF differ for tagged media, and that OFF on an untagged file shows no extension. D042 was reworded to match.\n- **Underscores in file-name titles (minor):** fixed by the same change.\n- **\"Auto\" not read by VoiceOver (F-02, minor):** fixed. The track field now reports \"Auto\" as its value when it is empty.\n- **Tab escaping a dialog (F-08, minor):** fixed in `MXRDialogHost`. A text field behind the scrim gives up the keyboard when a dialog opens, and Tab or Shift-Tab never moves focus back out to it. `DialogKeyLoopTests` sends real Tab events through `NSApp.sendEvent`, for a dialog with no fields and for one with a text field; it passes.\n\n**What I did (C-15, Extensions page against Figma 6575:17137):**\n- **Advanced Options bar:** the page now shows Figma's bar under \"Load add-ons on startup\". It was hidden because its only row was gated behind developer mode. I added a working row, \"Extensions folder › Open\". It shows VLC's user Lua extensions folder (`<VLC_USERDATA_DIR>/lua/extensions`, the folder \"Add\" copies into) in Finder, creating it with 0700 permissions if missing. To get that path, the bridge's settings snapshot now also returns `userDataDirectory`.\n- **ⓘ on \"Load add-ons on startup\":** removed, as in Figma (it was the row's `info`). That ⓘ was the only place the \"Takes effect after restarting VLC.\" note appeared. To keep it, `SettingsModel` now remembers every `apply: restart` option changed in this session, and the row shows that note under its label until VLC restarts.\n- **Stale comment** (\"no Lua extension-dialog provider yet\"): already gone from `SettingsExtensionsView`.\n- **Render check:** the dark extensions check now differs from Figma only in the Remove button. It is dimmed because nothing is selected; F-03 made it disabled until an extension is selected. The verdict is still FAIL on that difference (render #131313 vs Figma #191919 at 924,310, 100×34 pt). The light render looks right.\n\n**Checks:**\n- `swift build` is clean, with no warnings in the files I touched.\n- Suites run (all pass): SettingsWorkflowTests 23 (2 new), SettingsUITests, SettingsUnitsAudit, SettingsAuditRegressionTests, SettingsBackendEventTests, DialogKeyLoopTests, DialogIsolationTests, ModalCaptureTests.\n- Under the native lock I rebuilt the plugin's `MXRServicesBridge.m` with make; it compiles.\n- Not done: a headless probe reading the new `userDataDirectory` key from the real engine, and clicking the new Open button (it opens Finder, so it needs the live wave).\n\n**Still open:**\n- **F-06 (Settings Figma gate):** another agent is building the per-entry deviation system right now (new `FigmaDeviation.swift`, `GalleryCatalog.swift`). I did not edit `SettingsGallery.swift`, to avoid a conflicting edit.\n- **Live checks:** not run, as this wave requires.",
+   "fixed": [
+    "F-13 regression: title-bar toggle ON = file name without extension and underscores as spaces, OFF = media title (refixer, checked)",
+    "F-13 underscores (refixer, checked)",
+    "F-02 VoiceOver reads 'Auto' for an automatic track row (refixer, checked)",
+    "F-08 keyboard isolation: Tab cannot reach text fields behind the scrim, via DialogKeyLoopGuard + DialogKeyLoopTests (refixer, checked; tests pass)",
+    "C-15 Advanced Options bar on the Extensions page, with a working 'Extensions folder' row",
+    "C-15 no ⓘ on 'Load add-ons on startup', as in Figma; restart note moved to a caption shown after a change",
+    "C-15 stale 'no Lua extension-dialog provider yet' comment (already gone)"
+   ],
+   "notFixed": [
+    {
+     "id": "F-06 (D035-aware Settings gate)",
+     "why": "Another agent is building it right now (new Sources/MXRGalleryCatalog/FigmaDeviation.swift, GalleryCatalog.swift figmaDeviations). I did not touch SettingsGallery.swift so as not to collide with that work. For S48.Settings/extensions the only remaining difference is the dimmed Remove button: since F-03 it is disabled until an extension is selected. Mark it as a 'differs' deviation for that reason, or give the fixture a selected extension."
+    },
+    {
+     "id": "Live verification (F-01, F-03, F-08, F-12, new Extensions folder button)",
+     "why": "No live UI in this wave; the checks are listed in liveChecks."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRCore/Resources/settings-map.json5",
+    "modules/gui/macosx_redesign/Sources/MXRCore/Models/SettingsModel.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Settings/MXRSettingsView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRVLCBackend/VLCSettingsBackend.swift",
+    "modules/gui/macosx_redesign/Sources/MXRCore/App/AppModel.swift",
+    "modules/gui/macosx_redesign/Sources/MXRCore/Backends/BackendOperations.swift",
+    "modules/gui/macosx_redesign/module/bridge/MXRServicesBridge.m",
+    "modules/gui/macosx_redesign/Tests/MXRCoreTests/SettingsWorkflowTests.swift"
+   ],
+   "editsOutsideOwnership": [
+    "Sources/MXRCore/App/AppModel.swift: one new performSettingsAction case, 'open-extensions-folder'",
+    "Sources/MXRCore/Backends/BackendOperations.swift: SettingsMaintenanceBackend gains 'var userDataDirectory: URL? { get }' (only conformer: VLCSettingsBackend)",
+    "module/bridge/MXRServicesBridge.m: settingsSnapshotIncludingSchema also returns @\"userDataDirectory\" (config_GetUserDir(VLC_USERDATA_DIR)); compiled with make under the native lock",
+    "Tests/MXRCoreTests/SettingsWorkflowTests.swift: 2 new tests (not in my ownership list)"
+   ],
+   "evidence": [
+    "Refixer diff checked: git diff 951f073be2 4c457baa03 on AppModel+Preferences.swift, MXRDialogHost.swift, SettingsControls.swift, DialogIsolationTests.swift and SettingsWorkflowTests.swift",
+    "swift test (all pass): SettingsWorkflowTests 23 incl. new testExtensionsPageHasAdvancedOptionsAndNoInfoOnStartupToggle and testRestartOptionsAreMarkedPendingAfterAChange, SettingsUITests, SettingsUnitsAudit 3, SettingsAuditRegressionTests, SettingsBackendEventTests, DialogKeyLoopTests 1, DialogIsolationTests 2, ModalCaptureTests 3",
+    "Render check, dark: <scratch> The Advanced Options bar is in Figma's position and the ⓘ is gone. The only difference is the dimmed Remove button (render #131313 vs Figma #191919 at 924,310); the verdict is still FAIL on it.",
+    "Render, light: <scratch>",
+    "make -C modules libmacosx_redesign_plugin.la under the native lock: MXRServicesBridge.m compiles; the only warning (line 563, unused parameter) is not mine"
+   ],
+   "liveChecks": [
+    {
+     "id": "C-15-folder",
+     "steps": "Installed app: Settings > Extensions > Advanced Options > 'Extensions folder' > Open.",
+     "expect": "Finder opens ~/Library/Application Support/org.videolan.vlc/lua/extensions (created if it was missing). The row shows 'Extensions folder opened.' for a few seconds."
+    },
+    {
+     "id": "C-15-restart",
+     "steps": "Settings > Extensions: turn 'Load add-ons on startup' off, close Settings, reopen it.",
+     "expect": "Under the label: 'Takes effect after restarting VLC.' (still there after reopening). The row has no ⓘ. After restarting VLC the note is gone and the toggle is off."
+    },
+    {
+     "id": "F-08-tab",
+     "steps": "Library view with the search field focused, press ⌘I (Media Info) or open About. Press Tab and Shift-Tab several times, then type letters.",
+     "expect": "Focus never returns to the library, queue or sidebar search fields behind the scrim, and nothing is typed into them. Esc or ⌘W closes the dialog."
+    },
+    {
+     "id": "F-13-title",
+     "steps": "Play a tagged local file whose title tag differs from its file name, and The_Wand_S01E04.mp4. Switch Settings > Interface > 'Show the file name in the title bar' on and off.",
+     "expect": "ON: 'The Wand S01E04' (file name, no extension, underscores read as spaces). OFF: the tag title. The top bar never shows '.mp4'."
+    },
+    {
+     "id": "F-02-voiceover",
+     "steps": "VoiceOver on, Settings > Playback > Default audio track set to automatic; move the VoiceOver cursor onto the field.",
+     "expect": "VoiceOver reads 'Default audio track, Auto'."
+    }
+   ],
+   "ownerDecisions": [
+    "D045 (proposed, needs owner sign-off): the Extensions page follows D035 and shows nothing the build cannot do.",
+    "D042 was marked 'accepted' by an agent, not by the owner, and later amended after review. Its title rule (ON = file name without extension or underscores, OFF = media title) needs the owner's confirmation.",
+    "D033 (relative subtitle font-size slider order) and D041 (bars stay visible on pause) are unchanged here."
+   ],
+   "notesForOthers": "[\"F-06 gate owner (FigmaDeviation work): S48.Settings/extensions now differs from Figma only in the dimmed Remove button. Since F-03 it is disabled until an extension is selected; add a 'differs' deviation for that reason or give the fixture a selected extension. Playback and general still need the D035 'removed' cuts and the D030 'Ask' 'differs' area.\", \"C-bridge / integrator: the settings snapshot now has a 'userDataDirectory' key. The installed app gets it only after the next install-app.sh. Until then, Open in the Extensions folder row shows an 'unsupported' message.\", \"Dead code: AppModel's 'rescan-plugins' action calls VLCSettingsBackend.rescanPlugins, which sends .rescanPlugins, but the bridge has no handler for it. No catalog row uses it; testUnsupportedPluginRescanIsAbsent expects it to stay that way.\"]"
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Dialogs/MXRDialogHost.swift:180-200 (DialogKeyLoopGuard.isInside, F-08)",
+    "description": "The guard decides whether a field is 'inside' the dialog by geometry: is the field's centre inside the dialog's rectangle? A text field behind the scrim that lies under the dialog's rectangle therefore counts as inside, so Tab can still move focus into it and the user can type there. The dialog is clamped to the window, so in a smaller window most of the content is under it. For example, Settings at 1048 pt wide in a 1280×800 window covers the library search field. I proved this in an isolated copy (scratch pkg, VerifyKeyLoopProbeTests.testTabFromDialogField and testGeometricHole). In New Playlist, Tab from the dialog's field reached a field behind the scrim 6 out of 6 times without the guard. With the guard it reached it 0 times when that field was at the top of the window, but still 6 out of 6 when the field was centred under the dialog. The same happens with Settings in a 1280×800 window: a centred field keeps focus after keepFocusInside. Fix: take the background text fields out of the key-view loop at the source instead of using geometry. MXRSearchField and the other TextFields would read mxrKeyboardFocusSuspended and become unfocusable or refuse first responder."
+   },
+   {
+    "severity": "minor",
+    "where": "Tests/MXRUISnapshotTests/DialogIsolationTests.swift DialogKeyLoopTests",
+    "description": "The Tab part of the test does not test the guard, so it would pass without it. It sends Tab with window.sendEvent, and that path never runs the guard's NSEvent local monitor; my probe counted 0 monitor calls. The fixer's report says NSApp.sendEvent, but the code uses window.sendEvent. The test also never puts focus in the dialog's own field first. From a nil first responder, Tab never reaches the field behind, even with no guard: the probe found it there 0 times. Only the part 'a focused field resigns when the dialog opens' is real. To make the test real, focus the dialog's field, send Tab, then make the guard's correction run, for example by calling keepFocusInside or by sending through NSApp on a key window. Then check that focus does not land on a field behind the dialog, including one placed under the dialog's rectangle."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRCore/Models/SettingsModel.swift:181-184 (C-15 restart note)",
+    "description": "An option goes into restartPendingOptions on any write and only leaves it when VLC restarts. Turning 'Load add-ons on startup' off and then on again still shows 'Takes effect after restarting VLC.', although the running value now matches. The same happens after Reset or a profile switch that brings back the original value. Fix: record the value at launch and show the note only while the current value differs from it."
+   },
+   {
+    "severity": "minor",
+    "where": "S48 Settings Figma gate (F-06, being done in another area: FigmaDeviation.swift / SettingsFigmaDeviations.swift, uncommitted)",
+    "description": "Results of my check run: extensions FAIL, only because Remove is dimmed (F-03 disables it until something is selected); interface FAIL; performance FAIL 9.61 %; audio FAIL 1.17 %; general-advanced FAIL 3.05 %; playback, general, controls, subtitles, network, privacy and recording REVIEW. On the interface page the section is titled 'Menu Bar and Notifications' where Figma has 'Notifications and System Tray', and 'Remember window size and position' has an ⓘ that Figma does not have. Neither is listed as a deviation yet. The deviation system is unfinished work by another agent, so this is not a fault of this area."
+   },
+   {
+    "severity": "minor",
+    "where": "C-15 'Extensions folder' row / bridge userDataDirectory",
+    "description": "No headless probe has checked the new userDataDirectory key against the real engine. Until install-app.sh runs again, the installed app shows an 'unsupported' message for Open. The code path is correct by reading: config_GetUserDir(VLC_USERDATA_DIR) + lua/extensions is the folder VLC searches for user Lua extensions, OwnedString frees the C string, and an empty or nil path returns nil."
+   }
+  ],
+  "summary": "Round 2 verification of F-settings: no blocker or major remains; 5 minor issues are open (one of them in F-08). I checked against HEAD 4c457baa03 plus the uncommitted working tree.\n\n- **Build and tests:** swift build is clean. These suites pass with 0 failures (22 tests in the UI bundle and 29 in MXRCoreTests in my run): SettingsWorkflowTests, SettingsUnitsAudit, SettingsAuditRegression, SettingsBackendEvent, ModalIsolation, DialogKeyLoop, DialogIsolation, ModalCapture, ProfileDeletion and SubtitleLookupCancellation. No engine edits: `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty.\n- **F-13 (the round-1 major):** fixed. With the toggle ON, a local file shows its file name with no extension and underscores read as spaces, even when it has a tag title. With it OFF, it shows the media title, and drops the extension when that title is only the file name. The test now asserts that ON and OFF differ for tagged media. D042 still needs the owner's confirmation.\n- **F-02 VoiceOver:** the empty track field now reports \"Auto\" as its value (SettingsControls.swift:189).\n- **C-15, Extensions page:** I rendered it and looked at it next to Figma 6575:17137. The Advanced Options bar is where Figma has it and the ⓘ on \"Load add-ons on startup\" is gone. The only remaining difference is the dimmed Remove button, which F-03 intends. The new \"Extensions folder › Open\" row is real: it uses config_GetUserDir(VLC_USERDATA_DIR) + lua/extensions, the folder VLC loads user extensions from. The stale comment is gone. The restart note appears after a change, but it stays even if the value is set back (minor).\n- **Previously confirmed items still hold in code:** F-01, F-03, F-04, F-05, F-07, F-09, F-11, F-12 and F-14.\n- **F-08 Tab isolation, partly fixed:** I ran probes in an isolated copy (results below).\n  - A field behind the dialog that had focus does give it up when the dialog opens.\n  - When the field behind is outside the dialog's rectangle, the guard corrects Tab every time.\n  - The guard judges \"inside\" by geometry, so a field lying under the dialog's rectangle still receives Tab focus. Probe counts: 6 out of 6 with New Playlist, and the same result with Settings in a 1280×800 window. In a real window this is likely the library search field.\n  - DialogKeyLoopTests does not exercise the guard's Tab path: it sends with window.sendEvent, which never reaches the guard's event monitor (0 calls), and it starts from no focused field.\n- **Ownership:** the edits outside ownership are declared: AppModel.swift, BackendOperations.swift, MXRServicesBridge.m and the tests. New view code uses Theme tokens only.\n- **F-06 gate:** still open. Interface, performance, audio and general-advanced still FAIL; this is waiting on another agent's deviation work.\n\nOutputs are in <scratch> chk-<category>/ Figma checks, build-test.log, probe.log, and pkg/Tests/MXRUISnapshotTests/VerifyKeyLoopProbeTests.swift (the probes).",
+  "liveChecks": [
+   {
+    "id": "F-08-tab-under-dialog",
+    "steps": "Installed app at about 1280×800, library visible, click the library search field. Press ⌘, to open Settings. Press Tab and Shift-Tab about 15 times each, then type 'abc'.",
+    "expect": "The library search field never gets focus and nothing is typed into it. With the current geometric guard this is expected to FAIL when the search field lies under the Settings rectangle."
+   },
+   {
+    "id": "F-08-tab",
+    "steps": "Library view with the queue search field focused. Press ⌘I (Media Info) or open About, press Tab and Shift-Tab several times, then type letters.",
+    "expect": "Focus never returns to the fields behind the scrim and nothing is typed into them. Esc or ⌘W closes the dialog."
+   },
+   {
+    "id": "C-15-folder",
+    "steps": "After a new install-app.sh: Settings > Extensions > Advanced Options > 'Extensions folder' > Open.",
+    "expect": "Finder opens ~/Library/Application Support/org.videolan.vlc/lua/extensions, creating it if it was missing, and the row shows 'Extensions folder opened.'"
+   },
+   {
+    "id": "C-15-restart",
+    "steps": "Settings > Extensions: turn 'Load add-ons on startup' off, close Settings and reopen it. Then turn it back on.",
+    "expect": "While it is off, the row shows 'Takes effect after restarting VLC.' and has no ⓘ. Once it is back on, the note should ideally go away; the current code keeps it, which is the minor issue above."
+   },
+   {
+    "id": "F-13-title",
+    "steps": "Play The_Wand_S01E04.mp4, then a tagged file whose title tag differs from its file name. Switch Settings > Interface > 'Show the file name in the title bar' on and off.",
+    "expect": "ON shows 'The Wand S01E04' (and the tagged file's name without its extension). OFF shows the tag title. '.mp4' never appears in the top bar."
+   },
+   {
+    "id": "F-02-voiceover",
+    "steps": "VoiceOver on, Settings > Playback with the default audio track automatic; move the VoiceOver cursor onto the field.",
+    "expect": "VoiceOver reads 'Default audio track, Auto'."
+   }
+  ],
+  "ownerDecisions": [
+   "D042: the title-bar rule (ON = file name without extension or underscores, OFF = media title) was accepted by an agent and needs the owner's confirmation.",
+   "D045: the Extensions page follows D035, showing nothing the build cannot do; opaque light dialogs; track numbers from 1.",
+   "D033: order of the relative subtitle font-size slider (Auto at stop 0 vs Figma stop 3).",
+   "D041: bars stay visible while paused.",
+   "C-09: HDR 'Off' trade-off (D039).",
+   "The interface section is titled 'Menu Bar and Notifications' where Figma has 'Notifications and System Tray', and 'Remember window size and position' has an ⓘ that Figma lacks. Both need to be recorded as deviations or reverted."
+  ]
+ }
+}

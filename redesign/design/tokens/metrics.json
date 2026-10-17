@@ -1,0 +1,2031 @@
+{
+  "meta": {
+    "source": {
+      "file": "redesign/design/figma/figma_file.json",
+      "figmaFileName": "VLC Redesign (Community)",
+      "figmaVersion": "2409521707817118521",
+      "lastModified": "2026-10-12T17:33:47Z",
+      "communityFile": "https://www.figma.com/community/file/1691465999134370980",
+      "license": "CC BY 4.0 - VLC Redesign by Juxtopposed (attribution required)"
+    },
+    "units": "Figma px at 1x = macOS points. Player frames are 1920x1080; renders are 2x.",
+    "howDerived": "Named values are read directly from the listed node (absoluteBoundingBox, cornerRadius, itemSpacing, padding [top,right,bottom,left]); distributions are counts over every node in the file. Fractional values produced by the 0.55x onboarding preview are excluded from distributions."
+  },
+  "radius": {
+    "scale": {
+      "xs": 2,
+      "sm": 3,
+      "md": 4,
+      "lg": 6,
+      "xl": 10,
+      "xxl": 14,
+      "toast": 16,
+      "videoFrame": 19,
+      "albumArt": 20
+    },
+    "usage": {
+      "2": "settings category row, Advanced Options bar, EQ panel, library thumb",
+      "3": "toggle knob/track",
+      "4": "icon button, seek fill/playhead, segmented segment, sidebar Button, dropdown option, thumbnail image",
+      "6": "play button, time labels, dropdown, toggle base, segmented container, menu row, dialog buttons, folder chip, settings nav card/search",
+      "10": "side panels (queue/tracks/settings sidebar), menus, context menus",
+      "12": "Home grid cards",
+      "14": "dialogs, settings window, onboarding window, miniplayer, seek thumbnail",
+      "16": "resume toast",
+      "19": "video frame (inner rounded video area)",
+      "20": "music cover art",
+      "100": "full circle (onboarding color dots, round markers)"
+    },
+    "distribution": [
+      {
+        "value": 4.0,
+        "count": 1904
+      },
+      {
+        "value": 6.0,
+        "count": 1014
+      },
+      {
+        "value": 2.0,
+        "count": 649
+      },
+      {
+        "value": 3.0,
+        "count": 287
+      },
+      {
+        "value": 12.0,
+        "count": 86
+      },
+      {
+        "value": 100.0,
+        "count": 81
+      },
+      {
+        "value": 1.0,
+        "count": 71
+      },
+      {
+        "value": 14.0,
+        "count": 61
+      },
+      {
+        "value": 5.0,
+        "count": 37
+      },
+      {
+        "value": 19.0,
+        "count": 33
+      },
+      {
+        "value": 0.5,
+        "count": 27
+      },
+      {
+        "value": 10.0,
+        "count": 22
+      },
+      {
+        "value": 16.0,
+        "count": 14
+      },
+      {
+        "value": 2.5,
+        "count": 3
+      },
+      {
+        "value": 20.0,
+        "count": 2
+      }
+    ]
+  },
+  "spacing": {
+    "gapDistribution": [
+      {
+        "value": 10.0,
+        "count": 6425
+      },
+      {
+        "value": 5.5,
+        "count": 1089
+      },
+      {
+        "value": 0,
+        "count": 557
+      },
+      {
+        "value": 8.0,
+        "count": 459
+      },
+      {
+        "value": 5.0,
+        "count": 389
+      },
+      {
+        "value": 16.0,
+        "count": 272
+      },
+      {
+        "value": 7.499999523162842,
+        "count": 235
+      },
+      {
+        "value": 20.0,
+        "count": 225
+      },
+      {
+        "value": 12.0,
+        "count": 208
+      },
+      {
+        "value": 14.0,
+        "count": 172
+      },
+      {
+        "value": 1.0,
+        "count": 121
+      },
+      {
+        "value": 27.0,
+        "count": 75
+      },
+      {
+        "value": 6.0,
+        "count": 34
+      },
+      {
+        "value": 4.0,
+        "count": 33
+      },
+      {
+        "value": 17.0,
+        "count": 30
+      },
+      {
+        "value": 22.0,
+        "count": 27
+      }
+    ],
+    "paddingDistribution": [
+      {
+        "value": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "count": 6729
+      },
+      {
+        "value": [
+          4.0,
+          4.0,
+          4.0,
+          4.0
+        ],
+        "count": 745
+      },
+      {
+        "value": [
+          2.0,
+          2.0,
+          2.0,
+          2.0
+        ],
+        "count": 403
+      },
+      {
+        "value": [
+          5.0,
+          0,
+          5.0,
+          0
+        ],
+        "count": 331
+      },
+      {
+        "value": [
+          2.0,
+          14.0,
+          2.0,
+          14.0
+        ],
+        "count": 267
+      },
+      {
+        "value": [
+          10.0,
+          10.0,
+          10.0,
+          10.0
+        ],
+        "count": 217
+      },
+      {
+        "value": [
+          8.0,
+          8.0,
+          8.0,
+          8.0
+        ],
+        "count": 165
+      },
+      {
+        "value": [
+          10.0,
+          0,
+          10.0,
+          0
+        ],
+        "count": 122
+      },
+      {
+        "value": [
+          5.5,
+          5.5,
+          5.5,
+          5.5
+        ],
+        "count": 108
+      },
+      {
+        "value": [
+          4.0,
+          0,
+          4.0,
+          0
+        ],
+        "count": 106
+      },
+      {
+        "value": [
+          0,
+          6.0,
+          0,
+          6.0
+        ],
+        "count": 90
+      },
+      {
+        "value": [
+          4.0,
+          8.0,
+          4.0,
+          8.0
+        ],
+        "count": 71
+      },
+      {
+        "value": [
+          2.0,
+          3.0,
+          2.0,
+          3.0
+        ],
+        "count": 68
+      },
+      {
+        "value": [
+          2.0,
+          8.0,
+          2.0,
+          8.0
+        ],
+        "count": 65
+      },
+      {
+        "value": [
+          10.0,
+          18.0,
+          10.0,
+          12.0
+        ],
+        "count": 65
+      },
+      {
+        "value": [
+          6.0,
+          6.0,
+          6.0,
+          6.0
+        ],
+        "count": 57
+      }
+    ],
+    "note": "Dominant auto-layout gaps: 10 (default), 8, 20, 12, 14, 16, 5, 4, 6, 2, 1 (tab strips)."
+  },
+  "stroke": {
+    "distribution": [
+      {
+        "value": [
+          1.5,
+          "CENTER"
+        ],
+        "count": 3185
+      },
+      {
+        "value": [
+          3.0,
+          "CENTER"
+        ],
+        "count": 961
+      },
+      {
+        "value": [
+          2.0,
+          "CENTER"
+        ],
+        "count": 797
+      },
+      {
+        "value": [
+          1.5,
+          "INSIDE"
+        ],
+        "count": 732
+      },
+      {
+        "value": [
+          1.4999998807907104,
+          "CENTER"
+        ],
+        "count": 470
+      },
+      {
+        "value": [
+          1.0,
+          "INSIDE"
+        ],
+        "count": 426
+      },
+      {
+        "value": [
+          1.0,
+          "CENTER"
+        ],
+        "count": 159
+      },
+      {
+        "value": [
+          2.0,
+          "INSIDE"
+        ],
+        "count": 97
+      },
+      {
+        "value": [
+          3.0,
+          "INSIDE"
+        ],
+        "count": 18
+      },
+      {
+        "value": [
+          2.0,
+          "OUTSIDE"
+        ],
+        "count": 15
+      }
+    ],
+    "divider": {
+      "weight": 1,
+      "color": "Dark/Divider/Dim",
+      "node": "6062:13362"
+    },
+    "controlBarTopBorder": {
+      "weight": 1,
+      "align": "INSIDE",
+      "color": "Dark/Divider/Dim",
+      "node": "491:1779"
+    },
+    "iconStroke": {
+      "default": 1.5,
+      "active": 2.0,
+      "note": "from vectors in the Icon set (42:356): mono/two-tone default 1.5 px, many active variants 2 px"
+    },
+    "dash": {
+      "customizeOutline": [
+        4,
+        4
+      ],
+      "subtitleConnector": {
+        "dash": [
+          8,
+          8
+        ],
+        "color": "Dark/Divider/Bright",
+        "node": "1911:7954"
+      }
+    },
+    "videoFrame": {
+      "weight": 20,
+      "align": "CENTER",
+      "color": "Dark/BG/A3",
+      "node": "6586:17371",
+      "note": "20 px centered stroke around the r19 video area = visible 10 px window frame"
+    }
+  },
+  "effects": {
+    "bgBlur": {
+      "type": "background blur",
+      "radius": 50,
+      "style": "bg blur",
+      "usedOn": "top bar, control bar, side panels, library panel, video frame, thumbnail, toast"
+    },
+    "menuShadow": {
+      "style": "bg blur + shadow",
+      "blur": 50,
+      "shadow": {
+        "x": 0,
+        "y": 8,
+        "blur": 15,
+        "spread": 0,
+        "color": "#000000",
+        "alpha": 0.46
+      },
+      "usedOn": "menus, context menus, dialogs, settings window, volume tooltip"
+    },
+    "miniplayerShadow": {
+      "x": 0,
+      "y": 0,
+      "blur": 11.8,
+      "color": "#000000",
+      "alpha": 0.38,
+      "node": "970:3090"
+    },
+    "onboardingShadow": {
+      "x": 0,
+      "y": 4,
+      "blur": 11.8,
+      "color": "#000000",
+      "alpha": 0.38,
+      "node": "1899:3055"
+    },
+    "dropdownListShadow": {
+      "x": 0,
+      "y": 4,
+      "blur": 13.8,
+      "color": "#000000",
+      "alpha": 0.35,
+      "node": "2372:8307"
+    },
+    "presetListShadow": {
+      "x": 0,
+      "y": 0,
+      "blur": 14,
+      "spread": 8,
+      "color": "#000000",
+      "alpha": 0.35,
+      "node": "2372:8838"
+    },
+    "keycapShadow": {
+      "x": 0,
+      "y": 6,
+      "blur": 0,
+      "color": "#5C5C5C",
+      "alpha": 0.25,
+      "node": "1902:7075"
+    },
+    "albumArtGlow": {
+      "x": 0,
+      "y": 0,
+      "blur": 90.5,
+      "spread": 64,
+      "color": "#FFFFFF",
+      "alpha": 0.03,
+      "node": "4777:24028"
+    },
+    "albumBackdropBlur": {
+      "type": "layer blur",
+      "radius": 20,
+      "node": "4777:24034",
+      "note": "1952x1952 scaled cover art behind the music player"
+    },
+    "onboardingPreviewBlur": {
+      "type": "background blur",
+      "radius": 27.5,
+      "note": "= 50 x 0.55 scale of the preview player"
+    }
+  },
+  "window": {
+    "player": {
+      "node": "247:445",
+      "w": 1920.0,
+      "h": 1080.0,
+      "gap": 0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "fill": "Dark/BG/A3"
+    },
+    "videoArea": {
+      "node": "6586:17371",
+      "w": 1920.0,
+      "h": 1005.0,
+      "radius": 19.0,
+      "gap": 10.0,
+      "padding": [
+        10.0,
+        10.0,
+        10.0,
+        10.0
+      ],
+      "note": "frame 1920x1005 between top bar and control bar; content clipped to r19 with 10 px padding"
+    },
+    "topBar": {
+      "node": "247:447",
+      "w": 1920.0,
+      "h": 40.0,
+      "gap": 10.0,
+      "padding": [
+        6.0,
+        6.0,
+        6.0,
+        6.0
+      ],
+      "fill": "Dark/BG/A3 (+bg blur)"
+    },
+    "topBarLeftGroup": {
+      "node": "247:448",
+      "w": 300.0,
+      "h": 28.0,
+      "gap": 7.0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "logoCell": {
+      "node": "247:449",
+      "w": 38.0,
+      "h": 28.0,
+      "gap": 0,
+      "padding": [
+        2.0,
+        7.0,
+        2.0,
+        7.0
+      ]
+    },
+    "folderChip": {
+      "node": "247:459",
+      "w": 82.0,
+      "h": 28.0,
+      "radius": 6.0,
+      "gap": 4.0,
+      "padding": [
+        0,
+        4.0,
+        0,
+        0
+      ]
+    },
+    "windowControlCell": {
+      "node": "247:466",
+      "w": 36.0,
+      "h": 24.0,
+      "gap": 10.0,
+      "padding": [
+        0,
+        6.0,
+        0,
+        6.0
+      ]
+    },
+    "windowControlsGroup": {
+      "node": "247:464",
+      "w": 300.0,
+      "h": 24.0,
+      "gap": 0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "controlBar": {
+    "bar": {
+      "node": "491:1779",
+      "w": 1920.0,
+      "h": 54.0,
+      "gap": 20.0,
+      "padding": [
+        11.0,
+        20.0,
+        11.0,
+        20.0
+      ],
+      "fill": "Dark/BG/A3 Transparent (+bg blur), 1px top Dark/Divider/Dim"
+    },
+    "transportGroup": {
+      "node": "3603:12301",
+      "w": 130.0,
+      "h": 28.0,
+      "gap": 8.0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "prevNextCell": {
+      "node": "3603:12302",
+      "w": 30.0,
+      "h": 28.0,
+      "gap": 0,
+      "padding": [
+        2.0,
+        3.0,
+        2.0,
+        3.0
+      ]
+    },
+    "playButton": {
+      "node": "848:1711",
+      "w": 54.0,
+      "h": 28.0,
+      "radius": 6.0,
+      "gap": 0,
+      "padding": [
+        2.0,
+        15.0,
+        2.0,
+        17.0
+      ],
+      "fill": "Dark/Accent/Main, glyph Dark/FG/B1"
+    },
+    "pauseButton": {
+      "node": "848:1713",
+      "w": 54.0,
+      "h": 28.0,
+      "radius": 6.0,
+      "gap": 0,
+      "padding": [
+        2.0,
+        15.0,
+        2.0,
+        15.0
+      ],
+      "fill": "Dark/FG/A3"
+    },
+    "seekGroup": {
+      "node": "1908:7385",
+      "w": 1406.0,
+      "h": 28.0,
+      "gap": 8.0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "timeLabel": {
+      "node": "1904:7237",
+      "w": 76.0,
+      "h": 28.0,
+      "radius": 6.0,
+      "gap": 10.0,
+      "padding": [
+        2.0,
+        8.0,
+        2.0,
+        8.0
+      ]
+    },
+    "seekTrack": {
+      "node": "1908:7387",
+      "w": 1238.0,
+      "h": 28.0,
+      "radius": 6.0,
+      "fill": "Dark/BG/B2"
+    },
+    "seekFill": {
+      "node": "1908:7388",
+      "w": 98.0,
+      "h": 24.0,
+      "radius": 4.0,
+      "fill": "Dark/BG/Accent Bright"
+    },
+    "playhead": {
+      "node": "1908:7389",
+      "w": 8.0,
+      "h": 24.0,
+      "radius": 4.0,
+      "fill": "Dark/Accent/Main"
+    },
+    "volumeGroup": {
+      "node": "491:1731",
+      "w": 120.0,
+      "h": 28.0,
+      "gap": 8.0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "trackButtonsGroup": {
+      "node": "491:1728",
+      "w": 114.0,
+      "h": 32.0,
+      "gap": 12.0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "iconButton": {
+      "node": "177:97",
+      "w": 30.0,
+      "h": 32.0,
+      "radius": 4.0,
+      "gap": 10.0,
+      "padding": [
+        4.0,
+        4.0,
+        4.0,
+        4.0
+      ],
+      "hoverFill": "#FFFFFF@0.06",
+      "disabledOpacity": 0.3,
+      "disabledSource": "Player-6 247:445 draws an unavailable player icon (the forward arrow, Icon I856:2587;848:1877) at 30 % opacity"
+    },
+    "musicTransportGroup": {
+      "node": "4778:26182",
+      "w": 206.0,
+      "h": 28.0,
+      "gap": 8.0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "volumeTooltip": {
+      "node": "2245:9805",
+      "w": 121.0,
+      "h": 37.0,
+      "radius": 6.0,
+      "gap": 10.0,
+      "padding": [
+        10.0,
+        10.0,
+        10.0,
+        10.0
+      ],
+      "fill": "Dark/BG/B1 Transparent + bg blur + shadow"
+    },
+    "seekThumbnail": {
+      "node": "2151:9673",
+      "w": 272.0,
+      "h": 189.0,
+      "radius": 14.0,
+      "gap": 10.0,
+      "padding": [
+        10.0,
+        10.0,
+        10.0,
+        10.0
+      ],
+      "fill": "Dark/BG/A3 Transparent + bg blur"
+    },
+    "seekThumbnailImage": {
+      "node": "2151:9674",
+      "w": 252.0,
+      "h": 142.0,
+      "radius": 4.0
+    }
+  },
+  "volume": {
+    "cone": {
+      "node": "244:210",
+      "w": 88.0,
+      "h": 28.0
+    },
+    "fillWidthByStep": {
+      "0": 1.0,
+      "10%": 7.0,
+      "20%": 14.0,
+      "30%": 20.0,
+      "40%": 26.0,
+      "50%": 33.0,
+      "60%": 41.0,
+      "70%": 48.0,
+      "80%": 53.0,
+      "90%": 58.0,
+      "100%": 63.0,
+      "150%": 75.0,
+      "200%": 88.0
+    },
+    "maxPercent": 200
+  },
+  "sidePanels": {
+    "queuePanel": {
+      "node": "463:831",
+      "w": 400.0,
+      "h": 946.0,
+      "radius": 10.0,
+      "gap": 1.0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "fill": "Dark/BG/B1 Transparent + bg blur"
+    },
+    "tracksPopup": {
+      "node": "491:2243",
+      "w": 400.0,
+      "h": 524.0,
+      "radius": 10.0,
+      "gap": 1.0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "settingsSidebar": {
+      "node": "5187:24308",
+      "w": 400.0,
+      "h": 946.0,
+      "radius": 10.0,
+      "gap": 1.0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "placement": {
+      "rightInset": 20.0,
+      "gapAboveControlBar": 20.0,
+      "gapBelowTopBar": 20,
+      "note": "946 = 1080 - 40 (top bar) - 54 (control bar) - 2x20"
+    },
+    "tabStrip": {
+      "node": "463:832",
+      "w": 400.0,
+      "h": 50.0,
+      "radius": 2.0,
+      "gap": 1.0,
+      "padding": [
+        0,
+        6.0,
+        0,
+        6.0
+      ],
+      "fill": "Dark/BG/B2"
+    },
+    "tabCell3": {
+      "node": "463:833",
+      "w": 128.667,
+      "h": 50.0,
+      "gap": 14.0,
+      "padding": [
+        14.0,
+        8.0,
+        0,
+        8.0
+      ]
+    },
+    "tabCell4wide": {
+      "node": "5187:24310",
+      "w": 107.5,
+      "h": 50.0,
+      "gap": 14.0,
+      "padding": [
+        14.0,
+        8.0,
+        0,
+        8.0
+      ]
+    },
+    "tabCell4narrow": {
+      "node": "5187:24315",
+      "w": 85.0,
+      "h": 50.0,
+      "gap": 14.0,
+      "padding": [
+        14.0,
+        12.0,
+        0,
+        12.0
+      ]
+    },
+    "tabUnderline": {
+      "h": 2,
+      "color": "Dark/Accent/Main"
+    },
+    "queueHeaderRow": {
+      "node": "463:840",
+      "w": 400.0,
+      "h": 68.0,
+      "gap": 10.0,
+      "padding": [
+        20.0,
+        20.0,
+        20.0,
+        28.0
+      ]
+    },
+    "sectionHeaderRow": {
+      "node": "491:2252",
+      "w": 400.0,
+      "h": 60.0,
+      "gap": 10.0,
+      "padding": [
+        0,
+        28.0,
+        0,
+        28.0
+      ]
+    },
+    "listContainer": {
+      "node": "491:2258",
+      "w": 400.0,
+      "h": 138.5,
+      "gap": 10.0,
+      "padding": [
+        0,
+        20.0,
+        0,
+        20.0
+      ]
+    },
+    "listRow": {
+      "node": "491:2260",
+      "w": 360.0,
+      "h": 32.0,
+      "gap": 10.0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "footer": {
+      "node": "505:3083",
+      "w": 400.0,
+      "h": 72.0,
+      "gap": 10.0,
+      "padding": [
+        20.0,
+        20.0,
+        20.0,
+        20.0
+      ]
+    },
+    "footerButton": {
+      "node": "500:3062",
+      "w": 360.0,
+      "h": 32.0,
+      "radius": 4.0,
+      "gap": 6.0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hoverFill": "Dark/BG/A4"
+    }
+  },
+  "library": {
+    "sidebar": {
+      "node": "848:1995",
+      "w": 427.0,
+      "h": 986.0,
+      "gap": 0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "rail": {
+      "node": "848:1867",
+      "w": 50.0,
+      "h": 986.0,
+      "gap": 14.0,
+      "padding": [
+        8.0,
+        8.0,
+        8.0,
+        8.0
+      ],
+      "fill": "Dark/BG/A4"
+    },
+    "panel": {
+      "node": "848:1872",
+      "w": 377.0,
+      "h": 986.0,
+      "gap": 17.0,
+      "padding": [
+        20.0,
+        20.0,
+        20.0,
+        20.0
+      ],
+      "fill": "Dark/BG/B1 Transparent + bg blur"
+    },
+    "headerBlock": {
+      "node": "848:1873",
+      "w": 337.0,
+      "h": 68.0,
+      "gap": 20.0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "headerRow": {
+      "node": "848:1874",
+      "w": 337.0,
+      "h": 24.0,
+      "gap": 10.0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "mediaRow": {
+      "node": "2404:9179",
+      "w": 337.0,
+      "h": 32.0,
+      "gap": 10.0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "thumb": {
+      "node": "2404:9180",
+      "w": 32.0,
+      "h": 32.0,
+      "gap": 10.0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "fullWindowNavColumn": {
+      "node": "970:3324",
+      "w": 217.0,
+      "h": 1040.0,
+      "gap": 14.0,
+      "padding": [
+        8.0,
+        8.0,
+        8.0,
+        8.0
+      ]
+    },
+    "fullWindowNavCard": {
+      "node": "970:3325",
+      "w": 201.0,
+      "h": 1024.0,
+      "radius": 6.0,
+      "gap": 14.0,
+      "padding": [
+        12.0,
+        16.0,
+        12.0,
+        16.0
+      ],
+      "fill": "Dark/BG/A4"
+    },
+    "homeCard": {
+      "node": "6841:14982",
+      "w": 316.0,
+      "h": 177.75,
+      "radius": 12.0
+    }
+  },
+  "miniplayer": {
+    "collapsed": {
+      "node": "970:3090",
+      "w": 391.0,
+      "h": 339.0,
+      "radius": 14.0,
+      "gap": 20.0,
+      "padding": [
+        8.0,
+        8.0,
+        8.0,
+        8.0
+      ]
+    },
+    "expanded": {
+      "node": "970:3092",
+      "w": 391.0,
+      "h": 689.688,
+      "radius": 14.0,
+      "gap": 20.0,
+      "padding": [
+        8.0,
+        8.0,
+        8.0,
+        8.0
+      ]
+    },
+    "videoBlock": {
+      "node": "970:3055",
+      "w": 375.0,
+      "h": 230.0,
+      "radius": 14.0,
+      "gap": 4.0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "infoBlock": {
+      "node": "970:3062",
+      "w": 375.0,
+      "h": 73.0,
+      "gap": 14.0,
+      "padding": [
+        4.0,
+        8.0,
+        4.0,
+        8.0
+      ]
+    },
+    "queue": {
+      "node": "970:3180",
+      "w": 375.0,
+      "h": 331.0,
+      "radius": 10.0,
+      "gap": 1.0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "menus": {
+    "appMenu": {
+      "node": "6062:13354",
+      "w": 375.0,
+      "h": 585.0,
+      "radius": 10.0,
+      "gap": 0,
+      "padding": [
+        4.0,
+        4.0,
+        4.0,
+        4.0
+      ]
+    },
+    "appMenuRow": {
+      "node": "6062:13492",
+      "w": 367.0,
+      "h": 48.0,
+      "radius": 6.0,
+      "gap": 10.0,
+      "padding": [
+        2.0,
+        14.0,
+        2.0,
+        14.0
+      ]
+    },
+    "contextMenu": {
+      "node": "2139:8935",
+      "w": 265.0,
+      "h": 296.0,
+      "radius": 10.0,
+      "gap": 0,
+      "padding": [
+        4.0,
+        4.0,
+        4.0,
+        4.0
+      ]
+    },
+    "contextMenuRow": {
+      "node": "2107:5934",
+      "w": 261.0,
+      "h": 48.0,
+      "radius": 6.0,
+      "gap": 10.0,
+      "padding": [
+        2.0,
+        14.0,
+        2.0,
+        14.0
+      ]
+    },
+    "rightClickMenu": {
+      "node": "6065:13616",
+      "w": 292.0,
+      "h": 683.0,
+      "radius": 10.0,
+      "gap": 0,
+      "padding": [
+        4.0,
+        4.0,
+        4.0,
+        4.0
+      ],
+      "note": "no blur/shadow effect in Figma"
+    },
+    "rightClickRow": {
+      "node": "6077:14345",
+      "w": 284.0,
+      "h": 48.0,
+      "radius": 6.0,
+      "gap": 10.0,
+      "padding": [
+        2.0,
+        14.0,
+        2.0,
+        14.0
+      ]
+    },
+    "rowHoverFill": "Dark/BG/A2",
+    "profilesSubmenu": {
+      "node": "6648:20514",
+      "w": 265.0,
+      "h": 249.0,
+      "radius": 10.0,
+      "gap": 0,
+      "padding": [
+        4.0,
+        4.0,
+        4.0,
+        4.0
+      ]
+    },
+    "menuIcon": 24
+  },
+  "controls": {
+    "toggle": {
+      "node": "536:1013",
+      "w": 68.0,
+      "h": 32.0,
+      "radius": 6.0
+    },
+    "toggleKnob": {
+      "node": "536:1011",
+      "w": 26.0,
+      "h": 26.0,
+      "radius": 3.0
+    },
+    "toggleLabelCell": {
+      "node": "536:1010",
+      "w": 33.0,
+      "h": 26.0,
+      "radius": 3.0
+    },
+    "segmented": {
+      "node": "804:1207",
+      "w": 213.0,
+      "h": 44.0,
+      "radius": 6.0,
+      "gap": 2.0,
+      "padding": [
+        2.0,
+        2.0,
+        2.0,
+        2.0
+      ]
+    },
+    "segment": {
+      "node": "804:1202",
+      "w": 103.5,
+      "h": 40.0,
+      "radius": 4.0,
+      "gap": 10.0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "dropdown": {
+      "node": "2372:8299",
+      "w": 364.0,
+      "h": 48.0,
+      "radius": 6.0,
+      "gap": 10.0,
+      "padding": [
+        2.0,
+        2.0,
+        2.0,
+        2.0
+      ]
+    },
+    "dropdownOption": {
+      "node": "2372:8360",
+      "w": 360.0,
+      "h": 44.0,
+      "radius": 4.0,
+      "gap": 10.0,
+      "padding": [
+        2.0,
+        14.0,
+        2.0,
+        14.0
+      ]
+    },
+    "dropdownOpenList": {
+      "node": "2372:8307",
+      "w": 364.0,
+      "h": 232.0,
+      "radius": 6.0,
+      "gap": 2.0,
+      "padding": [
+        2.0,
+        2.0,
+        2.0,
+        2.0
+      ]
+    },
+    "stackedChoice": {
+      "node": "3176:16555",
+      "w": 320.0,
+      "h": 78.0,
+      "radius": 6.0,
+      "gap": 2.0,
+      "padding": [
+        2.0,
+        2.0,
+        2.0,
+        2.0
+      ]
+    },
+    "stackedChoiceRow": {
+      "node": "3176:16549",
+      "w": 316.0,
+      "h": 36.0,
+      "radius": 4.0,
+      "gap": 10.0,
+      "padding": [
+        0,
+        12.0,
+        0,
+        12.0
+      ]
+    },
+    "dialogButton": {
+      "node": "1915:8659",
+      "w": 100.0,
+      "h": 32.0,
+      "radius": 6.0,
+      "gap": 10.0,
+      "padding": [
+        4.0,
+        8.0,
+        4.0,
+        8.0
+      ]
+    },
+    "dialogPrimaryButton": {
+      "node": "1915:8663",
+      "w": 100.0,
+      "h": 32.0,
+      "radius": 6.0,
+      "gap": 10.0,
+      "padding": [
+        4.0,
+        8.0,
+        4.0,
+        8.0
+      ],
+      "disabledOpacity": 0.5
+    },
+    "dialogHeaderDropdown": {
+      "node": "1959:5324",
+      "w": 200.0,
+      "h": 34.0,
+      "radius": 6.0,
+      "gap": 10.0,
+      "padding": [
+        5.0,
+        8.0,
+        5.0,
+        12.0
+      ]
+    }
+  },
+  "dialogs": {
+    "settings": {
+      "node": "999:5047",
+      "w": 1048.0,
+      "h": 865.0,
+      "radius": 14.0,
+      "gap": 0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "settingsHeader": {
+      "node": "999:5048",
+      "w": 1048.0,
+      "h": 50.0,
+      "gap": 159.0,
+      "padding": [
+        0,
+        14.0,
+        0,
+        8.0
+      ]
+    },
+    "settingsSearch": {
+      "node": "1040:2512",
+      "w": 200.0,
+      "h": 34.0,
+      "radius": 6.0,
+      "gap": 10.0,
+      "padding": [
+        5.0,
+        8.0,
+        5.0,
+        8.0
+      ]
+    },
+    "settingsNavColumn": {
+      "node": "999:5060",
+      "w": 216.0,
+      "h": 815.0,
+      "gap": 14.0,
+      "padding": [
+        8.0,
+        8.0,
+        8.0,
+        8.0
+      ]
+    },
+    "settingsNavCard": {
+      "node": "999:5061",
+      "w": 200.0,
+      "h": 799.0,
+      "radius": 6.0,
+      "gap": 8.0,
+      "padding": [
+        6.0,
+        6.0,
+        6.0,
+        6.0
+      ]
+    },
+    "settingsCategoryRow": {
+      "node": "3021:9836",
+      "w": 188.0,
+      "h": 40.0,
+      "radius": 2.0,
+      "gap": 8.0,
+      "padding": [
+        4.0,
+        4.0,
+        4.0,
+        4.0
+      ]
+    },
+    "settingsContent": {
+      "node": "1088:4049",
+      "w": 832.0,
+      "h": 815.0,
+      "gap": 20.0,
+      "padding": [
+        20.0,
+        24.0,
+        100.0,
+        24.0
+      ]
+    },
+    "settingsSectionHeaderRow": {
+      "node": "3046:9858",
+      "w": 784.0,
+      "h": 39.0,
+      "gap": 10.0,
+      "padding": [
+        10.0,
+        0,
+        10.0,
+        0
+      ]
+    },
+    "settingsRowTall": {
+      "node": "3046:9860",
+      "w": 784.0,
+      "h": 46.0,
+      "gap": 5.0,
+      "padding": [
+        5.0,
+        0,
+        5.0,
+        0
+      ]
+    },
+    "settingsRow": {
+      "node": "3046:9895",
+      "w": 784.0,
+      "h": 42.0,
+      "gap": 5.0,
+      "padding": [
+        5.0,
+        0,
+        5.0,
+        0
+      ]
+    },
+    "advancedOptionsBar": {
+      "node": "3046:9907",
+      "w": 784.0,
+      "h": 38.0,
+      "radius": 2.0,
+      "gap": 10.0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "equalizerPanel": {
+      "node": "3178:16770",
+      "w": 784.0,
+      "h": 489.0,
+      "radius": 2.0,
+      "gap": 24.0,
+      "padding": [
+        6.0,
+        0,
+        20.0,
+        0
+      ]
+    },
+    "addSubtitles": {
+      "node": "1911:7545",
+      "w": 1048.0,
+      "h": 800.0,
+      "radius": 14.0,
+      "gap": 0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "addSubtitlesHeader": {
+      "node": "1911:7546",
+      "w": 1048.0,
+      "h": 96.0,
+      "radii": [
+        14.0,
+        14.0,
+        0.0,
+        0.0
+      ],
+      "gap": 12.0,
+      "padding": [
+        9.0,
+        9.0,
+        9.0,
+        9.0
+      ]
+    },
+    "dialogFooter": {
+      "node": "1915:8662",
+      "w": 1048.0,
+      "h": 72.0,
+      "gap": 20.0,
+      "padding": [
+        20.0,
+        20.0,
+        20.0,
+        20.0
+      ]
+    },
+    "keyboardShortcuts": {
+      "node": "2437:14832",
+      "w": 1048.0,
+      "h": 800.0,
+      "radius": 14.0,
+      "gap": 0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "openNetworkStream": {
+      "node": "6216:13614",
+      "w": 1048.0,
+      "h": 631.0,
+      "radius": 14.0,
+      "gap": 0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "openNetworkStreamHeader": {
+      "node": "6216:13615",
+      "w": 1048.0,
+      "h": 50.0,
+      "radii": [
+        14.0,
+        14.0,
+        0.0,
+        0.0
+      ],
+      "gap": 12.0,
+      "padding": [
+        9.0,
+        9.0,
+        9.0,
+        9.0
+      ]
+    },
+    "dialogBody": {
+      "node": "6216:13623",
+      "w": 1048.0,
+      "h": 509.0,
+      "gap": 20.0,
+      "padding": [
+        22.0,
+        20.0,
+        22.0,
+        20.0
+      ]
+    },
+    "newPlaylist": {
+      "node": "6259:14954",
+      "w": 713.0,
+      "h": 589.0,
+      "radius": 14.0,
+      "gap": 0,
+      "padding": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "onboarding": {
+      "node": "1899:3055",
+      "w": 1090.0,
+      "h": 759.0,
+      "radius": 14.0
+    },
+    "onboardingButton": {
+      "node": "1902:3383",
+      "w": 100.0,
+      "h": 32.0,
+      "radius": 6.0,
+      "gap": 10.0,
+      "padding": [
+        4.0,
+        8.0,
+        4.0,
+        8.0
+      ]
+    },
+    "themeTile": {
+      "node": "1902:3980",
+      "w": 116.0,
+      "h": 116.0,
+      "radius": 19.0,
+      "gap": 10.0,
+      "padding": [
+        8.0,
+        8.0,
+        8.0,
+        8.0
+      ]
+    },
+    "colorDot": {
+      "node": "1902:4003",
+      "w": 64.0,
+      "h": 64.0,
+      "radius": 100.0,
+      "gap": 10.0,
+      "padding": [
+        8.0,
+        8.0,
+        8.0,
+        8.0
+      ]
+    },
+    "resumeToast": {
+      "node": "1919:9580",
+      "w": 552.0,
+      "h": 52.0,
+      "radius": 16.0,
+      "gap": 60.0,
+      "padding": [
+        10.0,
+        10.0,
+        10.0,
+        20.0
+      ]
+    },
+    "resumeContinueButton": {
+      "node": "1922:9581",
+      "w": 146.0,
+      "h": 32.0,
+      "radius": 6.0,
+      "gap": 10.0,
+      "padding": [
+        4.0,
+        8.0,
+        4.0,
+        8.0
+      ]
+    },
+    "resumeCloseButton": {
+      "node": "6309:14029",
+      "w": 44.0,
+      "h": 32.0,
+      "radius": 6.0,
+      "gap": 10.0,
+      "padding": [
+        4.0,
+        10.0,
+        4.0,
+        10.0
+      ]
+    }
+  },
+  "customization": {
+    "panel": {
+      "node": "6587:18867",
+      "w": 1048,
+      "h": 655,
+      "radius": 14,
+      "x": 436,
+      "y": 189.5,
+      "note": "tile dialog in Player - customize (2107:5604); x/y = origin in the 1920x1080 player"
+    },
+    "header": {
+      "node": "6587:18868",
+      "w": 1048,
+      "h": 94,
+      "gap": 12,
+      "padding": [
+        9,
+        9,
+        9,
+        9
+      ]
+    },
+    "body": {
+      "node": "6587:18874",
+      "w": 1048,
+      "h": 489,
+      "padding": [
+        34,
+        34,
+        34,
+        34
+      ]
+    },
+    "grid": {
+      "node": "6587:18875",
+      "w": 980,
+      "h": 421,
+      "gap": 24,
+      "rowGap": 38,
+      "columns": 9,
+      "note": "gap = column gap; rowGap = counterAxisSpacing"
+    },
+    "tile": {
+      "node": "6587:18876",
+      "w": 86,
+      "h": 65,
+      "gap": 16,
+      "note": "icon, 16 pt gap, one- or two-line label; tiles hug their content and a row takes its tallest tile"
+    },
+    "tallIcon": {
+      "node": "6587:18885",
+      "w": 30,
+      "h": 32
+    },
+    "smallIcon": {
+      "node": "6587:18942",
+      "w": 28,
+      "h": 28
+    },
+    "narrowIcon": {
+      "node": "6587:18877",
+      "w": 24,
+      "h": 32
+    },
+    "outline": {
+      "node": "2107:5604",
+      "playVertical": 3,
+      "seekGroupVertical": 4,
+      "titleHorizontal": 7,
+      "volumeHorizontal": 5,
+      "volumeVertical": 4,
+      "playFillInset": 3,
+      "note": "edit-mode dashed tile boxes vs the control frames: play 2115:7369 is 34 pt tall around the 28 pt button, and its accent fill (2115:7282) is 48 pt wide, 3 pt inside the 54 pt box on each side; the time+seek+duration group 2115:7285 is 36 pt tall around 28 pt items; the title box 2115:7345 has 6 pt padding + 1 pt inside stroke around the text; the volume box 2115:7291 is 130x36 around the 120x28 speaker + cone (5 pt left and right, 4 pt above and below). The logo and the spacers have no box."
+    }
+  },
+  "onboarding": {
+    "logo": {
+      "node": "1899:3056",
+      "w": 141,
+      "h": 141,
+      "top": 116
+    },
+    "welcomeTitle": {
+      "node": "1899:3057",
+      "w": 256,
+      "h": 39,
+      "gapAbove": 29
+    },
+    "paragraph": {
+      "node": "1899:3058",
+      "w": 595,
+      "h": 84,
+      "gapAbove": 37
+    },
+    "folderLabel": {
+      "node": "6689:20694",
+      "w": 595,
+      "h": 17,
+      "gapAbove": 54
+    },
+    "folderInput": {
+      "node": "6689:20697",
+      "w": 471,
+      "h": 36,
+      "gap": 10,
+      "gapAbove": 16,
+      "note": "gap = input to Browse (6689:20698)"
+    },
+    "browse": {
+      "node": "6689:20698",
+      "w": 114,
+      "h": 35
+    },
+    "footer": {
+      "node": "1902:3383",
+      "height": 64,
+      "bottom": 40,
+      "leading": 62,
+      "swatchesLeading": 41,
+      "trailing": 62,
+      "gap": 8,
+      "note": "Next 1902:3383 / Back 6696:20706 at x 928 / 820, y 671 (centred on the 64 pt swatch row 1902:4003 at x 41, y 655); hint 1904:7211 at x 62"
+    },
+    "preview": {
+      "node": "1902:3671",
+      "w": 1056,
+      "h": 594,
+      "top": 19,
+      "leading": 17,
+      "scale": 0.55
+    },
+    "appearanceTitle": {
+      "node": "1902:3684",
+      "w": 432,
+      "h": 42,
+      "top": 173
+    },
+    "themes": {
+      "node": "1902:3975",
+      "w": 428,
+      "h": 157,
+      "gap": 40,
+      "gapAbove": 71,
+      "labelGap": 22,
+      "fillRadius": 12,
+      "ring": 4,
+      "note": "ring = selected tile ring 1902:3980"
+    },
+    "systemGradient": {
+      "node": "1902:3991",
+      "startX": 1.041323,
+      "startY": 0.195567,
+      "endX": -0.076323,
+      "endY": 0.874433,
+      "note": "Figma's third gradient handle shears the hard split; these endpoints are its first/second handles projected perpendicular to the third handle axis"
+    },
+    "swatches": {
+      "node": "1902:4003",
+      "w": 704,
+      "h": 64,
+      "gap": 16,
+      "inset": 12,
+      "unselectedOpacity": 0.5,
+      "note": "inset 1902:3997; unselected opacity 1902:4005"
+    },
+    "shortcutTitle": {
+      "node": "1902:6784",
+      "w": 409,
+      "h": 42,
+      "top": 60
+    },
+    "shortcutColumns": {
+      "node": "1904:7209",
+      "w": 936,
+      "h": 452,
+      "gap": 150,
+      "gapAbove": 52,
+      "leading": 62,
+      "columnWidth": 393,
+      "labelWidth": 220,
+      "labelGap": 20,
+      "rowHeight": 42,
+      "rowGap": 40,
+      "note": "columnWidth 1904:7208, labelWidth 1904:7203, rowGap 1904:7204"
+    },
+    "keycap": {
+      "node": "1902:7075",
+      "radius": 12,
+      "stroke": 3,
+      "horizontalInset": 20,
+      "compactInset": 12,
+      "bindingGap": 10,
+      "modifierGap": 4,
+      "note": "compactInset 1902:7078, bindingGap 1902:7144, modifierGap 1904:7197"
+    }
+  },
+  "standardHeights": {
+    "topBar": 40,
+    "controlBar": 54,
+    "controlItem": 28,
+    "iconButton": 32,
+    "tabStrip": 50,
+    "panelSectionHeader": 60,
+    "listRow": 32,
+    "menuRow": 48,
+    "dropdown": 48,
+    "dropdownOption": 44,
+    "settingsRow": "42-46",
+    "settingsSectionHeader": 39,
+    "advancedOptionsBar": 38,
+    "dialogHeaderSimple": 50,
+    "dialogHeaderWithToolbar": 96,
+    "dialogFooter": 72,
+    "button": 32,
+    "textField": 34,
+    "toggle": 32,
+    "segmented": 44
+  },
+  "standardWidths": {
+    "sidePanel": 400,
+    "panelContent": 360,
+    "libraryRail": 50,
+    "libraryPanel": 377,
+    "libraryPanelContent": 337,
+    "fullLibraryNav": 217,
+    "appMenu": 375,
+    "contextMenu": 265,
+    "rightClickMenu": 292,
+    "settingsWindow": 1048,
+    "settingsNav": 216,
+    "settingsContent": 832,
+    "settingsControlColumn": "364 (dropdown) / 213 (segmented) / 68 (toggle)",
+    "dialogLarge": 1048,
+    "dialogSmall": 713,
+    "onboarding": 1090,
+    "miniplayer": 391,
+    "seekThumbnail": 272,
+    "button": 100
+  }
+}

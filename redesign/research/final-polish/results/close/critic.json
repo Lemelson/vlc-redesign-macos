@@ -1,0 +1,639 @@
+{
+ "missing": [
+  {
+   "priority": "P0",
+   "owner": "orchestrator",
+   "item": "Commit this wave. HEAD is still ddd9d23a9d, with 105 paths uncommitted on top of it. 15 of them are untracked, and some are load-bearing: Sources/MXRDesign/Theme/MacWindowControls.swift, Sources/MXRVLCBackend/VLCSubtitleSafeInsetFeed.swift, Tests/NativeLibrarySoundtrackRuntime.m (native-tests.py --suite library runs it) and tools/test-screens-doc.py (Makefile.am check-macosx-redesign now calls it). The 8 new test files and workflows/final-close.js, final-live2.js and wait-idle-threshold.sh are also untracked. The integrator installed this tree at 05:41 (bundle mtime 1792204890), and no file under Sources/ or module/ is newer than the installed libmacosx_redesign_plugin.dylib, so the commit records exactly the build under test. At commit time, attribute the MockServices.swift .number→.float hunk to F-settings, not C-bridge.",
+   "evidence": "git status --short (105 lines, ?? NativeLibrarySoundtrackRuntime.m, test-screens-doc.py, MacWindowControls.swift, VLCSubtitleSafeInsetFeed.swift); find Sources module -newer '/Applications/VLC Redesign.app/Contents/Frameworks/plugins/libmacosx_redesign_plugin.dylib' → empty; git log -1 = ddd9d23a9d"
+  },
+  {
+   "priority": "P0",
+   "owner": "orchestrator / live wave",
+   "item": "The live acceptance is void for everything this wave changed. final-live2 groups 0-install-gate (04:29), 1-window-fullscreen (05:07) and 2-light-theme (05:21–05:29) ran against the 03:24 bundle: L0-bundle.txt shows the redesign plugin at 1792196683. The integrator replaced the bundle at 05:41, mid-wave. Groups 3–11 have no results in any wave, so no VIDEO_BREAKDOWN MUST that needs the real window is proven end to end. That covers §03 bars reveal independently with no frame in fullscreen, §06 the Add Subtitles mapping persisting and showing under External Tracks, §10 drag to queue, §13 ⌘B bookmarks and two-line OSD, §14 dependent rows disabled and Keyboard Shortcuts reachable from both places, and §15 Customize, Profiles and Onboarding. Several expectations in resume/live-groups.json are also stale after this wave and would report false FAILs or false PASSes. S25-scrim-blur still expects 'the scrim darkens the video moderately', but D035 now says no scrim. J-light-dialog-buttons and E-min-window-right-panel still say 'expected FAIL'. A-08-live still treats truncation as known. compact-modal still expects Disc 434 / Capture 345 instead of 432 / 343. E-light-tint still expects a Light dividerDim, where it should be Dark Divider/Dim with #404040 separators. G-S18-S19-cards still says 'note end ticks'. Update the checklist with the liveRecheck below, then run it on the 05:41 install.",
+   "evidence": "../build/evidence/final5/live/0-install-gate/L0-bundle.txt (redesign plugin 1792196683 = Oct 17 03:24); live/1-window-fullscreen and 2-light-theme mtimes 05:07–05:29; installed plugin now Oct 17 05:41; resume/live-groups.json expect texts"
+  },
+  {
+   "priority": "P1",
+   "owner": "A-window (ShippingGallery.swift, AppGallery.swift)",
+   "item": "S72.Window/light and S72.App/light are the only snapshot FAILs with no recorded reason. The remaining region is the playing E04 row: thumbnail #1E1A15 against #000000 at 70,752, plus the accent label at 144,764. D051 covers that state, but neither entry carries a D051 figmaDeviation. E-library asked for it and nobody added it. In the same file, the S12.Window/continue-minimum note is stale: it still says 'D051: … so the Continue button truncates', although the button now reads 'Continue' whole.",
+   "evidence": "integration.json snapshotCheck/remainingProblems[0]; grep D051 ShippingGallery.swift → only line 116 (stale note); AppGallery.swift no D051"
+  },
+  {
+   "priority": "P1",
+   "owner": "A-window / F-settings / J-media-io / I-build (tests)",
+   "item": "Some 'regression tests' do not fail without their fix, which breaks the quality bar.\n- WindowFinalPolishTests.testNarrowResumeToastUsesTheShortLabelInsteadOfTruncating passes with the label reverted to 'Continue Watching'; the verifier's s12-reverted.png shows 'Continue Watchi…'.\n- SettingsDialogsPolishTests.testScaleLabelsStandUnderTheirTicks checks the anchor function, not the drawn labels, and passes when the fix is reverted.\n- OutputForm.settle's once-guard has no test: removing it keeps all 9 OpenMediaIOTests green.\n- MXRAppView's onChange → reconcileLibraryAndPanel wiring is untested, because the gallery entry calls the model itself.\n- test_missing_cache_gen_fails_every_suite_before_any_command never asserts that no command ran.",
+   "evidence": "A-window verify open[0],[2]; F-settings verify open[3]; J-media-io verify open[1]; I-build verify open[2]"
+  },
+  {
+   "priority": "P1",
+   "owner": "integrator → owner",
+   "item": "Owner sign-off package. HANDOFF.md and the earlier list are incomplete. Present one list of what this wave added or amended, all marked 'accepted (agent, 2026-10-17)'.\n- **New entries:** D056 and D057.\n- **Amendments:** D022 (onboarding preview Mac chrome); D026 (⇧ glyph; paired bindings as one keycap each, so S71 mixes two keycap styles); D032 (library header Dark styles in Light, revised, and Light Settings segment/ON/Browse differ from video 17m44.0); D034 (right-click menu uses VLC's macOS keys; dropdowns drop below their field, an agent closing what was the owner's open question); D035 (no scrim; its Light evidence is weak per the F-settings verifier); D039 (audio-track rows resolved); D042 (PiP placeholder on the dark base); D044 (counts follow data); D049 (onboarding swatches); a D050 line (disabled caching fields); D051 (short 'Continue'); D053 (Light bars fixed; full-library top bar Δ≤3); D054 ('+10 s'); D055 (no Light 10 pt frame; picture under the compact library); and D015 (PiP resolved).\n- **Needs special attention:** D045 is OWNER-accepted but an agent amended it (Light secondary buttons BG/A4).\n- **Still pending from before:** D042, D044, D046–D055, the agent amendments to D007/D028, and the D030 defaults.\n- **Still open:** D015's two questions (Stream / Open from Clipboard in ⋯; the duplicate Last.fm row).",
+   "evidence": "grep -n 'agent, 2026-10-17' redesign/docs/DECISIONS.md (lines 267, 299, 351, 362, 440, 453, 460, 479, 572, 630, 677, 714, 827, 865, 966, 974, 992, 1014); DECISIONS.md:104-108 D015 'open'; HANDOFF.md:68-73 lists neither D022, D026, D035, D045 nor D015"
+  },
+  {
+   "priority": "P2",
+   "owner": "B-controls / H-design (MXRBackdropSurface)",
+   "item": "D056's music-bar tint bullet probably excuses a difference that can be fixed. The verifier found the backdrop above the bar is black (0) in both Figma and the render. Style 1702:4100 at 95 % over black gives #171717, so the render's #191919 means about #20 sits under the tint. That is most likely the NSVisualEffectView .headerView material's own colour, not missing blur. The same root cause was fixed for the Light bars (overCanvasBase, no material). Prove it, or fix it the same way where the base is known. LC-music-bar must expect #171717, not a range up to #191919. This is behind 3 of the 23 FAILs (S34.App/music, S34.Player/music, S34.Player/music-waveform).",
+   "evidence": "B-controls verify open[0]; DECISIONS.md:1009-1012; integration snapshotCheck S34 FAILs"
+  },
+  {
+   "priority": "P2",
+   "owner": "A-window (InterfaceModel.swift)",
+   "item": "Hide UI loses a library that yielded to a panel, which breaks D057's 'comes back when the panel closes'. At 480 pt: open the compact library, open the queue (the library yields), press ⌘\\ twice, then close the queue. The library stays closed. Fix: skip reconcileLibraryAndPanel while isUIHidden, or keep libraryYieldedToPanel across Hide UI.",
+   "evidence": "A-window verify open[1]; live check A-narrow-hideui-yield 'Known minor'"
+  },
+  {
+   "priority": "P2",
+   "owner": "A-window / B-controls (PlayerView.swift, PlayerMenus.swift)",
+   "item": "Two hover and press states contradict the video or D056.\n- ContinueButtonStyle (PlayerView.swift ~160) changes only on isPressed. Video 14m09.8 shows the Continue Watching button darkened under the cursor. No decision covers it, and B-controls left it to the PlayerView owner, who did not act.\n- PlayerMenus.swift:470 and :511 (the speed/HDR/zoom text menus and the compact '⋯') still use .buttonStyle(.plain), so they keep the system press dimming that D056/D028 removed from every other bar button.",
+   "evidence": "grep isPressed PlayerView.swift:160; grep buttonStyle(.plain) PlayerMenus.swift:470,511; B-controls notFixed + verify open[1]"
+  },
+  {
+   "priority": "P2",
+   "owner": "E-library (LibraryPopup.swift) / DECISIONS",
+   "item": "D039 says 'Songs take no audio track', but the file menu's Add Audio Tracks (LibraryPopup.swift:122) is enabled for every file. On a song it attaches a SOUNDTRACK in the media library, and MXRLibrarySelectSoundtrack selects it on every later playback. Hide or disable the row for .audio media, or correct D039. In the same area, the D032 amendment cites the wrong Figma Light row colour: it says #969696, but the samples are #8F8F8F unwatched and #6B6B6B watched. Its Dark header styles also apply to the full-window library, which the amendment does not say.",
+   "evidence": "E-library verify open[0],[1],[2]"
+  },
+  {
+   "priority": "P2",
+   "owner": "F-settings / H-design",
+   "item": "Light accent swatches differ between two screens. Settings › General draws Theme.Accent(accent).swatch, the dark hex #D37918, in Light (MXRSettingsView.swift:477, sampled at 722,178 in S48.Settings/general-light). Onboarding now draws each accent's Light Accent/Main, #E8851A (D049 amendment). Align them, or extend D049.",
+   "evidence": "H-design verify open[1]; MXRSettingsView.swift:477"
+  },
+  {
+   "priority": "P2",
+   "owner": "F-settings / G-panels / E-library / B-controls",
+   "item": "Small differences that can be made to match but are neither fixed nor recorded:\n- S54 speed labels '0.5' and '1.75' sit about 1.5 pt off. Figma spreads 26 pt label boxes space-between; anchoring the labels the same way would close it.\n- S19.Filters/equalizer-open: the Preamp thumb follows the D054 rule, but D054 has no Equalizer example and the entry has no figmaDeviation, so an unexplained REVIEW remains at 270,104.\n- S46.MiniPlayer/hover: the seek row is 1 pt off and the transport glyphs sit 0.7 pt low.\n- Player - Light's gear uses Dark FG/A2 #8F8F8F (style 217:218), a partial conversion like D049's play button. The product draws Light FG/A2, and no line or deviation records it.",
+   "evidence": "F-settings verify open[2]; G-panels verify open[0]; E-library verify open[3]; B-controls verify open[3]"
+  },
+  {
+   "priority": "P2",
+   "owner": "I-build / H-design (mxr-snapshot reference crops)",
+   "item": "11 of the 23 FAILs (S69.Onboarding/welcome, all 9 S70.Onboarding/* entries, S71.Onboarding/shortcuts) come only from a 1090×7 pt strip at the bottom frame edge. The Figma crop's edge pixels have alpha 226–235 because the frame sits at a fractional position. Fix the reference: crop at integer frame bounds, or composite the crop's alpha over the frame fill. A mask is not the answer. As things stand, the FAIL count hides real FAILs among the artefacts.",
+   "evidence": "integration.json snapshotCheck 'only the 1090×7 pt strip … matches if moved -2 pt'; H-design notFixed S69/S70/S71"
+  },
+  {
+   "priority": "P2",
+   "owner": "orchestrator",
+   "item": "The audit table is stale, and several audit ids are still neither fixed nor decided. AUDIT_FIXES_2026-10-15.md was last committed 2026-10-16, so it still lists items this wave or earlier waves closed as open: PER-02 (made async by F-settings), COMP-08 (implemented), COMP-10 (the Lua dialog provider exists since C-05), COMP-11 (D052) and COMP-15 (D041 owner-accepted). The following have no fix and no DECISIONS entry:\n- CODE-02/C-08 (typed DTOs).\n- CODE-06 (AppKit conveniences and optical-volume enumeration in Core/UI).\n- CODE-08/B-15 (splitting MXRServicesBridge.m and the catalog files).\n- CODE-09 (handwritten metrics).\n- CTL-01 (no processed-vout paused frame).\n- A11Y-02 and A11Y-06.\n- PLAYER-13.\n- SET-04 (stream receiver).\n- LIBSET-09 (clean onboarding).\n- PERF-01 (CPU).\nSchedule the bridge refactor as a single-agent task, record a decision for CODE-06/CODE-09/CTL-01, and close the rest with the live checks.",
+   "evidence": "redesign/research/AUDIT_FIXES_2026-10-15.md:185-281 ('Ч'/'Н' rows); grep of DECISIONS.md finds none of CODE-02/06/08/09, CTL-01, A11Y-02/06, PLAYER-13, SET-04, LIBSET-09, PERF-01"
+  },
+  {
+   "priority": "P2",
+   "owner": "I-build / integrator (docs)",
+   "item": "Docs are behind the tree.\n- **SCREENS.md** 'Parity · live' is generated from resume/parity.json, which predates this wave's fixes. It still shows S25 and S67 as major, S28 as missing and S30/S31 as minor (all fixed now), and the live column comes from run 1 on fae8f04dc0. Re-run the 8 parity judges on the committed tree, then run gen_screens.py --parity <new> and add the final-live2 results to the LIVE dict.\n- **HANDOFF.md** does not mention:\n  - the 05:41 install mid-live-wave and that groups 0–2 ran on the 03:24 build;\n  - the frozen-tree no-op make re-measure;\n  - the orchestrator's audit debt;\n  - the decision amendments listed above.\n- **D015** is still headed 'open'.",
+   "evidence": "SCREENS.md:20-30 (preamble says judges ran before the wave's fixes); I-build verify open[0],[1]"
+  },
+  {
+   "priority": "P2",
+   "owner": "A-window → owner",
+   "item": "D055 kept subtitles partly under the compact library in narrow windows. This is a real constraint (VLC has no horizontal sub-margin, and Figma centres the picture under the library), and it is recorded with evidence. It is still a visible usability defect: live run 1 cut '...one, first cue.' at 640 pt. The owner should explicitly accept it, or ask for the alternative: shift the picture right of the library only below a width threshold. C-compact-library-subs records the live state.",
+   "evidence": "DECISIONS.md:974-985; live-groups C-compact-library-subs"
+  },
+  {
+   "priority": "P2",
+   "owner": "various (hygiene)",
+   "item": "Leftovers against the 'Swift 6 clean' and 'tokens only' rules.\n- **Concurrency warnings in tests.** The test target has 28 warnings. Two are new this wave: 'mutated after capture by sendable closure' at WindowFinalPolishTests.swift:164 and SubtitleSafeInsetFeedTests.swift:46.\n- **ObjC warning in the install build:** -Wunused-parameter 'stop' at MXRServicesBridge.m:602.\n- **Literal design values in views:** SettingsControls.swift:407 `.opacity(isSelected ? 1 : 0.4)`, MXRCustomizationView.swift:176 `.opacity(enabled ? 1 : 0.5)` and LibrarySupport.swift:79-82 (literal currentShade/currentTint/miniHoverScrim colours).\n- **Two luminosity formulas:** SettingsControls.swift:76 (W3C SetLum) and DialogSupport.swift:116 (Rec.709).\n- **Tooling bug:** GalleryPaths.locate (MXRGalleryCatalog/GalleryCatalog.swift:403-410) loops forever when no repo marker is found ('/' never equals '/../'), so isolated package copies hang FigmaDeviationTests for 36+ min.\n- **Gallery coverage:** S01.App/default and S72.App/light still exclude the whole right group instead of using the new .moved deviation.",
+   "evidence": "integration.json remainingProblems[1],[2]; grep -rnE '\\b0\\.[1-9]' Sources/MXRUI; D-menus verify open[0]; A-window verify open[3]"
+  }
+ ],
+ "liveRecheck": [
+  {
+   "group": "R0 install gate and committed-tree build (CLI only, app closed, native then live lock; ~20 min, after the wave commit)",
+   "checks": [
+    {
+     "id": "L0-bundle",
+     "area": "I-build",
+     "steps": "With VLC Redesign closed: codesign --verify --deep --strict '/Applications/VLC Redesign.app'; stat the redesign plugin, plugins.dat and the newest dylib, and list /Applications for VLC bundles.",
+     "expect": "The signature is valid. libmacosx_redesign_plugin.dylib is the 05:41 build (1792204890 or later), and plugins.dat is not older than any dylib. Only VLC.app (untouched, mtime 1743527633) and VLC Redesign.app exist.",
+     "why": "The existing L0-bundle.txt was taken against the 03:24 bundle (plugin 1792196683). The integrator reinstalled at 05:41."
+    },
+    {
+     "id": "L0-smoke+I-build-install-and-check",
+     "area": "I-build",
+     "steps": "Under lock.sh, with SDKROOT exported: make -C ../build/codex-arm64/modules check-macosx-redesign. Automake regenerates first because Makefile.am gained the test-screens-doc.py line. Then run the L0-smoke steps from live-groups.json.",
+     "expect": "check-macosx-redesign passes, including test-screens-doc.py and test-native-runtime-isolation.py (6 tests). native-tests refuses to run without vlc-cache-gen.",
+     "why": "This wave changed Makefile.am, native-tests.py and gen_screens.py/SCREENS.md."
+    },
+    {
+     "id": "L0-launch",
+     "area": "I-build",
+     "steps": "As in live-groups.json: back up vlcrc and ml.db, launch the installed app once, quit with ⌘Q and restore.",
+     "expect": "It launches into the full library on Home (or the resume flow) and quits in about 1 s or less, with no crash log.",
+     "why": "The bundle changed after this check ran (bridge changes: MXRServicesBridge.m, MXRLibraryServices.m, MXREffectsServices.m)."
+    },
+    {
+     "id": "L0-noop-make",
+     "area": "I-build",
+     "steps": "On the committed tree with no agents editing, under the native lock: run make -C ../build/codex-arm64 twice. Record the plugin archive, dylib and .la mtimes and the wall time of the second run.",
+     "expect": "The second make rebuilds nothing and those mtimes are unchanged. Record the wall time in BUILD.md or HANDOFF.",
+     "why": "I-build deferred this measurement; it is impossible on a tree that agents are still editing."
+    }
+   ]
+  },
+  {
+   "group": "R1 window and fullscreen (rerun whole group 1, ran on the 03:24 build; ~25 min)",
+   "checks": [
+    {
+     "id": "C3+A-topbar",
+     "area": "A-window",
+     "steps": "Play S01E01 in the largest window. Capture the top 40 pt at 2x and compare it with Player-6 x 0–640. Press ⌘\\ twice. Hover the top-bar fullscreen button until its tooltip shows, click it, wait 5 s, then leave fullscreen with the exit button and capture the top 40 pt again.",
+     "expect": "There is one 40 pt bar, the traffic lights are vertically centred and the cone sits right after them. ⌘\\ hides the lights together with the bars. No 'Fullscreen' tooltip stays after the bars hide. After leaving fullscreen the bar is again 40 pt with the lights centred.",
+     "why": "PlayerBars, PlayerChrome and MXRAppView changed (mxrBarsBesidePicture, fullscreen as a bar icon in rows)."
+    },
+    {
+     "id": "A-fs-topedge",
+     "area": "A-window",
+     "steps": "Play S01E03 and enter fullscreen with the top-bar button or ⌘F (VLC's macOS default). Wait 3 s for the bars to hide. Hold the pointer at the top screen edge for 1 s, then move it slowly down 60 pt and click ⋯.",
+     "expect": "The menu bar and a strip with only the traffic lights slide in. Within about 0.1 s the app's top bar (cone, ⋯, sidebar toggle, chip, title, exit-fullscreen) appears directly below the strip, never under it. It stays while the pointer is on it, and ⋯ opens. The strip is never shown alone.",
+     "why": "New MXRSystemStripTracker (10 Hz frame sampling while fullscreen). Live run 1 FAILed this on the old build."
+    },
+    {
+     "id": "A-fs-bars-independent+A-fs-bottom",
+     "area": "A-window",
+     "steps": "In fullscreen while playing, move the pointer near the bottom edge, then away, then near the top edge, then into the middle, and idle 2 s. Press Space to pause and idle 3 s.",
+     "expect": "Only the control bar appears at the bottom, and only the top bar (with the strip) at the top. Each hides right after the pointer leaves its zone, with no video jump and no frame. While paused, both bars stay visible (D041).",
+     "why": "InterfaceModel and PlayerView changed (topBarOffset, reconcile)."
+    },
+    {
+     "id": "A-05-cursor",
+     "area": "A-window",
+     "steps": "In fullscreen while playing, keep the mouse still for the auto-hide delay, then make a small move in the middle.",
+     "expect": "The cursor and bars hide. A small move brings the cursor back while the bars stay hidden (D023).",
+     "why": "Same InterfaceModel/PlayerView changes; it ran only on the old build."
+    },
+    {
+     "id": "A-fs-end",
+     "area": "A-window",
+     "steps": "(a) Play S01E01 (60 s), enter fullscreen and let it reach the end. (b) With nothing playing, enter fullscreen and wait.",
+     "expect": "(a) The window leaves fullscreen at the end, as VLC does. (b) It stays fullscreen.",
+     "why": "PlayerView and MXRAppController changed; it ran only on the old build."
+    },
+    {
+     "id": "A-hideui-queue",
+     "area": "A-window",
+     "steps": "Play S01E01 and open the queue. Press ⌘\\, capture, then press ⌘\\ again.",
+     "expect": "With Hide UI on there are no bars, only the 10 pt frame (S06). When the UI returns, the queue is open again (D055).",
+     "why": "reconcileLibraryAndPanel and toggleUIHidden in InterfaceModel changed."
+    },
+    {
+     "id": "C5",
+     "area": "A-window",
+     "steps": "While S01E01 plays, open the settings sidebar (gear) and compare the video rect with a capture taken just before.",
+     "expect": "The sidebar overlays the video. The video's left edge, size and position do not change.",
+     "why": "MXRAppView and PlayerGeometry changed."
+    }
+   ]
+  },
+  {
+   "group": "R2 Light theme (rerun whole group 2, ran on the 03:24 build; ~30 min)",
+   "checks": [
+    {
+     "id": "H-light-bars+H-light-bars-dark-base",
+     "area": "H-design",
+     "steps": "Light theme, windowed, auto-hide off (bars pinned). Play a bright clip, then the dark #2D2D2D clip. Sample the top bar at an empty spot (about x 600, y 10 pt) and an empty area of the control bar.",
+     "expect": "Both bars read #ABABAA ±1 for both clips. The video never shows through, and the bars are never #BBB7BC or #A7A7A7.",
+     "why": "New overCanvasBase path: tint over Theme.Color.videoUnderBars with no material."
+    },
+    {
+     "id": "H-light-band-no-flash+H-light-bars-transition",
+     "area": "H-design",
+     "steps": "Light theme, recording the screen at 60 fps. Enter and leave Customize Player. Set auto-hide to always and let the bars hide and reveal. Open and close the full library.",
+     "expect": "No black, #090909 or #2D2B29 flash longer than one frame above or below the picture. Auto-hidden bars and Customize blur the video (material path). The full-library top bar is unchanged.",
+     "why": "mxrBarsBesidePicture switches between the two backdrop paths."
+    },
+    {
+     "id": "A-light-geometry",
+     "area": "A-window",
+     "steps": "Light theme, S01E01 (16:9) at the default size. Measure the picture rect with the compact library closed, then open, then switch to Dark.",
+     "expect": "The picture width and position are identical in all three, and the subtitle sits above the control bar.",
+     "why": "PlayerGeometry and PlayerView changed."
+    },
+    {
+     "id": "H-light-library-clips+E-light-tint+E-light-header",
+     "area": "H-design / E-library",
+     "steps": "Light theme, paused, compact library on The Wand > S01 over the #2D2D2D clip, then over the red clip. Sample the panel away from text. Then open the full library (Light) on the same folder.",
+     "expect": "The panel reads about #C2C2C1 over #2D2D2D; over red it is tinted between #B9B9B9 and #ECB9B9. The '▶' separators are #404040, '...' is #8F8F8F and a dark (Dark Divider/Dim) hairline sits under the header. Rows and the current crumb use readable Light colours, the playing row is in the accent and watched rows are dimmed. In the full library, confirm the dark hairline and separators look intended.",
+     "why": "libraryHeaderDarkStyle and restingColor changed. The old E-light-tint expectation (Light dividerDim) is stale."
+    },
+    {
+     "id": "H-cone-light",
+     "area": "H-design",
+     "steps": "Light theme with a video open: sample the cone and the play button. Switch to Dark and sample both again.",
+     "expect": "Light: the cone is #C2711A and the play button #E8851A. Dark: both are #D37918.",
+     "why": "The Light bar base changed under the cone."
+    },
+    {
+     "id": "J-light-dialog-buttons+V-light-dialogs",
+     "area": "F-settings / J-media-io",
+     "steps": "Light theme. Open Convert, Stream, Open Disc, Open Capture, Open Network Stream, Properties & Metadata and Add Subtitles in turn. Sample the Choose…/Cancel/Close/Show in Finder tiles and the surface. Click the Convert Format field.",
+     "expect": "Each secondary button has a visible BG/A4 tile (#B3) on the #D5 surface; the primary button keeps its accent tile. The Format field is a #F4F4F4 tile, not a dark pressed block. This is now an expected PASS; the old 'expected FAIL' text is stale.",
+     "why": "DialogButton.secondaryFill and the J dialog dropdown changed."
+    },
+    {
+     "id": "LS-light+V-S50-light",
+     "area": "F-settings / H-design",
+     "steps": "Light theme: right-click a playlist ▸ Rename and capture the sheet. Then open Settings over a playing video and switch Theme from Dark to Light.",
+     "expect": "The dialogs are opaque (#D5 body, #DE header) with no artwork showing through (D045). The bars around Settings stay light grey, not near-black. Browse, Reset and the Keyboard Shortcuts Cancel have visible tiles. Record the selected segment and ON cell look for the owner (D032 amendment vs video 17m44.0).",
+     "why": "MXRDialogHost no longer draws a scrim, and the D045 and D032 amendments are new."
+    },
+    {
+     "id": "A-pip-light",
+     "area": "A-window",
+     "steps": "Light theme: play a video and choose Video › Picture in Picture. Sample the main window, then click the placeholder. Repeat in Dark.",
+     "expect": "A dark #090909 placeholder with the glyph and caption sits between the bars, which read about #ABABAA in Light. Clicking it returns the video.",
+     "why": "The PiP placeholder is now on the dark base (D042 amended)."
+    },
+    {
+     "id": "GV-live-4 light-scheme ticks",
+     "area": "G-panels",
+     "steps": "Light theme: open the sidebar at Video > Essential (expanded) and at Subtitles > Appearance.",
+     "expect": "Inner ticks stay visible as subtle marks on both the empty track and the fill. They are not invisible and do not clash under screen blending.",
+     "why": "PanelSlider ticks now use the SCREEN blend, and Figma has no Light frame for them."
+    }
+   ]
+  },
+  {
+   "group": "R3 narrow window, resume toast and compact library (~25 min)",
+   "checks": [
+    {
+     "id": "A-resume-toast+C-restore-external",
+     "area": "A-window / C-bridge",
+     "steps": "Set Continue to Ask. Open ../build/media/Test Show S01E03.mp4 directly (not from the library), play to about 3:00 and quit with ⌘Q. Relaunch and open the same file at 1920 pt or the largest window.",
+     "expect": "The toast reads 'You already watched till 00:03:0x' with Continue Watching, centred above the control bar, and the seek bar shows the resume span. Continue seeks to about 3:00 (not --:-- and not 0:00).",
+     "why": "Never run live. The toast layout (ViewThatFits short label) changed, and the external-media resume has no bridge test."
+    },
+    {
+     "id": "A-08-live+A-toast-480",
+     "area": "A-window",
+     "steps": "With the compact library open, resize to 640 pt and reopen S01E03, then to the 480 pt minimum. Use VoiceOver on the button.",
+     "expect": "At 640 pt the toast is centred in the visible video. At 480 pt the button reads 'Continue', whole and not 'Continue Watchi…', and the close button is there. VoiceOver reads 'Continue Watching'. The old 'truncation is a known issue' text is stale.",
+     "why": "D051 amended: the short label is VLC 4's 'Continue'."
+    },
+    {
+     "id": "A-narrow-library-panel+E-min-window-right-panel",
+     "area": "A-window",
+     "steps": "Resize the window to 480×270. Open the compact library, then the queue. Close the queue. Open the queue again, then press the sidebar toggle. Repeat at 800 pt.",
+     "expect": "At 480 pt the library closes when the queue opens (toggle inactive), comes back when the queue closes, and the toggle with the queue open closes the queue and shows the library. At 800 pt both show side by side (library ≥ 208 pt, queue 400 pt), with no overlap or overflow. The old 'expected FAIL' text is stale.",
+     "why": "New compactLibraryWidth clamp and library-yields-to-panel logic (D057)."
+    },
+    {
+     "id": "A-narrow-hideui-yield",
+     "area": "A-window",
+     "steps": "At 480 pt: open the compact library, open the queue (the library yields), press ⌘\\ twice, then close the queue.",
+     "expect": "The queue returns with the UI, and the library should come back once the queue closes. Report FAIL-known if it stays closed (missing P2).",
+     "why": "A known bug in the new reconcile code."
+    },
+    {
+     "id": "E-min-window",
+     "area": "E-library",
+     "steps": "At the 480 pt minimum with the compact library open and no right panel, check S01, Home and Music.",
+     "expect": "Nothing draws past the 216 pt column into the video. Crumbs fold to '...', and the count and Open Full Library give way.",
+     "why": "PlayerGeometry.compactLibraryWidth changed and new navigation-row colours were added."
+    },
+    {
+     "id": "C-compact-library-subs",
+     "area": "C-bridge / A-window",
+     "steps": "At a 640 pt window, play S01E01 with subtitles and open the compact library, in Dark and then in Light.",
+     "expect": "Record whether the whole cue is visible. A cut is FAIL-known under D055 (pending the owner); attach the screenshot.",
+     "why": "The D055 subtitles bullet was amended with new evidence and needs a live record for the owner."
+    }
+   ]
+  },
+  {
+   "group": "R4 subtitles and safe inset (~25 min)",
+   "checks": [
+    {
+     "id": "C-subs-fs-bar+A-fs-subtitles+C-safeinset-scale",
+     "area": "C-bridge",
+     "steps": "Play S01E01 with its .srt fullscreen on the Retina display. Wait for a cue, reveal the control bar, then let it hide. Read the Subtitle Offset field in the sidebar.",
+     "expect": "With the bar shown the whole cue sits just above it, neither half nor double the offset, and it drops back when the bar hides. The Subtitle Offset field does not change.",
+     "why": "New SubtitleSafeInsetFeed (measures videoHost and observes frame, backing scale and screen). The inset now goes to the primary vout only."
+    },
+    {
+     "id": "C-offset-under-bar",
+     "area": "C-bridge",
+     "steps": "In fullscreen with the bar shown, set Subtitle Offset to 40 and let the bar hide. Check vlcrc.",
+     "expect": "The field shows 40, not 40 plus the bar height. With the bar hidden, the cues sit 40 px above the picture's bottom, and vlcrc has sub-margin=40.",
+     "why": "The inset path was rewritten."
+    },
+    {
+     "id": "C-letterbox+C-safeinset-resize",
+     "area": "C-bridge",
+     "steps": "Play S01E01 fullscreen on the 1728×1117 display (letterboxed) and show the bar. Then, in a window, open Customize so the bar overlays the picture and resize taller until a letterbox band below the picture is taller than the bar.",
+     "expect": "Cues rise only by the part of the bar that overlaps the picture. Once the band is taller than the bar, they return to their normal position and do not rise further.",
+     "why": "The letterbox subtraction moved into the feed, and resize now re-sends the inset."
+    },
+    {
+     "id": "C-display-change",
+     "area": "C-bridge",
+     "steps": "Only if a 1x external display is attached: move the fullscreen window to it and reveal the bar.",
+     "expect": "The cue clears the bar by the same visual amount. NOT-RUN if there is no second display.",
+     "why": "didChangeBackingProperties and didChangeScreen observers are new."
+    },
+    {
+     "id": "C-02-live+G-add-subtitles-mapping+F-addsubs-save",
+     "area": "C-bridge / G-panels / F-settings",
+     "steps": "Run the C-02-live and G-add-subtitles-mapping steps from live-groups.json (the sidecar copy folder). Then, while a file plays, open Add Subtitles ▸ To This File, choose an .srt and click Save twice quickly.",
+     "expect": "Exactly one subtitle track. The dialog is centred with the dashed connector. After Save the files appear under External Tracks and the mapping persists for the other episode (VIDEO_BREAKDOWN §06 MUST). The double Save adds the track once, shows 'Saving…' briefly and never stalls the window.",
+     "why": "SubtitleImportDraft.save is now async (PER-02). §06 has never been accepted live."
+    }
+   ]
+  },
+  {
+   "group": "R5 control bar, seek and OSD (~25 min)",
+   "checks": [
+    {
+     "id": "B-osd-seek+LC-arrow-osd+C-jump-osd",
+     "area": "B-controls / C-bridge",
+     "steps": "Play S01E03 (10 min). Press → three times quickly, then ← once. Press ⌥⌘→ twice quickly. Press → and immediately click the seek bar elsewhere. Pause and repeat the bursts.",
+     "expect": "Each OSD shows '<target> / 00:10:00', equal to the seek bar and elapsed label after its jump, with 'Pressed →' on the second line. A seek-bar click right after an arrow never replaces the arrow's text, and the click shows no OSD.",
+     "why": "Hotkey jumps are captured synchronously, and plain arrows go through a new FIFO of input-thread reports."
+    },
+    {
+     "id": "B-osd+LC-osd-edge",
+     "area": "B-controls",
+     "steps": "Press C over a bright white frame and over a mid-grey frame. Open the queue and press C, then open the compact library and press C.",
+     "expect": "White text with a thin crisp black outline and one soft 50 % shadow down-right, with no solid halo, readable on white. It sits at the top right of the picture, left of an open panel.",
+     "why": "The OSD shadow is now one compositingGroup shadow."
+    },
+    {
+     "id": "B-icon-hover+LC-play-hover+LC-press",
+     "area": "B-controls",
+     "steps": "Dark, then Light. Hover Play while paused, then Pause while playing. Hover each bar icon. Press and hold each bar button, the speed/zoom text menus and the compact '⋯' for 1 s.",
+     "expect": "Play stays orange with a barely visible iconHover tile (never #AB6314), and Pause shows the same tile. Bar icons show no system press dimming, focus ring or flicker. The text menus and '⋯' still dim on press (known P2): record it.",
+     "why": "New MXRPlayPauseTile and MXRBarButtonStyle; PlayerMenus still uses .plain."
+    },
+    {
+     "id": "LC-disabled+B-live",
+     "area": "B-controls",
+     "steps": "Play a single item alone in the queue. Then serve S01E03 as a live HTTP stream (the B-live steps in live-groups.json) and open it.",
+     "expect": "Prev and next are drawn at about 30 %. On the live stream, the duration reads '--:--:--', the seek bar is at about 30 % and does not react, and Space does nothing.",
+     "why": "New iconButtonDisabledOpacity token (0.3)."
+    },
+    {
+     "id": "C6+B-seek-preview+B-eos-play",
+     "area": "B-controls",
+     "steps": "Run the C6, B-seek-preview and B-eos-play steps from live-groups.json.",
+     "expect": "As in live-groups.json (continuous scrubbing, preview card inset 10 pt, end-of-stream Play then Space restarts).",
+     "why": "PlayerControls.swift changed heavily (button style, play tile). Never accepted live."
+    }
+   ]
+  },
+  {
+   "group": "R6 volume, music and customize (~30 min)",
+   "checks": [
+    {
+     "id": "B-music-waveform+LC-music-bar",
+     "area": "B-controls",
+     "steps": "Extract audio from S01E03 (the B-music-waveform ffmpeg step) with dark cover art. Play it, sample the control-bar background away from the controls with Digital Color Meter, then toggle Show Waveform on Seekbar.",
+     "expect": "The music view shows −15/+15 and no gear (D056). The bar reads #171717; if it reads #191919, the material colour adds to the tint and D056 must be fixed, not only recorded. The waveform shows played bars in Accent/DIm with a clean 4 pt head.",
+     "why": "D056 music tint and no-gear decisions; cone gradient stops changed."
+    },
+    {
+     "id": "C7+B-cone-scroll",
+     "area": "B-controls",
+     "steps": "Run the C7 and B-cone-scroll steps from live-groups.json.",
+     "expect": "As listed there: one volume indicator, the same direction everywhere, and no seeking from the cone.",
+     "why": "PlayerControls (VolumeConeGradient, bar button style) changed."
+    },
+    {
+     "id": "H-customize-video-visible+H-customize-volume+H-customize-tiles",
+     "area": "H-design",
+     "steps": "Dark theme: pause S01E01 and open View ▸ Customize Player. Sample the video outside the dialog and the dialog body. Measure the volume tile's dashed box and look at the play tile.",
+     "expect": "The video is unchanged, and the body shows the blurred video (about #181818, not #0E0E0E). The volume dashed box is 130×36 with about 5 pt each side of the speaker and cone. The play tile is a 48 pt fill 3 pt inside its 54 pt box, with an empty band above the row.",
+     "why": "LayoutDrag volume outset and the metrics.json outline changed."
+    },
+    {
+     "id": "A-S67-two-row+H-move-to-new-row",
+     "area": "A-window / H-design",
+     "steps": "Customize: right-click the seek tile ▸ Move to New Row. Then build the bottom row: ⋯ sidebar | folder title ♥ spacer prev play next spacer volume tracks subs gear queue fullscreen. Save, and measure at 1920 pt or the largest width.",
+     "expect": "The seek row is above the transport, with no row appended below. The play centre is at the window centre ±1 pt, the folder follows the divider with no gap, there is no divider before the queue, and volume/queue/fullscreen spacing matches 19m27.6.",
+     "why": "New rowWidths centring, header spacing in rows and twoRowExample change (D057)."
+    },
+    {
+     "id": "H-onboarding+H-03-onboarding+H-accent",
+     "area": "H-design",
+     "steps": "Launch with an isolated HOME (../build/evidence/final5/home). Step 2: inspect the preview, switch to Light and pick a non-orange accent. Step 3: read every keycap. Finish, then open Settings › General in Light and compare the accent swatch row.",
+     "expect": "The preview shows red/yellow/green lights, the cone, and fullscreen only. The Light selected swatch matches Next's colour. Step 3 shows Space; ⌥⌘← / ⌥⌘→; ⌘← / ⌘→; ⇧E / E; S; L; ⌘ F; ⌘↑ / ⌘↓; Q; ⌘ L; ⌥ ⌘ S; ⇧ ⌘ R, with no 'SHIFT', no empty caps and '/' between pairs. The folder is ~/Movies and onboarding is marked complete. Record whether the Settings swatches differ from onboarding (missing P2).",
+     "why": "MXROnboardingView, MXROnboardingPlayerPreview, MacWindowControls and D049 swatches changed."
+    }
+   ]
+  },
+  {
+   "group": "R7 side panels (~25 min)",
+   "checks": [
+    {
+     "id": "G-live-1/GV-live-1 tab underline",
+     "area": "G-panels",
+     "steps": "Open the settings sidebar. Click Video, Audio, Playback and Subtitles in turn.",
+     "expect": "The selected Video/Audio underline is 70 pt wide; unselected narrow tabs keep 61 pt; Playback/Subtitles underlines span the cell minus 8 pt. Nothing shifts sideways.",
+     "why": "selectedNarrowTabUnderlineInset is new."
+    },
+    {
+     "id": "G-live-2/GV-live-2 playback hairline",
+     "area": "G-panels",
+     "steps": "On the Playback tab, scroll the content a little, then switch to Video.",
+     "expect": "Playback shows a 1 px #222 line under the tab strip that stays put while scrolling; the other tabs have none.",
+     "why": "New hairline (5187:24342)."
+    },
+    {
+     "id": "G-S18-S19-cards+GV-live-3",
+     "area": "G-panels",
+     "steps": "Video > Essential > Expand Settings: move Hue and set it back to 0, then drag Gamma and Film Grain end to end. Audio > Spatializer and Compressor/Widener: drag Size and read the values. Subtitles > Appearance: drag Background Opacity and Font Size.",
+     "expect": "There are no ticks inside the rounded track ends. Thumbs snap to stops centred on their tick and stop 2 pt inside the ends. Hue applies live and 0 restores it. Compressor/Widener values are text with no '%'. The old 'note end ticks' expectation is stale.",
+     "why": "PanelSlider geometry was rewritten (travel inset, inner ticks only, SCREEN blend)."
+    },
+    {
+     "id": "G-S20-sliders+GV-live-5",
+     "area": "G-panels",
+     "steps": "Subtitles tab: type −4 into Subtitle Track Delay, then drag through 0 to +4. Repeat on the Audio tab's delay. Set Size Values to Relative and step Font Size.",
+     "expect": "At −4 s the fill runs from the thumb to the 0 s position's far edge; at +4 from 0 s to the thumb's right edge; at 0 the thumb is centred over '0 s'. Labels read −10 s / 0 s / +10 s on both tabs. Font Size shows Auto at the middle stop.",
+     "why": "New delay fill and thumb model."
+    },
+    {
+     "id": "GV-live-6+H-dropdown-below(panel)+G-S20-presets+H-dropdown-overfield",
+     "area": "G-panels / H-design",
+     "steps": "Playback tab: open Sleep Timer and Audio Visualizer and choose values, then press Esc on an open list. Open a standard sidebar dropdown near the bottom of the screen. Open the subtitle preset picker.",
+     "expect": "Standard lists open about 6 pt below the field (above it near the screen bottom), with the field and its chevron visible, the current value checked, and Esc or a click outside closing them. The preset picker still opens over its field with the current row on the field row (07m58.9) and no dark halo.",
+     "why": "MXRDropdownListPlacement is new; DialogMenu uses overField."
+    },
+    {
+     "id": "C2+C4",
+     "area": "G-panels",
+     "steps": "Run C2 and C4 from live-groups.json.",
+     "expect": "As listed there.",
+     "why": "PanelControls and PlayerMenus changed. Never accepted live (previous groups 'agent failed')."
+    }
+   ]
+  },
+  {
+   "group": "R8 library (~25 min; restore ml.db afterwards)",
+   "checks": [
+    {
+     "id": "E-audio-tracks-folder",
+     "area": "E-library",
+     "steps": "Library > Videos > Shows > The Wand > S01: open the header ⋯ › Edit Audio Tracks and pick a copy of a test audio file renamed The_Wand_S01E02_English.m4a. Then play S01E02 from the library. Repeat with a file that names no episode.",
+     "expect": "The row is enabled. The OSD reads 'Audio track added to The_Wand_S01E02.mp4.' On E02 the Audio popover lists the external track as selected and it is heard. A non-matching file shows 'No Audio Tracks Were Added'.",
+     "why": "COMP-08 is newly implemented end to end (bridge plus ML soundtrack)."
+    },
+    {
+     "id": "E-audio-tracks-playing+E-audio-tracks-playlist+E-audio-tracks-song",
+     "area": "E-library",
+     "steps": "While an episode plays, right-click its row › Add Audio Tracks and pick any .m4a; stop and play it again. Right-click a songs-only playlist, then a video playlist › Add Audio Tracks. Music > Songs: right-click a song › Add Audio Tracks.",
+     "expect": "The playing episode gets the track selected at once and again on replay. The songs playlist says 'There are no videos in this playlist.' and the video playlist opens Add Audio File. For a song, record the behaviour: D039 says songs take none, but the row is enabled (missing P2).",
+     "why": "New LibraryPopup rows and MXRLibraryAddTrackSlaves."
+    },
+    {
+     "id": "E-nav-rows",
+     "area": "E-library",
+     "steps": "In the compact library, Dark and Light: open the Music root, Videos root, Shows, The Wand, Network and Playlists.",
+     "expect": "Navigation rows (Songs/Albums/Artists/Genres, Shows/Films/Anime, The Wand, S01/S02, Podcasts/Radio) rest at FG/A3, as dim as 'Add'. Playlist and unwatched episode rows are FG/A1. The rail videos icon is the accent only at the Videos root.",
+     "why": "restingColor and navIconState changed."
+    },
+    {
+     "id": "E-mini-hover+E-mini-player",
+     "area": "E-library",
+     "steps": "Open the full library while an episode plays and hover the mini player. Expand its queue, drag it to each corner, then pop it out.",
+     "expect": "Playback continues. ⏮ ▶ ⏭ sit about 1.5 pt above the video centre. The queue expands upward, the player snaps to the corners, and pop-out returns the video to the player.",
+     "why": "The mini transport y now comes from LibraryGeometry.miniVideoSize."
+    },
+    {
+     "id": "E-arrow-keys",
+     "area": "E-library",
+     "steps": "In the full library grid of S01 with at least 3 columns, click the second card and press ↓ ↑ → ←, then Shift+↓.",
+     "expect": "↓ selects the card directly below, ↑ returns, ←/→ move one card, Shift extends the selection, and the selection scrolls into view.",
+     "why": "onKeyPress is not tested offscreen (critic P2). Never run live."
+    },
+    {
+     "id": "E-playlist-ops",
+     "area": "E-library",
+     "steps": "Run E-playlist-ops from live-groups.json.",
+     "expect": "As listed there.",
+     "why": "LibraryPopup.swift changed (audio-track rows inserted into the same menus)."
+    }
+   ]
+  },
+  {
+   "group": "R9 settings and dialogs (~30 min)",
+   "checks": [
+    {
+     "id": "S25-scrim-blur+F-S25-noscrim",
+     "area": "F-settings",
+     "steps": "Dark, largest window: play a bright video and note the top bar, play tile and picture brightness. Open Add Subtitles, compare, click outside, then press Esc. Repeat with Settings.",
+     "expect": "There is no dimming anywhere outside the dialog (as at 06m02.47). The dialog body shows the video only as a soft blur. A click outside does nothing, and Esc closes the dialog. The old 'scrim darkens the video moderately' expectation is stale (D035 amended).",
+     "why": "MXRDialogHost now draws a clear layer that catches clicks."
+    },
+    {
+     "id": "F-08-live+F-08-replace",
+     "area": "F-settings",
+     "steps": "Run F-08-live and F-08-replace from live-groups.json. Also try clicking the player controls behind an open dialog.",
+     "expect": "Focus never leaves the dialog. Clicks behind the dialog do nothing, now that the layer is invisible. After closing, the search field takes focus.",
+     "why": "The scrim became transparent, so the click and key isolation must be proven again."
+    },
+    {
+     "id": "compact-modal+F-compact",
+     "area": "F-settings / J-media-io",
+     "steps": "Resize the window to 960×540 and open Settings, Convert, Keyboard Shortcuts, Open Disc and Open Capture Device in turn.",
+     "expect": "Each dialog starts at or below y 40, clear of the traffic lights, ends 40 pt above the bottom, stays centred, and its body scrolls. Disc is 713×432 and Capture 713×343 (the old 434/345 is stale), with crisp edges.",
+     "why": "MXRDialogFrame.available and the whole-point sheet heights changed."
+    },
+    {
+     "id": "F-settings-pages+F-toggles+F-speed-slider+F-shortcuts-save",
+     "area": "F-settings",
+     "steps": "At about 1280×800, open all 14 Settings pages in Dark and Light. Toggle Developer mode. Check Playback ▸ Default playback speed at 1×, Network caching with a preset selected, and Controls ▸ Edit Keyboard Shortcuts without changes.",
+     "expect": "Toggles show a 3 pt inset and a 3 pt gap. '1' sits under the thumb and each label under its tick. Disabled caching fields read as empty (value in FG/A4). Shortcuts Save is a dimmed warm grey (#1F1E1D) and turns accent after an edit.",
+     "why": "Toggle, slider-label, caching-field and Luminosity-blend changes."
+    },
+    {
+     "id": "H-dropdown-below+F-sub-filename",
+     "area": "H-design / F-settings",
+     "steps": "Open Settings ▸ General ▸ Log details and Settings ▸ Subtitles autodetect fuzziness. Move the window so a field sits near the screen bottom and reopen it. Open the Add Subtitles header 'To This File' pop-up.",
+     "expect": "Settings lists open about 6 pt below the field, as wide as the field, or above it near the screen bottom, with the chevron kept. Fuzziness lists Off / Any title / Contains title / Title with extra characters / Exact title match with ✓. The Add Subtitles header pop-up opens over its field (06m08.5). Arrow keys, Return and Esc work.",
+     "why": "New D034 'drop below' placement."
+    },
+    {
+     "id": "media-info-divider+F-mediainfo",
+     "area": "F-settings",
+     "steps": "Open Properties & Metadata on a file with 6 tracks in a large window, then in a small one.",
+     "expect": "Large window: the dialog fits its content with every track row visible and no scroll edge. Small window: the body scrolls with a hairline above the Close footer.",
+     "why": "DialogShell(fitsContent:) for Media Info."
+    },
+    {
+     "id": "confirmations",
+     "area": "F-settings",
+     "steps": "Run confirmations from live-groups.json, plus Convert to an existing file.",
+     "expect": "Native sheets appear in the current appearance; Esc cancels without closing the dialog underneath.",
+     "why": "MXRDialogHost and MXRKeyboardShortcutsView changed."
+    }
+   ]
+  },
+  {
+   "group": "R10 menus and keys (~25 min)",
+   "checks": [
+    {
+     "id": "D-S11-menubar+S11-menubar-live",
+     "area": "D-menus",
+     "steps": "With VLC Redesign frontmost, open every menu-bar menu. Open New Playlist and press the media Play/Pause key.",
+     "expect": "The menus are App/File/Edit/View/Playback/Audio/Video/Window/Help. Playback shows Stop ⌘., Previous ⌘←, Next ⌘→ and Record ⇧⌘R. View has Enter Full Screen ⌘F. Video › Subtitles shows Subtitle Earlier H and Later J. With the dialog open, key equivalents do nothing but the media key toggles playback.",
+     "why": "New H/J subtitle-delay key equivalents and the mock-to-engine key change."
+    },
+    {
+     "id": "S09-keys-live+C-mac-keys-menu+S10-subtitle-keys-live",
+     "area": "D-menus / C-bridge",
+     "steps": "Right-click the video while S01E01 plays and hover Subtitle. Close the menu, press H then J. Focus the library search field and type 'hj'.",
+     "expect": "The shortcut column reads Space, ⌘., ⌘← (disabled with no previous item), ⌘→, ⇧⌘R, ⌘\\, ⌘Q, and Subtitle Earlier/Later show H/J. H and J move the delay by −50/+50 ms with an OSD. Typing in the search field inserts 'hj' without changing the delay.",
+     "why": "D034 right-click-keys amendment; MXRKeyRouting for bare-letter equivalents."
+    },
+    {
+     "id": "D-S08-open-recent+S08-live+S68-live",
+     "area": "D-menus",
+     "steps": "While S01E01 plays, click ⋯ and hover Open Recent, then Profile, over a light frame. Press Esc, then reopen and click outside.",
+     "expect": "Each submenu's first row is level with its parent row, not one row higher. Open Recent shows history, a divider, then Clear Menu. There is no shadow seam between the cards. Esc or a click outside closes the chain without pausing.",
+     "why": "MXRPopupStyle.rowTop is now the single row-geometry source used by the presenter."
+    },
+    {
+     "id": "S10-hover-live+D-disabled-submenus",
+     "area": "D-menus",
+     "steps": "Right-click › Playback, then move diagonally into Speed across the Video row. Then play the B-live stream, open the Audio and Video menus, and open Settings and try the right-click menu.",
+     "expect": "Playback stays open during the diagonal move and Speed opens with 1× checked. On the live stream Speed is grey. Behind Settings every row is grey and key equivalents do nothing.",
+     "why": "PlayerMenus.swift and MXRPopupPresenter changed."
+    }
+   ]
+  },
+  {
+   "group": "R11 media I/O (~25 min)",
+   "checks": [
+    {
+     "id": "J-convert+J-dropdown-live",
+     "area": "J-media-io",
+     "steps": "Open File ▸ Convert. Click Format and choose Audio — MP3, then Video — MP4 (H.264); Save As verify.mp4 and Convert. Repeat the dropdown in Light.",
+     "expect": "The menu opens anchored to the field with the current choice checked. Progress reaches 'Saved \"verify.mp4\"' with Show in Finder. ffprobe shows h264 + aac at about 60 s, and no .vlc-partial file remains.",
+     "why": "Convert/Stream logic moved into the OutputForm controller; new dialog dropdown."
+    },
+    {
+     "id": "J-overwrite+J-overwrite-live",
+     "area": "J-media-io",
+     "steps": "Click Convert again at once and choose Replace. When it finishes, switch the format to MP3 and back to MP4, Convert and choose Replace. Also try Cancel once and compare md5.",
+     "expect": "Each repeat asks exactly once before replacing. After Replace the job starts without a second question and never loops. Cancel leaves the md5 unchanged.",
+     "why": "settle-once and rename-on-format-change logic is new, and the once-guard is untested."
+    },
+    {
+     "id": "J-stop-hint+J-stream",
+     "area": "J-media-io",
+     "steps": "Run J-stop-hint and J-stream from live-groups.json.",
+     "expect": "As listed there. The Format field is disabled while streaming.",
+     "why": "OpenMediaDialogs.swift was rewritten, and SET-04's receiver path is not accepted."
+    },
+    {
+     "id": "J-sheet-edges+J-clipboard+J-disc-dropdown",
+     "area": "J-media-io",
+     "steps": "On a 1x display open Open Capture Device, Open Disc and Stream. Use Open from Clipboard with a URL, then with plain text. Mount a VIDEO_TS image and open Open Disc.",
+     "expect": "The sheets are 343, 432 and 680 pt tall with crisp edges. The URL plays, and plain text gives a disabled command or a clear notice. The disc dropdown is enabled, lists the disc with a check, and Open plays it.",
+     "why": "Whole-point heights and the new disc/camera dropdowns."
+    }
+   ]
+  }
+ ],
+ "summary": "Completeness critic, final-polish resume wave. Read-only: I wrote no files.\n\n**Where things stand**\n- All 10 areas passed verification.\n- Integration is green: Swift tests 561/561 twice, every native suite passes, and the engine diff is empty.\n- Snapshot check: 26 PASS, 70 REVIEW, 23 FAIL, with no entry worse than before.\n- The install at 05:41 matches the working tree; no file under Sources/ or module/ is newer than the installed plugin.\n- Nothing is committed: 105 paths sit on top of ddd9d23a9d. 15 of them are untracked, including the new sources VLCSubtitleSafeInsetFeed.swift and MacWindowControls.swift, Tests/NativeLibrarySoundtrackRuntime.m (which the library native suite runs) and tools/test-screens-doc.py (which Makefile.am now calls).\n\n**Previous critic items**\n- **Closed:**\n  - Light dialog buttons (P1) and the narrow library clamp/yield (P1).\n  - The Δ2–3 colour items: fixed or recorded in D053, D056 and the S64 Luminosity blend.\n  - The settings toggles.\n  - Panel slider end ticks, the delay fill, and the compressor/widener deviations.\n  - The S08 submenu offset and the bridge edge cases.\n  - The 0.4 literal, the stale 'plugin rescan' comment, the native-tests cache-gen gate and the gen_screens generator.\n  - The replay-gain mock value and the S27 tile.\n- **Still open:**\n  - The commit (P0).\n  - Live acceptance (P0). Groups 0–2 of final-live2 ran against the 03:24 bundle before this wave's install. Groups 3–11 have no results in any wave. Several expectations in live-groups.json are now stale: the scrim, the 'expected FAIL' notes, the truncated toast label, the Disc/Capture sizes, the Light divider and the end ticks.\n  - The owner package. This wave added D056 and D057, amended D022, D026, D032, D034, D035, D039, D042, D044, D049, D050, D051, D053, D054 and D055, and amended the owner-accepted D045. HANDOFF.md omits several of these.\n  - The audit debt.\n\n**The four agent decisions the task named**\n- D051's truncated label, D039's disabled audio-track rows and D053's Light bar tint are now made to match.\n- D055's subtitles under the compact library stays as a real constraint with Figma evidence: VLC has no horizontal subtitle margin. It is still a visible usability defect and needs the owner's explicit call.\n\n**New issues found**\n- **S72 FAILs:** S72.Window/light and S72.App/light are the only FAILs with no recorded reason. They need the D051 playing-row figmaDeviation, and the S12 continue-minimum gallery note is stale.\n- **Tests:** four claimed regression tests do not fail without their fix.\n- **D056 music-bar tint** probably excuses a difference that can be fixed: the extra #19 likely comes from the material's own colour, not missing blur.\n- **Product defects:**\n  - Hide UI loses a library that yielded to a panel.\n  - The Continue Watching button has no hover state.\n  - The bar's text menus still dim when pressed.\n  - D039 says songs take no audio track, but the file menu offers it.\n  - The Settings accent swatches in Light differ from onboarding.\n- **Small unrecorded differences:** the S54 labels, the Equalizer Preamp, the S46 mini-player hover offset, and the Light gear's Figma colour.\n- **Snapshot noise:** 11 of the 23 FAILs are the onboarding reference-crop alpha artefact, which should be fixed in the reference, not left as FAIL.\n- **Stale docs:**\n  - SCREENS.md's parity column predates this wave's fixes.\n  - The audit table was last updated 2026-10-16. Still neither fixed nor decided: CODE-02/06/08/09, CTL-01, A11Y-02/06, PLAYER-13, SET-04, LIBSET-09 and PERF-01.\n  - D015 is still headed 'open'.\n- **Hygiene:**\n  - 2 new concurrency warnings in the test target.\n  - Literal design values remain in SettingsControls.swift:407, MXRCustomizationView.swift:176 and LibrarySupport.swift:79-82.\n  - GalleryPaths.locate loops forever when no repo marker is found.\n\n**Live re-check plan**\n- 12 deduplicated groups of 20–30 minutes each (R0–R11). Every check names its live-groups or area ID and why it must run again.\n- R0, the install gate, comes first: the L0-bundle evidence describes the old bundle.\n- Groups 1 and 2 must run again in full on the 05:41 install.\n- The new checks cover the safe-inset feed, the jump OSD FIFO, the Light bar base, the narrow library yield, the S67 two-row layout, audio tracks, dropdown placement, the no-scrim modal host, the OutputForm controller and the H/J menu keys.\n- Checks in live-groups.json whose code did not change are not repeated here. They still need their first run on the 05:41 install."
+}

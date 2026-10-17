@@ -1,0 +1,215 @@
+{
+ "area": "E-library",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "I fixed all of E-library's work list at the root cause, except two items: the E-07 onKeyPress drive, which can't be done offscreen and is now a live check, and the 216 pt label width, which needs an owner decision.\n\n- **Navigation rows.** Folder, category, link, album, artist, genre, show and multi-URL stream rows now rest at FG/A3 in both themes. Playlist rows and playable rows stay at FG/A1, and watched media dim to FG/A3. This matches Figma 848:1996 for Music, Songs, My Songs, the Videos root, Shows, The Wand, S01/S02 and Podcasts/Radio.\n- **New S28 gallery entries.** I added S28.Library/videos-root (848:1997), S28.Library/shows (4778:25847) and S28.Library/the-wand (4778:25957). All three are REVIEW with about 0.007 % structural difference (the '+' glyph's antialiasing). While checking them I found a second real difference: at the Videos root Figma draws the rail icon in the accent, like Music's root. That is fixed.\n- **Breadcrumb and divider in Light.** The '▶' separators, the '...' slot and the header divider now keep their Dark styles in Light, as Player - Light 2425:13624 draws them (#404040, #8F8F8F, #222222). The D032 amendment is revised: it keeps only the rows and the current crumb in Light styles, because the Dark row colours would be about 1.7:1 on the light panel.\n- **Edit/Add Audio Tracks, end to end.** S30, S31 and S29 now match Figma (S30 and S31 PASS):\n  - The rows are enabled and open Add Audio File.\n  - For a folder or playlist, chosen audio files are paired with its videos by episode code or base name (the Add Subtitles rules). A single file takes every chosen file.\n  - The tracks are stored in the media library as VLC_ML_FILE_TYPE_SOUNDTRACK and load at every later playback as SLAVE_TYPE_GENERIC slaves. The playing media also gets the track at once.\n  - A headless engine run found that VLC does not switch to an equal-priority generic slave by itself. The bridge now selects the attached soundtrack when the media starts, as it already does for the first mapped subtitle.\n  - The new native test passes against the real engine: library, build-runtime and headless-regressions are all PASS. D039 is amended to say this is resolved.\n- **Mini player transport.** Its y now comes from the video's own geometry (970:3056, full width at 16:9), not the home card's ratio. S46 collapsed and queue are PASS, hover is REVIEW with the same 1 pt row offset as before.\n- **Tests.** The new tests are LibraryNavigationStyleTests, LibraryMinimumColumnTests, LibraryAudioTracksTests and the native NativeLibrarySoundtrackRuntime. A mutation run confirms the row-colour test fails without the fix. All library suites pass.",
+   "fixed": [
+    "(d)/(a) S33/S28 navigation-row colour: LibraryEntryView.restingColor(of:card:) puts every navigation row (folder, category, link, album, artist, genre, show, multi-URL stream) at FG/A3. Media rows (FG/A1 unwatched, FG/A3 watched), playlist rows and grid cards stay FG/A1. Measured peak 107 (was 150) on S33 music, songs, my-songs, S28 videos-root/shows/the-wand and S35 network. Light navigation rows use Light FG/A3. Evidence: ../build/evidence/final5/polish/E-library/before/ and after/S33.Library_music, S33.Library_songs, S35.Library_network, light-pair.png; test LibraryNavigationStyleTests.testNavigationRowsRestAtFGA3InDark/InLight (fails with 150 vs 107 without the fix).",
+    "(d)/(a) S28 missing entries: added S28.Library/videos-root (848:1997), S28.Library/shows (4778:25847) and S28.Library/the-wand (4778:25957). The mock exposes MockMediaID.showsFolder and theWandFolder. Figma's repeated '3 items' on videos2/videos3 is a D044 deviation. All three are REVIEW with about 0.007 % structural difference (the '+' glyph's antialiasing). Evidence: after/S28.Library_videos-root, S28.Library_shows, S28.Library_the-wand (side-by-side.png, top.png).",
+    "Found while checking the new entries: at the Videos root Figma draws the rail videos icon in the accent (848:1997), like Music's root, and its folders in base (848:1995). navIconState now does the same. Test testVideosRootLightsItsRailIconLikeMusic.",
+    "(d)/(a)/(c) Breadcrumb '▶' separators, the '...' slot and the header divider (S72 parity items 2 and 4, verifier open item 1): libraryHeaderDarkStyle() draws them with Dark/FG/A4 #404040, Dark/FG/A2 #8F8F8F and Dark/Divider/Dim in Light, as 2425:13624 does. Dark is unchanged and already matched the dark frames. Evidence: before/S72/crop-head-render.png vs after/S72/crop-head-render.png and crop-head-ref.png; test testHeaderSeparatorsAndDividerKeepTheirDarkStylesInLight.",
+    "(d)/(a)/(b) S30 'Edit Audio Tracks', S31 and S29 'Add Audio Tracks', implemented end to end. LibraryAudioTracks matching, AppModel.presentAddAudioTracks and completeAddAudioFile live in LibraryModel.swift. LibraryBackend gains attachAudioTrack (VLC backend and mock). The bridge request attachAudioTrack stores the file as VLC_ML_FILE_TYPE_SOUNDTRACK. MXRLibraryExternalTracks and MXRLibraryAddTrackSlaves make soundtracks SLAVE_TYPE_GENERIC slaves of queued items, and the current-media path adds them as AUDIO_ES. MXRLibrarySelectSoundtrack selects the attached soundtrack, because VLC does not switch to an equal-priority generic slave by itself (es_out.c EsOutSelectMatchPrioritized). S30 and S31 are now PASS (were minor-diff), S29 REVIEW (known Finder wording). Engine test against the real libvlc, media library and vlc_player: ../build/evidence/final5/polish/E-library/native/library-suite.log (2 audio tracks; VLC alone keeps 44100 Hz; after selection the 22050 Hz soundtrack plays; the subtitle is an SPU track). Swift: LibraryAudioTracksTests (5) and LibraryNavigationStyleTests menu tests.",
+    "(d)/(c) Mini player transport y now comes from LibraryGeometry.miniVideoSize (970:3056, the video block's width at 16:9), not the homeCard ratio. naturalHeight uses the same value. S46 collapsed and queue are PASS, hover REVIEW (unchanged 1 pt row offset). Evidence: after/S46.MiniPlayer_*.",
+    "(c) Verifier open item 'My Songs row at fgA1': fixed by the navigation-row change (S33.Library/my-songs REVIEW, antialiasing only).",
+    "(c)/A-window note 'compact library 248 pt inside the 216 pt column': not reproduced. The new LibraryMinimumColumnTests uses the real PlayerGeometry.compactLibraryWidth for the 480 pt window and checks that every accessibility element of S01, Home, Music, Videos, Network, Playlists and Recent stays inside the column. It passes. The with-panel case (critic P1) is already handled by A-window: the library yields when it and the panel can't both fit."
+   ],
+   "notFixed": [
+    {
+     "id": "E-07 arrow keys tested through the model only (critic P2, verifier open item 4)",
+     "why": "The SwiftUI onKeyPress handler needs keyboard focus in a key window, which offscreen hosting can't provide. Under the live-wave rule I can't put a window on screen. Kept as live check E-arrow-keys."
+    },
+    {
+     "id": "S28.Library/minimum: rows give only about 40 pt to the label at 216 pt (verifier open item 3)",
+     "why": "D044 (Narrow compact panel) documents this and nothing clips (LibraryMinimumColumnTests). A bigger compact share at 480 pt is an owner/A-window decision (PlayerGeometry.compactLibraryWidth, MXRPlayerMetrics.compactLibraryShare), not E-library code."
+    },
+    {
+     "id": "Critic P2: S43.App/home and S44.App/grid top bar #191919 vs #1B1B1B",
+     "why": "PlayerBars.swift draws that bar (BG/A3 Transparent material while the full library shows), not MXRLibraryView. It belongs to A-window/H-design. The S43.Library and S44.Library entries are REVIEW."
+    },
+    {
+     "id": "S72.Window/light still FAIL",
+     "why": "The bars are now fine (another area's fix). The largest remaining region is the playing E04 row's thumbnail (#1E1A15 vs #000000), which D051 covers. S72.Window/light is A-window's gallery entry, so the D051 figmaDeviation for that row should be added there. Smaller regions are mock artwork resampling on E11 and the D049 Light accent."
+    },
+    {
+     "id": "Optional token note from J-media-io (LibrarySupport progress height)",
+     "why": "Not changed. Theme.Metric.outputProgressHeight is an output-dialog token; reusing it for library cards would couple unrelated components."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibraryEntryView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibraryNavigation.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibrarySupport.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Library/MXRLibraryView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibraryPopup.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Library/MXRMiniPlayerView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRCore/Models/LibraryModel.swift",
+    "modules/gui/macosx_redesign/Sources/MXRCore/Backends/QueueAndLibraryBackends.swift",
+    "modules/gui/macosx_redesign/Sources/MXRVLCBackend/VLCLibraryBackend.swift",
+    "modules/gui/macosx_redesign/Sources/MXRMockBackend/MockLibrary.swift",
+    "modules/gui/macosx_redesign/Sources/MXRMockBackend/MockBackend.swift",
+    "modules/gui/macosx_redesign/Sources/MXRMockBackend/MockData.swift",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/LibraryGallery.swift",
+    "modules/gui/macosx_redesign/module/bridge/MXRLibraryServices.h",
+    "modules/gui/macosx_redesign/module/bridge/MXRLibraryServices.m",
+    "modules/gui/macosx_redesign/Tests/NativeLibrarySoundtrackRuntime.m",
+    "modules/gui/macosx_redesign/Tests/MXRCoreTests/LibraryAudioTracksTests.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/LibraryNavigationStyleTests.swift",
+    "modules/gui/macosx_redesign/module/bridge/MXRServicesBridge.m",
+    "modules/gui/macosx_redesign/Sources/MXRBridgeAPI/MXRBridgeKeys.m",
+    "modules/gui/macosx_redesign/Sources/MXRBridgeAPI/include/MXRBridgeKeys.h",
+    "modules/gui/macosx_redesign/Sources/MXRCore/App/AppModel.swift",
+    "modules/gui/macosx_redesign/tools/native-tests.py",
+    "redesign/docs/DECISIONS.md"
+   ],
+   "editsOutsideOwnership": [
+    "module/bridge/MXRServicesBridge.m (C-bridge): LibrarySubtitleURLs and AddSubtitleSlaves now delegate to MXRLibraryExternalTracks and MXRLibraryAddTrackSlaves, so they cover subtitles and soundtracks. _librarySubtitles holds NSDictionary tracks. attachLibrarySubtitles adds AUDIO_ES or SPU_ES per track, selecting the first of each, then calls MXRLibrarySelectSoundtrack for soundtracks that are already slaves.",
+    "Sources/MXRBridgeAPI/MXRBridgeKeys.{h,m} (C-bridge): added MXRBridgeCommandAttachAudioTrack and MXRBridgeRequestAttachAudioTrack = @\"attachAudioTrack\".",
+    "Sources/MXRCore/App/AppModel.swift complete(_:urls:): two lines take and clear library.audioTrackTargets for .addAudioFile, also when the panel is cancelled. The case .addAudioFile now calls completeAddAudioFile(urls, targets:); with no targets it behaves as before (live track for the playing media).",
+    "tools/native-tests.py (I-build): the 'library' suite also compiles and runs Tests/NativeLibrarySoundtrackRuntime.m with MXRLibraryServices.m.",
+    "redesign/docs/DECISIONS.md: D032 amendment revised, D039 'Library audio tracks' paragraph resolved, D044 amendment 'Counts and players follow the data' extended."
+   ],
+   "liveChecks": [
+    {
+     "id": "E-audio-tracks-folder",
+     "steps": "Library > Videos > Shows > The Wand > S01, open the header ⋯ and choose Edit Audio Tracks. Pick an audio file named like an episode (for example The_Wand_S01E02_English.m4a; the test media in ../build/media/ can be renamed copies). Then play S01E02 from the library.",
+     "expect": "The row is enabled and opens 'Add Audio File'. An OSD notice reads 'Audio track added to The_Wand_S01E02.mp4.' When E02 starts, the Audio tracks popover lists the external track selected and its audio is heard. A file naming no episode shows the 'No Audio Tracks Were Added' dialog."
+    },
+    {
+     "id": "E-audio-tracks-playing",
+     "steps": "While an episode plays, right-click its row > Add Audio Tracks and choose any .m4a.",
+     "expect": "The track is added to the running playback and selected at once. It is also selected the next time that episode plays."
+    },
+    {
+     "id": "E-audio-tracks-playlist",
+     "steps": "Library > Playlists, right-click a playlist of songs only > Add Audio Tracks; then the same on a playlist that holds videos.",
+     "expect": "The songs playlist shows 'There are no videos in this playlist.' and opens no panel. The video playlist opens Add Audio File."
+    },
+    {
+     "id": "E-light-header",
+     "steps": "Switch to Light, open the compact library on The Wand > S01.",
+     "expect": "The '▶' separators are dark gray (#404040), '...' is mid gray (#8F8F8F) and a dark hairline sits under the header, as in Player - Light. The rows and the current crumb stay readable Light colours."
+    },
+    {
+     "id": "E-nav-rows",
+     "steps": "Compact library: Music root, Videos root, Shows, The Wand, Network, Playlists, in Dark and Light.",
+     "expect": "Songs/Albums/Artists/Genres, Shows/Films/Anime, The Wand, S01/S02 and Podcasts/Radio rest dimmer (FG/A3), like 'Add'. Playlist rows and unwatched episode rows are brighter (FG/A1). At the Videos root the rail's videos icon is orange; inside a folder it is the plain filled icon."
+    },
+    {
+     "id": "E-arrow-keys",
+     "steps": "Full library grid of S01: click a card, then press ↓ ← → ↑.",
+     "expect": "↓ selects the card drawn directly below, ←/→ the neighbours, ↑ the card above, following the drawn columns."
+    },
+    {
+     "id": "E-min-window",
+     "steps": "Resize the window to the 480 pt minimum with the compact library open (no right panel), on S01, Home and Music.",
+     "expect": "Nothing in the library panel draws past its column into the video. Crumbs fold to '...', and the count and Open Full Library give way."
+    }
+   ],
+   "ownerDecisions": [
+    "D032 amendment (E-library) revised, accepted (agent, 2026-10-17): the Player - Light header divider, '▶' separators and '...' slot now match Figma's Dark styles in both themes. Kept: the rows and the current crumb stay in Light styles, because Figma's Dark FG/A1/A2 there is about 1.7:1 on the #C2C2C1 panel, below D032's 4.5:1.",
+    "D039 'Library audio tracks' (COMP-08) resolved, accepted (agent, 2026-10-17): the rows are enabled and the feature is implemented. Attached soundtracks are selected when the media starts, because VLC keeps the media's own audio for an equal-priority slave. Songs take no audio track.",
+    "D044 amendment 'Counts and players follow the data' extended, accepted (agent, 2026-10-17): videos2 and videos3 count their own 1 and 2 folders where Figma repeats '3 items'."
+   ],
+   "decisionsWritten": [
+    "D032 amendment revised (library header Dark styles matched in Light; rows and current crumb kept Light for contrast)",
+    "D039 'Library audio tracks' paragraph resolved (implemented end to end, explicit soundtrack selection)",
+    "D044 amendment: videos2/videos3 counts follow the data"
+   ],
+   "evidence": [
+    "../build/evidence/final5/polish/E-library/before/ (S72 header crops, S33/S28 before reports)",
+    "../build/evidence/final5/polish/E-library/after/S28.Library_videos-root|S28.Library_shows|S28.Library_the-wand/side-by-side.png",
+    "../build/evidence/final5/polish/E-library/after/S72/crop-head-render.png (vs before/S72/crop-head-ref.png)",
+    "../build/evidence/final5/polish/E-library/after/light-pair.png",
+    "../build/evidence/final5/polish/E-library/after/S30.LibraryMenu_folder, S31.LibraryMenu_playlist (PASS)",
+    "../build/evidence/final5/polish/E-library/native/library-suite.log (library-contract and library-soundtrack all passed), build-runtime.log, headless-regressions.log",
+    "Swift: LibraryNavigationStyleTests 6/6, LibraryMinimumColumnTests 1/1, LibraryAudioTracksTests 5/5, plus the existing library suites (GalleryRender, LibraryContextPlayback, LibraryInteraction, LibraryViewBehaviour, PopupMenu, LibraryAuditRegression, LibraryPagination, MockLibraryContract), all passed"
+   ],
+   "notesForOthers": "[\"Integrator: the bridge changes (MXRLibraryServices.m, MXRServicesBridge.m, MXRBridgeKeys) need the make/install build. native-tests.py --suite library now also runs Tests/NativeLibrarySoundtrackRuntime.m (needs ffmpeg).\", \"Integrator: new gallery entries S28.Library/videos-root, S28.Library/shows, S28.Library/the-wand. New test files: Tests/MXRUISnapshotTests/LibraryNavigationStyleTests.swift (two classes) and Tests/MXRCoreTests/LibraryAudioTracksTests.swift.\", \"A-window: S72.Window/light now FAILs mainly on the playing E04 row's thumbnail (D051). Please add a D051 figmaDeviation for that row (around 70,668–786 pt) to the S72 entry. Also, the compact-library overflow you reported (248 pt in 216 pt) does not reproduce: LibraryMinimumColumnTests checks every accessibility element at PlayerGeometry.compactLibraryWidth(480) and passes.\", \"A-window/H-design: the S43.App/S44.App top bar #191919 vs #1B1B1B comes from PlayerBars.swift (BG/A3 Transparent material in full-library mode), not the library view.\", \"C-bridge: LibraryBackend has a new attachAudioTrack(url:toMedia:) with a no-op default. Test doubles that wrap a backend (LibraryPaginationTests) inherit the no-op. AppModel.complete(.addAudioFile) now routes through completeAddAudioFile; with no library targets it behaves exactly as before.\"]"
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Library/LibraryPopup.swift file menu 'Add Audio Tracks' vs redesign/docs/DECISIONS.md D039 'Library audio tracks' (resolved)",
+    "description": "The resolved D039 text says 'Songs take no audio track'. That holds for folder and playlist menus, which filter out .audio media. The file menu's Add Audio Tracks is enabled for every file, though, so on a song it calls presentAddAudioTracks(media:[song]). LibraryAudioTracks.match pairs any audio file with a single target, so the song gets a soundtrack in the ML, and MXRLibrarySelectSoundtrack selects it at every later playback. Either hide or disable the row for songs, or correct the sentence in D039."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Library/MXRLibraryView.swift LibraryDivider(header: true); LibraryBreadcrumb separators",
+    "description": "libraryHeaderDarkStyle also applies in the full-window library. In Light (S44 grid light render), the header hairline is Dark/Divider/Dim and the ▶ separators are #404040. The only evidence is the compact panel in Player - Light 2425:13624, and no Figma frame shows the full library in Light. It looks consistent, but the revised D032 amendment speaks only of 'the compact library'. One clause saying it also covers the full window, or limiting the style to compact, would make the decision exact."
+   },
+   {
+    "severity": "minor",
+    "where": "redesign/docs/DECISIONS.md D032 amendment (revised)",
+    "description": "Small factual slip. The amendment says Figma's Light rows use 'Dark/FG/A1 #969696 / Dark/FG/A2'. Sampling ref.png of 2425:13624 gives #8F8F8F (Dark FG/A2) for the unwatched rows and #6B6B6B for watched rows E01–E03. The product's watched rows match the latter exactly. The contrast argument still holds (#8F8F8F on #C2C2C1 is about 1.8:1), so the kept difference is justified. Only the cited value is off."
+   },
+   {
+    "severity": "minor",
+    "where": "S46.MiniPlayer/hover",
+    "description": "Still REVIEW: the seek row is offset by 1 pt, and the transport glyphs sit about 0.7 pt lower than Figma (region at 186,98). The new transport y equals the old one (h·104/210.94), so this is not a regression. It is unchanged from the previous wave and not covered by a decision."
+   },
+   {
+    "severity": "minor",
+    "where": "S72.Window/light (A-window entry)",
+    "description": "Still FAIL offscreen. The remaining regions are the playing E04 row: the thumbnail tint (#1E1A15 vs #000000), the accent label, and the D049 accent. These are D051 states. The E11 artwork resampling is a mock-asset artefact. The header separators, the '...' slot and the divider now match Figma pixel for pixel: separators and '...' are 143, the current crumb is 46, the dark hairline is present. The FAIL needs A-window to add a D051 figmaDeviation. No E-library code change is needed."
+   }
+  ],
+  "summary": "I verified E-library round 1 independently. Engine diff against upstream-base-2026-10-14 for src, lib, include and modules/gui/macosx is empty. The Swift build is clean: rebuilding MXRUI and MXRCore in an isolated copy gave no warnings.\n\n**Targeted tests (all pass)**\n- LibraryNavigationStyleTests 6/6\n- LibraryMinimumColumnTests\n- LibraryAudioTracksTests 5/5\n- LibraryViewBehaviour, LibraryInteraction, LibraryContextPlayback, PopupMenu, LibraryAuditRegression, LibraryPagination, MockLibraryContract\n\n**Mutation check.** In an isolated copy I reverted restingColor, libraryHeaderDarkStyle and the Videos-root rail icon. Four tests then failed, as they should:\n- Dark rows read 150 vs 107 on music, songs, videos-root, shows, the-wand and network.\n- Light rows read 60 vs 107.\n- The header separator test failed.\n- The Videos rail icon test failed.\n\n**Native engine test.** I ran `native-tests.py --suite library` under the lock, against the real libvlc, media library and vlc_player. All checks pass:\n- attachAudioTrack stores the file as a SOUNDTRACK.\n- The item carries 2 slaves, and the input has 2 audio tracks and 1 subtitle.\n- VLC alone keeps the 44.1 kHz track; after MXRLibrarySelectSoundtrack the 22.05 kHz soundtrack plays.\n\nLog: ../build/evidence/final5/polish/E-library-verify-r1/library-suite.log\n\n**Renders**, checked by eye next to Figma, outputs under ../build/evidence/final5/polish/E-library-verify-r1/check/:\n- **New entries (REVIEW, antialiasing only).** S28.Library/videos-root, /shows and /the-wand match 848:1997, 4778:25847 and 4778:25957: '+' glyph, FG/A3 rows and the accent rail icon at the root only. The masked count on shows and the-wand (D044, Figma repeats '3 items') is a data constraint, so it is justified.\n- **Rows now FG/A3.** S33 music, songs and my-songs, S35 network, and the undesigned albums, artists and genres all read 107.\n- **Unchanged.** S38 playlists stays FG/A1 (150).\n- **Menus.** S30 and S31 are now PASS with the rows enabled. S29 is REVIEW for the Finder wording only.\n- **Mini player.** S46 collapsed and queue PASS; hover REVIEW, unchanged.\n- **Neighbours, no regressions.** S43, S44, S45 and S40 REVIEW as before; S28.Library/minimum unchanged.\n- **Light.** S72 light header crops: '▶' separators and '...' are both 143 (#8F8F8F) in render and Figma, the current crumb is 46 in both, and the dark hairline is present in both. The compact entries in Light show FG/A3 navigation rows and the dark header hairline.\n\n**Code review.**\n- Edits outside ownership are minimal and listed: MXRServicesBridge.m delegation, MXRBridgeKeys, two lines in AppModel.complete, native-tests.py, DECISIONS.\n- Tokens only; no masks or thresholds were added.\n- The mini transport y is the same value, now derived from LibraryGeometry.miniVideoSize.\n\n**Decisions.**\n- D039 resolution is accurate except the sentence 'Songs take no audio track', which the file menu does not enforce (minor).\n- The D032 revision is justified by contrast: 1.8:1 for Figma's Light row colours. Its cited row colour is slightly off.\n- The D044 count extension is justified.\n\n**Left elsewhere.** S43/S44.App bar #191919 is PlayerBars (A-window/H-design); the S72.Window/light FAIL needs A-window's D051 deviation; E-07 onKeyPress is a live check; the 216 pt label width is D044 and up to the owner.\n\nNo blocker or major remains.",
+  "liveChecks": [
+   {
+    "id": "E-audio-tracks-folder",
+    "steps": "Library > Videos > Shows > The Wand > S01: open the header ⋯ > Edit Audio Tracks. Pick an audio file named like an episode, for example a copy of a test-media audio file renamed The_Wand_S01E02_English.m4a. Then play S01E02 from the library.",
+    "expect": "The row is enabled and opens Add Audio File. An OSD notice reads 'Audio track added to The_Wand_S01E02.mp4.' When E02 starts, the Audio tracks popover lists the external track as selected, and its audio is heard. A file that names no episode shows the 'No Audio Tracks Were Added' dialog."
+   },
+   {
+    "id": "E-audio-tracks-playing",
+    "steps": "While an episode plays, right-click its row > Add Audio Tracks and choose any .m4a. Stop, then play the same episode again.",
+    "expect": "The track is added to the running playback and selected at once. On the second playback it is again listed and selected."
+   },
+   {
+    "id": "E-audio-tracks-playlist",
+    "steps": "Library > Playlists: right-click a songs-only playlist > Add Audio Tracks. Then do the same on a playlist that holds videos.",
+    "expect": "The songs playlist shows 'There are no videos in this playlist.' and opens no panel. The video playlist opens Add Audio File."
+   },
+   {
+    "id": "E-audio-tracks-song",
+    "steps": "Music > Songs: right-click a song > Add Audio Tracks.",
+    "expect": "Decide and record whether this should be offered. D039 says songs take no audio track, but the row is currently enabled and attaches one."
+   },
+   {
+    "id": "E-light-header",
+    "steps": "Switch to Light and open the compact library on The Wand > S01. Then open the full library (Light) on the same folder.",
+    "expect": "Compact: the '▶' separators are #404040, '...' is #8F8F8F and a dark hairline sits under the header, as in Player - Light. Rows and the current crumb stay in readable Light colours. Full library: confirm the dark hairline and separators look intended on the light panel."
+   },
+   {
+    "id": "E-nav-rows",
+    "steps": "Compact library in Dark and Light: Music root, Videos root, Shows, The Wand, Network, Playlists.",
+    "expect": "Songs/Albums/Artists/Genres, Shows/Films/Anime, The Wand, S01/S02 and Podcasts/Radio rest at FG/A3, as dim as 'Add'. Playlist rows and unwatched episode rows are brighter (FG/A1). The rail videos icon is the accent only at the Videos root."
+   },
+   {
+    "id": "E-arrow-keys",
+    "steps": "Full library grid of S01: click a card, then press ↓ ← → ↑.",
+    "expect": "↓ selects the card drawn directly below, ←/→ select the neighbours and ↑ the card above, following the drawn columns."
+   },
+   {
+    "id": "E-min-window",
+    "steps": "Resize the window to the 480 pt minimum with the compact library open and no right panel, on S01, Home and Music. Then open a right panel.",
+    "expect": "Nothing in the library panel draws past its 216 pt column into the video, unlike A-window's 248 pt report. Crumbs fold to '...', and the count and Open Full Library give way. With the panel open, the library yields as A-window implemented."
+   },
+   {
+    "id": "E-mini-player",
+    "steps": "Open the full library while an episode plays and hover the mini player. Expand its queue, drag it to each corner, then pop it out.",
+    "expect": "Video keeps playing. Prev/play/next are centred about 1.5 pt above the video centre. The queue expands upward, the player snaps to the 4 corners, and pop-out returns the video to the player."
+   }
+  ],
+  "ownerDecisions": [
+   "D032 amendment (E-library), revised, accepted (agent, 2026-10-17). Figma's Dark header styles (divider, '▶' separators, '...') are now drawn in Light too; the rows and the current crumb stay in Light styles for contrast (Figma ~1.8:1). Owner: confirm, and say whether it also applies to the full-window library in Light (it currently does).",
+   "D039 'Library audio tracks' (COMP-08), resolved, accepted (agent, 2026-10-17). Edit/Add Audio Tracks is implemented, and an attached soundtrack is explicitly selected at every later playback. Owner: confirm that auto-selecting it is wanted, and whether songs may take audio tracks from the file menu (the decision text says they don't, the code allows it).",
+   "D044 amendment 'Counts and players follow the data', extended, accepted (agent, 2026-10-17). videos2 and videos3 count their own 1 and 2 folders where Figma repeats '3 items'.",
+   "D044 'Narrow compact panel' (pre-existing). At the 480 pt minimum window, rows leave about 40 pt for the label. Owner may prefer a larger compact share or minimum (A-window PlayerGeometry.compactLibraryWidth)."
+  ]
+ }
+}

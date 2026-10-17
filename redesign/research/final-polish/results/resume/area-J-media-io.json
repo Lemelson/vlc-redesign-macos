@@ -1,0 +1,179 @@
+{
+ "area": "J-media-io",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "J-media-io parity work is finished. I built and ran the predecessor's two bridge fixes in 3c690eb2a0 (Stop state, audio-only subtitles). The native contracts and media suites pass on the real tree. Each new runtime check fails when its fix is removed: without the guard, a stopped job publishes finishing, finishing, cancelled; without the audio-only rule, the aac output probes as audio + subtitle. Nothing was half-done or temporarily reverted; I kept all of it and changed none of it.\n\nSwift-side changes:\n- The overwrite decision is now a tested value type, ConversionDestination in MXRCore, and the Convert form uses it.\n- The Stream host name comes from the output backend. The mock returns the fixed name \"Studio-Mac\", so the gallery render no longer shows the build machine's name.\n- Open Disc and Open Capture Device are now as tall as their content (713×434 and 713×345, both computed from tokens) instead of 589 with empty space below.\n- The Stream address, port and path fields have visible labels.\n- pathFieldWidth and the progress-bar height are now named metrics in MXRDesign. The progress bar no longer uses a spacing token as a height.\n\n`swift build` is green and OutputModelTests (7) and OutputAdapterTests pass. No live UI was run.",
+   "fixed": [
+    "(d)/critic P1(1)/areas open[0] Stop overwritten by 'finishing': guard at module/bridge/MXRMediaServices.m:625 (predecessor's, kept). Runtime check passes on the real tree (../build/evidence/final4/J-media-io/native-media.log, 'PASS: real VLC conversion…'). Mutation without the guard fails with states (finishing, finishing, cancelled): ../build/evidence/final4/J-media-io/mut-stop-guard.log",
+    "(d)/critic P1(2)/areas open[1] audio-only profiles kept the source's subtitles: MXRMediaServices.m:228-235 adds no-sout-spu for audio/aac/wav (predecessor's, kept). The runtime test muxes a mov_text mp4 with ffmpeg; ffprobe then reads only audio streams in each audio output, and the test passes. Mutation (audioOnly = NO) fails with 'aac output keeps only the sound: (audio, subtitle)': ../build/evidence/final4/J-media-io/mut-audio-only.log. The options contract passes in native-contracts.log ('PASS: native media output contracts').",
+    "(b)/(c)/critic P1(3)/areas open[5] J-03 overwrite view logic: extracted into ConversionDestination (Sources/MXRCore/Models/OutputModel.swift), and OutputMediaForm uses it. New tests in Tests/MXRCoreTests/OutputModelTests.swift: testOnlyAConfirmedDestinationIsReplacedSilently (a format change renames the destination and loses the confirmation, Replace confirms, completion clears it; checked against MockOutput's EEXIST) and testAResumedJobsDestinationIsNotConfirmed. The test fails when the rename keeps the confirmation or completion keeps it (mutation run, 3 assertion failures). The tests pass after the fix.",
+    "(c)/(d)/areas open[4]/critic P2 S37.Stream/running host name: OutputBackend.localHostName. VLCOutputBackend reads SCDynamicStoreCopyLocalHostName; MockOutput returns 'Studio-Mac'; the form reads app.output.localHostName. The render now says http://Studio-Mac.local:8080/live: ../build/evidence/final4/J-media-io/after/S37_Stream_running.png (before: before/S37_Stream_running.png, which showed MacBook-Pro-2.local). Test: testTheStreamAddressUsesTheBackendsHostName.",
+    "(c)/(d)/areas open[3]/critic P2(5) J-12: pathFieldWidth moved to MXRDesign as Theme.Metric.streamPathFieldWidth. OutputProgressBar now uses Theme.Metric.outputProgressHeight instead of Theme.Spacing.gap4. Both live in the new file Sources/MXRDesign/Theme/OutputDialogMetrics.swift. Rendering is unchanged (after/S37_Convert_running.png).",
+    "(a) S37 Open Disc empty space: MXRDiscView.preferredSize = DialogForms.fittedFormSize(...) from tokens (header + body padding + sections + dividers + footer) = 713×434. 22 pt is left above the footer, the same as the body padding. before/S37_Disc_empty.png vs after/S37_Disc_empty.png.",
+    "(a) S37 Open Capture Device empty space: MXRCaptureView.preferredSize = 713×345 (one section plus the permission note). before/S37_Capture_empty.png vs after/S37_Capture_empty.png.",
+    "(a) S37 Stream field labels: Address / Port / Path labels (dialogHint, fgA3) above the fields through StreamAddressField. The fields' accessibility labels match. The Stream sheet grew by the label line. after/S37_Stream_empty.png, after/S37_Stream_running.png.",
+    "(c) J-10 wording: already unified by another area. PlayerMenus.swift:129 and EffectsSidebars.swift:76 both say 'Discover Cast Devices' / 'Discovering Cast Devices…'. No J edit needed."
+   ],
+   "notFixed": [
+    {
+     "id": "(a) S37 Convert 'focus ring on Format'",
+     "why": "No change needed: this is not a focus ring. At 2x the outline is SettingsChoiceMenu's BG/B2 well with its 2 pt inset, which is the Figma dropdown (999:5047 'Interface language' / 'Log details'). In Running the control is disabled, so the well flattens. That is why the Running state looks different. Evidence: ../build/evidence/final4/J-media-io/before/convert_format_crop.png, before/figma_settings_general.png, before/disc_dropdown_crop.png"
+    },
+    {
+     "id": "(a) S37 Convert Light: 'Choose…' and Cancel tiles lose their fill; Format field turns into a darker grey block",
+     "why": "Caused by shared files I don't own, not by OpenMediaDialogs. DialogButton (DialogSupport.swift:85) fills with BG/A3, and the Light shell surface is opaque BG/A3 under D045, so the tile vanishes. It affects every dialog that uses DialogShell (S36 too). The dropdown colours are SettingsChoiceMenu (SettingsControls.swift). Evidence: before/S37_Convert_empty_light.png. Left for the DialogSupport/F-settings owner (see notesForOthers)."
+    },
+    {
+     "id": "(b) critic P1 live re-measure: J-06 Audio CD on hardware, C-02 sidecar names with ( ) or '",
+     "why": "Needs a live Mac and physical media; listed in liveChecks. C-02 belongs to C-bridge."
+    },
+    {
+     "id": "(b) critic P2 mixed audio/video import gives no feedback for skipped audio files",
+     "why": "Owned by A-window/E-library (library import path); none of J's files take part. J's share of that critic item (host name) is fixed."
+    },
+    {
+     "id": "(e) parity-run-interrupted notes",
+     "why": "No notesForOthers entry names J-media-io. The only J-named item is A-window's notFixed pair (host name: fixed above; mixed import: not J's)."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/OpenMediaDialogs.swift",
+    "modules/gui/macosx_redesign/Sources/MXRCore/Models/OutputModel.swift",
+    "modules/gui/macosx_redesign/Sources/MXRMockBackend/MockOutput.swift",
+    "modules/gui/macosx_redesign/Sources/MXRVLCBackend/VLCOutputBackend.swift",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Theme/OutputDialogMetrics.swift",
+    "modules/gui/macosx_redesign/Tests/MXRCoreTests/OutputModelTests.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/MXRDialogHost.swift",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/DialogsGallery.swift",
+    "(predecessor, in 3c690eb2a0, verified unchanged) modules/gui/macosx_redesign/module/bridge/MXRMediaServices.m (J hunks: lines 228-235 audioOnly, 623-626 stop guard; the _extensionQueue hunks are another area's)",
+    "(predecessor) modules/gui/macosx_redesign/module/bridge/tests/MXRMediaServicesTests.m",
+    "(predecessor) modules/gui/macosx_redesign/module/bridge/tests/MXRMediaServicesRuntimeTests.m"
+   ],
+   "editsOutsideOwnership": [
+    "Sources/MXRUI/Dialogs/MXRDialogHost.swift: two lines in AppSheet.preferredSize: `case .openDisc: MXRDiscView.preferredSize` and `case .openCaptureDevice: MXRCaptureView.preferredSize`. That file also has another agent's uncommitted DialogKeyLoopGuard work, which I left untouched.",
+    "Sources/MXRGalleryCatalog/Entries/DialogsGallery.swift: S37.Disc/empty and S37.Capture/empty sizes now use MXRDiscView.preferredSize / MXRCaptureView.preferredSize instead of newPlaylist.size.",
+    "Sources/MXRDesign/Theme/OutputDialogMetrics.swift (new file in H-design's module): Theme.Metric.streamPathFieldWidth and Theme.Metric.outputProgressHeight, as J-12 asked.",
+    "Tests/MXRCoreTests/OutputModelTests.swift: 3 new tests for J's model."
+   ],
+   "evidence": [
+    "../build/evidence/final4/J-media-io/native-contracts.log (PASS: contracts, incl. 'PASS: native media output contracts')",
+    "../build/evidence/final4/J-media-io/native-media.log (PASS: media; media-runtime PASS covers subtitled-source audio outputs probed by ffprobe and stop -> stopping/cancelled only)",
+    "../build/evidence/final4/J-media-io/mut-stop-guard.log (guard removed: FAIL finishing, finishing, cancelled)",
+    "../build/evidence/final4/J-media-io/mut-audio-only.log (audioOnly removed: FAIL aac = audio + subtitle)",
+    "../build/evidence/final4/J-media-io/before/*.png and after/*.png (S37 Disc, Capture, Convert, Stream empty/running)",
+    "swift test --filter 'OutputModelTests|OutputAdapterTests': 7 + 3 tests, 0 failures; the mutated ConversionDestination fails testOnlyAConfirmedDestinationIsReplacedSilently"
+   ],
+   "liveChecks": [
+    {
+     "id": "J-stop-hint",
+     "steps": "File > Convert, choose ../build/media S01E03 (10 min) as the source, format Video — MP4, choose a destination, click Convert. Once progress shows, click Stop and watch the Save As hint and the main button until the job ends.",
+     "expect": "The hint reads 'Stopping…' and the button stays disabled until the hint reads 'Stopped. Nothing was saved.'. It never flips to 'Finishing …' and Stop never re-enables. No file and no partial file remain."
+    },
+    {
+     "id": "J-audio-only",
+     "steps": "Convert S01E01.mp4 (it has a .srt sidecar) with 'Audio — AAC (M4A)', then run ffprobe -show_entries stream=codec_type on the .m4a. Repeat with WAV.",
+     "expect": "Only audio streams; no subtitle/mov_text stream."
+    },
+    {
+     "id": "J-overwrite",
+     "steps": "Convert to X.mp4 through the save panel; after it completes, click Convert again with the same name. Then switch the format to Audio — MP3 when an X.mp3 already exists, and click Convert.",
+     "expect": "Both times a 'X already exists. Do you want to replace it?' alert appears. Replace overwrites; Cancel leaves the file alone."
+    },
+    {
+     "id": "J-disc-capture-size",
+     "steps": "Open File > Open Disc… and File > Open Capture Device… in a normal-size window, then in a 960×540 window.",
+     "expect": "Open Disc is 713×434 and Capture is 713×345, with 22 pt between the last row and the footer and no large empty area. In the small window both fit or scroll without clipping."
+    },
+    {
+     "id": "J-stream-labels-host",
+     "steps": "File > Stream…, choose a file, Web (HTTP), click Start.",
+     "expect": "Address/Port/Path labels sit above the fields. The hint shows this Mac's real <LocalHostName>.local:8080/live, and VoiceOver reads 'Address', 'Port', 'Path' for the fields."
+    },
+    {
+     "id": "J-06-audio-cd",
+     "steps": "Insert an audio CD (or mount a cddafs image), open File > Open Disc….",
+     "expect": "The dropdown lists the CD and Audio CD is selected. Open plays the CD through cdda:///dev/rdiskN."
+    },
+    {
+     "id": "J-capture-permission",
+     "steps": "With a camera or Continuity Camera available, open File > Open Capture Device… the first time and click Open.",
+     "expect": "macOS asks for camera permission once; the camera then plays in the player."
+    }
+   ],
+   "notesForOthers": "[\"DialogSupport/F-settings owner: in Light, DialogButton's BG/A3 tile is the same colour as the opaque BG/A3 dialog surface (D045), so 'Choose…' and Cancel read as plain text in every DialogShell dialog. They need a fill that differs from the surface in Light, the way Add Subtitles uses BG/A5. Evidence: ../build/evidence/final4/J-media-io/before/S37_Convert_empty_light.png.\", \"E-library: LibrarySupport.swift:357 also uses Theme.Spacing.gap4 as the large-card progress height. Theme.Metric.outputProgressHeight (MXRDesign/Theme/OutputDialogMetrics.swift) has the same value, if you want a size token there.\", \"Integrator: J's bridge hunks in MXRMediaServices.m are the audioOnly block (~228-235) and the stop guard (~623-626); the _extensionQueue/stateOfExtension hunks belong to another area. OutputBackend gained a `localHostName` requirement, and every conformer (MockOutput, VLCOutputBackend) implements it. Concurrent test-target breakage seen during this run came from other areas' files (WindowLiveFindingsTests.swift, DialogKeyLoopControlTests.swift).\"]",
+   "decisionsWritten": [],
+   "ownerDecisions": [
+    "D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies) — unchanged, still pending the owner",
+    "D042, D044, D046, D047, D048, D049, D050, D051, D052 — still pending; nothing J changed depends on a new decision (Open Disc/Capture/Convert/Stream have no Figma frame, SD-19)"
+   ]
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "summary": "J-media-io passes independent verification, round 1. No blocker or major remains.\n\n**Tree state.** Checked at HEAD 3c690eb2a0 plus the uncommitted working tree. The engine is untouched: `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty. No new DECISIONS entries were written. The Settings gate files were not touched. Swift 6 is clean: an isolated rebuild of the area's files gave no warnings or errors.\n\n**(d) Stop overwritten by 'finishing': fixed.** `outputStopping` in MXRMediaServices.m:625 keeps `stopping` when `cancelRequested` is set. The runtime test now records every output state published after Stop and allows only stopping then cancelled. I re-ran `native-tests.py --suite media` and `--suite contracts` under the lock myself, and both pass. The fixer's mutation log shows the test fails without the guard (finishing, finishing, cancelled).\n\n**(d) Audio-only profiles keeping subtitles: fixed.** The audio, aac and wav profiles now get `no-sout-spu`. The contracts test checks the options for all three. The runtime test muxes a mov_text source with ffmpeg and requires ffprobe to find only audio in each output; it passes. The mutation log shows it fails without the fix (aac = audio + subtitle).\n\n**(d)/(c) J-03 overwrite logic: fixed.** The logic now lives in a value type, `ConversionDestination` (OutputModel.swift), and OutputMediaForm uses it for the save panel, format change, Replace, completion and a resumed job. In an isolated copy I ran two mutations:\n- Making `completed()` a no-op fails `testOnlyAConfirmedDestinationIsReplacedSilently`.\n- Keeping the confirmation after `changeExtension` also fails it, with 3 failures.\n\nThe tests check behaviour against MockOutput's EEXIST handling, not one-line predicates.\n\n**(d) Stream host name: fixed.** It now comes from `OutputBackend.localHostName`: VLCOutputBackend reads SystemConfiguration, and MockOutput returns a fixed name. My render of S37.Stream/running shows http://Studio-Mac.local:8080/live, so the gallery render is now deterministic.\n\n**(d) J-12: fixed.** `Theme.Metric.streamPathFieldWidth` and `outputProgressHeight` are in the new MXRDesign/Theme/OutputDialogMetrics.swift. OutputProgressBar no longer uses `Theme.Spacing.gap4` as a height.\n\n**(a) Open Disc and Open Capture Device: fixed.** Both dialogs are now as tall as their content, computed from tokens (713×434 and 713×344.5). I looked at both renders; the large empty area is gone.\n\n**(a) Stream field labels: fixed.** Address, Port and Path labels sit above the fields. The fields' accessibility labels match, and the visual labels are hidden from accessibility so VoiceOver reads each name once.\n\n**(a) Convert \"focus ring\": correctly no change.** I compared it with Figma 999:5047. The outline is the Figma dropdown's dark well, and the disabled dropdown drops it (Disc, Capture, Convert running).\n\n**J-10 wording: done by another area.** Both menus now use the same wording.\n\n**Left open (minor, not J's files).** In Light, the DialogButton secondary tile vanishes into the opaque dialog surface. It is handed to the DialogSupport owner (see issues).\n\n**Renders, built with swift build and looked at.** Disc, Capture, Convert empty, running and light, Stream empty, running and light, and App convert-compact. S36 Network Stream still matches Figma (REVIEW, mean Δ 0.50, 0.014 % structural, the same corner antialias as before).\n\n**Targeted tests.** These pass on the shared tree: OutputModelTests (7), OutputAdapterTests, OpenMediaIOTests and DialogsTests.\n\n**Edits outside ownership** are small and listed by the fixer: two cases in MXRDialogHost, two gallery sizes in DialogsGallery, the new token file in MXRDesign, and tests. The DialogKeyLoopGuard work in MXRDialogHost belongs to another agent and was left intact.\n\nEvidence is in ../build/evidence/final4/J-media-io-verify-r1/: r/*.png, native-media.log and native-contracts.log. The isolated copy was deleted after use.",
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Dialogs/DialogSupport.swift:85 DialogButton (not J's file)",
+    "description": "In Light, the secondary DialogButton tile (BG/A3) is the same colour as the opaque Light dialog surface (D045). 'Choose…' and Cancel read as plain text in Convert, Stream and every DialogShell dialog (r/S37_Convert_empty_light.png). DialogButton already takes a `fill:` parameter (added for Add Subtitles), but DialogShell dialogs do not use it in Light. The fixer correctly handed this to the DialogSupport owner."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Dialogs/OpenMediaDialogs.swift fittedFormSize / StreamAddressField.height",
+    "description": "The heights include the dialogHint line height of 24.5, so they end in a half point: Capture is 713×344.5 and Stream is 713×679.5. On a 1x display the sheet frame can then land on half-pixel edges. Cosmetic; rounding the sum to whole points would avoid it."
+   },
+   {
+    "severity": "minor",
+    "where": "Tests/MXRCoreTests/OutputModelTests.swift",
+    "description": "The new J-03 tests cover the ConversionDestination value type, and the mutations confirm they catch regressions. The wiring in OutputMediaForm (the onChange of state to completed, and Replace) is still checked only by reading the code, which I did. The live check J-overwrite covers the real flow."
+   }
+  ],
+  "liveChecks": [
+   {
+    "id": "J-stop-hint",
+    "steps": "File > Convert. Choose ../build/media/Test Show S01E03.mp4 (10 min), format Video — MP4, choose a destination and click Convert. Once progress shows, click Stop and watch the Save As hint and the main button until the job ends.",
+    "expect": "The hint reads 'Stopping…' and the button stays disabled until the hint reads that the conversion stopped and nothing was saved. It never shows 'Finishing …', Stop never re-enables, and no file or .vlc-partial file is left in the folder."
+   },
+   {
+    "id": "J-audio-only",
+    "steps": "Convert Test Show S01E01.mp4 (which has a .srt sidecar) with 'Audio — AAC (M4A)', then run `ffprobe -v error -show_entries stream=codec_type -of csv=p=0` on the .m4a. Repeat with WAV and MP3.",
+    "expect": "Each output lists only audio streams, with no subtitle or mov_text stream."
+   },
+   {
+    "id": "J-overwrite",
+    "steps": "Convert to X.mp4 through the save panel. After it completes, click Convert again without choosing a new name. Then make sure an X.mp3 exists, switch the format to Audio — MP3 and click Convert.",
+    "expect": "Both times an 'X already exists. Do you want to replace it?' alert appears. Replace overwrites the file; Cancel leaves it unchanged."
+   },
+   {
+    "id": "J-disc-capture-size",
+    "steps": "Open File > Open Disc… and File > Open Capture Device… in a normal-size window, then again in a 960×540 window.",
+    "expect": "Open Disc is about 713×434 and Capture about 713×345, with no large empty area under the last row, and edges are crisp. In the small window, both fit or scroll without clipping the footer."
+   },
+   {
+    "id": "J-stream-labels-host",
+    "steps": "File > Stream…, choose a file, select Web (HTTP) and click Start. Turn on VoiceOver and move through the address fields.",
+    "expect": "Address, Port and Path labels sit above the fields. The hint shows this Mac's real <LocalHostName>.local:8080/live, not Studio-Mac. VoiceOver reads 'Address', 'Port' and 'Path' once each."
+   },
+   {
+    "id": "J-light-dialog-buttons",
+    "steps": "Switch Settings > Theme to Light and open File > Convert….",
+    "expect": "Choose… and Cancel have a visible tile. This is expected to fail until the DialogSupport owner fixes it; see the issues."
+   },
+   {
+    "id": "J-06-audio-cd",
+    "steps": "Insert an audio CD (or mount a cddafs image) and open File > Open Disc….",
+    "expect": "The dropdown lists the CD with Audio CD selected, and Open plays it through cdda:///dev/rdiskN."
+   },
+   {
+    "id": "J-capture-permission",
+    "steps": "With a camera or Continuity Camera available, open File > Open Capture Device… for the first time and click Open.",
+    "expect": "macOS asks for camera permission once, then the camera plays in the player."
+   }
+  ],
+  "ownerDecisions": [
+   "D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies): unchanged, still pending",
+   "D042, D044, D046, D047, D048, D049, D050, D051, D052: still pending; this area wrote no new decision (Open Disc, Capture, Convert and Stream have no Figma frame, SD-19)"
+  ]
+ }
+}

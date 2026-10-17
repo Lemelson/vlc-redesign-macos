@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lemelson <97357844+Lemelson@users.noreply.github.com>
+Date: Wed, 14 Oct 2026 15:07:20 +0300
+Subject: [PATCH 3/5] clock: keep the pause date across a reset while paused
+
+vlc_clock_main_reset() clears pause_date even when the main clock is
+still paused. vlc_clock_main_ChangePause(false) then takes the
+"Reset was called before resume from Pause" early return and does not
+shift first_pcr, start_time and wait_sync_ref by the pause length.
+
+With a paused seek (decoder and es_out patches of this series), the
+clock is reset and new references are created while still paused. On
+resume they are not shifted by the pause. Normal resume then failed on
+both the software and the VideoToolbox/AUHAL pipelines. LLDB shows
+pause_date cleared by the reset while main_clock->paused is true, then,
+after an 8.93 s pause, ChangePause(false) returning before the shift.
+
+Keep pause_date across a reset (and SetFirstPcr) while the main clock
+is paused. The unpaused reset behaviour and the clock lock are
+unchanged.
+
+Note for review: this deliberately reverses the upstream intent stated
+in vlc_clock_main_ChangePause() (skip the shift when the stream was
+paused then seeked). It is only correct together with the next clock
+patch, which creates the references made while paused on the pause
+origin, so they are shifted exactly once. If upstream fixes the paused
+seek differently, this patch should be dropped.
+
+Test: redesign/patches/engine/tests/test-clock-pause-reset.sh (13
+cases on the public clock API; 7 fail on the unpatched clock.c).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/clock/clock.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/src/clock/clock.c b/src/clock/clock.c
+index bb137d6..0c87e54 100644
+--- a/src/clock/clock.c
++++ b/src/clock/clock.c
+@@ -394,7 +394,10 @@ static void vlc_clock_main_reset(vlc_clock_main_t *main_clock)
+     AvgResetAndFill(&main_clock->coeff_avg, ctx->coeff);
+ 
+     main_clock->wait_sync_ref_priority = UINT_MAX;
+-    main_clock->pause_date = VLC_TICK_INVALID;
++    /* Paused seek buffering still uses this origin. Resume must shift the
++     * new clock references by the elapsed pause, just like the input clock. */
++    if (!main_clock->paused)
++        main_clock->pause_date = VLC_TICK_INVALID;
+     vlc_cond_broadcast(&main_clock->cond);
+ }
+ 

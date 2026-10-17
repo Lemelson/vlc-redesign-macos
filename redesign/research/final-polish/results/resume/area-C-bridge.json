@@ -1,0 +1,212 @@
+{
+ "area": "C-bridge",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "C-bridge picked up where its predecessor stopped. Its committed work holds together: the extensions suite passes, and the fixture suite passes, including the C-01 and C-02 tests. The new ExtensionMenuObservationTests passes, and no code references to rescanPlugins remain. The audio-preferences compile break was fixed by another agent (the vlc_plugin.h include).\n\nNew work, all tested:\n(1) Bridge part of live item (f), subtitles hidden under overlays. There is a new player command setSubtitleSafeInset with points and backing scale. MXREffectsServices adds it to each vout's \"sub-margin\" on top of the user's Subtitle Offset and any hotkey change. The inset is never saved. Each vout records the inset it carries, including the main vout, which inherits it from the player's dummy vout. The snapshot and the \"Subtitle position\" OSD report the user's offset only. New and restarted vouts get the inset through the player vout callback.\n(2) On the Swift side: PlayerBackend.setSubtitleSafeInset, a SubtitleSafeInset geometry helper that subtracts letterbox bars and ignores side panels, the VLC and mock implementations, and the hop from A-window's InterfaceModel.subtitleSafeInset to the backend in MXRAppController.\n(3) The fullscreen hotkeys now get an action line (\"Fullscreen\" / \"Exit fullscreen\", VLC's own strings) next to \"Pressed <key>\". Esc in a window shows nothing.\n(4) Audio shutdown flake, root cause measured. Without plugins.dat, libvlc_InternalCleanup takes 2.0 to 5.5 s under 12-core load. The 8 s deadline is missed under heavier load. With the index it takes 54 to 192 ms. The index fix in native-tests.py is now proven. The installed app ships plugins.dat (make VLC.app), so this is not a bridge or Cmd-Q bug.\n(5) Removed the stale rescan-plugins doc example.",
+   "fixed": [
+    "(d) Native audio suite flake: root cause is the test harness, not the bridge. Without a plugins.dat index the core dlopens and dlcloses every plugin. Under 12x `yes` load, libvlc_InternalCleanup took 5466/2727/2038/3795/3580/3901 ms without the index and 54/56/192/58/62/119 ms with it. The predecessor's vlc-cache-gen step in tools/native-tests.py is the fix. The audio suite passes, cleanup 30 ms. Evidence: ../build/evidence/final4/C-bridge/flake.summary, flake-loop.sh, native-r1-audio.log, native-r2-audio.log",
+    "(d) Dead rescanPlugins path: re-checked, no code reference remains; I removed the stale doc example in SettingsCatalog.swift:223. SettingsAuditRegressionTests pass.",
+    "(d) C-02 sidecar names containing ( ) ': the headless test 'adding a detected punctuated sidecar does not load it twice' passes in the fixture suite (native-r1-fixture.log, native-r3-fixture.log).",
+    "(d) C-01 edge (input_New failure or Stop leaves :start-paused on the item): consumeStartPausedForMedia fix plus test, passing in the fixture suite (native-r3-fixture.log).",
+    "(d) Extension submenu cache, with D-menus: extensionStates carries each menu, and ServiceModels menu(for:) reads availabilityRevision. The extensions suite passes (native-r1-extensions.log) and ExtensionMenuObservationTests passes.",
+    "(f) Subtitles hidden under overlays, bridge part. The new command setSubtitleSafeInset (MXRBridgeKeys) is routed in MXRServicesBridge playerCommand without topic churn. MXREffectsServices raises each vout's sub-margin by points x scale, on top of the user offset and hotkey moves. A per-vout record (macosx-redesign-sub-safe-inset), resolved through the parent chain because the main vout inherits from the dummy vout, prevents a double raise. The snapshot offset and the hotkey OSD report the user margin (MXRSubtitleUserMargin). setSubtitleStyle writes offset + inset to vouts and the offset alone to config. Started vouts get the inset from PlayerVout. Native test MXREffectsServicesRuntimeTests.m runs in the media suite and passes (native-r3-media.log). Its restart check failed at 127 instead of 67 before the parent-chain fix.",
+    "(f) Swift side: PlayerBackend.setSubtitleSafeInset(points:backingScale:), VLCPlayerBackend and MockPlayer implementations, and the SubtitleSafeInset.fittedPicture/points helper (letterbox subtracted, side panels ignored). MXRAppController.observeSubtitleSafeInset sends A-window's InterfaceModel.subtitleSafeInset with the window's backing scale, de-duplicated. Tests: SubtitleSafeInsetWireTests (it failed on the Int 1 scale literal before the fix) and SubtitleSafeInsetGeometryTests (3 tests). Both pass.",
+    "(c) MXRHotkeyFeedback default branch: toggle-fullscreen and leave-fullscreen now show VLC's own 'Fullscreen' / 'Exit fullscreen' as the action line (D027 two-line OSD); Esc in a window shows nothing. Test in bridge-smoke.m, inside B-controls' hotkeys block, passes in the fixture suite (native-r3-fixture.log).",
+    "(b) COMP-11: D052 written by the predecessor (preview thumbnails decode in software, engine limit) is in place."
+   ],
+   "notFixed": [
+    {
+     "id": "(a) S10.BarMenu/hdr and S18 sidebar HDR dropdown (minor-diff)",
+     "why": "Kept on purpose. Covered by D033/D034/D039 and the owner decision of 2026-10-16 (C-09): HDR stays Auto-only, no 'Off'; the other modes stay disabled with the reason."
+    },
+    {
+     "id": "(b) CODE-02/C-08 untyped dictionary wire payloads",
+     "why": "A typed-DTO rewrite touches every service adapter and bridge snapshot across all areas while 10 agents edit them; it is not a safe change in this parallel wave. Typed command/service/request names already exist. Schedule it after the wave."
+    },
+    {
+     "id": "(b) B-15/CODE-08 split of MXRServicesBridge.m (and GalleryCatalog.swift)",
+     "why": "Planned for after the parallel wave. B-controls is editing MXRServicesBridge.m right now (seek feedback, uncommitted), and a split would conflict with that work."
+    },
+    {
+     "id": "(b) CODE-06 AppKit conveniences and optical-volume enumeration in Core/UI, J-12 token in a view file",
+     "why": "Not in C-bridge files. These belong to J-media-io / I-build / H-design."
+    },
+    {
+     "id": "(b) COMP-08, LIB-06, LIBSET-02, PER-02",
+     "why": "Not C-bridge. COMP-08 is now covered by E-library's D039 addendum. LIB-06 and LIBSET-02 are library (E-library). PER-02 is subtitle-folder I/O in DialogInput.swift and SubtitleFolderRules.swift (G-panels/F-settings)."
+    },
+    {
+     "id": "(c) C-15 missing Advanced Options row, extra info icon",
+     "why": "Belongs to F-settings (SettingsExtensionsView.swift), not C-bridge."
+    },
+    {
+     "id": "(c) C-05 trigger-only Lua scripts on a serial queue",
+     "why": "Accepted risk, matching Qt. Extensions now have their own serial queue, so media services are not blocked. The extensions suite passes."
+    },
+    {
+     "id": "(b) live re-measure of C-02 sidecars and C-13 Cmd-Q latency",
+     "why": "Needs the real app; no live UI in this wave. Listed in liveChecks."
+    },
+    {
+     "id": "(e) parity-run-interrupted.json notes for C-bridge",
+     "why": "None exist: no notesForOthers or notFixed entry names C-bridge. Nothing to act on."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/module/bridge/MXREffectsServices.m",
+    "modules/gui/macosx_redesign/module/bridge/MXREffectsServices.h",
+    "modules/gui/macosx_redesign/module/bridge/MXRServicesBridge.m",
+    "modules/gui/macosx_redesign/module/bridge/MXRHotkeyFeedback.inc",
+    "modules/gui/macosx_redesign/module/bridge/tests/MXREffectsServicesRuntimeTests.m (new)",
+    "modules/gui/macosx_redesign/module/tests/bridge-smoke.m",
+    "modules/gui/macosx_redesign/Sources/MXRBridgeAPI/MXRBridgeKeys.m",
+    "modules/gui/macosx_redesign/Sources/MXRBridgeAPI/include/MXRBridgeKeys.h",
+    "modules/gui/macosx_redesign/Sources/MXRCore/Backends/PlayerBackend.swift",
+    "modules/gui/macosx_redesign/Sources/MXRVLCBackend/VLCPlayerBackend.swift",
+    "modules/gui/macosx_redesign/Sources/MXRMockBackend/MockPlayer.swift",
+    "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRAppController.swift",
+    "modules/gui/macosx_redesign/Sources/MXRCore/Settings/SettingsCatalog.swift",
+    "modules/gui/macosx_redesign/Tests/MXRCoreTests/MediaRequestRaceTests.swift",
+    "modules/gui/macosx_redesign/Tests/MXRCoreTests/SubtitleSafeInsetGeometryTests.swift (new)",
+    "modules/gui/macosx_redesign/Tests/MXRVLCBackendTests/SubtitleSafeInsetWireTests.swift (new)",
+    "modules/gui/macosx_redesign/tools/native-tests.py"
+   ],
+   "editsOutsideOwnership": [
+    "Sources/MXRPlugin/MXRAppController.swift: added observeSubtitleSafeInset()/sendSubtitleSafeInset (one call after observeWindowState() in start). This is the hop from A-window's InterfaceModel.subtitleSafeInset to the backend; nobody else had wired it.",
+    "tools/native-tests.py (I-build): one run line in the media suite for effects-runtime (MXREffectsServicesRuntimeTests.m).",
+    "Tests/MXRCoreTests/MediaRequestRaceTests.swift: one forwarding method for the new PlayerBackend requirement in the test's wrapper backend.",
+    "Sources/MXRCore/Settings/SettingsCatalog.swift:223: removed 'rescan-plugins' from a doc comment example.",
+    "module/tests/bridge-smoke.m: the fullscreen OSD check sits at the end of B-controls' uncommitted jump-hotkey block and uses the hotkeys interface it creates."
+   ],
+   "ownerDecisions": [
+    "D052 (agent, written by the previous C-bridge): preview thumbnails decode in software, an engine limit. Still waiting for the owner.",
+    "HDR stays Auto-only (C-09, decided by the owner 2026-10-16). It covers the S10/S18 HDR minor-diffs; nothing pending."
+   ],
+   "liveChecks": [
+    {
+     "id": "C-bridge-f-fullscreen-subtitles",
+     "steps": "Play S01E01 (has .srt) and enter fullscreen. Wait for a cue, then move the pointer to the bottom so the control bar reveals.",
+     "expect": "The subtitle line moves up and stays fully visible above the control bar ('Italic narration.' is not cut). When the bar hides, the subtitle returns to its usual position. The Settings sidebar Subtitle Offset value does not change."
+    },
+    {
+     "id": "C-bridge-f-offset-under-bar",
+     "steps": "In fullscreen with the bar revealed, change Subtitle Offset in the Settings sidebar (for example to 40), then let the bar hide.",
+     "expect": "The offset field shows 40, not 40 plus the bar height. The subtitles sit 40 px above the bottom once the bar hides. The vlcrc sub-margin is 40."
+    },
+    {
+     "id": "C-bridge-f-letterbox",
+     "steps": "Play a 2.39:1 or 16:9 video fullscreen on a 16:10 display and reveal the control bar.",
+     "expect": "The subtitles move up only by the part of the bar that overlaps the picture. With a tall letterbox bar they barely move or do not move at all."
+    },
+    {
+     "id": "C-bridge-fullscreen-osd",
+     "steps": "In a window, press F (VLC toggle-fullscreen hotkey), then press F again. Then press Esc in a window.",
+     "expect": "The OSD shows 'Fullscreen' / 'Pressed F', then 'Exit fullscreen' / 'Pressed F'. Esc in a window shows no fullscreen text."
+    },
+    {
+     "id": "C-13-cmdq-latency",
+     "steps": "With a video playing, press Cmd-Q while capturing os_signpost for the redesign subsystem (Instruments 'Points of Interest' or `log stream --signpost`).",
+     "expect": "The 'Services' shutdown interval and the process exit finish well under 1 s. The installed bundle has plugins.dat, so plugin unloading is not a multi-second step."
+    },
+    {
+     "id": "C-02-live",
+     "steps": "Put a video and its sidecar named like 'Show (2024) - Bob's cut.srt' in one folder. Open the video, then use Add Subtitles on the same .srt.",
+     "expect": "Exactly one subtitle track appears and is selected (no duplicate)."
+    }
+   ],
+   "evidence": [
+    "../build/evidence/final4/C-bridge/flake.summary: cleanup under 12-core load, 54-192 ms with plugins.dat vs 2038-5466 ms without",
+    "../build/evidence/final4/C-bridge/native-r3-media.log: PASS media incl. 'PASS: subtitle safe inset'",
+    "../build/evidence/final4/C-bridge/native-r3-fixture.log: PASS fixture (C-01, C-02, jump OSD, fullscreen OSD)",
+    "../build/evidence/final4/C-bridge/native-r1-extensions.log: PASS extensions",
+    "../build/evidence/final4/C-bridge/native-r1-audio.log: PASS audio, 'native engine shuts down cleanly' in 34 ms",
+    "Swift, isolated copy (UI snapshot target dropped because other areas' in-progress tests did not compile): SubtitleSafeInset*, BridgeKeyContract, MediaRequestRace, ExtensionMenuObservation, BridgeWireBehaviour, SettingsAuditRegression, AdapterTests: 42 tests, 0 failures. `swift build` of the real checkout is green, MXRPlugin included."
+   ],
+   "notesForOthers": "A-window: the bridge raises subtitles from InterfaceModel.subtitleSafeInset. MXRAppController.observeSubtitleSafeInset sends it with the window's backingScaleFactor. Before sending, it subtracts letterbox bars with SubtitleSafeInset.fittedPicture/points (MXRCore/Backends/PlayerBackend.swift), using the selected video track's size. Keep subtitleSafeInset = points covered at the bottom of the video view, 0 when nothing covers. The compact-library case needs geometry (the video right of the library), not a margin: points() ignores side panels on purpose. B-controls: your uncommitted jump-seek OSD work in MXRHotkeyFeedback.inc, MXRServicesBridge.m and bridge-smoke.m is kept as is. I added a fullscreen OSD check at the end of your jump block in bridge-smoke.m that reuses its hotkeys interface; if you move the block, move my check with it. I also added `bool fullscreen` to MXRActionBefore. I-build: native-tests.py media suite now also runs effects-runtime. The plugins.dat indexing step is the proven fix for the audio shutdown flake (numbers in final4/C-bridge/flake.summary). Integrator: the bridge changes need the make/install build. The new command name is setSubtitleSafeInset."
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "Sources/MXRPlugin/MXRAppController.swift observeSubtitleSafeInset / sendSubtitleSafeInset",
+    "description": "The inset is recomputed only when InterfaceModel.subtitleSafeInset or the video size changes. It reads window.contentView.bounds and window.backingScaleFactor, which are not observable. So if the bar is revealed while a fullscreen window moves to a display with another backing scale, or the window resizes, the old point and scale values stay until the next reveal or hide. It also measures the window content view, not the video view, which is correct only while the video fills the window (fullscreen, the case it is used for)."
+   },
+   {
+    "severity": "minor",
+    "where": "module/bridge/MXREffectsServices.m performCommand setSubtitleSafeInset + PlayerVout subtitleVoutStarted",
+    "description": "The inset from the main window's overlays is applied to every vout of the player (vlc_player_vout_HoldAll and every VOUT_STARTED, any order). That includes secondary vouts of a multi-video-track input, which have no overlay. The impact is small because subtitles normally render on the primary vout, but restricting it to VLC_VOUT_ORDER_PRIMARY would be more exact."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRVLCBackend/VLCSettingsBackend.swift:7",
+    "description": "A stale doc comment remains after the rescanPlugins removal: \"read once at startup and again only after a plugin rescan\". No rescan path exists any more; no code references remain."
+   },
+   {
+    "severity": "minor",
+    "where": "live item (f), compact library",
+    "description": "The bridge only handles overlays across the bottom centre of the picture; SubtitleSafeInset.points ignores side panels and MXRAppView reports 0 unless the bar overlays the canvas. The live finding (subtitle cut under the compact library at 640 pt, '...one, first cue.') therefore depends entirely on A-window's geometry (video to the right of the library). It is not fixed by C-bridge and is not established offscreen; listed as a live check."
+   },
+   {
+    "severity": "minor",
+    "where": "(b) CODE-02/C-08 typed DTOs, B-15/CODE-08 MXRServicesBridge.m split",
+    "description": "Deferred to after the parallel wave. That is reasonable: other areas are editing MXRServicesBridge.m right now, and a rewrite now would conflict with their work. It is still open debt, and the orchestrator should schedule it."
+   }
+  ],
+  "summary": "Pass. I found no blocker or major in the C-bridge area; the remaining issues are minor.\n\nBuild and Swift tests:\n- `swift build` is green.\n- These suites pass in the shared checkout, and the test target compiles: SubtitleSafeInsetWireTests, SubtitleSafeInsetGeometryTests, BridgeKeyContract, BridgeWireBehaviour, SettingsAuditRegression, ExtensionMenuObservation, MediaRequestRace.\n\nNative suites, run by me under lock.sh, all PASS:\n- media, including the new 'PASS: subtitle safe inset'\n- fixture: C-01 Stop/paused open, C-02 sidecar named 'Bridge (2020) it's.srt' gives exactly one selected track, fullscreen/exit-fullscreen OSD, jump OSD\n- extensions: live extension menus\n- audio: 'native engine shuts down cleanly' in 36 ms\n\nMutation checks, in an isolated copy under final4/C-bridge-verify-r1/repo:\n- Removing the parent-chain lookup in AppliedSafeInset makes effects-runtime fail with \"a restarted vout keeps one inset, not two (127)\". The regression test is real.\n- Removing the STOPPED drop of :start-paused makes bridge-smoke fail with \"a paused open cut short by Stop leaves no start-paused on the queue item\".\n\nEngine-semantics review:\n- Item options are applied in input_Create (input.c:249). on_current_media_changed fires right after vlc_player_input_New, also with NULL on failure (player.c:85-94). STOPPED is sent after OpenNextMedia (input.c:271). So dropping on any media change or on STOPPED is safe.\n- The main vout is created as a child of the dummy vout and inherits its sub-margin (resource.c:424-428), so the parent-chain record is the right design.\n- The window reports backing pixels (MXRVoutWindow reportBackingSize), and the SPU margin is in destination pixels (vout_subpictures.c:1022), so multiplying points by the backing scale is correct.\n- Lock order (player lock, then the inset lock, then vout vars) has no inversion.\n- The inset never reaches config, and the snapshot and the hotkey OSD report the user margin. This is tested.\n- 'Fullscreen' / 'Exit fullscreen' are VLC's own hotkey texts (libvlc-module.c:1338/1340).\n\nAudio flake:\n- The root cause is credible: the harness ran without a plugins.dat index. I measured 36 ms cleanup with the index.\n- /Applications/VLC Redesign.app ships Contents/Frameworks/plugins/plugins.dat.\n- The real Cmd-Q latency is still a live check.\n\nDead rescanPlugins path: no code references remain; only a stale doc comment in VLCSettingsBackend.swift:7.\n\nD052 is justified: thumbnailer_get_device returns NULL by design (decoder.c:1595). No new decision was written by C-bridge.\n\nHDR renders (S10.BarMenu/hdr, S18.Sidebar/video) are unchanged: Auto-only, per the owner's C-09 decision.\n\nEngine untouched: `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty. No view or token code in C-bridge files. Edits outside ownership are small and declared.\n\nEvidence is in ../build/evidence/final4/C-bridge-verify-r1/: native-*.log, mutant-parentchain-media.log, mutant-stoppaused-fixture.log, hdr.png, sidebar-video.png.",
+  "liveChecks": [
+   {
+    "id": "C-bridge-f-fullscreen-subtitles",
+    "steps": "Play S01E01 (with .srt) and enter fullscreen. Wait for a cue, then move the pointer to the bottom edge so the control bar reveals. Then let it hide.",
+    "expect": "While the bar shows, the subtitle line sits fully above the control bar ('Italic narration.' not cut). When the bar hides, the subtitle returns to its normal position. The Settings sidebar Subtitle Offset value does not change."
+   },
+   {
+    "id": "C-bridge-f-offset-under-bar",
+    "steps": "In fullscreen with the bar revealed, set Subtitle Offset in the Settings sidebar to 40, let the bar hide, then quit and check vlcrc sub-margin.",
+    "expect": "The field shows 40, not 40 plus the bar height. Subtitles sit 40 px above the picture bottom after the bar hides. vlcrc sub-margin=40."
+   },
+   {
+    "id": "C-bridge-f-letterbox",
+    "steps": "Play a 2.39:1 (or 16:9) video fullscreen on a 16:10 display and reveal the control bar.",
+    "expect": "Subtitles rise only by the part of the bar that overlaps the picture. With a letterbox bar at least as tall as the control bar they do not move."
+   },
+   {
+    "id": "C-bridge-f-display-change",
+    "steps": "With the bar revealed in fullscreen, move the fullscreen window to a display with a different backing scale (Retina vs 1x), or toggle the bar after the move.",
+    "expect": "After the next reveal, subtitles clear the bar by the same visual amount on both displays. They are not raised twice as far or half as far."
+   },
+   {
+    "id": "C-bridge-f-compact-library",
+    "steps": "At a 640 pt wide window, play S01E01 with subtitles and open the compact library (Light and Dark).",
+    "expect": "The whole subtitle line is visible to the right of the library ('...one, first cue.' not cut). This depends on A-window's video geometry; the bridge inset stays 0 here."
+   },
+   {
+    "id": "C-bridge-fullscreen-osd",
+    "steps": "In a window, press F (VLC toggle-fullscreen hotkey), then press F again. Then press Esc while in a window.",
+    "expect": "The OSD shows 'Fullscreen' / 'Pressed F', then 'Exit fullscreen' / 'Pressed F'. Esc in a window shows no fullscreen line."
+   },
+   {
+    "id": "C-13-cmdq-latency",
+    "steps": "With a video playing, press Cmd-Q while recording os_signpost for subsystem org.videolan.vlc.macosx-redesign (Instruments Points of Interest or `log stream --signpost`).",
+    "expect": "The 'Services' shutdown interval and the process exit finish well under 1 s. No multi-second plugin-unload step (the bundle ships plugins.dat)."
+   },
+   {
+    "id": "C-02-live",
+    "steps": "Put a video and a sidecar named like \"Show (2024) - Bob's cut.srt\" in one folder. Open the video, then use Add Subtitles on the same .srt.",
+    "expect": "Exactly one subtitle track appears, and it is selected; there is no duplicate."
+   },
+   {
+    "id": "C-bridge-extension-menu-live",
+    "steps": "Activate a Lua extension that adds menu entries after activation. Open View > Extensions, close it, and open it again.",
+    "expect": "The submenu shows the extension's current entries, at the latest on the second opening. Triggering an entry runs the script."
+   }
+  ],
+  "ownerDecisions": [
+   "D052 (agent, 2026-10-17): preview thumbnails decode in software. This is an engine limit: thumbnailer_get_device returns NULL by design. Waiting for the owner.",
+   "C-09 (owner, 2026-10-16): HDR stays Auto-only. It covers the S10.BarMenu/hdr and S18 sidebar HDR minor-diffs; nothing is pending.",
+   "CODE-02/C-08 typed wire DTOs and the B-15/CODE-08 MXRServicesBridge.m split are deferred until after the parallel wave; the owner or orchestrator should schedule them."
+  ]
+ }
+}

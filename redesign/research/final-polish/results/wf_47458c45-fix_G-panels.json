@@ -1,0 +1,66 @@
+{
+ "status": "partial",
+ "summary": "I fixed every G-panels finding in code except G-05, which the tokens area had already reverted. `swift build` passes and the new MXRCore tests pass (4/4). The live-app checks did not run: wait-idle exited 1 because the owner was using the Mac (idle 36 s). The keyboard routing (G-03/G-04) and click/drag behaviour (G-10) are therefore verified only by code path and unit tests, not in the installed app. Renders compared by eye: S18 now matches Figma 498:2965 (field-only \"0 deg\" Rotate, active Auto HDR, no caption, rows back in place). In S20 the delay-slider labels and the rows below now line up with Figma. The Speed slider keeps its Figma spacing (5187:24544 differs from 1905:7365). S17 shows the timeline toggle usable. The new Appearance entries match 800:1126 in Relative mode (text value over ticked slider, 86 pt rows) and 07m52.9 in Pixels mode (18px, 2px and 0% fields). The S17 check still says FAIL, because of the intentional D033 row differences (Waveform/Metadata instead of Statistics). The other checks report REVIEW with only small local differences. I could not run the snapshot test target: it fails to compile in files owned by other areas.",
+ "fixed": [
+  "G-01: removed the Subtitle Offset slider and the Pixels-mode Font Size slider; both are field-only rows with clamping (SettingsSidebar). Added a DECISIONS D033 bullet.",
+  "G-02: restored the wave-1 Rotate field: '%.0f deg', wraps typed angles (-90 becomes 270), wideRowHeight. Evidence: final/G-panels/S18.Sidebar_video/side-by-side.png",
+  "G-03: added InterfaceModel.panelListHasKeyboardFocus, set from QueuePanel onChange of the queue/bookmark focus and cleared in onDisappear. Added MXRCore FocusedListKeys (Return, arrows, Backspace/Delete, Option+Up/Down; never Space). MXRKeyRouting.shouldHandle and shouldPerformMenuEquivalent now let those keys through while a list has focus; wired in MXRAppController and MXRNativeMenus. Removed .onKeyPress(.space). Test: PanelValuesRegressionTests.testFocusedListKeys",
+  "G-04: queue and bookmark rows use .focusable(true, interactions: .activate).focusEffectDisabled() and draw an fgA1 strokeBorder ring (PanelRowFocusRing) only when keyboard-focused. Clicks no longer assign focus.",
+  "G-06: Relative mode shows Font Size (6 stops, VLC order) and Outline Thickness (4 stops) as a text value over a ticked slider in the new PanelValueSliderRow (37 pt text row + 5 + 24 + 10/10 padding = 86 pt, per 804:1341/1342). Background Opacity has 11 ticked 10% stops (848:1686). Pixels mode shows 'Npx' fields for Font Size and Outline Thickness (nearest 0/2/4/6 via SubtitleOutline.nearest) and a '0%' field. The 'Automatic' title is now 'Auto'. PanelSlider gained `stops` (end ticks included) and valueDescription. Added gallery entries S20.Sidebar/subtitles-appearance and S20.Sidebar/subtitles-appearance-pixels (MXRSidebarContentPreview).",
+  "G-07: replaced the Resolution caption with .help on the row.",
+  "G-08: the HDR row is enabled and offers only Auto; its .help is kept.",
+  "G-09: the bookmark rename field is styled (plain, body font, fgA1, bgB2, Radius.md); it saves on blur, an empty name cancels, and edit state is cleared on tab change and onDisappear.",
+  "G-10: removed the zero-distance DragGesture and pressedModifiers; the tap uses NSEvent.modifierFlags.intersection(.deviceIndependentFlagsMask).",
+  "G-11: SubtitleStyle.background is now computed from backgroundOpacity. Custom Codable ignores a decoded background flag but still encodes it for the bridge. The init parameter and didSet are gone. Test: testLegacyBackgroundFlagFollowsOpacity",
+  "G-15: added VideoEffects.resolutionChoices (single list, also used by the dropdown) and VideoEffects.sanitized. VideoEffectsModel.set applies it, so legacy presets with 2160p/HDR10 still apply flip, zoom, crop and filters. Test: testLegacyVideoPresetKeepsSupportedEffects",
+  "G-14: the S17 fixture selects the episode's external .srt track (no product default changed). PanelSlider labels now sit 10 pt below the track for the 1905:7365 slider, with 4 pt kept underneath so the following rows stay at Figma positions. The Speed slider (5187:24544) uses labelsBelowThumb.",
+  "G-13: deleted PanelMetric.rowPitch and dropdownListMaxHeight."
+ ],
+ "notFixed": [
+  {
+   "id": "G-05",
+   "why": "Another agent (tokens/library area, uncommitted) had already reverted the four QueuePanel uses to fgA3 and removed readableSecondary from colors.json. I left that as is. Tests/MXRUISnapshotTests/ThemeContrastTests.swift still references Theme.Color.readableSecondary, and that owner must update it."
+  },
+  {
+   "id": "live-verification",
+   "why": "wait-idle.sh exited 1 (owner active, idle 36 s), so I did not do the installed-app checks: Full Keyboard Access Tab, Return to play, arrows, Space still pausing, Cmd-click and drag-reorder."
+  },
+  {
+   "id": "shift-click-range",
+   "why": "The G-10 verify step mentions Shift-click, but PanelQueueInteraction.selection has never supported a Shift range, so it is out of scope for this fix."
+  }
+ ],
+ "filesChanged": [
+  "modules/gui/macosx_redesign/Sources/MXRUI/Panels/SettingsSidebar.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Panels/EffectsSidebars.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Panels/PanelControls.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Panels/QueuePanel.swift",
+  "modules/gui/macosx_redesign/Sources/MXRCore/Values/Effects.swift",
+  "modules/gui/macosx_redesign/Sources/MXRCore/Models/EffectsModels.swift",
+  "modules/gui/macosx_redesign/Sources/MXRCore/Values/FocusedListKeys.swift",
+  "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/PanelsGallery.swift",
+  "modules/gui/macosx_redesign/Tests/MXRCoreTests/PanelValuesRegressionTests.swift",
+  "modules/gui/macosx_redesign/Sources/MXRCore/Models/InterfaceModel.swift",
+  "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRKeyRouting.swift",
+  "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRAppController.swift",
+  "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRNativeMenus.swift",
+  "redesign/docs/DECISIONS.md"
+ ],
+ "editsOutsideOwnership": [
+  "Sources/MXRCore/Models/InterfaceModel.swift: added `public var panelListHasKeyboardFocus = false` after isCapturingShortcut (G-03)",
+  "Sources/MXRPlugin/MXRKeyRouting.swift: shouldHandle gains panelListFocused/binding parameters (defaulted); shouldPerformMenuEquivalent gains panelListFocused (defaulted) (G-03)",
+  "Sources/MXRPlugin/MXRAppController.swift: key monitor passes panelListFocused and KeyBinding(event:) to shouldHandle (G-03)",
+  "Sources/MXRPlugin/MXRNativeMenus.swift: shouldPerformKeyEquivalent passes panelListFocused (G-03)",
+  "redesign/docs/DECISIONS.md: three bullets appended to D033 (sliders per frame, HDR Auto-only dropdown with Resolution tooltip, list keyboard focus)",
+  "New file Sources/MXRCore/Values/FocusedListKeys.swift (pure key policy, unit-tested)"
+ ],
+ "evidence": [
+  "<scratch> (Rotate field-only '0 deg', HDR active Auto, no caption, rows aligned with Figma)",
+  "<scratch> (delay labels now at Figma y)",
+  "<scratch> (timeline toggle enabled; Speed labels unchanged)",
+  "<scratch> vs figma-800-1126.png (Relative word sliders)",
+  "<scratch> (Pixels fields, matches 07m52.9)",
+  "swift test --filter PanelValuesRegressionTests: 4/4 passed (legacy background decode, outline nearest/'Auto', legacy video preset sanitize, FocusedListKeys)"
+ ],
+ "notesForOthers": "Integrator and other areas:\n(1) Tests/MXRUISnapshotTests/PanelAuditRegressionTests.swift:38 calls MXRPlayerMenus.playlistDestinations, which the Player area removed. That test file is not mine. The Player owner should update it.\n(2) ThemeContrastTests still references Theme.Color.readableSecondary, which the tokens owner deleted.\n(3) The MXRUISnapshotTests target currently fails to compile in AnchoredPopupPinPolicyTests and DialogIsolationTests (other areas), so I could not run PanelAuditRegressionTests, GalleryRenderTests or PanelsTests. Please run them in the full runner. testOpacityEnablesBackgroundAndZeroDisablesIt should still pass now that background is computed.\n(4) SubtitleStyle.init no longer takes `background:`, and nothing in Sources or Tests passed it.\n(5) Font Size stops follow VLC's order (Auto, Smaller … Larger). Figma 804:1341 puts the 'Auto' thumb at stop 3 of 6, which looks like a designer placeholder; this is recorded in D033.\n(6) A live check is still needed: with Full Keyboard Access, Tab to a queue row, Return plays it, ↑/↓ move the selection, ⌥↑/⌥↓ reorder, Space still pauses, no system accent ring appears, and Cmd-click and drag-reorder still work."
+}

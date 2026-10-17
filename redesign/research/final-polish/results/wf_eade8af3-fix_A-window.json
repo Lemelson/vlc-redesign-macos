@@ -1,0 +1,52 @@
+{
+ "status": "partial",
+ "summary": "I continued from the WIP in 951f073be2. Most findings were already done on disk, and I checked each one against the code rather than the previous fixer's notes. I made three changes. (1) I fixed a real layout bug in PlayerRowLayout: the centred title's gap was counted in `fixed` but never placed, so the trailing items stopped 7 pt short of the bar's padding. (2) I gave the Player-6 fixture a third queue item so Next is enabled, as in Figma. (3) I corrected the row-fit arithmetic in the A-07 test, which was failing. swift build is green. The targeted suites pass: WindowCompositionTests, GalleryRenderTests/testShipping* (including the new strict S01 test against Player-6), AnchoredPopupPinPolicyTests, PlayerProgressRegressionTests, SettingsWorkflowTests and CustomizationInteractionTests, 33 tests with 0 failures. I looked at the renders myself next to Figma Player-6. The real-app part of A-05 was not done: the owner was using the Mac (wait-idle exited 1 after 540 s), and the native lock was held by C-bridge for the whole window, so I never acquired it and did not install or launch anything.",
+ "fixed": [
+  "A-01: the `.filter` that dropped the folder chip is gone. The chip falls back to 'Videos'/'Songs' (MXRControlTitles.folderChip). Test: testFolderChipStaysForMediaOutsideTheLibrary checks the divider is followed by the chip, and pixel-checks that the chip is drawn in the S01 shipping render. Render: A-window/r3/top.png shows 'Videos' after the divider, matching Figma Player-6.",
+  "A-04: AppModel.windowTitle uses VLC's parsed title when it differs from the file name, otherwise the file name without its extension. The full name goes to windowTitleFileName (tooltip and AX label). Recorded as D042. Render: S13 shows 'The Wand S01E11', with no .mp4.",
+  "A-02: PlayerGeometry.informationRect keeps the OSD, metadata and toast inside the visible video: right of the compact library, left of an open right panel, between the bars. There is no OSD over the full library. Test: testOSDAndToastStayInTheVisibleVideo. Render: A-window/r2/S13_Window_osd-queue.png, where the OSD is left of the queue.",
+  "A-08: the resume toast is framed to informationRect, so it is inset and centred in the video. Gallery entry S12.Window/continue-narrow; render A-window/r2/S12_Window_continue-narrow.png.",
+  "A-06: the PiP placeholder is now the PiP icon plus one fg2 caption, both from copy constants (MXRPlayerCopy), and the whole placeholder is a button that returns the video. Recorded in D042. Gallery entry S01.Window/pip (MockPlayer gained setPictureInPicture). Render: A-window/r2/S01_Window_pip.png.",
+  "A-07: PlayerGeometry.headerWidths truncates the folder chip first, and hides the title (width 0) rather than drawing '…'. Thresholds come from MXRPlayerMetrics. Test: testNarrowTopBarHidesTheTitleInsteadOfAnEllipsis. Render: A-window/r2/S01_Window_narrow.png. In this pass I also removed the title-gap double count in PlayerRowLayout `fixed` (PlayerBars.swift).",
+  "A-09: the headerFolderWidth `reserved` parameter is gone, and the arithmetic test was replaced by the headerWidths layout test.",
+  "A-12: AnchoredPopupPinPolicyTests now presents real popups through MXRPopupAnchor/MXRPopupCenter. They check: a control-bar popup pins only the control bar, a top-bar popup pins only the top bar, unowned popups and popups at the pointer pin nothing, and dismissing releases the pin.",
+  "A-13: AppModel.canPerform disables toggleQueue, toggleSettingsSidebar, showSubtitleTracks and showAudioTracks over the full library. Test: testPanelCommandsAreOffOverTheFullLibrary.",
+  "A-03: D043 (proposed, needs owner sign-off) records that the Light bars use BG/A3 75 % over the window. The S72.Window/light entry notes now mark the bar colour as a documented known difference. The bars were not darkened.",
+  "A-11: a D041 recommendation is recorded in DECISIONS: keep the pause pin, with evidence 04m10.9 and Player-6. It is still waiting for owner sign-off. No code change.",
+  "A-05 (offscreen part only): the ShippingGallery.figmaPlayer6 fixture now holds Player-6's media data: 'VLC Media Player' title, 'Videos' chip, 00:02:10 of 00:25:40, volume 50 %. In this pass I added a third queue item so Previous and Next are both enabled. GalleryRenderTests.testShippingWindowMatchesFigmaPlayer6OutsideDocumentedDeviations passes strictly over four regions.",
+  "A-10: another area already fixed this in MXRVoutWindow.m (C-06 work). Routing is now decided synchronously on the main thread from an atomic filter flag kept current by a var callback, and super is called synchronously. Move tracking is installed only while VLC wants the pointer. Verified by reading the code; I made no edits there."
+ ],
+ "notFixed": [
+  {
+   "id": "A-05 (runtime part)",
+   "why": "Not done. wait-idle.sh 540 exited 1 (the owner was using the Mac), and the native lock was held by C-bridge from 18:44 MSK, so my acquire timed out. I never held the lock, did not install, and did not launch the app. Still open: real-window captures of S01, S72, the compact library, the queue and Hide UI; CPU at 1080p; fullscreen cursor hiding; the PiP window. The integrator should run these under the lock."
+  },
+  {
+   "id": "A-03/A-11 sign-off",
+   "why": "D043 and the D041 recommendation need the owner's decision. The docs are written; the status stays 'proposed' until the owner decides."
+  }
+ ],
+ "filesChanged": [
+  "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerBars.swift",
+  "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/ShippingGallery.swift",
+  "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/WindowCompositionTests.swift",
+  "(from the prior WIP 951f073be2, verified) MXRAppView.swift, PlayerGeometry.swift, PlayerMetrics.swift, PlayerChrome.swift, AppModel+Preferences.swift, AppModel.swift, MockPlayer.swift, GalleryRenderTests.swift, AnchoredPopupPinPolicyTests.swift, PlayerProgressRegressionTests.swift, redesign/docs/DECISIONS.md (D042, D043, D041 recommendation)"
+ ],
+ "editsOutsideOwnership": [
+  "(prior WIP) Sources/MXRCore/App/AppModel+Preferences.swift: windowTitle and windowTitleFileName (A-04)",
+  "(prior WIP) Sources/MXRCore/App/AppModel.swift: canPerform full-library guard (A-13)",
+  "(prior WIP) Sources/MXRMockBackend/MockPlayer.swift: setPictureInPicture for the S01.Window/pip gallery entry",
+  "(prior WIP) Tests/MXRUISnapshotTests/{WindowCompositionTests,GalleryRenderTests,AnchoredPopupPinPolicyTests,PlayerProgressRegressionTests}.swift",
+  "(prior WIP) redesign/docs/DECISIONS.md"
+ ],
+ "evidence": [
+  "<scratch> (S01 top bar next to Figma p6_top.png)",
+  "<scratch>",
+  "<scratch>",
+  "<scratch>",
+  "<scratch>",
+  "<scratch> (33 tests, 0 failures)",
+  "mxr-snapshot check S01.Window/shipping: the only remaining FAIL region is the playhead at 346,1040. Figma's 7.3 % disagrees with its own 00:02:10 / 00:25:40, and the strict test documents and excludes that region."
+ ],
+ "notesForOthers": "PlayerRowLayout no longer counts the centred title's gap in the fixed width, so the trailing top-bar items now reach the bar's padding, 7 pt further right than before. At 640 pt with the compact library, the resume toast's message truncates to 'You alr…'. That copy is owned by whoever owns MXRContinueWatchingToast; at narrow widths it may be better to drop the message text. I left the native lock with C-bridge untouched: my acquire timed out and I never held it."
+}

@@ -1,0 +1,137 @@
+{
+ "area": "I-build",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "I-build has finished its work list. The audio-preferences flake (critic P1) has a root cause and a fix. The test plugin bank had no plugins.dat cache, so libvlc_InternalCleanup dlclosed every plugin. That was the silent stretch after \"removing keystore memory\": 1.5 s idle and more than 8 s under load. native-tests.py now runs vlc-cache-gen before any harness (C-bridge added this line to my file; it matches the shipped bundle). Shutdown now takes 33-48 ms, including under CPU load, against 1.5-1.6 s without the cache. The deadline stays at 8 s. The predecessor's diagnostics now compile in the real tree and run. Two compile/link breakages in the real audio suite are fixed: F-settings' half-done MXRAudioPreferenceServices.m was missing the vlc_plugin.h include, and harnesses had no vlc_module_name; they now get a weak one.\n\nOther items:\n- The per-window isReleasedWhenClosed contract is still green.\n- No-op make evidence is recorded: the second make in a row left the archive, dylib and .la mtimes unchanged.\n- Accelerate is autolinked from the Swift objects, so no Makefile.am flag is needed.\n- lock.sh now takes MXR_LOCK_DIR.\n- SCREENS.md is rewritten: the new preamble drops the CODEX_STATUS and codex/native-redesign citations and the outdated S62 text, and a new \"Parity · live\" column per S-id comes from finish/parity.json plus the live run.\n- BUILD.md and WORKFLOW.md are updated.\n- Dead code is removed (MXRCoreInfo with its one-line smoke test, and the redundant run-library-contract.sh).\n- I added a positive control for DialogKeyLoopTests and confirmed with a mutation that it catches a Tab that is never delivered.\n- --scheme light now works for shipping-window entries (rendered and checked).\n\nNot committed (per the rules). Nothing installed. The full Swift runner was not run, only the targeted suites.",
+   "fixed": [
+    "(d) Native audio flake, critic P1: cause found and fixed in the harness. There was no plugins.dat in the test bank, so module_EndBank dlclosed every plugin inside libvlc_InternalCleanup. tools/native-tests.py runs $BUILD/bin/vlc-cache-gen on the work plugin dir before any harness (C-bridge put this line into my file; I verified it and added a test). Phase markers show the step: with the cache, 'removing keystore memory' to 'libvlc_InternalDestroy' takes 35 ms; without it, 1588 ms. Evidence: ../build/evidence/final4/I-build/native-audio-{1,2,3}.log (33-44 ms), native-audio-load-{1,2,3}.log (34-48 ms under CPU load), nocache-load-{1,2,3}.log (1481-1599 ms). Deadline kept at 8 s.",
+    "(d) Deadline diagnostics (predecessor's half-done piece) are finished. The real audio-preferences harness now compiles with MXRNativeTestDiagnostics.h and prints [+ms] phases. On a miss it records the phase, the last engine log line and a sample call graph into MXR_NATIVE_EVIDENCE_DIR. tools/test-native-diagnostics.py passes (2 tests).",
+    "Two breakages in the real audio suite are fixed. (1) MXRAudioPreferenceServices.m (F-settings file, C-bridge's half-done command-line-options code) used CONFIG_CLASS/CONFIG_ITEM_* without <vlc_plugin.h>; I added one include line. (2) msg_Warn in bridge helpers needs vlc_module_name, which only the plugin descriptor defines. native-tests.py now links a weak `vlc_module_name = \"macosx_redesign\"` into every harness. contracts, build-runtime and audio suites all PASS: ../build/evidence/final4/I-build/native-{contracts,build-runtime,audio}-final.log",
+    "Regression test: test_audio_gate_indexes_plugin_bank_before_any_harness_runs in tools/test-native-runtime-isolation.py. It checks that vlc-cache-gen runs exactly once on work/plugins before any harness, and that audio-preferences gets VLC_PLUGIN_PATH=work/plugins and MXR_NATIVE_EVIDENCE_DIR=work. It fails on a copy of native-tests.py with the cache step disabled (checked through MXR_NATIVE_RUNNER).",
+    "Fixed test_media_provisions_discoverable_fixture_and_unique_marker: it assumed media-runtime was the last call, which broke when an effects-runtime step was added to the media suite. It now selects the media-runtime call explicitly.",
+    "(c)/(b) Per-window NSWindow isReleasedWhenClosed contract (predecessor): checked, and test-build-contracts.py is still OK with the new test file present.",
+    "(d)/(c) B-03 no-op make, mtime evidence under the lock: make1 relinked (the tree had changed); make2 and make3 rebuilt because other agents edited MXRServicesBridge.m and Swift files during the run (listed); make4 kept archive, dylib and .la at 1792192822/1792192823/1792192824. Only the always-invoked SwiftPM GEN line and plugins.dat regeneration ran. Evidence: ../build/evidence/final4/I-build/noop-make.txt and make-{1..4}.log",
+    "(d) Accelerate: verified with the real build under the lock (no install). The plugin links Accelerate.framework and libswiftAccelerate through Swift autolink (otool -L in noop-make.txt; the installed fae8f04dc0 plugin also shows it). No Makefile.am flag is needed; this is documented in BUILD.md section 6.",
+    "(f) lock.sh: the lock directory comes from MXR_LOCK_DIR (default ../build/locks/native.lock). It creates the parent directory, quotes paths, and adds status/path subcommands. Tested: acquire, contended acquire waits (timeout 124), release.",
+    "(d)/(f) SCREENS.md: the preamble is rewritten for claude/final. It no longer cites CODEX_STATUS.md or codex/native-redesign, and the S62 text now says local Lua install/enable/run works (D039/D045) and the catalog is not offered. HDR is Auto-only (owner). A new 'Parity · live' column on all 72 rows holds the worst offscreen verdict per S-id from finish/parity.json, with the owning area. Live results added: S01/S06/S17/S22 PASS, S05 FAIL (fullscreen top edge), S72 FAIL (Light bars, tint, video rescale), S12 NOT-RUN.",
+    "(d) BUILD.md: native-tests.py details (work dir and keep-on-failure, per-step timing, vlc-cache-gen and why, diagnostics header, MXR_NATIVE_EVIDENCE_DIR, weak vlc_module_name, the lock with MXR_LOCK_DIR), plus the measured no-op make and the Accelerate autolink note. WORKFLOW.md: deadline diagnostics, and the shared lock replaces the ad-hoc app.lock and points to wait-idle.sh.",
+    "(b) critic P2, dead code: the rescanPlugins path is already gone (no git grep hits in code). Removed the unused MXRCoreInfo (Sources/MXRCore/Foundation/MediaTime.swift, unowned) and its one-line-predicate test Tests/MXRCoreTests/SmokeTests.swift. Removed module/tests/run-library-contract.sh, a redundant wrapper around `native-tests.py --suite library`; the library-contract.m comment now points to that command and to make check-macosx-redesign-library. I scanned the other unowned Swift files for unreferenced declarations and found none.",
+    "(c) DialogKeyLoopTests had no positive control. New Tests/MXRUISnapshotTests/DialogKeyLoopControlTests.swift uses the same off-screen window, view stack and window.sendEvent Tab path without a dialog, and asserts that focus moves between two fields. It passes, and a mutation (no sendEvent) makes it fail. DialogKeyLoopTests and DialogKeyLoopGuardTests still pass.",
+    "(e) The --scheme light gap for shipping-window entries is checked and fixed (by A-window). Rendered S01.Window/shipping and S01.Window/pip in dark and light; the light renders show light bars and placeholder. Evidence: ../build/evidence/final4/I-build/scheme/{ship,pip}-{dark,light}.png"
+   ],
+   "notFixed": [
+    {
+     "id": "(a) parity.json screens owned by I-build",
+     "why": "No screen in finish/parity.json has owner I-build, so there is nothing to fix. The tooling trap that touched my area (--scheme light under shipping-window) is verified fixed."
+    },
+    {
+     "id": "(c) B-03 reviewer note: a true idle no-op is impossible while 10 agents edit",
+     "why": "I recorded a no-op make (make4) with unchanged mtimes, and listed the files that changed during it. A fully frozen-tree measurement is for the integrator after the wave's commit: run make twice and compare the mtimes."
+    },
+    {
+     "id": "Live group 8-bridge-build (I-build live results)",
+     "why": "Live UI is not allowed in this wave. The checks are in liveChecks."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/tools/native-tests.py",
+    "modules/gui/macosx_redesign/tools/test-native-runtime-isolation.py",
+    "modules/gui/macosx_redesign/module/bridge/MXRAudioPreferenceServices.m",
+    "modules/gui/macosx_redesign/module/tests/library-contract.m",
+    "modules/gui/macosx_redesign/module/tests/run-library-contract.sh (deleted)",
+    "modules/gui/macosx_redesign/Sources/MXRCore/Foundation/MediaTime.swift",
+    "modules/gui/macosx_redesign/Tests/MXRCoreTests/SmokeTests.swift (deleted)",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/DialogKeyLoopControlTests.swift (new)",
+    "redesign/design/SCREENS.md",
+    "redesign/docs/BUILD.md",
+    "redesign/docs/WORKFLOW.md",
+    "redesign/research/final-polish/workflows/lock.sh"
+   ],
+   "editsOutsideOwnership": [
+    "module/bridge/MXRAudioPreferenceServices.m (F-settings; C-bridge's half-done code): one line `#include <vlc_plugin.h> /* CONFIG_CLASS, CONFIG_ITEM_* */`. Without it the audio suite and the bridge-smoke harness failed to compile (CONFIG_CLASS undeclared). The file was re-read right before the edit, and a later concurrent edit by its owner kept the line.",
+    "Tests/MXRUISnapshotTests/DialogKeyLoopControlTests.swift: a new file (no existing D-menus file edited), the positive control the I-build verifier asked for in D-menus' DialogKeyLoopTests."
+   ],
+   "decisionsWritten": [],
+   "ownerDecisions": [
+    "No new decision was written by I-build. Still waiting for the owner, per the wave brief: D042, D044, D046, D047, D048, D049, D050, D051, D052, and the D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies)."
+   ],
+   "liveChecks": [
+    {
+     "id": "I-live-installed-gate",
+     "steps": "After the integrator installs with tools/install-app.sh, with the app closed: make -C ../build/codex-arm64/modules check-macosx-redesign-app MXR_SMOKE_MEDIA='../build/media/<S01E01 file> ../build/media/<S01E03 file>'",
+     "expect": "PASS. The redesign interface starts, VideoToolbox and auhal are used, subtitles load from the .srt, the exit is clean, and there is no 'stale plugins cache' line in modules/macosx-redesign-smoke.log."
+    },
+    {
+     "id": "I-live-quit-latency",
+     "steps": "Launch /Applications/VLC Redesign.app, play S01E03 for 10 s, press Cmd-Q, and time from the key press until the process exits (e.g. `log stream` or polling pgrep every 50 ms). Repeat 3 times.",
+     "expect": "Exits in about 1 s or less each time. The installed bundle carries plugins.dat, so the dlclose-all stretch seen in the uncached test bank (1.5-8 s) must not appear."
+    },
+    {
+     "id": "I-live-bundle-identity",
+     "steps": "After install: codesign --verify --deep --strict '/Applications/VLC Redesign.app'; compare the plugins.dat mtime with every plugin's mtime; run otool -L on Contents/Frameworks/plugins/libmacosx_redesign_plugin.dylib | grep Accelerate; check that /Applications/VLC.app is untouched (mtime unchanged) and that no build-dir VLC.app remains.",
+     "expect": "Signature valid; plugins.dat newer than every plugin; Accelerate listed; exactly one redesign bundle; stock VLC untouched."
+    }
+   ],
+   "evidence": [
+    "../build/evidence/final4/I-build/native-audio-{1,2,3}.log and native-audio-load-{1,2,3}.log: cached bank, shutdown 33-48 ms, PASS",
+    "../build/evidence/final4/I-build/nocache-load-{1,2,3}.log: same binary without plugins.dat, shutdown 1481-1599 ms, all inside libvlc_InternalCleanup right after 'removing keystore memory'",
+    "../build/evidence/final4/I-build/native-{contracts,build-runtime,audio}-final.log: all PASS with the current tree",
+    "../build/evidence/final4/I-build/noop-make.txt plus make-{1..4}.log: mtimes and changed inputs per make; otool -L shows Accelerate",
+    "../build/evidence/final4/I-build/scheme/: shipping-window light and dark renders of S01.Window/shipping and S01.Window/pip"
+   ],
+   "notesForOthers": "[\"C-bridge: the shutdown flake's cause was the uncached test bank (fixed in native-tests.py with vlc-cache-gen; your line is kept and now has a test). Bridge helpers may now use msg_* in harnesses: native-tests.py links a weak vlc_module_name. A new harness compiled outside compile() (like the Library regressions) must add it itself.\", \"F-settings/C-bridge: MXRAudioPreferenceServices.m needed `#include <vlc_plugin.h>` for CONFIG_CLASS/CONFIG_ITEM_*. I added that one line; please keep it.\", \"A-window: in the shipping-window light render (scheme/ship-light.png) the video runs edge to edge with no inset frame, while the dark render keeps the 10 pt framed video. This may relate to the live S72 finding that the Light video rescales when the library opens.\", \"Next wave: set MXR_LOCK_DIR for every agent (or rely on the default ../build/locks/native.lock) instead of using sed on lock.sh. `lock.sh status` shows the holder.\", \"redesign/tools/figma/gen_screens.py (not mine) regenerates SCREENS.md from scratch and would drop the new Parity · live column and the preamble. Do not rerun it without porting them.\"]"
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "summary": "I checked every I-build work-list item on its own evidence and found no blocker or major. The only open points are minor.\n\n**(d) Audio flake (critic P1)**\n- Under the native lock I ran `native-tests.py --suite audio` 4 times in a row: 3 idle and 1 with 8 busy CPU cores. All passed. Engine shutdown took 35-54 ms against the unchanged 8 s deadline.\n- `--suite contracts` also passed under the lock.\n- This matches the fixer's measurements: with the plugins.dat cache shutdown is 33-48 ms, and in the uncached runs `removing keystore memory` to `libvlc_InternalDestroy` took about 1.5 s. So the root cause (no plugins.dat in the test bank, so cleanup dlcloses every plugin) is well supported.\n- I ran a mutation in a copy (`MXR_NATIVE_RUNNER` pointing at a native-tests.py with the `run([cache_gen, plugins])` line removed). The new `test_audio_gate_indexes_plugin_bank_before_any_harness_runs` fails (`0 != 1`), so it is a real regression test.\n- `tools/test-native-diagnostics.py` passes (2 tests). It covers the deadline-miss phase and sample capture.\n\n**Per-window `isReleasedWhenClosed` contract**\n- `windows_released_on_close` in `tools/test-build-contracts.py` now checks each construction against its own binding. It covers unbound constructions, local subclasses and a reused name, and it scans `Sources/` as well as `Tests/`. Its self-test includes the two-window case that slipped through before.\n- All 8 tool test scripts pass (log in my evidence folder).\n\n**No-op make, Accelerate, lock**\n- B-03: `noop-make.txt` shows that make4 left the archive, dylib and .la mtimes unchanged.\n- Accelerate: `otool -L` on the build-dir plugin lists `Accelerate.framework` and `libswiftAccelerate` with no Makefile.am flag. The only Makefile.am change adds the diagnostics test to the check target.\n- `lock.sh` honours `MXR_LOCK_DIR`. I tested acquire, status and release on a temp directory.\n\n**SCREENS.md**\n- The preamble no longer cites CODEX_STATUS.md or codex/native-redesign, and the S62 text is updated (local Lua works per D039/D045; the catalog is not offered).\n- I recomputed the worst offscreen verdict per S-id from `finish/parity.json`. Its 142 checks (70 match, 48 minor, 7 major, 17 not checked) agree with the \"Parity · live\" cell on all 72 rows.\n- The live results match `live-run-1-window.json`: S05 FAIL, S72 FAIL, S12 NOT-RUN, S01/S06/S17/S22 PASS.\n\n**BUILD.md / WORKFLOW.md** describe the new runner behaviour, the lock and the Accelerate autolink.\n\n**Dead code**\n- `MXRCoreInfo` and its one-line SmokeTests, and `run-library-contract.sh`, are removed.\n- `git grep` finds no remaining references to them or to `rescanPlugins`.\n\n**DialogKeyLoopControlTests**\n- `swift build` is up to date.\n- `swift test --filter DialogKeyLoop` passes all 5 tests, including the new control.\n- The control drives the same `window.sendEvent` Tab path and asserts that focus really moves, so the isolation test is no longer vacuous.\n\n**Rendering**\n- I rendered S01.Window/shipping (shipping-window engine) in dark and light and compared them with Player-6. `--scheme light` now takes effect: light bars appear.\n- Dark matches Player-6 apart from the documented traffic lights and title-bar controls.\n- Light shows the video edge to edge with no 10 pt frame. This belongs to A-window (layout, possibly linked to the live S72 finding) and was already passed on to them.\n\n**Rules**\n- The engine is untouched: `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty.\n- No DECISIONS entries were written by I-build, and the Settings gate is untouched.\n- The one edit outside ownership (a `vlc_plugin.h` include in `MXRAudioPreferenceServices.m`) is minimal and justified.\n\nEvidence: ../build/evidence/final4/I-build-verify-r1/ (`audio-{1,2,3}.log`, `audio-load.log`, `contracts.log`, `tools-tests.txt`, `native-tests-mut.py`, `ship-{dark,light}.png`).",
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "modules/gui/macosx_redesign/tools/native-tests.py (cache_gen step)",
+    "description": "The plugins.dat indexing runs only `if cache_gen.exists() and any(plugins.iterdir())`. If `$BUILD/bin/vlc-cache-gen` is missing (for example a partial build), the step is skipped without a word and the uncached shutdown stretch that caused the flake comes back. It should fail loudly, or at least print a warning, when the audio, media or fixture suites run without it."
+   },
+   {
+    "severity": "minor",
+    "where": "redesign/docs/BUILD.md, noop-make.txt",
+    "description": "The no-op make measurement (make4) is credible, but files changed during it (MXRAudioPreferenceServices.m, MXREffectsServices.m), so it is not a frozen-tree measurement. A no-op make also takes about 54 s of wall time (SwiftPM planning plus `qml.deps`), which is slow for an edit-build loop. The integrator should re-measure twice on the committed tree."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRGalleryCatalog / shipping-window light render (A-window, not I-build)",
+    "description": "With `--scheme light`, S01.Window/shipping draws the video edge to edge with no 10 pt inset frame, while the dark render keeps the frame. This is an A-window layout difference, already passed on by the fixer and possibly related to the live S72 rescale finding. It is not caused by I-build files."
+   },
+   {
+    "severity": "minor",
+    "where": "redesign/tools/figma/gen_screens.py (unowned)",
+    "description": "Rerunning gen_screens.py would regenerate SCREENS.md and drop the new preamble and the Parity · live column. The hazard is only documented in notes. Either port the column into the generator or put a guard comment at the top of SCREENS.md."
+   }
+  ],
+  "liveChecks": [
+   {
+    "id": "I-live-installed-gate",
+    "steps": "After the integrator installs with tools/install-app.sh, with the app closed, run: make -C ../build/codex-arm64/modules check-macosx-redesign-app MXR_SMOKE_MEDIA='<S01E01 file> <S01E03 file>' (both under ../build/media/).",
+    "expect": "PASS: the redesign interface starts, VideoToolbox and auhal are used, the .srt subtitles load, the exit is clean, and modules/macosx-redesign-smoke.log has no 'stale plugins cache' line."
+   },
+   {
+    "id": "I-live-quit-latency",
+    "steps": "Launch /Applications/VLC Redesign.app, play S01E03 for 10 s, press Cmd-Q, and time from the key press until the process exits (poll pgrep every 50 ms). Do this 3 times.",
+    "expect": "Each quit takes about 1 s or less, with no multi-second dlclose stretch."
+   },
+   {
+    "id": "I-live-bundle-identity",
+    "steps": "After the install: run codesign --verify --deep --strict on /Applications/VLC Redesign.app; check that plugins.dat is newer than every plugin; run otool -L on libmacosx_redesign_plugin.dylib and grep for Accelerate; confirm the /Applications/VLC.app mtime is unchanged and no build-dir VLC.app exists.",
+    "expect": "The signature is valid, plugins.dat is the newest, Accelerate is listed, there is exactly one redesign bundle, and stock VLC is untouched."
+   },
+   {
+    "id": "I-live-noop-make",
+    "steps": "After the wave commit, with no agents editing: under the lock, run make -C ../build/codex-arm64 -j8 twice and compare the mtimes of libMXRPlugin.a, libmacosx_redesign_plugin.dylib and its .la after each run.",
+    "expect": "The second make leaves all three mtimes unchanged."
+   }
+  ],
+  "ownerDecisions": [
+   "I-build wrote no new decision. Still waiting for the owner: D042, D044, D046, D047, D048, D049, D050, D051, D052, and the D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies)."
+  ]
+ }
+}

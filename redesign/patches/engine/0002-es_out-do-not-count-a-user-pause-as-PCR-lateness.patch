@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lemelson <97357844+Lemelson@users.noreply.github.com>
+Date: Wed, 14 Oct 2026 15:07:20 +0300
+Subject: [PATCH 2/5] es_out: do not count a user pause as PCR lateness
+
+While the input is paused, the input clock is anchored at the pause
+date (i_pause_date) and shifted by the pause length on resume. PCR
+updates received while paused, for example during the buffering of a
+paused seek, are nevertheless converted with vlc_tick_now(). The longer
+the pause, the later the PCR looks: input_clock_Update() reports it as
+late, es_out resets buffering, and playback skips past the requested
+target.
+
+The rebuffering work (ec61ad7474, be5cd7a749) already uses the frozen
+pause date for download stalls (b_rebuffering). Use it for every paused
+state, through the existing EsOutIsPaused() helper (user pause or
+rebuffering). The pause anchor, locking and rate handling are
+unchanged.
+
+Reproduction (libvlccore at 4ca4eb0c3e with the decoder first-picture
+patch, macOS arm64): play, pause for about 2 s, then seek while paused.
+LLDB shows a late PCR of 1,005,561 us for a 2 s pause, then a buffering
+reset; the displayed picture is past the requested target.
+
+Narrow change, second upstream candidate together with the decoder
+first-picture fix.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/input/es_out.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/input/es_out.c b/src/input/es_out.c
+index 1617513..87041ae 100644
+--- a/src/input/es_out.c
++++ b/src/input/es_out.c
+@@ -3723,9 +3723,9 @@ static int EsOutVaControlLocked(es_out_sys_t *p_sys, input_source_t *source,
+         const bool b_low_delay = priv->b_low_delay;
+         bool b_extra_buffering_allowed = !b_low_delay && EsOutIsExtraBufferingAllowed(p_sys);
+         bool buffering = EsOutIsBuffering(p_sys) || p_sys->p_next_frame_es != NULL;
+-        /* Do not account the download stall as clock lateness. The input
+-         * clock will shift this frozen system date when rebuffering ends. */
+-        const vlc_tick_t system_now = p_sys->b_rebuffering
++        /* Do not account a user pause or download stall as clock lateness.
++         * Both use the frozen pause origin until the input clock resumes. */
++        const vlc_tick_t system_now = EsOutIsPaused(p_sys)
+                                     ? p_sys->i_pause_date : vlc_tick_now();
+         vlc_tick_t i_late = input_clock_Update(
+                             p_pgrm->p_input_clock,

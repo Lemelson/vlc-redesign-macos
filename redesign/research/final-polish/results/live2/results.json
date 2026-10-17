@@ -1,0 +1,964 @@
+[
+ {
+  "group": "0-install-gate",
+  "build": "Bundle mtime 1792196668 (Sat Oct 17 03:24:28 MSK 2026) at both start and end, which is the 03:24 install from ddd9d23a9d. The plugin dylib is dated 03:24:43 and plugins.dat 03:24:53.",
+  "checks": [
+   {
+    "id": "L0-bundle",
+    "area": "I-build",
+    "result": "PASS",
+    "expected": "Signature valid; plugins.dat newer than every plugin; Accelerate linked; VLC.app mtime 1743527633; only VLC.app and VLC Redesign.app in /Applications; no leftover .app in build dir; plugin dylib from Oct 17 03:24 or later",
+    "observed": "codesign --verify --deep --strict exits 0 (ad-hoc signature, id org.example.vlc-redesign.codex). plugins.dat mtime 1792196693; the newest of the 389 plugin dylibs is 1792196689, and find -newer plugins.dat returns nothing. otool -L lists Accelerate.framework (and libswiftAccelerate, weak). VLC.app mtime is 1743527633. /Applications holds only 'VLC Redesign.app' and 'VLC.app'. find on build/codex-arm64 (maxdepth 3) finds no .app. libmacosx_redesign_plugin.dylib is dated Oct 17 03:24:43 2026.",
+    "evidence": "../build/evidence/final5/live/0-install-gate/L0-bundle.txt"
+   },
+   {
+    "id": "L0-smoke",
+    "area": "I-build",
+    "result": "NOT-RUN",
+    "observed": "Not run. wait-idle.sh 300 120 exited 1 ('Mac in use (idle 76s, need 120s) after 300s'), and a follow-up HIDIdleTime read showed 87 s. Following the idle rule, I stopped before launching anything. The smoke launches the app with a window and audio, so it would disturb whoever is using the Mac. The native lock was taken and then released without running make.",
+    "evidence": "wait-idle output recorded in this report; app never launched (pgrep empty)"
+   },
+   {
+    "id": "L0-launch",
+    "area": "I-build",
+    "result": "NOT-RUN",
+    "observed": "I made the backup part. The app's preferences (org.example.vlc-redesign.codex.plist and the vlcrc folder) and Application Support/org.example.vlc-redesign.codex (ml/ml.db, macosx-redesign/*.json, library-store.json, thumbnails) are copied to ../build/evidence/final5/backup (the shared backup that later groups restore from) and to live/0-install-gate/backup. The launch itself was not run because the idle gate failed (the Mac was in use).",
+    "evidence": "../build/evidence/final5/backup/ ; ../build/evidence/final5/live/0-install-gate/backup/"
+   },
+   {
+    "id": "L0-noop-make",
+    "area": "I-build",
+    "result": "NOT-RUN",
+    "observed": "Not run. The polish wave is still editing the source in parallel, so the precondition ('after the wave commit, with no agents editing') is not met, and I stopped after the idle gate failed anyway. Rerun it after the wave commits, under the native lock.",
+    "evidence": "n/a"
+   }
+  ],
+  "extraFindings": [],
+  "settingsRestored": true,
+  "summary": "L0-bundle passed: the signature is valid, plugins.dat is newer than all 389 plugins, Accelerate is linked, the stock VLC.app is untouched (mtime 1743527633), /Applications and the build dir are clean, and the plugin dates from the 03:24 build. The redesign's prefs, vlcrc and ml.db are backed up to ../build/evidence/final5/backup for later groups. Then wait-idle.sh exited 1: the Mac was in use, with idle 76 s and then 87 s against the 120 s needed. Per the rules I stopped before launching the app, so L0-smoke and L0-launch are NOT-RUN. L0-noop-make is also NOT-RUN, because the wave is still editing and its precondition is not met. The app was never launched, and the app's data was compared with the backup and is identical. Both the live and native locks are released. The bundle mtime was 1792196668 at both the start and the end."
+ },
+ {
+  "group": "1-window-fullscreen",
+  "build": "/Applications/VLC Redesign.app mtime 1792196668 (Oct 17 03:24, built from ddd9d23a9d) at the start and still 1792196668 at the end, so this was the same build throughout.",
+  "settingsRestored": true,
+  "summary": "I stopped the group early because the owner came back. About 3 minutes in, the pointer started moving on its own: HIDIdleTime read 0 on six samples over 30 s, and the pointer jumped between unrelated positions I had not sent. Following the IDLE rule, I quit the app with an AppleScript quit (it closed in under 1 s, no ⌘Q sent, so nothing went to the owner's app), restored the backed-up vlcrc, defaults and Application Support folder (including ml.db, recents.json and profiles.json, which had changed), and released the live lock. All synthetic input stopped at that point.\n\nThree checks ran before that, all at the largest possible window (1728x1001 pt):\n- C3 PASS (owner complaint).\n- C5 PASS (owner complaint).\n- A-hideui-queue PASS, with one minor geometry finding.\nThe other seven checks are NOT-RUN. That includes the owner complaint A-fs-exit-windowed and the fullscreen checks that failed in live run 1, so they still need a live run on this build.\n\nAnother incident: earlier, focus moved to another app between my activate call and a click. One click and one Escape landed in that app: the click opened a menu and the Escape closed it. I deleted the four full-screen captures that showed that app. After that, every input went through a frontmost check (tools/front.sh).\n\nEvidence is in ../build/evidence/final5/live/1-window-fullscreen/ (shots/, tools/, backup/).",
+  "checks": [
+   {
+    "id": "C3",
+    "area": "A-window",
+    "result": "PASS",
+    "expected": "One 40 pt top bar with no second title strip; traffic lights vertically centred; the VLC cone right after them; otherwise matches Player-6 apart from the D022 differences.",
+    "observed": "Paused at 00:00:12. Rows 0–81 px (40.5 pt) are one uniform #1B1B1B bar; every row from 0 to 40 pt has a single colour across x 800–1500 px, so there is no second strip. The video frame starts at y=82 px. The red traffic light spans rows 13.5–25.5 pt, centred at 19.5 pt in a 40 pt bar. The three lights sit at x 12–71.5 pt, and the cone follows at about x 95–109 pt, then come the ⋯ button, sidebar toggle, divider, 'Videos' chip, centred title and fullscreen button. The layout matches Player-6; the only differences are D022 (traffic lights instead of the Windows buttons).",
+    "evidence": "shots/C3-paused.png (row and column scans with tools/scan.py), compared with redesign/design/figma/renders/Player-6.png"
+   },
+   {
+    "id": "C5",
+    "area": "A-window",
+    "result": "PASS",
+    "expected": "The sidebar overlays the video; the video's left edge, size and position do not change.",
+    "observed": "Playing at 00:00:15. With the gear sidebar open (Playback tab), the panel floats over the right of the video. The red bar is at x 129–659 px and y 82–1893 px both before and after it opened, and the cyan right edge stays at 3325 px. The video rect is unchanged.",
+    "evidence": "shots/C5-before.png, shots/C5-sidebar.png"
+   },
+   {
+    "id": "A-hideui-queue",
+    "area": "A-window",
+    "result": "PASS",
+    "expected": "The queue floats over the right of the video; with Hide UI on there are no bars, only the 10 pt frame; after Hide UI is turned off the queue is open again.",
+    "observed": "The queue (Queue/Bookmarks/Chapters, '1 item - 1m') floats over the right of the video, and the video rect stays at 129–3325 px. With ⌘\\ on, both bars and the traffic lights are hidden, leaving a #1B1B1B frame exactly 20 px (10 pt) wide around the video. With ⌘\\ off, the queue is open again, which fixes the minor issue from live run 1. One minor geometry finding is listed in extraFindings.",
+    "evidence": "shots/Q1-queue.png, shots/Q2-hideui.png, shots/Q3-unhide.png, shots/Q3b-unhide-later.png"
+   },
+   {
+    "id": "A-fs-topedge",
+    "area": "A-window",
+    "result": "NOT-RUN",
+    "observed": "Stopped because the owner returned (HIDIdleTime 0, pointer moving on its own). Partial and inconclusive: right after clicking the top-bar fullscreen button, the window list showed the main window at 0,33 sized 1728x1084 plus a separate 1728x32 window at y=33 (likely the titlebar strip). Seconds later the window was back to 1728x1001 windowed with the Dock visible, probably caused by the owner's own input. Nothing can be concluded about the top-edge reveal.",
+    "evidence": "shots/F0-after-click-pointer-at-60.png"
+   },
+   {
+    "id": "A-fs-bars-independent",
+    "area": "A-window",
+    "result": "NOT-RUN",
+    "observed": "Not run: the owner returned, so I stopped all synthetic input."
+   },
+   {
+    "id": "A-05-cursor",
+    "area": "A-window",
+    "result": "NOT-RUN",
+    "observed": "Not run: the owner returned, so I stopped all synthetic input."
+   },
+   {
+    "id": "A-tooltip",
+    "area": "A-window",
+    "result": "NOT-RUN",
+    "observed": "Partial only: after a 3 s hover over the fullscreen button, no tooltip window from the app appeared in the window list. The click and the 5 s still period happened while the owner was moving the mouse, so the result is invalid."
+   },
+   {
+    "id": "A-fs-exit-windowed",
+    "area": "A-window",
+    "result": "NOT-RUN",
+    "observed": "Not run (owner complaint): the owner returned before the app ever reached a stable fullscreen. This needs a live re-run."
+   },
+   {
+    "id": "A-fs-end",
+    "area": "A-window",
+    "result": "NOT-RUN",
+    "observed": "Not run in fullscreen. Incidentally, in a window S01E01 reached the end and showed 00:00:59 with a black video area and the play icon, and the window stayed as it was."
+   },
+   {
+    "id": "A-05-pip",
+    "area": "A-window",
+    "result": "NOT-RUN",
+    "observed": "Not run: the owner returned, so I stopped all synthetic input."
+   }
+  ],
+  "extraFindings": [
+   {
+    "severity": "minor",
+    "area": "A-window",
+    "description": "After a Hide UI round trip (⌘\\ on, then off, with the queue open), the windowed video rect does not return to where it was. The left edge moves from 129 to 125 px and the right edge from 3325 to 3328 px, while the top and bottom stay at 82 and 1893 px. The video is about 7 px (3.5 pt) wider at the same height, so it is slightly stretched horizontally (about 0.2%) and shifted. A second capture a few seconds later shows the same values, so the change is not a transition that is still finishing. Suspected cause: the PlayerView / MXRVideoHost layout after Hide UI is turned off does not re-fit the video to the canvas (A-window).",
+    "evidence": "shots/C5-before.png vs shots/Q3b-unhide-later.png (red bar column scan at y=1000 px, cyan edge at y=1880 px)"
+   },
+   {
+    "severity": "minor",
+    "area": "A-window",
+    "description": "Process note, not a defect in the app: between osascript activate and a CGEvent click, another app took focus. One click and one Escape landed in it (a menu opened and was then closed). After that every input was guarded by tools/front.sh. The pointer was also later moved by the owner. Future groups should check that the app is frontmost right before each event, not once per batch.",
+    "evidence": "tools/front.sh, tools/d"
+   }
+  ]
+ },
+ {
+  "group": "2-light-theme",
+  "build": "\"/Applications/VLC Redesign.app\" mtime 1792196668 (03:24, from ddd9d23a9d) at both start and end; no reinstall happened during the group.",
+  "summary": "The owner came back at 05:29–05:30, so the group was cut short. The pointer moved by itself, HIDIdleTime kept resetting to 0 without any input from me, and the Claude app was frontmost. I stopped immediately: quit the app with AppleScript (it closed within 1 s, no hang), restored every backed-up file (diff -r identical, defaults re-imported) and released the live lock.\n\nChecks that ran:\n- 3 PASS: Light bars stay #A7A7A7 whatever the clip; compact library tint over the solid clips; cone and play-button colours in both themes.\n- 2 FAIL (both minor):\n  - Light and Dark place the picture differently. Dark's 10 pt video frame starts 1 pt lower, so the picture is about 2.5 pt narrower. The compact library itself no longer rescales the video, and the subtitle sits above the control bar.\n  - In the Light library the current crumb is FG/A2 #2E2E2E, not FG/1 #161616.\n- 3 NOT-RUN because the owner returned: band-flash recording, dialog buttons, and the playlist-rename / Add Subtitles sheets.\n\nAll test settings were reverted. Evidence is in ../build/evidence/final5/live/2-light-theme/shots, backups in …/backup, and helpers in …/tools.",
+  "checks": [
+   {
+    "id": "A-light-geometry",
+    "area": "A-window",
+    "result": "FAIL",
+    "expected": "Picture width and position identical with library closed, library open (Light) and in Dark; subtitle above the control bar and not cut.",
+    "observed": "Light, 960x540 pt window, library closed: picture x 172–1746, y 80–971 px (787.5x446 pt). Light with compact library open (Cmd-L): identical. The library floats over the picture; the stripe boundaries do not move and there is no rescale or aspect-fill, so live run 1's major finding is fixed. Dark: picture x 175–1744, y 82–971 px (785x445 pt). The 10 pt video frame starts 1 pt below the top bar (y 82 vs 80), so the fitted picture is about 2.5 pt narrower and 1 pt lower than in Light. Switching theme still rescales the video slightly (about 0.3 %), which contradicts D055 ('switching theme ... never rescales the video'). Subtitle in Light: the 2-row cue 'A second line of dialogue / spanning two rows.' sits at y about 820–930 px, fully above the control bar (972) and not cut.",
+    "evidence": "shots/A1-play.png (Light, closed), shots/A2-lib-open.png (Light, library), shots/A3-dark.png (Dark), shots/A5-sub-7.png (subtitle); tools/rect.py measurements",
+    "suspectedCause": "A-window: in Dark the letterboxed video card's top inset is 1 pt more than the Light canvas, so the picture area differs between schemes (MXRAppView / Light-canvas vs Dark 10 pt frame layout per D055). Minor: about 1–2.5 pt."
+   },
+   {
+    "id": "H-light-bars-dark-base",
+    "area": "H-design",
+    "result": "PASS",
+    "expected": "Neutral gray about #ABABAA within 6/255 whatever the clip.",
+    "observed": "Light, windowed, paused (bars pinned). Top bar (px 1200,20 / 1500,20 / 700,60) and control bar (px 1230,1000 / 1240,1060 / 400,1060 / 20,1000) all read #A7A7A7 in sRGB, identical over solid-2D2D2D, solid-FF0000 and S01E01 (Δ4 per channel, neutral). The Display-profile capture was converted to sRGB; the red video converts to #FF0000, which confirms the conversion.",
+    "evidence": "shots/H1-bars-2D2D2D.png, shots/H1-bars-FF0000.png, shots/H1-bars-S01E01.png; tools/px.py"
+   },
+   {
+    "id": "H-light-band-no-flash",
+    "area": "H-design",
+    "result": "NOT-RUN",
+    "observed": "Not run: the owner returned (pointer moving, HIDIdleTime resetting, Claude frontmost) before this check, so I stopped at once.",
+    "evidence": "-"
+   },
+   {
+    "id": "H-light-library-clips",
+    "area": "H-design",
+    "result": "PASS",
+    "expected": "Over #2D2D2D: about #C2C2C1 neutral (±6). Over red: tint between #B9B9B9 and #ECB9B9; bars stay about #ABABAA.",
+    "observed": "Paused, compact library open. Over solid-2D2D2D the panel reads #C0C0C0 at 5 sample points (neutral, Δ2). Over solid-FF0000 it reads #DFBFBC sRGB (inside the D053 range: R between B9 and EC; G/B Δ6/Δ3 from B9). The bars stay #A7A7A7 in both. Side note: on the later opens the 2D2D2D clip itself rendered #212121, while the first open read #2D2D2D (see extra findings).",
+    "evidence": "shots/H2-lib-2D2D2D.png, shots/H2-lib-FF0000.png, shots/H2b-lib.png"
+   },
+   {
+    "id": "E-light-tint",
+    "area": "E-library",
+    "result": "FAIL",
+    "expected": "Rows readable at fg1/fgA3; divider Light dividerDim; current crumb fg1; playing row in the accent; watched rows dimmed.",
+    "observed": "The media folder is not indexed ('No video folders yet'), so I used Home and Recent while S01E01 played. Matches: Home rows FG/A3 #6B6B6B (readable); divider #ACACAC = Light Divider/Dim; playing row in the accent (#DB8A38 display); the playing thumbnail carries the play glyph. Mismatch: the current crumb 'Home' (and the back arrow) peak at #2E2E2E, Light FG/A2/FG2, not FG/1 #161616 (Δ24). The 'Continue Watching' header is #3C3C3C (FG/A1). Watched dimming could not be judged: no row was fully watched, and every non-playing row in Recent is #3C3C3C (Recent rows are FG/A1 while Home rows are FG/A3). For comparison, the Dark crumb peaks at #8F8F8F.",
+    "evidence": "shots/E2-home.png, shots/E3-recent.png, shots/E1-videos.png, shots/E4-dark-home.png",
+    "suspectedCause": "E-library: compact-library header breadcrumb label tinted FG/A2 instead of FG/1 for the current segment (LibraryNavigation / LibraryPopup header)."
+   },
+   {
+    "id": "H-cone-light",
+    "area": "H-design",
+    "result": "PASS",
+    "expected": "Light: cone #C2711A, darker than the play button #E8851A. Dark: both #D37918.",
+    "observed": "Light (S01E02 paused): cone mode #C2711A (519 px), play button #E88519. Dark: cone #D37918 and play button #D37918. All in sRGB.",
+    "evidence": "shots/C1-light.png, shots/C2-dark.png; tools/cone.py"
+   },
+   {
+    "id": "J-light-dialog-buttons",
+    "area": "F-settings",
+    "result": "NOT-RUN",
+    "observed": "Not run: the owner returned before this check.",
+    "evidence": "-"
+   },
+   {
+    "id": "LS-light",
+    "area": "H-design",
+    "result": "NOT-RUN",
+    "expected": "Light: opaque body about #D5D5D5, header about #DEDEDE, no artwork through. Dark: dark body with blurred artwork.",
+    "observed": "Only partly done before the owner returned; the playlist Rename sheet and the Add Subtitles dialog were not captured. Settings in Light (over the library): opaque, body #E7E7E7 (BG/B1, not the #D5D5D5 the check expects), header #DEDEDE, nothing showing through. Settings in Dark over the paused video: body #100F0F–#0F0F10 with a faint tint variation, header #090909; the artwork is barely perceptible. File ▸ Add Subtitle File… opens the macOS open panel, not the design's Add Subtitles dialog. That dialog is reached from the subtitle track popover's + button, which I did not get to.",
+    "evidence": "shots/02-settings-light.png, shots/LS-dark-settings.png, shots/01-settings.png (Dark over library)"
+   }
+  ],
+  "extraFindings": [
+   {
+    "severity": "minor",
+    "area": "B-player / C-controls",
+    "description": "The resume toast ('You already watched till …') sits exactly over the subtitle area. The first S01E01 cue (1–4 s, single line) is completely hidden behind it, while the later 2-row cue at 7 s is fine once the toast has gone.",
+    "evidence": "shots/A5-sub-3.png (00:00:03, toast over the cue), shots/A1-play.png"
+   },
+   {
+    "severity": "minor",
+    "area": "J-media-io / E-library",
+    "description": "After S01E01 (60 s) played to the very end, reopening it offered 'You already watched till 00:00:59'. The stored position was not cleared or marked watched at the end of the file, so resume is offered for a finished video.",
+    "evidence": "shots/A4-sub-4.png (ended at 00:00:59), shots/A5-sub-3.png (toast)"
+   },
+   {
+    "severity": "minor",
+    "area": "H-design",
+    "description": "Plausible, not confirmed: after opening solid-FF0000 and pausing, a '65 %' volume tooltip was drawn above the volume cone while the pointer was not over it. The pointer may have been moved by the owner at that moment.",
+    "evidence": "shots/H1-bars-FF0000.png"
+   },
+   {
+    "severity": "minor",
+    "area": "J-media-io",
+    "description": "solid-2D2D2D.mp4 paused at about 2 s rendered #2D2D2D on the first open and #212121 on the next opens, even with no library open. This suggests a colour-range (full/limited) inconsistency between opens of the same clip.",
+    "evidence": "shots/H1-bars-2D2D2D.png (900,500 = #2D2D2D) vs shots/H2b-nolib.png (#212121)"
+   },
+   {
+    "severity": "minor",
+    "area": "E-library",
+    "description": "Row text colour differs between pages in the Light compact library: Home rows are FG/A3 #6B6B6B, Recent rows FG/A1 #3C3C3C. In Dark, hovering a Home row turns it near white while the other rows stay dim.",
+    "evidence": "shots/E2-home.png, shots/E3-recent.png, shots/E4-dark-home.png"
+   }
+  ],
+  "settingsRestored": true
+ },
+ {
+  "group": "3-resume-and-subtitles",
+  "checks": [],
+  "summary": "NOT-RUN: the Mac was in use (gate waited 63.5 min)"
+ },
+ {
+  "group": "4-controls-seek",
+  "checks": [],
+  "summary": "NOT-RUN: the Mac was in use (gate waited 27 min)"
+ },
+ {
+  "group": "5-volume-focus-music-cpu",
+  "checks": [],
+  "summary": "NOT-RUN: the Mac was in use (gate waited 30 min)"
+ },
+ {
+  "group": "6-panels (C2, C4; ~25 min)",
+  "build": "I tested one build only. The bundle mtime was 1792204890 (Oct 17 05:41:30 MSK) at the start (08:02) and at the end (08:32), so the polish wave did not reinstall during the group. The task text says the app was installed at 03:24 from ddd9d23a9d, but the bundle was in fact reinstalled at 05:41: the plugin dylib is 05:41:42 and the VLC binary 05:41:56. Evidence: build-start.txt and build-end.txt.",
+  "checks": [
+   {
+    "id": "C2",
+    "area": "G-panels",
+    "result": "PASS",
+    "expected": "The popover is anchored at the bottom right above the bar with the matching tab preselected. The bar icon turns orange (subtitles becomes the filled box). Picking a row checks it and the popover stays open. A divider separates Embedded and External; the pencil and + are FG/A3, 20 pt apart.",
+    "observed": "The audio button opened the popover anchored at the bottom right, just above the bar, with Audio preselected and the waveform icon orange on a highlight square. The subtitles button switched to the Subtitles tab, and the caption icon became the filled orange box while the audio icon went grey. Picking None checked None and the popover stayed open. Picking 'Test Show S01E01.srt' checked it and the popover stayed open. A divider separates Embedded Tracks from External Tracks. The pencil and + glyphs measure #6B6B6B (= Dark/FG/A3), with centres 88 px = 44 pt apart: 24 pt icons with a 20 pt gap, matching FilterCardParityTests. The layout matches key frame 04-track-popover__subtitles-tab-external-tracks-native__06m21.7s.",
+    "evidence": "../build/evidence/final5/live/6-panels/shots/c2-01-audio.png, c2-02-subs.png, c2-03-none.png, c2-04-track.png, c2-01-zoom-bar.png, c2-02-zoom-bar.png, c2-02-zoom-ext.png"
+   },
+   {
+    "id": "C4",
+    "area": "G-panels / D-menus",
+    "result": "FAIL",
+    "expected": "Each popup opens and closes with the same short motion (D024: fade + 6 pt slide, 0.15 s in, 0.1 s out). Esc and a click outside close it without pausing. Only one right panel is open at a time.",
+    "observed": "Opening: all six (track popover, settings sidebar, queue, ⋯ menu, right-click menu, Properties & Metadata dialog) fade in over about 0.12–0.15 s. Esc and a click outside closed every one of them. Playback never paused, and time kept advancing in every pair of shots, e.g. 0:39→0:41→0:42 and 0:45→0:47. Only one right panel was open at a time (sidebar → queue → track popover → sidebar each replaced the previous one). Closing: the ⋯ menu, right-click menu and dialog fade out over about 0.06–0.1 s. The three right panels (track popover, sidebar, queue) vanish within one recorded frame (about 33 ms) with no fade-out, whether closed by Esc, a click outside or their own bar button. So opening and closing do not share the same motion.",
+    "evidence": "../build/evidence/final5/live/6-panels/motion/ (track-open-close.mov, sidebar-esc.mov, queue-outside.mov, track-outside.mov, queue-toggle.mov, dots-esc.mov, ctx-esc.mov, dialog-esc.mov); shots/sheet-track.png, sheet-sidebar.png, sheet-queue.png, sheet-dots.png, sheet-ctx.png, sheet-info.png, sheet-one.png",
+    "suspectedCause": "G-panels. In modules/gui/macosx_redesign/Sources/MXRUI/MXRAppView.swift (about lines 93-118), the right panel is inserted with .mxrPopupTransition only while interface.rightPanel != nil. MXRRightPanelView reads interface.rightPanel itself, so once rightPanel becomes nil (InterfaceModel.dismissTransientPopup / toggle) the removal transition fades an already-empty view. The .animation also uses appearDuration and not MXRPopupMotion.removal. The panel's content should be captured in the outgoing view."
+   },
+   {
+    "id": "G-S18-S19-cards",
+    "area": "G-panels",
+    "result": "FAIL",
+    "expected": "The open card is a lighter rounded container with 'Collapse Settings ⌄'. Hue changes the picture live and 0 restores it. Compressor and Widener values are text with no '%'. The final brightness matches the slider, and changing Resolution does not restart the video.",
+    "observed": "The card UI matches: one lighter rounded container, 'Collapse Settings ⌄', rows inset, and Collapse works. Hue rotates the colour bars live, and dragging back to centre restores them (red #EA3A24 again). Compressor values (0.2, 25.0 ms, 100.0 ms, -11.0 dB, 4.0 : 1, 5.0 dB, 7.0 dB) and Stereo Widener values (20.0 ms, 0.3, 0.3, 0.8) are text on the right with no '%', matching the Figma renders apart from the intended '%' removal. I saw no end ticks; Widener and Gamma have inner ticks only, like Figma. Changing Resolution to 720p during playback did not restart the video: no black frame in the recording, time continuous. BLOCKER: a fast drag of Brightness out and back to its start value crashed the app twice in four attempts (08:14:41 and 08:15:48), with EXC_BAD_ACCESS (SIGBUS, then SIGSEGV) on the main thread. Stack: vlc_mutex_lock ← var_SetChecked ← TriggerFilterCallback ← var_SetChecked ← -[MXREffectsServices writeOptions:target:] ← performCommand ← VLCPlayerBackend.setVideoEffects ← VideoEffectsModel.updateEssential ← VideoFilterCardRows.essentialSlider. In the attempt that did not crash, the final picture matched the slider (neutral).",
+    "evidence": "../build/evidence/final5/live/6-panels/crash/VLC-2026-10-17-081449.ips, crash/VLC-2026-10-17-081548.ips; shots/s18-03-essential-s.png, s18-04-hue-s.png, s18-05-hue0-s.png, s18-07-collapsed-s.png, s19-02-compressor-s.png, s19-03-compressor-more-s.png, s19-05-widener-s.png, s18-13-after-res-s.png, r-04-after-s.png; motion/resolution-change.mov; tools/inp.swift (dragret)",
+    "suspectedCause": "G-panels / J-media-io. MXREffectsServices writeOptions:target: (the effects bridge) calls var_SetChecked on a target object (the vout's adjust filter or its parent) that is freed or rebuilt while rapid Essential updates are in flight. Returning to neutral probably removes the adjust filter from the vout chain while a later write still holds the old pointer. The target is not held and the write is not serialized with the filter-chain rebuild."
+   },
+   {
+    "id": "G-S20-sliders",
+    "area": "G-panels",
+    "result": "FAIL",
+    "expected": "The delay fill runs from the thumb to the zero point under '0 s', and the end labels are flush with the track ends. Subtitle Speed reads 1.000 fps with the thumb at the start. Font Size shows Auto at the 4th stop; left stops make the text smaller, right stops larger, while a cue is visible.",
+    "observed": "At -4.150 s and +3.100 s the delay fill runs from the thumb to the centre under '0 s' (it overlaps the centre by about 4 pt, the end cap). '-10 s' and '+10 s' sit flush with the track ends. Subtitle Speed reads 1.000 fps with the thumb at the start. Size Values is Relative and Font Size shows 'Auto' at the 4th of 6 stops. The ends read 'Smaller' and 'Larger'. New cues follow the direction: cue height is 80 px at Smaller, 102 px at Auto and 274 px at Larger. Defect: changing the stop while a cue is on screen does not change that cue. The cue stayed at 274 px after moving to Smaller, and only the next cue rendered at 80 px, so stepping through the stops while a cue is visible shows no change. Minor: clicking at the very right end of the track did not reach the last stop; dragging did.",
+    "evidence": "../build/evidence/final5/live/6-panels/shots/s20-01-s.png, s20-delay-pair.png, s20-04-s.png, s20-font-sheet.png, s20-font-6b-s.png, s20-live-d-s.png (Smaller selected, cue still large), s20-live-f.png",
+    "suspectedCause": "G-panels / J-media-io. The font-size change probably sets freetype-rel-fontsize (or a similar variable) without forcing the current subpicture to re-render: the spu/text renderer reads it only for new regions. The visible cue needs a refresh, e.g. by re-setting the sub track or calling vout_FlushSubpictureChannel."
+   },
+   {
+    "id": "G-S20-presets",
+    "area": "G-panels",
+    "result": "PASS",
+    "expected": "The list opens upward: + New Custom Preset, the saved presets with ⋯, and the current preset last, checked on a flat lighter row. No dark halo, and 'Default Preset' starts at the row's left inset.",
+    "observed": "The list opens upward from the selector: '+ New Custom Preset', then 'Default Preset' last, checked in orange on a flat lighter row, with no dark halo. 'Default Preset' starts 16 pt inside the list container, the same inset as in the closed selector. The owner has no saved subtitle presets, so I could not see saved rows with ⋯; I did not create a preset in order to keep the owner's presets untouched.",
+    "evidence": "../build/evidence/final5/live/6-panels/shots/s20-05-presets.png, s20-05-presets-c.png"
+   },
+   {
+    "id": "G-queue-keyboard-menu",
+    "area": "G-panels",
+    "result": "NEEDS-OWNER",
+    "expected": "Return plays the row, the arrows move the ring and selection, ⌥-arrows reorder, Space play/pauses and Delete removes. A mouse click shows no ring. The submenu matches the mini player's, and it adds rows 1 and 3 in queue order.",
+    "observed": "Keyboard part not run: Full Keyboard Access is off (defaults read NSGlobalDomain AppleKeyboardUIMode = 0), and I may not change it. Mouse part: a mouse click selects a row with no focus ring. ⌘-click selects rows 1 and 3. Right-click ▸ Add to Playlist opens a submenu with 'New Playlist…' (it flips left at the screen edge). The owner's ML playlists 'Podcasts' and 'Radio' are not listed, and the library's Playlists page does not list them either, so they appear to be internal. New Playlist… opened the dialog prefilled with S01E01 and S01E03 in queue order. Saving 'zz-live-q' created a playlist whose ML rows are media 1 (E01) at position 0 and media 12 (E03) at position 1, i.e. rows 1 and 3 in queue order. I did not get a second look at the submenu with zz-live-q listed after the separator (hover did not open it on retry), and I did not compare it with the mini player's submenu. The test playlist was removed by restoring the ML database backup.",
+    "evidence": "../build/evidence/final5/live/6-panels/shots/q-02-c.png, q-sel-pair.png, q-06-submenu-s.png, q-07-newpl-s.png, q-09-saved.png",
+    "suspectedCause": "Owner steps for the keyboard part: System Settings ▸ Keyboard ▸ turn on 'Keyboard navigation' (Full Keyboard Access). Queue 3 items, open the queue, Tab to a row, then press Return, ↑/↓, ⌥↑/⌥↓, Space and Delete. Turn it off afterwards."
+   },
+   {
+    "id": "G-bookmarks",
+    "area": "G-panels",
+    "result": "FAIL",
+    "expected": "While S01E03 plays, ⌘B adds a bookmark with no dialog and the OSD 'Pressed ⌘B'. Clicking a bookmark seeks to it. Clicking away saves a rename and Esc discards it. − is dimmed until a bookmark is selected, then removes it.",
+    "observed": "With S01E03 (the file the check names) playing, ⌘B twice showed the OSD 'Bookmark added / Pressed ⌘B' with no dialog, but the Bookmarks tab showed '0 Bookmarks'. The tab's + also added nothing, and the ML Bookmark table stayed empty. S01E03 was not in the media library, so the OSD reports a success that did not happen. With S01E01, which is in the ML, the whole flow works: ⌘B twice gave 2 bookmarks (00:00:03:908 and 00:00:06:813) with the OSD and no dialog. Clicking the first bookmark seeked to 0:03. Right-click shows Jump to Bookmark / Rename / Remove. Renaming to 'zz-live-A' and clicking another row saved it (ML row updated). Rename again, typing and Esc kept 'zz-live-A'. − is dimmed with nothing selected, turns bright on selection, and removed the selected bookmark ('1 Bookmark'). Minor: unnamed bookmarks show an empty title, with only the time on the right.",
+    "evidence": "../build/evidence/final5/live/6-panels/shots/bm-01-cmdb-s.png, bm-03-list-c.png, bm-04-plus-c.png (E03: 0 bookmarks), bm-05-e01-c.png, bm-06-seek-time.png, bm-07-ctx.png, bm-rename-pair.png, bm-10-esc.png, bm-11-minus.png",
+    "suspectedCause": "G-panels / E-library. Bookmarks are media-library backed (vlc_ml bookmarks), and playback opened through 'open -a' or Finder is not added to the ML first. The ⌘B handler shows 'Bookmark added' without checking the result. The fix is to add the media to the ML on demand before adding the bookmark, or to fall back to input bookmarks, and to show the OSD only on success."
+   },
+   {
+    "id": "G-drag-to-queue",
+    "area": "E-library / G-panels",
+    "result": "FAIL",
+    "expected": "A row dragged from the compact library or the full library into the queue is appended, or inserted at the drop point (VIDEO_BREAKDOWN §10 MUST).",
+    "observed": "Compact library → open queue (3 items), tried 3 times. I dragged 'Test Show S01E03.mp4' from Home to below the last queue row, then dragged a row onto the gap between rows 1 and 2, then repeated with a slow 2 s drag. Each time the queue was replaced by the single dragged item ('1 item'), which started playing (with the resume toast). Nothing was appended or inserted. The full-library drag was not run (time). Caveat: this used synthetic CGEvent drags (mouse down, then 30–80 dragged events, then up). The release did land on the queue panel, but please confirm once by hand.",
+    "evidence": "../build/evidence/final5/live/6-panels/shots/dq-02-s.png (before: 3 items), dq-pair.png (after each drag: 1 item), dq-06-slow-s.png",
+    "suspectedCause": "E-library / G-panels. Either the queue list has no drop destination for library items, so the window-wide media drop handler (open-and-play, which replaces the playlist) takes the drop, or the library row's drag is ending as a click (play). Check the queue list's .dropDestination/onDrop and the player-surface drop handler's priority."
+   }
+  ],
+  "extraFindings": [
+   {
+    "severity": "blocker",
+    "area": "G-panels / J-media-io",
+    "description": "The app crashes on a fast Brightness drag in sidebar ▸ Video ▸ Essential: 2 of 4 attempts, EXC_BAD_ACCESS in var_SetChecked called from -[MXREffectsServices writeOptions:target:]. After each crash launchd relaunched the app into the library and the playback position was lost: on reopen S01E03 started from 0:05 instead of about 8:24.",
+    "evidence": "../build/evidence/final5/live/6-panels/crash/VLC-2026-10-17-081449.ips, VLC-2026-10-17-081548.ips"
+   },
+   {
+    "severity": "major",
+    "area": "G-panels",
+    "description": "For media that is not in the media library, ⌘B and the Bookmarks + show 'Bookmark added' but nothing is stored, so the OSD reports a success that did not happen.",
+    "evidence": "../build/evidence/final5/live/6-panels/shots/bm-01-cmdb-s.png, bm-03-list-c.png"
+   },
+   {
+    "severity": "minor",
+    "area": "G-panels",
+    "description": "The same auto-loaded sidecar subtitle is named inconsistently in the track popover: 'Test Show S01E01.srt' for S01E01 but 'Track 1' for S01E03. The track popover also stays open when a new file is opened.",
+    "evidence": "../build/evidence/final5/live/6-panels/shots/c2-02-subs.png, c4-00-small.png"
+   },
+   {
+    "severity": "minor",
+    "area": "G-panels",
+    "description": "The queue row context menu offers Move Up and Move Down, both looking enabled, for the only item in a 1-item queue.",
+    "evidence": "../build/evidence/final5/live/6-panels/shots/c4-queue-rowmenu-s.png"
+   },
+   {
+    "severity": "minor",
+    "area": "G-panels",
+    "description": "Pressing Esc with no popup open shows the OSD 'Pressed esc' in the video corner. This may be intended shortcut feedback, but it is noisy for the most common key.",
+    "evidence": "../build/evidence/final5/live/6-panels/shots/sheet-track.png (2nd frame of the first run, overwritten; reproduced in c4-track-2esc of the earlier run)"
+   },
+   {
+    "severity": "minor",
+    "area": "D-menus",
+    "description": "Media Info ('Properties & Metadata') is reachable during playback only from a library row's context menu (or a customized bar button). The right-click menu, the ⋯ menu, the queue row menu and the menu bar have no entry, and ⌘I does nothing.",
+    "evidence": "../build/evidence/final5/live/6-panels/shots/c4-ctx-full-s.png, c4-queue-rowmenu-s.png, c4-info-try-s.png"
+   }
+  ],
+  "settingsRestored": true,
+  "summary": "I tested the bundle installed at 05:41:30 (mtime 1792204890). It was unchanged from start to end, so this was not the 03:24 install named in the task. Both owner-complaint checks ran. C2 passes: the popover is anchored correctly, the right tab is preselected, the icon turns orange and fills, rows check without closing, and the divider and the FG/A3 pencil and + 20 pt apart are confirmed by pixel measurement. C4 fails on motion only. Esc and a click outside close all six popups without pausing, and only one right panel opens at a time. But the track popover, sidebar and queue close instantly with no fade-out, while the menus and the dialog fade out. Blocker: a fast Brightness drag on the Essential card crashed the app twice (two crash reports saved). Other FAILs: subtitle font size does not update the cue already on screen; bookmarks silently fail for media not in the library (S01E03) while the OSD says 'Bookmark added'; and dragging library rows into the queue replaces the queue and plays the row instead of inserting it (synthetic drag, so please confirm by hand). The cards UI, Hue, Resolution, delay slider and presets pass. The queue keyboard part is NEEDS-OWNER because Full Keyboard Access is off; its mouse and playlist part passed (rows 1 and 3 added in queue order). Not run: the full-library drag and saved-preset rows (the owner has none). ⌘Q quit in 1 s. Prefs, vlcrc and the ML database/App Support were restored byte-identical (the test playlist and bookmarks are gone), and the live lock was released."
+ },
+ {
+  "group": "7-library",
+  "build": "/Applications/VLC Redesign.app mtime 1792204890 at start (08:31) and at end (08:57), so one build was tested throughout (ddd9d23a9d install). Evidence: ../build/evidence/final5/live/7-library/build-start.txt and build-end.txt",
+  "settingsRestored": true,
+  "summary": "I ran 10 checks on build mtime 1792204890 (unchanged during the group). Results: 6 PASS, 2 FAIL, 1 PASS on the stated items with a major side-defect, and 1 split result (E-network: shares NEEDS-OWNER, playing the http URL crashes the app).\n\nFAILs:\n- E-arrow-keys: arrow keys never move the selection, neither in the full-library grid nor in the compact list. In the compact list ↓ lowered the player volume instead. Shift+↓ does extend the selection.\n- E-narrow-crumbs: at 680 pt the breadcrumb shows only '…' and drops the folder name, although the '…' menu lists the parents.\n\nE-network: I found no SMB or UPnP shares on the LAN (dns-sd found none), so that part needs the owner. The B-live vlc http server answered 200 but sent 0 bytes, so I served S01E01 from a local python http server. Starting that http item with Play from its Network card crashed the app twice in a row (EXC_BAD_ACCESS in SwiftUI TooltipBridge hit-testing). Crash logs are under live/7-library/crash/.\n\nOther major findings:\n- The 480×270 minimum window size is not enforced live. A corner drag shrank the window to 201×161.\n- At the minimum size the full library is covered by a non-scaling mini player.\n\nThe app quit in 0.33 s. App Support (including ml.db), vlcrc and defaults were restored and verified identical to the backup. The live lock was released.\n\nI left these fixtures in place:\n- ../build/evidence/final5/song.m4a\n- ../build/evidence/final5/zz-live Copy S01E01.mp4\n- the zz-live-lib and import2 hard-link folders under live/7-library",
+  "checks": [
+   {
+    "id": "E-launch-home",
+    "area": "E-library",
+    "result": "PASS",
+    "expected": "First launch opens full library on Home; partly watched S01E03 gives the A-resume-toast flow.",
+    "observed": "Launch with nothing to resume opened the full-window library on Home, not the cone screen. I left S01E03 at about 3:05, quit and relaunched: the app opened Home with S01E03 under Continue Watching. Reopening the file showed the toast 'You already watched till 00:03:14' with Continue Watching, centred horizontally over the video. A retry, clicked within 2 s, resumed at the saved point (toast 00:00:09, playback went on from 0:09 to 0:11). My first Continue click missed because the toast had already timed out and the click paused the video, so the stored point was overwritten.",
+    "evidence": "shots/launch1.png, shots/relaunch2.png, shots/resume-toast.png, shots/resume2-pair.png"
+   },
+   {
+    "id": "E-min-window",
+    "area": "E-library",
+    "result": "PASS",
+    "expected": "At 480×270 with compact library on a folder: row 1 ← → … ⋯, row 2 sort/view/search inside 216 pt; count and Open Full Library hidden; nothing under video; Go Home opens full library.",
+    "observed": "Row 1 shows ← → … ⋯ and row 2 shows sort, view and search. The count and Open Full Library are hidden. The panel's right edge measures exactly 432 px = 216 pt. View ▸ Go Home opened the full library. Side defects: at this size the full library is mostly covered by the mini player and the sidebar labels clip ('Hor', 'Vid'); the minimum size is not enforced (see extra findings).",
+    "evidence": "shots/min480.png, shots/min480-gohome2.png"
+   },
+   {
+    "id": "E-min-window-right-panel",
+    "area": "A-window",
+    "result": "PASS",
+    "expected": "Header keeps >=208 pt or compact library hides (FAIL was expected from code reading).",
+    "observed": "At 480 pt the compact library and the queue are mutually exclusive. Opening the queue (and also View ▸ Right Sidebar) hides the compact library. Toggling the library back closes the queue. No squeezed 153 pt header appeared. Minor: the 400 pt queue/sidebar panel clips its first row at 270 pt height.",
+    "evidence": "shots/min480-queue.png, shots/min480-queue-lib.png, shots/min480-rightsidebar.png"
+   },
+   {
+    "id": "E-narrow-crumbs",
+    "area": "E-library",
+    "result": "FAIL",
+    "expected": "At about 680 pt, two folders deep, the crumb reads '… ▸ <folder>' with no clipped pieces, the '…' menu lists parents, and long names truncate in the middle.",
+    "observed": "At 680 pt the crumb shows only '…'; the current folder name is missing entirely. The '…' menu does list Videos, zz-live Show Collection and the current folder, middle-truncated. At 900 pt it correctly reads '… ▸ Season One With A Really Quite Long Folder Name…'. At 1300 pt the full crumbs tail-truncate ('zz-live Show Collect…'). File rows middle-truncate correctly. Folder rows in the compact list tail-truncate ('Season One With A Really Quite Long...').",
+    "evidence": "shots/w680-home.png, shots/w680-crumbmenu-crop.png, shots/crumb-widths.png, shots/compact-folder3-crop.png",
+    "suspectedCause": "E-library: modules/gui/macosx_redesign/Sources/MXRUI/Library/LibraryNavigation.swift LibraryBreadcrumb. ViewThatFits tries 2, then 1, then 0 trailing crumbs. The one-crumb row does not fit (the crumb text is apparently not allowed to compress or truncate), so it falls back to the 0-crumb '…' row instead of middle-truncating the last crumb."
+   },
+   {
+    "id": "E-arrow-keys",
+    "area": "E-library",
+    "result": "FAIL",
+    "expected": "In the grid (3+ columns) ↓ selects the card below, ↑ returns, ←/→ move one card, Shift extends and scrolls into view; in the compact list ↓ moves one row.",
+    "observed": "Recent grid (3 columns, 5 items): clicking The_Wand selects it (title brightens 150→198). ↓, ↑, → and ← did not change the selection, measured by title brightness across two runs. Shift+↓ selected the range Wand…E01 in reading order (Wand, wav, E02, E01). In the compact list, ↓ twice left the selection on The_Wand and lowered the player volume instead (volume bar shrank).",
+    "evidence": "shots/ak-grid.png, shots/ak-r1-down.png, shots/ak-r2-right.png, shots/ak5-shiftdown.png, shots/ck-strip.png, shots/ck-bar.png",
+    "suspectedCause": "E-library: arrow keys are consumed by the player's key handling (volume/seek) before the library grid or list gets them. Plain arrows are not routed to the library selection, while Shift-arrows are. Look at the library key handling in Sources/MXRUI/Library and at the player hotkey monitor."
+   },
+   {
+    "id": "E-search-shortcut",
+    "area": "E-library",
+    "result": "PASS",
+    "expected": "⌥⌘F opens the compact library if needed and focuses search; ⌘F toggles fullscreen.",
+    "observed": "With the library hidden, ⌥⌘F opened the compact library with the search field focused (caret visible). It also focused the search in the compact library and in the full library. ⌘F entered fullscreen (AXFullScreen true) and pressing it again left it (false).",
+    "evidence": "shots/sf0-small.png, shots/sf1-hidden-optcmdf.png, shots/sf-strip.png, shots/sf5-cmdf.png"
+   },
+   {
+    "id": "E-mixed-import",
+    "area": "E-library",
+    "result": "PASS",
+    "expected": "Add File with a video and a song: Videos opens with the video selected, with the row '1 song was added to Music ▸ Songs.'; clicking the row opens Songs with the song selected; ✕ dismisses it.",
+    "observed": "Compact ⋯ ▸ Add File with 'zz-live Copy S01E01.mp4' and song.m4a opened Videos with the video row selected and the row '1 song was added to Music ▸ Songs.'. Clicking the row opened Music ▸ Songs with song.m4a selected. A second import (zz-live Copy2 plus zz-live-song2.m4a) showed the row again, and ✕ removed it.",
+    "evidence": "shots/mi2-after.png, shots/mi4-crop.png, shots/mi6-crop.png, shots/mi7-crop.png"
+   },
+   {
+    "id": "E-playlist-ops",
+    "area": "E-library",
+    "result": "PASS",
+    "expected": "Default sort keeps build order, Newest First reverses; menu says 'Remove 2 Items from Playlist' and removes exactly those; on an unselected row 'Remove from Playlist'.",
+    "observed": "I built zz-live-playlist… with S01E03 first and zz-live Copy S01E01 second. The default sort ('Oldest First' was checked) kept that order and Newest First reversed it. After adding a third item, I ⌘-clicked 2 rows: right-clicking a selected row offered 'Remove 2 Items from Playlist' and removed exactly those two (S01E03 remained). Right-clicking the unselected row offered 'Remove from Playlist'. I deleted the playlist via Delete… ▸ Delete. Notes: rows show no ⋯ button on hover, so I used the right-click menu (same menu). The sort icon shows an orange 'non-default' dot even on the default sort. My first playlist name accidentally included a typed path.",
+    "evidence": "shots/pl9-crop.png, shots/pl11-crop.png, shots/pl21-crop.png, shots/pl22-crop.png, shots/pl23-crop.png, shots/pl24-crop.png, shots/pl28-crop.png"
+   },
+   {
+    "id": "E-mini-hover",
+    "area": "E-library",
+    "result": "PASS",
+    "expected": "⏮ ▶ ⏭ sit about 1.5 pt above the video centre and playback continues; the queue summary follows the real queue.",
+    "observed": "While S01E03 plays in the full library, hovering the mini player shows ⏮ ⏸ ⏭. The pause glyph centre is 3 px = 1.5 pt above the video frame centre (video rows 52–465 px, bars 236–275 px). Playback continued: the subtitle cue changed and the progress advanced. The mini queue showed '1 item - 10m'. After Add to Queue of S01E02 it showed '2 items - 11m' with both rows.",
+    "evidence": "shots/mh4-crop.png, shots/mh5-crop.png, shots/mh6-small.png, shots/mh9-crop.png"
+   },
+   {
+    "id": "E-network",
+    "area": "J-media-io / E-library",
+    "result": "FAIL",
+    "expected": "Shares list and play; an http URL opens through Open Network Stream; no Enqueue and no all-in-one Open dialog.",
+    "observed": "SMB/UPnP shares: NEEDS-OWNER. The Network category shows only Podcasts and Radio, and dns-sd found no _smb or _upnp services, so the owner needs a reachable share (for example a NAS or another Mac with File Sharing on). Open Network Stream is a dedicated dialog (URL box, optional Playlist Name, Cancel/Save) with no Enqueue and no tabs; Save adds a Network card. The B-live vlc dummy server answered 200 with 0 bytes, so that 'live' entry failed and the queue silently moved on. With a local python http server, choosing Play on the http card started fetching (GETs logged) and then the app crashed with EXC_BAD_ACCESS. It crashed again on a second try after relaunch. Playing a local item the same way did not crash.",
+    "evidence": "shots/nw0-small.png, shots/nw2-small.png, shots/nw4-small.png, shots/nw7-crop.png, shots/nw13-small.png, crash/VLC-2026-10-17-085212.ips, crash/VLC-2026-10-17-085249.ips, http-server.log, stream-server.log",
+    "suspectedCause": "J-media-io / E-library: the main thread crashes in SwiftUI TooltipBridge.DynamicTooltipManager.dynamicToolTipString → ViewResponder.hitTest → NSViewResponder.platformCurrentEvent (objc_opt_class on a freed object, address 0x1e). A .help() tooltip responder from the Network card or menu is hit-tested after its view was torn down, when http playback starts and the library or mini player re-render."
+   }
+  ],
+  "extraFindings": [
+   {
+    "severity": "blocker",
+    "area": "J-media-io",
+    "description": "The app crashes (SIGSEGV in a SwiftUI tooltip hit-test) when an http network item is played from its Network card context menu. It reproduced 2/2.",
+    "evidence": "../build/evidence/final5/live/7-library/crash/VLC-2026-10-17-085212.ips, VLC-2026-10-17-085249.ips"
+   },
+   {
+    "severity": "major",
+    "area": "A-window",
+    "description": "The 480×270 minimum window size is not enforced. A corner drag shrank the window to 201×161 pt and an AX resize to 300×200, leaving a broken layout. contentMinSize is set before window.contentView = NSHostingView in MXRAppController.swift:80; the hosting view's sizing probably overrides it.",
+    "evidence": "shots/min-drag.png, shots/min1.png"
+   },
+   {
+    "severity": "major",
+    "area": "E-library",
+    "description": "The full-library mini player does not scale with the window. At 480×270 it covers almost the whole library and the sidebar labels clip ('Hor', 'Vid', 'Mu'); at 680 pt it covers most of the content grid.",
+    "evidence": "shots/min480-gohome2.png, shots/w680-home.png"
+   },
+   {
+    "severity": "minor",
+    "area": "E-library",
+    "description": "Network cards say '1 items' instead of '1 item'.",
+    "evidence": "shots/nw4-small.png"
+   },
+   {
+    "severity": "minor",
+    "area": "E-library",
+    "description": "Subtitles render under the compact library and are cut off ('episode cue 9.'). After hiding the library, a paused frame showed the cue small and left-aligned in the letterbox.",
+    "evidence": "shots/min480-lib.png, shots/sf0-small.png"
+   },
+   {
+    "severity": "minor",
+    "area": "E-library",
+    "description": "Continue Watching on Home appends the most recently watched item (S01E03) last instead of first. Home's header says '5 items' while 4 cards show.",
+    "evidence": "shots/relaunch2.png"
+   },
+   {
+    "severity": "minor",
+    "area": "A-window",
+    "description": "The resume toast overlaps the seek-preview thumbnail's time label when the pointer rests on the progress bar. The toast also disappears within a few seconds, so a slower click lands on the video and toggles pause.",
+    "evidence": "shots/resume-toast.png"
+   },
+   {
+    "severity": "minor",
+    "area": "E-library",
+    "description": "Grid cards show no visible selection background or ring; only the title brightens from 150 to 198 grey.",
+    "evidence": "shots/ak0.png"
+   },
+   {
+    "severity": "minor",
+    "area": "E-library",
+    "description": "Clicking + in the New Playlist dialog a second time did not open the file panel, so the typed path went into the name field. Separately, the playlist ⋯ ▸ Add File opens 'Add Files to Library' rather than adding to the open playlist.",
+    "evidence": "shots/pl3-dialog.png"
+   },
+   {
+    "severity": "minor",
+    "area": "B-player",
+    "description": "Not reproduced: once, pressing Play on S01E03 paused at 2:41 left it at 9:59/ended. Separately, double-clicking the failing 'live' network item replaced S01E03 in the queue. A later pause/seek/resume test behaved normally.",
+    "evidence": "shots/mh1-crop.png, shots/mh3-small.png, shots/rp2-bar.png"
+   },
+   {
+    "severity": "minor",
+    "area": "E-library",
+    "description": "The titlebar folder chip says 'Videos' while the library shows Recent or Playlists.",
+    "evidence": "shots/compact-recent.png"
+   }
+  ]
+ },
+ {
+  "group": "8-settings-dialogs",
+  "build": "/Applications/VLC Redesign.app mtime 1792204890 (installed 03:24 from ddd9d23a9d) at start (08:59) and at end (09:19). No reinstall happened during the group, so every check ran on that one build.",
+  "settingsRestored": true,
+  "summary": "Group 8 ran from 08:59 to 09:19 on build 1792204890. Results: 6 PASS, 2 FAIL, 1 NOT-RUN, 2 NEEDS-OWNER.\n\nPASS: F-08-replace, F-settings-pages, S25-scrim-blur (with a note), media-info-divider, confirmations, F-13-title.\nFAIL: extra-args and compact-modal.\nNOT-RUN: C-15-folder. The permission classifier blocked it twice: first moving the empty lua/extensions folder aside, then a plain click on Advanced Options.\nNEEDS-OWNER: F-02-voiceover (VoiceOver is off) and F-08-live (Full Keyboard Access is off). The F-08-live part that can run with FKA off passed. Focus stayed in Settings, About and New Playlist, nothing was typed behind the dialog, and after Esc the library search took typing again.\n\nMain defects:\n1. Additional command line options. The option is applied and the log shows it: \"additional option --sub-margin applied\" and a warning for --bogus-opt. The restart note also behaves correctly. But the subtitle sits at exactly the same pixel rows (1587-1809) with --sub-margin 40 as without it.\n2. At 960×540, the Settings and Convert headers sit flush under the 40 pt top bar, with no panelInset gap. Disc (about 711×430 pt) and Capture (about 713×342 pt) have the right size and centring.\n\nOther notes:\n- Dark Settings and Add Subtitles do not darken the video at all. The pixels are identical with and without the dialog. This matches the 2026-10-17 amendment to D035 (\"the video shows no dimming\") but not the check's \"scrim darkens moderately\". The owner needs to settle which one is right.\n- ⌘Q quit in under 0.5 s every time. No crash reports.\n\nSettings and data restored: vlcrc, the preferences plist, profiles.json, recents.json and ml.db were copied back from backup/. The zz-live-preset was deleted in the UI. One leftover: an empty presets.json that the app created (no presets, no assignments). I did not delete it.\nLive lock released.",
+  "checks": [
+   {
+    "id": "F-08-live",
+    "area": "F-settings",
+    "result": "NEEDS-OWNER",
+    "expected": "Focus and focus ring stay in the dialog with FKA off and on; nothing typed behind the scrim; New Playlist Tab cycles only its own controls; after closing, the search field takes focus and accepts typing.",
+    "observed": "Full Keyboard Access is off (defaults read NSGlobalDomain AppleKeyboardUIMode = 0), so only the FKA-off half was run; that half PASSES. Settings: 40 Tab/Shift-Tab presses only ever focused the dialog's own 'Search' field; 'abc' went into the Settings search ('No settings match \"abc\"'); the library search stayed empty. About: focus stayed on the window (no focusable control); 'abc' typed nowhere. New Playlist: Tab alternated only between the name field ('e.g., Favorite Videos') and a full-window AXGroup (0,40 1728×1001, the dialog host); 'abc' went into the name field; Esc cancelled with no playlist created. After each Esc, clicking the library search and typing worked (v=x / v=xy). Minor: New Playlist does not put first focus in its name field.",
+    "evidence": "../build/evidence/final5/live/8-settings-dialogs/f08-settings-tab.txt, f08-about-tab.txt, f08-newpl-tab.txt, shots/f08-settings-open.png, f08-settings-abc.png, f08-esc1.png, f08-about-abc.png, f08-newpl.png, f08-newpl-closed.png. Owner steps for the FKA-on half: System Settings > Keyboard > Keyboard navigation ON, then repeat steps 1-4 and turn it off again."
+   },
+   {
+    "id": "F-08-replace",
+    "area": "F-settings",
+    "result": "PASS",
+    "expected": "Background controls stay out of the key loop through the replacement dialog and become focusable again after the last dialog closes.",
+    "observed": "Settings > Controls: Tab visited only the Settings search, the four skip fields and the dialog host group. Keyboard Shortcuts (which replaces Settings): Tab visited only 'Search Keyboard Shortcuts...' and the host group. Cancel returned to Settings > Controls with the same loop. After Esc the main-window Tab loop reached the 'Search library' field again (with FKA off).",
+    "evidence": "../build/evidence/final5/live/8-settings-dialogs/shots/replace-controls.png, replace-kbd.png, replace-after-cancel.png, replace-main-tab.png"
+   },
+   {
+    "id": "F-settings-pages",
+    "area": "F-settings",
+    "result": "PASS",
+    "expected": "Every page matches its Figma render except the D035/D050 rows; Advanced expands below the section; ⓘ opens its text on click; note the toggle label/knob gap.",
+    "observed": "All 13 sidebar pages were captured in Dark and Light at 1280×800, plus General Advanced and Performance Advanced/Developer. Layout, titles, sections and controls match the renders. Each missing row is covered by a decision: Interface language, Check for updates, Skin, play inside main window, window decorations, Pause on interruption, Last.fm, one-instance, proxy, Cipher, Process priority, Casting, real-time priority, Encoder, Rescan plugins (D035/D050), and Find more extensions (D045). Advanced Options expands below the section. Clicking the Developer-mode ⓘ opens a popover with its text; Esc closes only the popover. The known minor is visible: the ON/OFF label sits apart from the knob. At 1280×800 the sidebar scrolls to reach Recording and Extensions.",
+    "evidence": "../build/evidence/final5/live/8-settings-dialogs/shots/sp-dark-*.png, sp-light-*.png, sp-dark-info-click.png, sp-dark-general-adv.png, sp-dark-performance-adv.png, sp-light-performance-adv2.png; side-by-side with Figma: pairs/dark-*.png, pairs/stackA.png, pairs/stackB.png, pairs/light-grid.png"
+   },
+   {
+    "id": "S25-scrim-blur",
+    "area": "F-settings",
+    "result": "PASS",
+    "expected": "Dialog centred with the top bar visible; Dark: artwork behind the dialog body blurred and a moderate scrim (D035); Light: dialog opaque (D045).",
+    "observed": "At 1728×1001 with S01E01 playing, Add Subtitles and Settings are centred horizontally and the top bar stays visible. Dark: the dialog body shows the video heavily blurred and tinted. Light: Add Subtitles and Settings are opaque (#DEDEDE body). The video outside the dialog is NOT darkened in either theme: the red at (400,1100) reads #EA3A24 with and without the dialog. That matches the amended D035 ('the video shows no dimming') but contradicts this check's 'scrim darkens moderately'; the owner needs to decide which is correct. Side note: in Light, the subtitle track popover stayed visible under Add Subtitles.",
+    "evidence": "../build/evidence/final5/live/8-settings-dialogs/shots/s25-dark-addsubs.png, s25-dark-settings.png, s25-dark-noscrim.png, s25-light-addsubs.png, s25-light-settings.png",
+    "suspectedCause": "Not a code defect: the expectation conflicts with the D035 amendment (redesign/docs/DECISIONS.md around line 479)."
+   },
+   {
+    "id": "compact-modal",
+    "area": "F-settings",
+    "result": "FAIL",
+    "expected": "The whole header (title and ✕) is visible with panelInset above it; the body scrolls without clipping the footer; Disc about 713×434 and Capture about 713×345 with no large empty area.",
+    "observed": "Window 960×540. Settings and Convert: header fully visible, but its top edge sits exactly on the bottom of the 40 pt top bar (window y=80 px, i.e. 40 pt), so there is no panelInset gap. Convert's body scrolls ('Save As' cut off) and the Cancel/Convert footer stays visible. Open Disc is about 711×430 pt with its header 14 pt below the top bar. Open Capture Device is about 713×342 pt. Neither has a large empty area. At 600×360, Properties & Metadata also sits flush against the top bar.",
+    "evidence": "../build/evidence/final5/live/8-settings-dialogs/shots/cm-settings.png, cm-settings-top.png, cm-convert.png, cm-convert-top.png, cm-disc.png, cm-capture.png, pairs/compact-grid.png, shots/mi-tiny.png",
+    "suspectedCause": "F-settings: the shared dialog shell / dialog host (modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/MXRDialogHost.swift, DialogShell). When the dialog is clamped to a short window, the top inset seems to be 0 instead of panelInset."
+   },
+   {
+    "id": "extra-args",
+    "area": "F-settings",
+    "result": "FAIL",
+    "expected": "The restart note appears after the change and clears when the value is back to its launch value; subtitles sit visibly higher; the log shows --sub-margin applied and a warning for --bogus-opt; nothing breaks.",
+    "observed": "What works: 'Takes effect after restarting VLC.' appears after entering the value, is gone after the relaunch, appears again when the field is cleared, disappears when the launch value is typed back, and appears again when cleared. With -vv the log shows 'macosx_redesign libvlc debug: additional option --sub-margin applied' and 'warning: additional option --bogus-opt does not exist in this VLC; skipped'. Nothing broke. What fails: the subtitles do NOT move. At 00:07 the cue's white text spans rows 1587-1809 in both shots (with --sub-margin 40 and after clearing and restarting). The field was left empty, and vlcrc was restored.",
+    "evidence": "../build/evidence/final5/live/8-settings-dialogs/ea-run2.log, shots/ea-typed.png, ea-note-strip.png, ea-sub-margin40.png, ea-sub-baseline.png",
+    "suspectedCause": "J-media-io / F-settings: MXRApplyStartupCommandLineOptions (module/bridge/MXRAudioPreferenceServices.m about line 468) creates 'sub-margin' as a var on the libvlc instance. Then MXREffectsServices.m (setUserSubtitleMargin, the safe-inset code and the style apply around line 315) sets each vout's own 'sub-margin' from the saved Subtitle Offset (config sub-margin=0) plus the safe inset, which overrides the inherited instance value. Engine options with a per-vout UI owner may need routing through the app's own setting."
+   },
+   {
+    "id": "C-15-folder",
+    "area": "F-settings",
+    "result": "NOT-RUN",
+    "expected": "Finder opens ~/Library/Application Support/<bundle id>/lua/extensions, created if missing, with no 'unsupported' message; the restart note appears and then clears.",
+    "observed": "I reached Settings > Extensions (screenshot taken). The Claude Code auto-mode permission classifier then blocked two steps: moving the empty lua/extensions folder aside to test creation, and then even a plain click on Advanced Options. So the Open button and the Load add-ons toggle were never exercised. The folder ~/Library/Application Support/org.example.vlc-redesign.codex/lua/extensions already exists (empty, dated Oct 14).",
+    "evidence": "../build/evidence/final5/live/8-settings-dialogs/shots/c15-ext.png"
+   },
+   {
+    "id": "media-info-divider",
+    "area": "F-settings",
+    "result": "PASS",
+    "expected": "The body scrolls, with a hairline above the Close footer only when it overflows; Show in Finder is a styled button.",
+    "observed": "While S01E03 played, Properties & Metadata for S01E02 was opened from the library row menu. The playing item's Properties is not reachable from the menu bar, the ⋯ menu, the right-click menu or the overflow menu in the default control-bar layout. At 960×540 the content fits: no hairline, Close footer at the bottom. At 600×360 the body scrolls (Type row cut off) and a hairline appears above the Close footer. Show in Finder is a filled design button in both sizes. Note: an item that is not playing shows only Location and Type.",
+    "evidence": "../build/evidence/final5/live/8-settings-dialogs/shots/mi-small.png, mi-tiny.png"
+   },
+   {
+    "id": "confirmations",
+    "area": "F-settings",
+    "result": "PASS",
+    "expected": "Native confirmations in the current appearance with a destructive button; Esc cancels without closing the dialog underneath, and focus returns to it.",
+    "observed": "Reset all shortcuts showed a native dark alert ('Reset All Keyboard Shortcuts?') with Cancel and a red Reset. Esc dismissed it, Settings stayed open, and Tab moved through the Settings fields again. Deleting a preset (a zz-live-preset created for the test) showed a native alert ('Delete \"zz-live-preset\"?') with a red Delete. Cancel kept the preset and the picker, and focus was on a button in the window. The test preset was then deleted in the UI.",
+    "evidence": "../build/evidence/final5/live/8-settings-dialogs/shots/cf-reset-alert.png, cf-reset-after.png, cf-delete-alert-crop.png, cf-delete-cancelled-crop.png, cf-cleanup-crop.png"
+   },
+   {
+    "id": "F-13-title",
+    "area": "F-settings",
+    "result": "PASS",
+    "expected": "ON shows 'Test Show S01E01'; OFF shows the tag title or the same name; '.mp4' never appears in the top bar.",
+    "observed": "With S01E01 playing, the top bar read 'Test Show S01E01' with the toggle ON and also with it OFF (the file has no tag title). '.mp4' never appeared in the top bar. Separately, the start-of-playback OSD on the video for S01E03 read 'Test Show S01E03.mp4' (see extra findings).",
+    "evidence": "../build/evidence/final5/live/8-settings-dialogs/shots/f13-off-top.png, f13-on.png, f13-off-tog.png, mi-menu.png"
+   },
+   {
+    "id": "F-02-voiceover",
+    "area": "F-settings",
+    "result": "NEEDS-OWNER",
+    "expected": "VoiceOver reads 'Default audio track, Auto'.",
+    "observed": "VoiceOver is off (com.apple.universalaccess feature.voiceOver = 0) and I must not turn it on. Visually, Settings > Playback shows 'Default audio track' with the placeholder 'Auto'.",
+    "evidence": "../build/evidence/final5/live/8-settings-dialogs/pairs/dark-playback.png. Owner steps: turn VoiceOver on (⌘F5), open Settings > Playback, VO-arrow to the Default audio track field, listen for 'Default audio track, Auto', then ⌘F5 again."
+   }
+  ],
+  "extraFindings": [
+   {
+    "severity": "minor",
+    "area": "J-media-io / F-settings",
+    "description": "The VLC title OSD at the start of playback shows the file name with its extension ('Test Show S01E03.mp4'), while the top bar strips it.",
+    "evidence": "../build/evidence/final5/live/8-settings-dialogs/shots/mi-menu.png (window capture, top-right of the video)"
+   },
+   {
+    "severity": "minor",
+    "area": "F-settings",
+    "description": "In Light, opening Add Subtitles from the subtitle track popover leaves the popover drawn behind the modal dialog, overlapping its right edge.",
+    "evidence": "../build/evidence/final5/live/8-settings-dialogs/shots/s25-light-addsubs.png"
+   },
+   {
+    "severity": "minor",
+    "area": "F-settings",
+    "description": "After the library search text was erased, the breadcrumb still read 'Results for \"x\"' right after the last Backspace. It updated later (it was back to 'Playlists' by the next dialog), so this is probably debounce lag.",
+    "evidence": "../build/evidence/final5/live/8-settings-dialogs/shots/f08-newpl-closed.png"
+   },
+   {
+    "severity": "minor",
+    "area": "F-settings",
+    "description": "The playing item's Properties & Metadata could not be reached from the menu bar, the ⋯ menu, the video right-click menu or the control-bar overflow menu in the default layout. Media Info is only reachable for library rows, which show only Location and Type, with no tracks or duration.",
+    "evidence": "../build/evidence/final5/live/8-settings-dialogs/shots/mi-more-sub.png, mi-overflow.png, mi-small.png"
+   },
+   {
+    "severity": "minor",
+    "area": "F-settings",
+    "description": "A new custom preset is not selected after it is created; Default Preset stays checked.",
+    "evidence": "../build/evidence/final5/live/8-settings-dialogs/shots/cf-preset-list-crop.png"
+   },
+   {
+    "severity": "minor",
+    "area": "A-window",
+    "description": "Leftover from restoring: the app created ~/Library/Application Support/org.example.vlc-redesign.codex/macosx-redesign/presets.json (empty: no presets, no assignments), which was not in the backup. I left it in place because deleting files was blocked by the permission classifier.",
+    "evidence": "../build/evidence/final5/live/8-settings-dialogs/backup/"
+   }
+  ]
+ },
+ {
+  "group": "9-design-customize-onboarding",
+  "build": "I tested one build: /Applications/VLC Redesign.app with bundle mtime 1792204890 (installed 03:24 from ddd9d23a9d). The mtime was the same at the start (09:24:16) and at the end (09:34:26), so there was no reinstall during the group. Evidence: ../build/evidence/final5/live/9-design-customize-onboarding/build-start.txt and build-end.txt.",
+  "checks": [
+   {
+    "id": "H-customize-video-visible",
+    "area": "H-design",
+    "result": "FAIL",
+    "expected": "The video matches the paused frame, with no flat #303030 anywhere. The blurred video shows through the dialog body, at about #181818 over dark content (not #0E0E0E).",
+    "observed": "No flat #303030 anywhere: the video stays visible around the dialog. Two problems. (1) Opening Customize rescales the paused picture. Before, it was fitted inside the 10 pt frame with black pillarbox bars. In Customize it becomes aspect-fill from edge to edge and crops top and bottom: the burnt-in timecode at the top-left is cut off and the colour bars are about 7.5% wider. After Cancel or Save it returns to the fitted size. (2) The dialog body is almost opaque. I made a local test clip (#2D2B29 with a white stripe, 1920x1080). Over the dark part the body reads #101010, over white #151515, and over stopped or black video #0E0E0E. Over S01E01's saturated bars it reads #0E0E15 to #161115. That is roughly 3% of the video coming through, so over dark content it is about #10, not about #18.",
+    "evidence": "shots/01-playing-paused.png (fitted, before) vs shots/02-customize-dark.png (filled, cropped); crop shots/c-video-before-after-topleft.png; shots/05-customize-darkvideo.png (body #101010 over dark video, #151515 over white); shots/06b-cmdperiod.png (#0E0E0E over black). Test clip: media/zz-live-dark.mp4. Figma Player - customize.png body reads #181818 at its centre and #0F0F0F at its edges.",
+    "suspectedCause": "A-window / H-design. MXRAppView or the customize-mode video layout switches the picture to fill when the 54 pt band is added, where it should keep the fitted (aspect-fit) placement. Also the Customize dialog material's tint opacity or blur mix in the dialog backdrop (MXRUI Customization dialog background) lets almost no video through. parity.json already called #181818 vs #0E0E0E an offscreen blur limit; the live window shows the same result."
+   },
+   {
+    "id": "H-customize-tiles",
+    "area": "H-design",
+    "result": "PASS",
+    "expected": "The ±15s labels sit level with the first line of 'Forward 10s'. The play tile shows a 48 pt fill 3 pt inside its dashed box. An empty 54 pt band sits above the control row (S66).",
+    "observed": "Band: the divider at the bottom of the video is at y 1786 px and the control-row divider at 1894 px, so 108 px = 54 pt, and the band is empty. Play tile: the dashed box is 115-224 x 1913-1982 px with a 1 pt line, and the orange fill is 122-217 x 1920-1975 px. That is a 48x28 pt fill, 3.5 pt from the box's outer edge on every side (about 3 pt from the line centre). Labels: the 'Forward 15s'/'Backward 15s' text starts at y 651 px, while the first line of 'Forward 10s' starts at 659 px, so the ±15s labels are 4 pt higher. The Figma render Player - customize.png has exactly the same 4 pt offset (731 vs 739 px at 2x). The build matches Figma, the visual truth, so I count this as PASS. The literal wording 'level with' contradicts the render; the check text may need correcting.",
+    "evidence": "shots/02-customize-dark.png; crops shots/c-tiles-row1.png and shots/c-bar-left.png; the Figma measurement was done on redesign/design/figma/renders/Player - customize.png."
+   },
+   {
+    "id": "H-move-to-new-row",
+    "area": "H-design",
+    "result": "PASS",
+    "expected": "The tile fills the band above the transport (19m27.6), and no row is appended below. After Save the player shows two rows (S67).",
+    "observed": "Right-click on the seek bar tile, then Move to New Row: the seek bar fills the full-width band above the transport and nothing is added below. The times stay in the transport row. Cmd-Z did nothing because Edit > Undo is disabled in Customize, so I used Cancel, which restored one row. The VoiceOver custom action 'Move to new row' on the Volume tile, run through the accessibility API with AXPerformAction (VoiceOver itself not turned on), put Volume into the band, again with no row below. Save gave a two-row player and layouts.json held two bottom rows. I restored the default layout by putting back the backed-up layouts.json after quitting.",
+    "evidence": "shots/08-rclick-seek.png, shots/09-moved-new-row.png, shots/c-10-undo-bar.png, shots/11-cancel-after-move.png, shots/12-ax-volume-newrow.png, shots/13-saved-two-rows.png, ax-customize-actions.txt, key frame 15-customize-onboarding__alternate-two-row-layout__19m27.6s.jpg"
+   },
+   {
+    "id": "H-07-drag",
+    "area": "H-design",
+    "result": "PASS",
+    "expected": "The tile is accepted, with no unknown-UTType warning. There is exactly one exported type, org.videolan.vlc-redesign.player-layout-item.",
+    "observed": "Dragging the Stop palette tile onto the control bar inserted it after the current time. The unified log for the app's pid over the drag (log show) has the drag pasteboard flavour org.videolan.vlc-redesign.player-layout-item and no UTType, undeclared-type or unknown-type warnings. Info.plist UTExportedTypeDeclarations has 2 entries: upstream VLC's org.videolan.vlc (the .vlc playlist type) and a single org.videolan.vlc-redesign.player-layout-item. The layout-item type is declared exactly once. If the check meant only one exported type in total, the inherited upstream org.videolan.vlc entry would contradict it.",
+    "evidence": "shots/14-drag-stop.png, shots/c-14-bar.png, drag-log.txt, utexported-ids.txt, info-plist.txt"
+   },
+   {
+    "id": "H-subtitle-glyph",
+    "area": "H-design",
+    "result": "PASS",
+    "expected": "The .srt glyph has the folded corner of 1911:8286.",
+    "observed": "Group 3 never created the sidecar folder, so I created it as group 3 specifies: ../build/evidence/final5/sidecar/Show (2024) - Bob's cut.mp4 and .srt. I opened the video and went Subtitles panel > + > Add Subtitles > To This Folder. The subtitle-file glyph in the row has the folded top-left corner and two text lines, matching Figma's Add Subtitles to Playlist/Folder-1.png (subtitle.svg 1911:8286). See also extra finding 3: the row shows 'No matching subtitle'.",
+    "evidence": "shots/24-to-this-folder.png, crops shots/c-24-srt-glyph.png vs shots/c-figma-srt-glyph.png"
+   },
+   {
+    "id": "H-accent",
+    "area": "H-design",
+    "result": "PASS",
+    "expected": "Every former orange changes: the seek fill, active icons, ✓ marks, the dialog primary button and the play button. Nothing stays hard-coded orange.",
+    "observed": "With Settings > General > Accent set to blue, these all turned blue: the seek fill and knob, the play button, the active sidebar icon (General), the selected Theme segment, the active subtitle icon and the panel tab underline, the ✓ next to Track 1, and the enabled Save button in Customize. The cone logo turned blue too, which matches Figma Onboarding-7 (blue). A pixel scan of the top bar, control bar, side panel and Customize dialog for orange (r>150, g 80-170, b<80) found only the macOS minimize traffic light. Restored to orange afterwards and confirmed in the player.",
+    "evidence": "shots/16-accent-blue-settings.png, shots/17-accent-blue-player.png, shots/18-accent-blue-subs.png, shots/19-accent-blue-customize.png, shots/20-accent-restored.png, shots/21-player-orange.png"
+   },
+   {
+    "id": "H-03-onboarding",
+    "area": "H-design",
+    "result": "PASS",
+    "expected": "The folder field reads ~/Movies (D049), and Back is present. The folder appears exactly once, and onboarding is marked complete.",
+    "observed": "I ran the installed binary directly with HOME and CFFIXED_USER_HOME set to ../build/evidence/final5/home, after creating an empty home/Movies so the fresh home looks like a Mac home. vlcrc, ml.db and the JSON stores were all created under the isolated home. Only CFPreferences (NSUserDefaults) still uses the owner's real plist; its content was identical before and after the run. The mtimes of the owner's files were unchanged (owner-mtimes-before/after.txt). Welcome step: the field reads '~/Movies'. Step 2 has Back and Next. Step 3 has Back and Finish. Esc on step 3 closed onboarding to the empty library. Quit took under 1 s. The Folder table holds exactly one row: file:///…/final5/home/Movies/. The isolated vlcrc has macosx-redesign-onboarding-completed=1.",
+    "evidence": "shots/30-onboarding-welcome.png, shots/31-onboarding-step2.png, shots/32-onboarding-step3.png, shots/33-after-esc.png, onboarding-folder-table.txt, onboarding-vlcrc.txt, owner-mtimes-before.txt, owner-mtimes-after.txt"
+   }
+  ],
+  "extraFindings": [
+   {
+    "severity": "minor",
+    "area": "H-design",
+    "description": "Esc does not close the Customize Player dialog. I pressed Esc twice with the app frontmost and the dialog stayed open; only Cancel or the close button closes it. Cmd-period went to the player and stopped playback instead. Native sheets close on Esc (Cancel is the key equivalent), and Esc closes onboarding.",
+    "evidence": "shots/03-after-esc.png, shots/06-esc2.png, shots/06b-cmdperiod.png"
+   },
+   {
+    "severity": "minor",
+    "area": "H-design",
+    "description": "Customize has no undo. Edit > Undo stays disabled after Move to New Row, so Cmd-Z does nothing and Cancel is the only way back.",
+    "evidence": "shots/c-10-undo-bar.png; Edit menu enabled states read through System Events"
+   },
+   {
+    "severity": "minor",
+    "area": "J-media-io",
+    "description": "Add Subtitles > To This Folder lists 'Show (2024) - Bob's cut.mp4' with 'No matching subtitle', although 'Show (2024) - Bob's cut.srt' sits next to it in the same folder and is already loaded as an external track. The path chip reads 'Home' instead of the media's folder. Figma's Folder-1 shows each video paired with its same-name .srt and the media folder's path. This may need a file choice first (From Computer), but nothing proposes the sidecar automatically.",
+    "evidence": "shots/22-add-subs.png, shots/24-to-this-folder.png"
+   },
+   {
+    "severity": "minor",
+    "area": "H-design",
+    "description": "Accessibility of Customize edit mode, as read through AXUIElement: in the control bar only Play, Current Time, Seek Bar, Duration and Volume expose the 'Move to new row / Move to control bar / Move to top bar / Remove from player' custom actions. Previous, Next, Audio, Subtitles, Playback settings and Queue expose none, so VoiceOver users cannot move or remove them. In the top bar one AXStaticText with these actions has no label or description (probably the title tile). Palette tiles have role AXUnknown.",
+    "evidence": "ax-customize-actions.txt (tools/ax list)"
+   }
+  ],
+  "summary": "Group 9 ran on the 03:24 build (mtime 1792204890, unchanged from start to end). Results: 6 PASS, 1 FAIL.\n\n**FAIL: H-customize-video-visible.**\n- There is no flat #303030 anywhere.\n- Opening Customize switches the paused picture from fitted to aspect-fill, cropping it (the burnt-in timecode is cut off). It returns to fitted after Cancel or Save.\n- The dialog body lets only about 3% of the video through: #101010 over a #2D2B29 test clip and #0E0E0E over black, against the expected about #181818.\n\n**PASS:**\n- **H-customize-tiles:** 54 pt empty band; 48x28 pt play fill about 3 pt inside its dashed box. The ±15s labels sit 4 pt above 'Forward 10s', exactly as in the Figma render, so the check's wording 'level with' contradicts Figma.\n- **H-move-to-new-row:** both the context menu and the accessibility action put the tile in the band, with no row added below; after Save the player has two rows.\n- **H-07-drag:** the tile is accepted with no UTType warning; the layout-item type is declared once, next to upstream's org.videolan.vlc.\n- **H-subtitle-glyph:** the folded corner is present. I created the sidecar folder because group 3 never ran.\n- **H-accent:** everything that was orange followed the blue accent, then I restored orange.\n- **H-03-onboarding:** isolated HOME; ~/Movies is filled in, Back is present, Esc completes onboarding, and the Folder table has one row.\n\n**Extra findings (all minor):**\n- Esc does not close Customize.\n- Customize has no undo.\n- 'To This Folder' shows 'No matching subtitle' for a same-name .srt in the folder, and the path chip reads 'Home'.\n- In Customize, several control-bar tiles have no accessibility actions, and one top-bar element is unlabelled.\n\nCleanup: ⌘Q quit took about 1 s both times. All backed-up app files (prefs, vlcrc, ml.db, JSON stores) are restored and identical to the backup. The live lock is released and the native lock was never needed. Test files I created stay in ../build/evidence/final5: sidecar/, home/ and live/9-design-customize-onboarding/media/zz-live-dark.mp4. Evidence is in ../build/evidence/final5/live/9-design-customize-onboarding/.",
+  "settingsRestored": true
+ },
+ {
+  "group": "10-menus-osd-engine",
+  "build": "/Applications/VLC Redesign.app mtime 1792204890 at start (09:39:46 MSK) and 1792204890 at end (10:07:23 MSK). The bundle was not reinstalled during the group, so every check ran on the install from ddd9d23a9d (03:24).",
+  "settingsRestored": true,
+  "summary": "10-menus-osd-engine ran on the installed build from ddd9d23a9d (bundle mtime 1792204890, the same at start and end). Results: 5 PASS (OSD-app-actions, D-S08-open-recent, C-01-start-paused, D-extensions-menu, C-13-quit-latency), 2 FAIL (D-disabled-submenus, D-shadow-pip-wording), 1 NEEDS-OWNER (D-voiceover-menus), 1 NOT-RUN (C-startup-memory) and 1 PASS with notes (D-S11-menubar). No check in this group is marked ownerComplaint.\n\nWhat passed:\n- OSD lines are correct for ⌘\\, Q, ⌘L, ⌘F and the snapshot. On the Mac, F is VLC's audio-delay key, so the fullscreen test used ⌘F (D034).\n- Start-paused works.\n- In-window submenus open beside their row, top-aligned. Esc or a click outside closes the chain without pausing playback.\n- Quit takes 0.35–0.43 s. The Services signpost lasts about 1 ms and the services run in parallel.\n- The bundled VLSub extension works through View ▸ Extensions: entries appear, its Help entry runs, its dialog takes input, and closing the dialog deactivates it.\n- The play/pause media key works behind Settings.\n- Cold launch reaches the first frame in 0.54–0.73 s.\n\nFailures and findings:\n- **Major (new): Repeat does not loop a single item.** With ✓ Repeat on and one item in the queue, S01E03 stops at 09:59 instead of looping. Seen twice.\n- Behind Settings, \"Keyboard Shortcuts…\" stays enabled in the App and Help menus. Choosing it swaps Settings for the Shortcuts dialog.\n- The Speed submenu stays enabled on the local HTTP live stream, because the engine accepted a rate change there (Speed: 1.50x). So this stream did not give the fixed-rate case the check assumes.\n- The control-bar ⋯ ▸ Picture in Picture path could not be found in the default layout, and the right-click menu has no PiP row.\n- Popup submenu rows do not expose their submenu to accessibility while closed.\n\nHousekeeping: the app was quit with ⌘Q (0.347 s, no hang). The app's prefs, vlcrc and Application Support data (library, recents, the two \"live\" network entries the Open Network Stream dialog's Save button created, and the copied VLSub.luac) were restored from backup and verified identical. The empty clipboard was restored. The snapshot PNG was moved out of ~/Pictures into the evidence folder. The local stream server and the RSS sampler were stopped, and the live lock was released. No system settings were touched.",
+  "checks": [
+   {
+    "id": "D-S11-menubar",
+    "area": "D-menus",
+    "result": "PASS",
+    "expected": "Menus match D034 with ⌘ glyphs matching the in-window cards; Full Screen only in View (⌘F); no window-tab items; Open Recent lists media and Clear Menu.",
+    "observed": "App menu: About, Settings… ⌘,, Keyboard Shortcuts…, Profile ▸, Services, Hide, Quit ⌘Q. File: ⌘O, ⇧⌘O, ⌘N, ⌘D, ⌘R, ⌥⌘V, Open Recent ▸ (5 media + Clear Menu), ⇧⌘S Convert, Stream…, Add Subtitle File…. View: Library ⌘L, Go Home, Queue Q, Right Sidebar, Hide UI ⌘\\, Customize Player, Extensions ▸, Enter Full Screen ⌘F. The Video menu has no Full Screen row; Snapshot is ⌥⌘S. The Window menu has only system rows (no Show Tab Bar or Merge All Windows). Help has VLC Help ⌘? and Keyboard Shortcuts…. The in-window ⋯ card's shortcuts (⌘O ⇧⌘O ⌘N ⌘D ⌘R ⇧⌘S ⌘,) and the right-click card's shortcuts (⌘. ⇧⌘R ⌘\\ ⌘Q Space) match the menu bar. Cosmetic difference only: the menu bar draws arrow keys as ⌘◀/⌘▶ (system rendering), the cards as ⌘←/⌘→.",
+    "evidence": "../build/evidence/final5/live/10-menus-osd-engine/menubar-playing.txt; shots/menubar-View.png, menubar-Playback.png, menubar-Video.png, s08-dots.png, rclick-root.png"
+   },
+   {
+    "id": "D-S08-open-recent",
+    "area": "D-menus",
+    "result": "PASS",
+    "expected": "Each submenu opens to the right, top-aligned with its row; Esc or a click outside closes the whole chain without pausing.",
+    "observed": "During S01E03 playback, Open Recent and Profile each open to the right. The first submenu row sits on the parent row's baseline (same y). Open Recent lists 5 media and Clear Menu; Profile lists ✓ Default and + New. Esc closed both levels, with time advancing 2:08→2:09. Reopening and clicking the video closed the chain without pausing, with time advancing 2:12→2:14.",
+    "evidence": "shots/s08-sheet.png, s08-recent.png, s08-profile.png, s08-sheet2.png, s08-after-esc*.png, s08-after-click*.png"
+   },
+   {
+    "id": "D-disabled-submenus",
+    "area": "D-menus",
+    "result": "FAIL",
+    "expected": "On a fixed-rate stream Speed is grey and opens nothing. Behind Settings every row is grey, submenu rows included, and key equivalents do nothing.",
+    "observed": "Behind Settings, every app row in File/View/Playback/Audio/Video is grey, including the submenu rows (Audio Device, Aspect Ratio, Crop, Zoom, Deinterlace, Subtitles, Open Recent, Profile) and View ▸ Extensions. ⌘L, ⌘\\ and ⌘F did nothing, and neither the ⋯ button nor right-click opened anything. Exception (FAIL): \"Keyboard Shortcuts…\" stays enabled in both the App and Help menus. Choosing it while Settings is open replaced Settings with the Keyboard Shortcuts dialog. Live stream part (http://127.0.0.1:8090/live, served by the build-tree vlc and opened with ⌥⌘V after ⌘N ▸ Save only saved a network entry): Forward/Backward 10s are grey and the time reads --:--:--. Faster/Slower/Normal Speed in the menu bar and the right-click Playback ▸ Speed submenu are enabled, and ⌘= showed 'Speed: 1.50x'. The engine accepted a rate change on this HTTP-TS stream, so the stream is not fixed-rate and the Speed half could not be judged. The menu-bar Audio and Video menus have no Speed row.",
+    "evidence": "menubar-behind-settings.txt (lines 75 and 292); shots/behind-settings-kbs2.png, behind-settings-sheet.png, behind-settings-sheet2.png, menubar-live.txt, live-sheet.png, lrp4.png",
+    "suspectedCause": "Modules/gui/macosx_redesign/Sources/MXRPlugin/MXRNativeMenus.swift: the behind-modal gating (isBehindModal) is not applied to the Keyboard Shortcuts items in the App and Help menus (area D-menus)."
+   },
+   {
+    "id": "D-shadow-pip-wording",
+    "area": "D-menus",
+    "result": "FAIL",
+    "expected": "Card shadows fade within about 14 pt. PiP is disabled behind Settings and works after it closes. Both renderer menus read 'Discover Cast Devices'.",
+    "observed": "Shadow (over a generated #F2F2F2 frame): on the sides the shadow reaches the background value 244 at 29 px = 14.5 pt from the card edge on both the Profile submenu and the right-click card. Below the card it reaches 244 at 45 px = 22.5 pt, which includes the shadow's downward offset. PiP: Video ▸ Picture in Picture is grey behind Settings. After Settings closed it opened the PiP window ('This video is playing in Picture in Picture' in the main window), and the menu toggled it off again. The '⋯ ▸ Picture in Picture' path is not in this build's default layout: the in-window ⋯ menu and right-click ▸ Video have no PiP row, and PiP exists only as a customizable control-bar button, so that half was not run. Wording: right-click ▸ Playback ▸ Renderer and the Video sidebar's Render dropdown both read 'Discover Cast Devices'. The local option is named 'This Mac' in one and 'Local' in the other.",
+    "evidence": "shots/shadow-profile.png, shadow-rclick.png, shadow-rclick-full.png, pip-sheet.png, pip-window.png, rclick-renderer.png, render-dropdown-crop.png, rclick-sub-sheet.png",
+    "suspectedCause": "Partly unverifiable rather than broken. The bottom reach of 22.5 pt is the y-offset plus blur of the popup shadow (MXRPopupShadowImage), and the sides meet about 14 pt. The ⋯ PiP entry is absent from the default layout (PlayerBars.swift .pip button). The 'This Mac' vs 'Local' wording differs between PlayerMenus.swift and EffectsSidebars.swift (D-menus). Marked FAIL only because the ⋯ PiP path could not be shown; the reviewer may reclassify."
+   },
+   {
+    "id": "D-voiceover-menus",
+    "area": "D-menus",
+    "result": "NEEDS-OWNER",
+    "expected": "Rows read title and checked or disabled state, and submenu rows say they open a submenu. The media key works behind the sheet.",
+    "observed": "VoiceOver is off (defaults read com.apple.universalaccess voiceOverOnOffKey = 0), and turning it on is a system setting I may not change. Media key part, run: with Settings open, a synthetic NX_KEYTYPE_PLAY paused playback (time held at 00:00:39) and a second press resumed it (00:00:41). AX structure, run without VoiceOver: popups are AXMenu > AXMenuItem with AXTitle, AXEnabled (Next Item false) and AXMenuItemMarkChar ✓ (Default profile), plus AXMenuItemCmdChar. However, closed submenu rows (Open Recent, Playback, Video, Audio, Subtitle, More Settings, Playlist, Open Media) have no child AXMenu, so VoiceOver probably cannot say they open a submenu until they are opened. The Profile row exposed its child menu only while open.",
+    "evidence": "shots/mk-sheet.png, mk-paused-1.png, mk-resumed.png; ax-dots-menu.txt; ax-rclick-menu.txt",
+    "suspectedCause": "Owner steps: turn on VoiceOver (⌘F5). Play a video and open ⋯ with VO-Space. Move with VO-→/↓ and confirm that each row reads its title, '✓'/checked on Default, 'dimmed' on Next Item, and 'submenu' on Open Recent, Profile and the right-click Playback/Video rows. Then open Settings (⌘,) and press the play/pause media key."
+   },
+   {
+    "id": "OSD-app-actions",
+    "area": "C-bridge",
+    "result": "PASS",
+    "expected": "OSD shows Hide UI/Show UI, Show Queue/Hide Queue, Show Library/Hide Library each with 'Pressed <key>'. F shows Fullscreen then Exit fullscreen. Esc in a window shows no fullscreen line. The snapshot shows its file line once written.",
+    "observed": "⌘\\ ×2: 'Hide UI' / 'Show UI' + 'Pressed ⌘\\'. Q ×2: 'Show Queue' / 'Hide Queue' + 'Pressed Q'. ⌘L ×2: 'Show Library' / 'Hide Library' + 'Pressed ⌘L'. Bare F is VLC's macOS audio-delay key: it showed 'Audio delay: -50 ms / Pressed F' and was reset with G to 0 ms. ⌘F (VLC's Mac fullscreen key, D034) showed 'Fullscreen / Pressed ⌘F', then 'Exit fullscreen / Pressed ⌘F'. Esc in a window showed only 'Pressed esc', with no fullscreen line. ⌥⌘S showed 'vlcsnap-2026-10-17-09h42m15s756.png / Pressed ⌥⌘S', and the file existed in ~/Pictures (moved to evidence). Minor: Esc is written 'esc' in lowercase where the other keys use glyphs.",
+    "evidence": "shots/osd-sheet1.png, osd-sheet2.png, osd-sheet3.png, osd-sheet4.png; snapshot-moved/vlcsnap-2026-10-17-09h42m15s756.png"
+   },
+   {
+    "id": "C-01-start-paused",
+    "area": "C-bridge",
+    "result": "PASS",
+    "expected": "S01E02 opens paused at 0:00 and stays paused. The next item plays normally, and replaying S01E02 plays it.",
+    "observed": "I turned off Settings ▸ Playback 'Start playing as soon as a file opens'. S01E01 opened paused, and Space played it. ⌘O ▸ S01E02 opened paused at 00:00:00 and stayed paused after 4 s, and again after S01E01 was added to the queue. After play and a seek near the end, the queue advanced to S01E01, which played on its own (00:00:03 → 00:00:06). Double-clicking S01E02 in the queue played it (00:00:03 → 00:00:06). The setting was restored to ON (screenshot) and the prefs were later restored from backup.",
+    "evidence": "shots/c01-sheet.png, c01-queue-crop.png, c01-queue2.png, c01-next-sheet.png, c01-replay-sheet.png, startpaused-restored.png"
+   },
+   {
+    "id": "D-extensions-menu",
+    "area": "C-bridge / D-menus",
+    "result": "PASS",
+    "expected": "Entries appear (filling into the open menu if late) and triggering one runs the script. The dialog takes input, and closing it deactivates the extension.",
+    "observed": "The extension used was VLSub 0.11.1, bundled in the app at Contents/Frameworks/lua/extensions/VLSub.luac; nothing was downloaded. I copied it to the user extensions folder. It appeared in Settings ▸ Extensions and View ▸ Extensions only after an app relaunch. Enabling it opened its dialog immediately. The dialog took typed input ('zz-live' in Title), and its Close button deactivated it (toggle back to OFF, View ▸ Extensions row without ✓ or submenu). Re-enabled and with Settings closed, View ▸ Extensions ▸ ✓ VLsub ▸ listed Research, Config, Help and Disable, still present after 2 s. Triggering Help ran the script and opened 'VLSub 0.11.1: Help'. Its Ok returned to the main dialog, and Close deactivated the extension. The 'late fill into an open menu' case could not be observed because the entries were already present when the menu opened. No search was run, so there was no network access. The copied file was removed by the backup restore.",
+    "evidence": "shots/ext-settings3.png, ext-sheet2.png, ext-dialog.png, ext-menu-open.png, ext-help-dialog.png"
+   },
+   {
+    "id": "C-13-quit-latency",
+    "area": "C-bridge / I-build",
+    "result": "PASS",
+    "expected": "Each quit takes about 1 s or less, with no multi-second dlclose stretch. The Services interval is about as long as the slowest service step.",
+    "observed": "⌘Q→process exit, polled every 50 ms: run1 0.371 s, run2 0.368 s, run3 0.430 s (each after launching and 11 s of S01E03), after browsing Network 0.360 s. Session quits: 0.425 s and 0.347 s. Signposts (Shutdown category): Services begins 48.413 and ends 48.414. thumbnails, media, audio, discovery, library and subtitleCues overlap on separate threads, each about 1 ms, so the interval matches the slowest step. After Network: Services lasted 6 ms. Load average was 6.3–8.3 during the runs.",
+    "evidence": "quit-times.txt; signpost-run1.log, signpost-run2.log, signpost-run3.log, signpost-run4-network.log; shots/network-browse.png"
+   },
+   {
+    "id": "C-startup-memory",
+    "area": "C-bridge / I-build",
+    "result": "NOT-RUN",
+    "expected": "First frame within about 1–2 s; RSS flat with no growth trend across a 10-min S01E03 loop; numbers recorded.",
+    "observed": "First frame (PASS part): from a cold launch with `open -a … S01E01.mp4`, captures every 0.19 s showed the empty player at 0.54 s and the first video frame by 0.73 s (load 3.65). The 10-minute loop could not be run: with Repeat ✓ on a single-item queue, S01E03 stopped at 09:59 instead of looping (see extra finding), and the remaining time budget did not allow a full 10-minute loop. RSS numbers recorded: 191–192 MB at launch, 197.6 MB right after a cold launch plus browsing Network, 228–261 MB in the first 2 min of playback, 316–350 MB after the menu/C-01 tests, then flat at 333.8 MB for 6 min (09:59:56–10:05:37) while stopped. In session 1, RSS was 351–369 MB over 4 min of mixed use. No trend can be concluded without the loop.",
+    "evidence": "shots/startup/f1-f20.jpg + times.txt + load.txt (frame 4 = first video at 0.73 s); rss.log; rss-notes.txt",
+    "suspectedCause": "Blocked by the Repeat defect (extra finding 1). Re-run once Repeat loops, or loop via a 2-item queue."
+   }
+  ],
+  "extraFindings": [
+   {
+    "severity": "major",
+    "area": "C-bridge / B-controls (Sources/MXRCore/Values/QueueValues.swift repeat mapping, PlayerModel end-of-media handling)",
+    "description": "Repeat does not loop. With Playback ▸ Repeat checked (queue repeat icon orange) and S01E03 the only queue item, playback reaches 00:09:59 and stops (play button shown, empty seek bar) instead of restarting. Reproduced twice: once from natural play to the end, once after a seek to about 98%.",
+    "evidence": "shots/mem-state-now.png, rep-queue-crop.png, rep-bars.png, rep-after.png; rss.log CPU drops to 0.0 at 09:59:56"
+   },
+   {
+    "severity": "minor",
+    "area": "D-menus / A-window (Open Network Stream dialog)",
+    "description": "Open Network Stream's primary button reads 'Save', and it only saves the URL as a Network library entry; it does not play it. Two clicks created two 'live' rows under Library ▸ Network (since removed by the restore). The stream could only be played via Open from Clipboard (⌥⌘V). Users expect ⌘N to open and play the stream.",
+    "evidence": "shots/netdlg-typed.png, live-playing2.png, network-browse.png"
+   },
+   {
+    "severity": "minor",
+    "area": "D-menus (popup submenu placement)",
+    "description": "When the right-click Playback ▸ Renderer submenu has no room on the right, it flips left and is drawn over the root right-click card. Also, during the live stream, hovering a right-click submenu row twice failed to highlight or open it until clicked.",
+    "evidence": "shots/rclick-renderer.png, live-rclick-playback2.png, lrp3.png, lrp4.png"
+   },
+   {
+    "severity": "minor",
+    "area": "D-menus (accessibility)",
+    "description": "Closed submenu rows in the popups (⋯ Open Recent, right-click Playback/Video/Audio/…) expose no child AXMenu. VoiceOver probably cannot announce them as submenus until they are opened. Native NSMenu rows in the menu bar expose their submenus while closed.",
+    "evidence": "ax-dots-menu.txt, ax-rclick-menu.txt"
+   },
+   {
+    "severity": "minor",
+    "area": "C-bridge (extensions)",
+    "description": "An extension copied into the user lua/extensions folder appears in Settings ▸ Extensions and View ▸ Extensions only after an app relaunch, even though the Extensions page and menu are re-read on open.",
+    "evidence": "shots/ext-settings2.png (empty list after copy), ext-settings3.png (listed after relaunch)"
+   },
+   {
+    "severity": "minor",
+    "area": "D-menus (wording)",
+    "description": "The local renderer is named 'This Mac' in right-click ▸ Playback ▸ Renderer but 'Local' in the Video sidebar's Render dropdown. The OSD writes Esc as 'Pressed esc', lowercase, while other keys use glyphs.",
+    "evidence": "shots/rclick-renderer.png, render-dropdown-crop.png, osd-sheet2.png"
+   }
+  ]
+ },
+ {
+  "group": "11-media-io (J-media-io)",
+  "build": "The bundle mtime was 1792204890 (Sat Oct 17 05:41:30 MSK 2026) at both the start (10:13) and the end (10:25) of the group, so no reinstall happened during it. Note that this differs from the 03:24 install time given in the brief: the app was reinstalled at 05:41, before this group ran. Tested source HEAD ddd9d23a9d. Evidence is in build-start.txt and build-end.txt.",
+  "checks": [
+   {
+    "id": "J-convert",
+    "area": "J-media-io",
+    "result": "PASS",
+    "expected": "Progress advances to Saved \"verify.mp4\" with Show in Finder, the app does not crash, ffprobe shows h264+aac at about 60 s, and no .vlc-partial file is left",
+    "observed": "Progress went 7→17→…→95 % in about 9 s, then 'Saved “verify.mp4”.' appeared with a Show in Finder button, and the app kept running. ffprobe shows h264 + aac (plus a mov_text subtitle stream carried over from the .srt) and duration=60.03 s. No *.vlc-partial file exists anywhere under final5.",
+    "evidence": "../build/evidence/final5/verify.mp4; live/11-media-io/ffprobe-verify-mp4.txt; live/11-media-io/convert1-poll.txt; live/11-media-io/shots/convert-open.png, convert1-done.png"
+   },
+   {
+    "id": "J-overwrite",
+    "area": "J-media-io",
+    "result": "FAIL",
+    "expected": "Both times the 'verify.… already exists. Do you want to replace it?' alert appears. Cancel leaves the md5 unchanged, and Replace overwrites the file.",
+    "observed": "The alert appears correctly both times: for verify.mp4 on a second Convert, and for verify.mp3 after switching to Audio — MP3 (the destination was auto-renamed to verify.mp3). Cancel leaves the md5 and mtime unchanged. Replace does nothing: the alert stays (or immediately comes back) and the file is never touched. I tried a synthetic click twice and AXPress once, and md5 924e913e… and mtime 1792221317 stayed identical through all three attempts. Overwriting does work when the existing name is confirmed in the system Save panel's own Replace prompt (mtime changed to 1792221434), so the backend overwrite is fine and the in-dialog Replace path is what's broken.",
+    "evidence": "live/11-media-io/md5-mp3.txt; md5-verify-before.txt; shots/overwrite-mp4-alert.png, overwrite-mp3-alert.png, replace2-alert.png, replace2-after.png (alert still up after Replace); mp3-replace-poll.txt",
+    "suspectedCause": "J-media-io: modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/OpenMediaDialogs.swift, around lines 530-531 and 449-453. The alert's isPresented Binding setter calls form.keepExistingFile() (replaceCandidate = nil) when SwiftUI dismisses the alert, and SwiftUI does that before it runs the Replace button action. So form.replace() finds replaceCandidate == nil, never calls target.confirmReplacing, and startOrStop runs with overwrite=false. The backend throws destinationExists again and the alert is re-presented. Unit tests call form.replace directly, so they miss this. Fix: capture the URL in the button action before dismissal, or stop clearing it in the binding setter."
+   },
+   {
+    "id": "J-stop-hint",
+    "area": "J-media-io",
+    "result": "PASS",
+    "expected": "The hint reads 'Stopping…' and the button stays disabled until 'Stopped. Nothing was saved.'. It never shows 'Finishing…'. The original file's md5 is unchanged and no .vlc-partial file remains.",
+    "observed": "S01E03 (10 min) to MP4 over an existing stoptest.mp4. I had to confirm the existing name through the Save panel's Replace, because the in-dialog Replace is broken (see J-overwrite). Stop was pressed at 20 %, and within 0.28 s the hint read 'Stopped. Nothing was saved.' with Convert enabled again. 'Finishing…' never appeared in any of about 80 samples. The 'Stopping…' state was too short to catch at a ~0.37 s polling interval, so the disabled-button-while-stopping part is not directly observed, though nothing contradicts it. The original's md5 was unchanged (7614cb94… before and after) and no .vlc-partial file remained. Side note: on an earlier run where my stop trigger failed to fire, the whole 10-min file converted in about 52 s.",
+    "evidence": "live/11-media-io/stop-poll2.txt (CLICKED STOP at 20 → Stopped. Nothing was saved.), md5-stoptest-before2.txt, shots/stop-just-after.png; stop-poll.txt (full run)"
+   },
+   {
+    "id": "J-audio-only",
+    "area": "J-media-io",
+    "result": "PASS",
+    "expected": "Each output has only audio streams, with no subtitle or mov_text stream",
+    "observed": "S01E01 has an .srt. Each output's ffprobe codec_type list is just 'audio': verify.mp3 (mp3, 60.0 s), audio.m4a (aac, 60.03 s) and audio.wav (pcm_s16le, 60.01 s).",
+    "evidence": "live/11-media-io/ffprobe-audio-only.txt; ../build/evidence/final5/verify.mp3; live/11-media-io/audio.m4a, audio.wav"
+   },
+   {
+    "id": "J-stream",
+    "area": "J-media-io / C-bridge",
+    "result": "PASS",
+    "expected": "Address/Port/Path labels sit above the fields, and the hint shows this Mac's real <LocalHostName>.local. The local copy appears in an auxiliary window and the main player is untouched. The receiver gets data within about 2 s, and Stop closes the server (curl returns 000). A Convert job opens no local display.",
+    "observed": "The Address, Port and Path labels sit above the fields. The fields expose AXDescription Address / Port / Path. While streaming, the hint reads 'Streaming. Other devices open http://MacBook-Pro-2.local:8080/live in VLC or a web browser.', and scutil LocalHostName is MacBook-Pro-2. With Play locally ON, a separate 640x392 auxiliary window showed the S01E03 local copy with its subtitles. The main window kept playing S01E02 to its end, with title and transport unchanged. curl got HTTP 200 with time-to-first-byte 22 ms (TS: h264 + aac). After Stop the hint read 'Stopped.', the port 8080 listener was gone and curl returned 000. A Convert job with Play locally ON opened no extra window (only the main window in all 17 samples). The setting was restored to OFF afterwards (vlcrc #sout-display=0). VoiceOver itself was not run: it is off (voiceOverOnOffKey=0) and turning it on is a system setting, so a spoken read-through needs the owner. Two defects are listed under extra findings: the HTTP stream is not paced to real time, and the auxiliary window has the wrong title.",
+    "evidence": "live/11-media-io/ax-stream-open.txt, ax-stream-running.txt, curl1.txt, curl2.txt, curl3.txt, convert-display-wins.txt; shots/stream-open.png, stream-running.png, stream-aux-window.png, stream-aux-t2.png, stream-stopped.png, settings-play-locally-on.png"
+   },
+   {
+    "id": "J-hardware",
+    "area": "J-media-io",
+    "result": "NEEDS-OWNER",
+    "expected": "The CD is listed with Audio CD selected and plays. The camera plays after the one-time permission. The selected device stays checked after rediscovery. Otherwise NOT-RUN.",
+    "observed": "Audio CD: no optical drive (drutil list is empty), so NOT-RUN. Chromecast: a Bonjour browse for _googlecast._tcp found no devices in 5 s, so NOT-RUN. Camera: a FaceTime HD Camera and an OBS Virtual Camera are present, but first use of Open Capture Device triggers the system camera permission prompt, which only the owner may answer, so it was not attempted. Owner steps: 1) launch /Applications/VLC Redesign.app; 2) File ▸ Open Capture Device…, pick FaceTime HD Camera and open it; 3) Allow in the macOS camera prompt; 4) confirm live video plays in the main player; 5) close it and reopen once to confirm no second prompt.",
+    "evidence": "live/11-media-io/dnssd-googlecast.txt"
+   }
+  ],
+  "extraFindings": [
+   {
+    "severity": "major",
+    "area": "J-media-io / C-bridge (stream pacing)",
+    "description": "The HTTP stream is not paced to real time. With Play locally ON, the receiver was 52 s into the media after 4 s of wall time, and ~45 s after start the stream was already at pts 545–572 s of the 10-min S01E03, while the local copy window showed 00:00:40. The stream then ended about 70 s after Start ('The stream ended.') and the local window closed. VLC was at about 620 % CPU (load average 7.0). A real network client would get the file at roughly 10× speed and see the stream end long before the content does. Stock VLC paces an HTTP stream to the input clock.",
+    "evidence": "live/11-media-io/curl1.txt (17.9 MB in 4 s), curl2.txt; shots/stream-aux-t2.png (local copy at 00:00:40.8 while stream pts ≈ 572 s); ax dump showing 'The stream ended.' about 70 s after Start"
+   },
+   {
+    "severity": "minor",
+    "area": "J-media-io (stream local window)",
+    "description": "The 'Play locally while streaming' auxiliary window is titled 'Test Show S01E02', which is the main player's media, although it shows the streamed S01E03.",
+    "evidence": "live/11-media-io/shots/stream-aux-window.png, stream-aux-t2.png; ax-stream-running.txt (two AXWindows titled Test Show S01E02)"
+   },
+   {
+    "severity": "major",
+    "area": "J-media-io / G-library (history)",
+    "description": "Convert and Stream jobs record their source as played in the media library. S01E03 was never played, yet after a conversion and a stream it gained last_played_date and appeared as a new Continue Watching tile (Home went from 4 to 5 items). S01E01's last_played_date was bumped to the time of a pure conversion (10:23:41). This was restored afterwards from the backup.",
+    "evidence": "live/11-media-io/ml-history-before.txt vs ml-history-after.txt; shots/stop-just-after.png (Continue Watching third tile, '5 items')"
+   },
+   {
+    "severity": "minor",
+    "area": "J-media-io (convert dialog)",
+    "description": "The Save As panel opens in the source's folder with the source's own file name (Test Show S01E01.mp4) as the default name. Accepting it unchanged leads straight into a 'replace the source' prompt. The dialog does refuse destination == source, but a format-specific default name (e.g. adding a suffix) would be safer.",
+    "evidence": "live/11-media-io/shots/save-panel.png"
+   }
+  ],
+  "settingsRestored": true,
+  "summary": "Ran 6 checks: 4 PASS (J-convert, J-stop-hint, J-audio-only, J-stream), 1 FAIL (J-overwrite) and 1 NEEDS-OWNER (J-hardware). Tested build: bundle mtime 1792204890 (05:41:30 MSK), unchanged through the group. The app quit in 0.36 s.\n\n**J-overwrite fails.** The Replace button in the convert dialog's \"already exists\" alert does nothing: the alert re-appears and the file is untouched. Cancel works. Likely cause: the alert's isPresented binding setter in OpenMediaDialogs.swift clears replaceCandidate before the Replace action runs. Overwriting does work when the name is confirmed in the system Save panel instead, so the backend is fine.\n\n**Extra findings:**\n- **HTTP stream not real-time (major):** the stream runs about 10× faster than real time, so the 10-min file ended about 70 s after Start.\n- **Convert/Stream counted as playback (major):** they mark the source as played in the media library, which pollutes Continue Watching.\n- **Wrong window title (minor):** the local-copy window shows the main player's title.\n- **Save As default (minor):** it suggests the source's own file name and folder.\n\n**Not observed:** the \"Stopping…\" hint was too short to catch. VoiceOver was off and needs the owner. There is no CD drive and no Chromecast; the camera needs the owner to answer the permission prompt.\n\n**Cleanup:** prefs, vlcrc and the media library were backed up and restored, and match the backups. Play locally was turned back off. The live lock is released.\n\n**Outputs kept:** final5/verify.mp4, final5/verify.mp3, and live/11-media-io/audio.m4a, audio.wav, nodisplay.mp4. I deleted stoptest.mp4 (195 MB) and the stream captures after recording their md5 and ffprobe results. Evidence is under ../build/evidence/final5/live/11-media-io/."
+ }
+]

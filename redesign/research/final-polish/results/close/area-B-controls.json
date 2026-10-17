@@ -1,0 +1,171 @@
+{
+ "area": "B-controls",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "B-controls closed every item on its work list. Fixed: play/pause hover now uses the bar's iconHover tile instead of switching to Accent/DIm, and Pause reacts too. Bar buttons now use a style that draws the label as is: no press dimming, and a disabled control is drawn at Figma's 30 % through a new token. It used to be 0.4 times the plain style's own dimming, about 15 % in all. The volume cone gradient now uses 244:214's exact paint values. The offscreen render equals the paint within 0.1/255; Figma's PNG itself reads about 0.3/255 darker and is dithered. The OSD now casts one 50 % shadow; before, the nine outline layers each cast one, which stacked into a near-black halo. Arrow-key jump OSD now matches exactly: an uncommitted rewrite in MXRServicesBridge.m dropped input-thread reports, so plain arrows showed no OSD at all, and it is now restored. Main-thread seeks (seek bar, chapter keys) can never fill an arrow's slot. The music bar has no gear and its tint is Figma's own style; both are recorded in the new D056 with evidence. The music bar Δ2 is the backdrop under the tint (no blur offscreen), so it needs a live check. Tests: 4 new Swift tests in ControlBarParityTests, plus 1 native bridge-smoke check. The disabled-opacity, OSD-shadow and arrow tests were each shown to fail on the old code. The cone test's failure margin is calculated (0.26–0.4/255 against a 0.15 tolerance), not run. The hover test needs the new tile view, so on the old code it fails to compile rather than failing an assertion. All targeted suites pass, the native fixture suite passes, the build has no warnings, and gen-tokens --check is clean.",
+   "fixed": [
+    "(d) Play hover Accent/DIm: the play/pause tile is now MXRPlayPauseTile, with the iconHover tile over the fill (Icon Wrapper 177:99). Play stays Accent/Main under the pointer (about 6 %, spec says about 8 %), and Pause also gets the hover. Test testPlayAndPauseHoverAddTheBarHoverTile. C.PlayButton/play and /pause PASS. Evidence: ../build/evidence/final5/polish/B-controls/after/C_PlayButton_*",
+    "(d)/(b) Literal 0.4 opacity at PlayerControls.swift:33 and :504: replaced by the new generated token Theme.Metric.ControlBar.iconButtonDisabledOpacity = 0.3 (Figma Player-6 I856:2587;848:1877 draws an unavailable icon at 30 %). The plain button style was dimming the label a second time, so I added MXRBarButtonStyle: no system press highlight and no extra dimming. Test testDisabledBarControlUsesFigmasDisabledOpacity; old code gives a ratio of 0.20 and fails. Evidence: after/s72 report and ../build/evidence/final5/polish/B-controls/s72_bar_left_after_vs_figma.png",
+    "(d)/(a)/(b) Volume cone gradient Δ2: colors.json stops now carry 244:214's exact rgb and pos values, and gen-tokens.py emits RGBA(red:green:blue:) for them. Before, the mean red offset against Figma's reference was +1.1/255; now the render equals the paint math within 0.1. C.VolumeCone/200 went from FAIL to REVIEW and /100 dropped from 1.71 % to 1.00 % flat colour. Test testConeGradientDrawsFigmasExactStops. Evidence: ../build/evidence/final5/polish/B-controls/{before,after}/cone{0,50,100,200}/report.txt",
+    "(d)/(a) S13 OSD halo heavier than the video: the root cause was that SwiftUI's .shadow applied to each of the nine outline layers, so the 50 % shadows stacked to near-black. The line is now a compositingGroup before the shadow, giving one 50 % shadow of the outlined text as VLC freetype casts it. Outline width is unchanged: it is VLC's default, 4 % of the em (freetype.c/text_layout.c). Test testOSDShadowIsOneHalfOpaqueLayer; without the fix it finds 0 half-shadow pixels and fails. Evidence: ../build/evidence/final5/polish/B-controls/s13_before_after.png and kf_s13_small.png (the key frame is white text on black, so it cannot show any edge)",
+    "(d)/(b)/(c) Jump OSD matching: the working tree already captured synchronous hotkey jumps exactly (only reports made inside triggerAction's var_SetInteger on main). But it dropped every input-thread report, so plain arrows (the vlc_player_input_NavigationFallback jump on the input thread) showed no OSD. I added a FIFO of pending arrow jumps that is filled only by input-thread on_seek reports, with a 1 s deadline. Seek-bar seeks and chapter keys (main thread) can no longer take a slot. Native test in bridge-smoke.m: an arrow followed at once by a seek-bar seek must show the arrow's own target. Before: FAIL 'the arrow's OSD shows its own target 00:01 / 00:02, not 00:02 / 00:02' (../build/evidence/final5/polish/B-controls/native-fixture-before.log). After: PASS fixture (native-fixture-after.log)",
+    "(a) S01 pressed states: the bar buttons no longer use .plain, so there is no press highlight by construction (D028). The flicker and focus-ring part is a live check",
+    "(a) S72 light entry missing the D048 head deviation: already present in ShippingGallery.swift (S72.Window/light carries .differs I2425:13645;1908:7389 D048). Nothing to change"
+   ],
+   "notFixed": [
+    {
+     "id": "S34 music bar bgA4 #191919 vs Figma #171717",
+     "why": "Kept, recorded in D056. The product already uses Figma's own style 1702:4100 (BG/A3 Transparent #191919 @ 95 %) through MXRBackdropSurface in PlayerBars.swift. Figma's #171717 is that tint over its blurred, darker artwork; the offscreen engine has no window-server blur. Changing the token would be wrong; only the real window can settle it (liveCheck LC-music-bar)."
+    },
+    {
+     "id": "S34 music layout has no gear (LayoutStore.music)",
+     "why": "Kept, recorded in D056: both Player - Music frames have no gear and the full frame wins (as in D048's top stroke); the top bar's sidebar toggle opens the playback sidebar. LayoutStore.swift is not my file; its comment ('Controls music variant') could cite D056."
+    },
+    {
+     "id": "Continue Watching button darkens only on press (PlayerView.swift:152)",
+     "why": "PlayerView.swift is not a B-controls file. Left for its owner (A-window / G-panels)."
+    },
+    {
+     "id": "C.VolumeCone/100 still FAIL at 1.00 % flat colour",
+     "why": "The render now equals 244:214's paint (mean offset under 0.1/255). What remains is Figma's PNG reading about 0.3/255 darker, plus dithering on both sides. Matching it would mean tuning to Figma's rasteriser, so I kept the paint and recorded it in D056."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerControls.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/MXROSDView.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/ControlBarParityTests.swift",
+    "modules/gui/macosx_redesign/module/bridge/MXRServicesBridge.m",
+    "modules/gui/macosx_redesign/module/tests/bridge-smoke.m",
+    "redesign/design/tokens/colors.json",
+    "redesign/design/tokens/metrics.json",
+    "modules/gui/macosx_redesign/tools/gen-tokens.py",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Generated/Tokens.swift",
+    "redesign/docs/DECISIONS.md"
+   ],
+   "editsOutsideOwnership": [
+    "module/bridge/MXRServicesBridge.m (C-bridge): SeekFeedbackSeek forwards input-thread on_seek reports to the new navigationSeekReportedAt:; added _navigationSeeksPending/_navigationSeekDeadline, the FeedbackSeekTarget helper, and in triggerAction the NAV_LEFT/RIGHT pending increment. The other agent's synchronous capture is kept as is",
+    "module/tests/bridge-smoke.m: arrow-jump OSD check added after the 'jump that does not seek' block, before the fullscreen OSD check",
+    "redesign/design/tokens/colors.json (H-design): volumeCone stops gained exact 'rgb', pos 0.5788/0.7924, and a stopsNote",
+    "redesign/design/tokens/metrics.json (H-design): controlBar.iconButton gained disabledOpacity 0.3 and disabledSource",
+    "tools/gen-tokens.py (H-design/I-build): gradient stops emit RGBA(red:green:blue:) when 'rgb' is present",
+    "Sources/MXRDesign/Generated/Tokens.swift: regenerated (only the cone stops and iconButtonDisabledOpacity changed)",
+    "redesign/docs/DECISIONS.md: appended D056"
+   ],
+   "decisionsWritten": [
+    "D056 — Control bar states Figma does not draw, and the music bar's sources · accepted (agent, 2026-10-17): play/pause hover via iconHover (amends D048), no press highlight and Figma's 30 % disabled opacity, exact cone paint, one OSD shadow, music bar has no gear (full frame wins), music bar tint is style 1702:4100 and its Δ2 is the offscreen backdrop"
+   ],
+   "ownerDecisions": [
+    "D056 (new, agent): play/pause hover = iconHover tile over the fill (amends D048's hover bullet); disabled bar controls at Figma's 30 %; music layout without gear (Player - Music frames over component 4778:26181 and video 12m56.6); music bar Δ2 attributed to the offscreen backdrop"
+   ],
+   "liveChecks": [
+    {
+     "id": "LC-play-hover",
+     "steps": "Dark theme, paused video: hover the orange Play button, then press Space to play and hover the grey Pause button. Repeat in Light theme.",
+     "expect": "Play stays orange with a faint lightening (dark) or darkening (light), not a clearly darker brown. Pause shows the same subtle hover tile. The glyph is unchanged."
+    },
+    {
+     "id": "LC-press",
+     "steps": "Press and hold each control-bar button (prev, play, next, subtitles, audio, gear, queue, fullscreen) for 1 s, then release.",
+     "expect": "No system press dimming, no focus ring, no flicker, and the hover tile stays while the pointer is over the button."
+    },
+    {
+     "id": "LC-disabled",
+     "steps": "Play a single item alone in the queue (prev/next unavailable). Then open a live stream.",
+     "expect": "Prev/next are drawn faint at about 30 %, like Figma Player-6's unavailable arrow. The seek bar of the non-seekable stream is equally faint, and nothing reacts to clicks."
+    },
+    {
+     "id": "LC-arrow-osd",
+     "steps": "Play the 10 min S01E03 and press → three times quickly, then ← once; then press → and immediately click the seek bar elsewhere.",
+     "expect": "Each arrow shows '<target> / 00:10:00' matching the seek bar after the jump. An arrow followed by a seek-bar click shows the arrow's own target, not the click position, and the click itself shows no OSD."
+    },
+    {
+     "id": "LC-osd-edge",
+     "steps": "Press C (crop) over a bright white frame and over a mid-grey frame.",
+     "expect": "Both lines are white with a thin crisp black outline and a soft 50 % shadow down-right, with no solid black halo, readable on white."
+    },
+    {
+     "id": "LC-music-bar",
+     "steps": "Play an audio file with artwork (music layout), dark theme; sample the control bar background with Digital Color Meter.",
+     "expect": "About #171717–#191919: BG/A3 Transparent over the blurred dark artwork (Figma #171717)."
+    }
+   ],
+   "evidence": [
+    "../build/evidence/final5/polish/B-controls/before/cone{0,50,100,200}/report.txt and after/cone*/report.txt",
+    "../build/evidence/final5/polish/B-controls/s13_before_after.png, kf_s13_small.png",
+    "../build/evidence/final5/polish/B-controls/native-fixture-before.log (FAIL arrow OSD), native-fixture-after.log (PASS fixture)",
+    "../build/evidence/final5/polish/B-controls/tests.log",
+    "../build/evidence/final5/polish/B-controls/after/{S01_ControlBar_default,C_PlayButton_play,C_PlayButton_pause,C_SeekBar_default,S34_ControlBar_music,S01_Window_shipping,s72}/report.txt",
+    "../build/evidence/final5/polish/B-controls/s72_bar_left_after_vs_figma.png"
+   ],
+   "notesForOthers": "[\"Integrator: the bridge change needs the make/install build. VolumeConeGradient in PlayerControls.swift is now internal (for the test).\", \"C-bridge: I kept your synchronous hotkey-seek capture. It dropped input-thread reports, so plain arrow keys (the core's NavigationFallback on the input thread) showed no OSD. I added a pending-arrow FIFO that only input-thread reports fill, and a bridge-smoke check for it.\", \"H-design: new token Theme.Metric.ControlBar.iconButtonDisabledOpacity (0.3, from Player-6 848:1877). The cone stops carry exact rgb values in colors.json, and gen-tokens supports a stop 'rgb' field.\", \"S72.Window/light flat colour dropped from 6.49 % to 0.06 % during this wave; that came from another area's change, not mine.\", \"LayoutStore owner: the music layout comment could cite D056 instead of 'Controls music variant'.\", \"PlayerView owner: the Continue Watching button has a press state only, while video 14m09.8 shows it darkened under the cursor.\"]"
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "summary": "B-controls verify, round 1: PASS. Code, tests and renders show no blocker or major issue. A few minor points remain.\n\n**Build and tests**\n- `swift build` is clean with 0 warnings. `gen-tokens.py --check` exits 0.\n- Shared tree: ControlBarParityTests (14), PlayerInteraction (11), OSDLayout, OSDTypography, PauseButtonContrast, SeekProgressRedraw and ConeScroll all pass.\n- The one failure in the run is not B-controls': FigmaDeviationTests.testDeviationsCiteAcceptedDecisionsAndOwnNodes, \"S71.Onboarding/shortcuts … outside the entry\", from another area's onboarding entry.\n- Native fixture suite, run under the lock (released afterwards): PASS, including the bridge-smoke check for the new arrow-jump OSD. Log: native-fixture.log.\n\n**Regression proof (done myself)**\n- In an isolated copy I put back the old code for all four fixes: no compositingGroup, `.plain` with 0.4, hex-rounded cone stops, and an Accent/DIm hover fill.\n- All four new tests then fail, as they should (revert-tests.log):\n  - OSD shadow: 0 half-shadow pixels, where more than 20 are expected.\n  - Disabled control: ratio 0.203, where 0.3 is expected.\n  - Cone: mean red offset 0.41 and green −0.21, against a 0.15 tolerance.\n  - Hover: Play reads 171,99,20, where 214,129,38 is expected; the Pause hover check also fails.\n- The copy has been deleted.\n\n**Work list, item by item**\n- **(d) Play hover.** MXRPlayPauseTile puts the iconHover tile over Accent/Main, and Pause gets the same hover. C.PlayButton/play and /pause PASS at 0.000 %.\n- **(d) Literal 0.4.** Both places now use `Theme.Metric.ControlBar.iconButtonDisabledOpacity` = 0.3. That value comes from Figma: I856:2587;848:1877 has opacity 0.30000001 in figma_file.json. MXRBarButtonStyle removes the plain style's extra dimming. Bar icon tiles keep `.contentShape(.rect)`, so hit areas are unchanged.\n- **(d) Volume cone.** The stops in colors.json and Tokens.swift equal 244:214's gradientStops exactly; I checked them against figma_file.json.\n  - Mean offset from Figma's reference is ≤ 0.25/255 per channel, and single Δ2 pixels are dithering.\n  - Verdicts: /0 PASS, /50 and /200 REVIEW, /100 FAIL at 1.00 % flat colour from that dither noise.\n  - D056's note that this cannot be made to match without tuning to Figma's rasteriser holds.\n- **(d)/(a) S13 OSD.** One compositingGroup now casts a single 50 % shadow. The outline width matches VLC: text_layout.c sets the stroker radius to height_px × freetype-outline-thickness 4/100.\n  - Looking at s13_zoom.png, there is a crisp black outline with a soft shadow and no solid halo.\n  - Key frame 15m27.1 is white text on black, so it cannot show the edge. The rest is a live check.\n- **(d)/(b) Jump OSD matching.**\n  - A jump hotkey's target is captured synchronously inside triggerAction's var_SetInteger, on main.\n  - Plain arrows use a FIFO that only input-thread on_seek reports fill. In src/player/input.c the only input-thread producer is NavigationFallback.\n  - Seek-bar seeks and chapter seeks run on main and are ignored by construction. The bridge-smoke test covers an arrow followed at once by a seek-bar seek.\n  - Remaining edges: an arrow the demux handles (DVD menu) or that only turns a 360° viewpoint keeps its slot for up to 1 s. Minor.\n- **(d) S34 music bar.**\n  - The bar does use style 1702:4100 (#191919 @ 0.95), confirmed on node 4767:23748.\n  - The backdrop just above the bar is black in both Figma and the render. Over black, the tint gives #17. The render's #19 means about #20 sits under the tint. That is most likely the NSVisualEffectView `.headerView` material's own colour, which MXRBackdropSurface's own comment says Figma's stack does not have. It is less likely to be missing blur.\n  - So D056's cause (\"no window-server blur offscreen\") is unproven, and the real window may also read #19. Minor, Δ2; the live check settles it.\n- **Music gear.** I confirmed visually that the Player - Music frame draws no gear and video 12m56.6 does. Following the full frame is defensible, and it is listed for the owner.\n- **(c) Open items from the last verifier.** The 0.4 literal is fixed and the count-based matching is fixed; the S34 colour is recorded in D056 with a live check.\n- **S72.Window/light.**\n  - The bar matches apart from the D048 head and the D049 play colour, both documented.\n  - The FAIL is at 70,752, in the playlist/thumbnail region, which is not B-controls'.\n  - New observation: the Light frame's gear uses style 217:218 = Dark/FG/A2 #8F8F8F, another partial-conversion mistake in Figma. The product draws Light FG/A2, and no deviation records it.\n- **Neighbour.** S01.Window/shipping (shipping-window engine) PASS: 0 % structural, 0.002 % flat colour.\n\n**Rules**\n- Engine untouched: `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty.\n- Tokens only in the fixer's changes. No masks or thresholds were added, the Settings gate is unchanged, and the fixer added no FigmaDeviation entries.\n- Edits outside ownership are small and listed: MXRServicesBridge.m, bridge-smoke.m, colors.json, metrics.json, gen-tokens.py and Tokens.swift. The other agent's capture code is kept.\n\nEvidence: ../build/evidence/final5/polish/B-controls-verify-r1/ (tests.log, revert-tests.log, native-fixture.log, check/*, s13_zoom.png, kf_small.png, s72_bar_*_cmp.png, kf_music_bar_right.png, fig_music_bar_right.png).",
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "redesign/docs/DECISIONS.md D056 (music bar tint), MXRDesign/Materials/MXRBackdropSurface.swift",
+    "description": "D056 blames the S34 #191919 vs #171717 difference on the offscreen backdrop having no blur. In fact the backdrop just above the bar is black (0) in both Figma and the render. 1702:4100 at 95 % over black gives #17, so the render's #19 means about #20 sits under the tint. That is most likely the NSVisualEffectView .headerView material's own colour, which MXRBackdropSurface's own comment says Figma's stack does not have. The real window may also read #19, which would be a fixable Δ2. LC-music-bar's expected range '#171717–#191919' accepts either result; it should expect #171717."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Player/PlayerMenus.swift:470, :511 (D-menus file)",
+    "description": "The bar's text menus (speed, HDR, zoom) and the compact overflow '⋯' still use .buttonStyle(.plain), so they keep the system press dimming. The icon buttons no longer have it (D056 / D028 'no press highlight')."
+   },
+   {
+    "severity": "minor",
+    "where": "module/bridge/MXRServicesBridge.m triggerAction / navigationSeekReportedAt",
+    "description": "An arrow press whose NAV the demux handles (DVD menu), or that only turns a 360° viewpoint, adds a pending slot that waits up to 1 s. Another input-thread seek in that second, such as an A-B loop seek, would then show as the arrow's target. This is a narrow edge; the seek-bar and chapter cases are closed."
+   },
+   {
+    "severity": "minor",
+    "where": "S72.Window/light gear (Figma I2425:13645;491:1729, style 217:218)",
+    "description": "Player - Light draws the playback-settings gear with Dark/FG/A2 #8F8F8F, a partial conversion like the play button in D049. The product uses Light FG/A2, and no figmaDeviation or DECISIONS line records it."
+   },
+   {
+    "severity": "minor",
+    "where": "C.VolumeCone/100",
+    "description": "Still FAIL at 1.00 % flat colour. The mean channel offset is ≤ 0.25/255 and the remaining Δ2 pixels are dither. D056 records this honestly, but the check verdict stays FAIL."
+   }
+  ],
+  "liveChecks": [
+   {
+    "id": "LC-play-hover",
+    "steps": "Dark theme, paused video: hover the orange Play button. Press Space and hover the grey Pause button. Repeat in Light theme.",
+    "expect": "Play stays orange with a barely visible tile change, not the darker brown #AB6314. Pause shows the same subtle tile. The glyph is unchanged."
+   },
+   {
+    "id": "LC-press",
+    "steps": "Press and hold, for 1 s each, prev, play, next, subtitles, audio, gear, queue, fullscreen, and the speed/zoom text menus and the compact '⋯' if present. Then release.",
+    "expect": "No system press dimming, no focus ring and no flicker on any of them, the text menus and '⋯' included. The hover tile stays while the pointer is over the button."
+   },
+   {
+    "id": "LC-disabled",
+    "steps": "Play a single item alone in the queue so prev and next are unavailable. Then open a non-seekable live stream.",
+    "expect": "Prev and next are drawn at about 30 %, like Player-6's unavailable arrow. The live seek bar is equally faint and does not react to clicks."
+   },
+   {
+    "id": "LC-arrow-osd",
+    "steps": "Play the 10 min S01E03. Press → three times quickly, then ← once. Then press → and immediately click the seek bar elsewhere. Then press → and immediately use the next-chapter key, if the media has chapters.",
+    "expect": "Each arrow shows '<target> / 00:10:00' matching the seek bar after its jump. A seek-bar click or a chapter jump right after an arrow never replaces the arrow's OSD text, and the seek-bar click itself shows no OSD."
+   },
+   {
+    "id": "LC-osd-edge",
+    "steps": "Press C (crop) over a bright white frame and over a mid-grey frame.",
+    "expect": "White text with a thin crisp black outline and one soft 50 % shadow down and to the right. No solid black halo, and readable on white."
+   },
+   {
+    "id": "LC-music-bar",
+    "steps": "Play an audio file with dark cover art (music layout), dark theme. Sample the control-bar background with Digital Color Meter, away from the controls.",
+    "expect": "#171717, which is BG/A3 Transparent over the dark artwork. If it reads #191919 or lighter, the material's own colour adds to the tint and D056's tint bullet needs fixing, not only recording."
+   }
+  ],
+  "ownerDecisions": [
+   "D056 (new, agent, 2026-10-17): play/pause hover uses the iconHover tile over the fill (amends D048's hover bullet). Bar buttons have no press highlight, and a disabled control is drawn at Figma's 30 %. The cone uses 244:214's exact paint. The OSD casts one shadow. The music layout has no gear, because both Player - Music frames win over component 4778:26181 and video 12m56.6. The music bar's Δ2 is put down to the offscreen backdrop; that cause is not established, see the issue above.",
+   "Not yet recorded: the Light frame's gear uses Dark/FG/A2 (#8F8F8F, style 217:218), a partial conversion like the one D049 records for the play button. The product draws Light FG/A2, and a deviation or a D049 amendment should record it."
+  ]
+ }
+}

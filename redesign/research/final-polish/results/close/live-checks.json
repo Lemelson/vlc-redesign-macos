@@ -1,0 +1,758 @@
+{
+ "liveChecks": [
+  {
+   "area": "A-window",
+   "id": "A-fs-topedge",
+   "steps": "Open S01E03 (10 min) and press ⌘⌃F (or the top-bar fullscreen button) to enter fullscreen. Wait 3 s for the bars to hide. Move the pointer to the top screen edge and hold it there 1 s. Then move it slowly down 60 pt.",
+   "expect": "The macOS menu bar and titlebar strip (traffic lights) slide in, and within about 0.1 s the app's top bar (cone, ⋯, sidebar toggle, chip, title, exit-fullscreen) appears right below the strip, not under it. Moving down, the pointer reaches the top bar and it stays; leaving it hides both. The strip is never the only thing shown."
+  },
+  {
+   "area": "A-window",
+   "id": "A-fs-bottom",
+   "steps": "In fullscreen while playing, move the pointer to the bottom edge, then into the middle, then idle 2 s. Pause with Space and idle 3 s.",
+   "expect": "Only the control bar appears at the bottom; both bars hide after idling and the cursor hides; when paused, both bars stay visible (D041)."
+  },
+  {
+   "area": "A-window",
+   "id": "A-topbar",
+   "steps": "In the window with media open, capture the top 40 pt at 2x and compare with Player-6 x0-640. Press ⌘\\ twice. Click the top-bar fullscreen button, wait 5 s.",
+   "expect": "One 40 pt bar with centred traffic lights and the cone right after them. ⌘\\ hides the lights with the bars. No lingering 'Fullscreen' tooltip once the bars hide."
+  },
+  {
+   "area": "A-window",
+   "id": "A-S67-two-row",
+   "steps": "Customize Player: drag the time/seek group onto the empty band, add spacers either side of the transport so the bottom row is ⋯ sidebar | folder title ♥ spacer prev play next spacer volume tracks subs gear queue fullscreen, then Save. Capture the window at 1920 pt wide (or measure at any width).",
+   "expect": "The play button's centre is at the window's horizontal centre (±1 pt). The folder icon follows the divider with no gap. No divider is added before the queue."
+  },
+  {
+   "area": "A-window",
+   "id": "A-narrow-library-panel",
+   "steps": "Resize the window to its 480×270 minimum. Open the compact library (sidebar toggle), then open the queue (queue button). Close the queue. Then with the queue open press the sidebar toggle. Repeat at 800 pt wide.",
+   "expect": "At 480 pt: opening the queue makes the library close (toggle inactive) and the queue shows full width; closing the queue brings the library back; pressing the toggle while the queue is open closes the queue and shows the library. Nothing overlaps or overflows its column. At 800 pt both show side by side (library ≥ 208 pt, queue 400 pt)."
+  },
+  {
+   "area": "A-window",
+   "id": "A-toast-480",
+   "steps": "Open a file with a saved position (resume prompt) in a 480 pt window with the compact library open.",
+   "expect": "The toast in the video area reads 'Continue' (whole, not 'Continue Watchi…') with the close button. VoiceOver reads 'Continue Watching'. At 1920 pt the toast still shows the full message and 'Continue Watching'."
+  },
+  {
+   "area": "A-window",
+   "id": "A-pip-light",
+   "steps": "Switch to Light theme, play a video, choose Video › Picture in Picture; look at the main window; click the placeholder. Repeat in Dark.",
+   "expect": "In both themes the main window shows a dark (#090909) area with the PiP glyph and the caption between the bars; the Light bars read about #ABABAA, the same as over a dark clip. Clicking it returns the video."
+  },
+  {
+   "area": "A-window",
+   "id": "A-light-bars",
+   "steps": "Light theme, play a dark #2D2D2D clip, sample the bars and the compact library; toggle the compact library on and off.",
+   "expect": "Bars about #ABABAA, library about #C2C2C1 (D053). Toggling the library never rescales or moves the picture (colour-bar width unchanged), and the picture stays centred under the library as in Figma Player - Light."
+  },
+  {
+   "area": "A-window",
+   "id": "A-hideui-queue",
+   "steps": "Open the queue, press ⌘\\ twice.",
+   "expect": "The queue reopens when the UI returns (D055)."
+  },
+  {
+   "area": "A-window",
+   "id": "A-fs-subtitles",
+   "steps": "Fullscreen with S01E01 and its .srt; reveal the control bar at the bottom.",
+   "expect": "Subtitles rise above the revealed control bar and drop back when it hides."
+  },
+  {
+   "area": "A-window",
+   "id": "A-fs-topedge",
+   "steps": "Open S01E03 and press ⌘⌃F. Wait 3 s for the bars to hide. Hold the pointer at the top screen edge for 1 s, then move it slowly down 60 pt.",
+   "expect": "The menu bar and titlebar strip slide in, and within about 0.1 s the app's top bar appears right below the strip, not under it. It stays while the pointer is on it and hides together with the strip when the pointer leaves. The strip is never shown alone (MXRSystemStripTracker polling)."
+  },
+  {
+   "area": "A-window",
+   "id": "A-narrow-library-panel",
+   "steps": "Resize the window to 480×270. Open the compact library, then the queue. Close the queue. Open the queue again and press the sidebar toggle. Repeat at 800 pt.",
+   "expect": "At 480 pt the library closes when the queue opens (toggle inactive), comes back when the queue closes, and pressing the toggle with the queue open closes the queue and shows the library. At 800 pt both show side by side (library ≥ 208 pt, queue 400 pt), with no overlap."
+  },
+  {
+   "area": "A-window",
+   "id": "A-narrow-hideui-yield",
+   "steps": "At 480 pt: open the compact library, open the queue (the library yields), press ⌘\\ twice, then close the queue.",
+   "expect": "The queue returns with the UI. After the queue closes, the compact library should come back. Known minor: the current code is expected to leave it closed."
+  },
+  {
+   "area": "A-window",
+   "id": "A-S67-two-row",
+   "steps": "Customize Player to the two-row layout (seek row on top; bottom row ⋯ sidebar | folder title ♥ spacer prev play next spacer volume tracks subs gear queue fullscreen). Save, then measure at 1920 pt.",
+   "expect": "The play button's centre is at the window's centre (±1 pt). The folder follows the divider with no gap. There is no divider before the queue."
+  },
+  {
+   "area": "A-window",
+   "id": "A-toast-480",
+   "steps": "In a 480 pt window with the compact library open, open a file that has a saved position.",
+   "expect": "The toast shows 'Continue' (whole) and the close button. VoiceOver reads 'Continue Watching'. At 1920 pt the full message and 'Continue Watching' are shown."
+  },
+  {
+   "area": "A-window",
+   "id": "A-pip-light",
+   "steps": "In Light theme, play a video, choose Picture in Picture and sample the main window.",
+   "expect": "A dark #090909 placeholder with the glyph and caption between the bars. The bars read about #ABABAA. Clicking the placeholder returns the video."
+  },
+  {
+   "area": "B-controls",
+   "id": "LC-play-hover",
+   "steps": "Dark theme, paused video: hover the orange Play button, then press Space to play and hover the grey Pause button. Repeat in Light theme.",
+   "expect": "Play stays orange with a faint lightening (dark) or darkening (light), not a clearly darker brown. Pause shows the same subtle hover tile. The glyph is unchanged."
+  },
+  {
+   "area": "B-controls",
+   "id": "LC-press",
+   "steps": "Press and hold each control-bar button (prev, play, next, subtitles, audio, gear, queue, fullscreen) for 1 s, then release.",
+   "expect": "No system press dimming, no focus ring, no flicker, and the hover tile stays while the pointer is over the button."
+  },
+  {
+   "area": "B-controls",
+   "id": "LC-disabled",
+   "steps": "Play a single item alone in the queue (prev/next unavailable). Then open a live stream.",
+   "expect": "Prev/next are drawn faint at about 30 %, like Figma Player-6's unavailable arrow. The seek bar of the non-seekable stream is equally faint, and nothing reacts to clicks."
+  },
+  {
+   "area": "B-controls",
+   "id": "LC-arrow-osd",
+   "steps": "Play the 10 min S01E03 and press → three times quickly, then ← once; then press → and immediately click the seek bar elsewhere.",
+   "expect": "Each arrow shows '<target> / 00:10:00' matching the seek bar after the jump. An arrow followed by a seek-bar click shows the arrow's own target, not the click position, and the click itself shows no OSD."
+  },
+  {
+   "area": "B-controls",
+   "id": "LC-osd-edge",
+   "steps": "Press C (crop) over a bright white frame and over a mid-grey frame.",
+   "expect": "Both lines are white with a thin crisp black outline and a soft 50 % shadow down-right, with no solid black halo, readable on white."
+  },
+  {
+   "area": "B-controls",
+   "id": "LC-music-bar",
+   "steps": "Play an audio file with artwork (music layout), dark theme; sample the control bar background with Digital Color Meter.",
+   "expect": "About #171717–#191919: BG/A3 Transparent over the blurred dark artwork (Figma #171717)."
+  },
+  {
+   "area": "B-controls",
+   "id": "LC-play-hover",
+   "steps": "Dark theme, paused video: hover the orange Play button. Press Space and hover the grey Pause button. Repeat in Light theme.",
+   "expect": "Play stays orange with a barely visible tile change, not the darker brown #AB6314. Pause shows the same subtle tile. The glyph is unchanged."
+  },
+  {
+   "area": "B-controls",
+   "id": "LC-press",
+   "steps": "Press and hold, for 1 s each, prev, play, next, subtitles, audio, gear, queue, fullscreen, and the speed/zoom text menus and the compact '⋯' if present. Then release.",
+   "expect": "No system press dimming, no focus ring and no flicker on any of them, the text menus and '⋯' included. The hover tile stays while the pointer is over the button."
+  },
+  {
+   "area": "B-controls",
+   "id": "LC-disabled",
+   "steps": "Play a single item alone in the queue so prev and next are unavailable. Then open a non-seekable live stream.",
+   "expect": "Prev and next are drawn at about 30 %, like Player-6's unavailable arrow. The live seek bar is equally faint and does not react to clicks."
+  },
+  {
+   "area": "B-controls",
+   "id": "LC-arrow-osd",
+   "steps": "Play the 10 min S01E03. Press → three times quickly, then ← once. Then press → and immediately click the seek bar elsewhere. Then press → and immediately use the next-chapter key, if the media has chapters.",
+   "expect": "Each arrow shows '<target> / 00:10:00' matching the seek bar after its jump. A seek-bar click or a chapter jump right after an arrow never replaces the arrow's OSD text, and the seek-bar click itself shows no OSD."
+  },
+  {
+   "area": "B-controls",
+   "id": "LC-osd-edge",
+   "steps": "Press C (crop) over a bright white frame and over a mid-grey frame.",
+   "expect": "White text with a thin crisp black outline and one soft 50 % shadow down and to the right. No solid black halo, and readable on white."
+  },
+  {
+   "area": "B-controls",
+   "id": "LC-music-bar",
+   "steps": "Play an audio file with dark cover art (music layout), dark theme. Sample the control-bar background with Digital Color Meter, away from the controls.",
+   "expect": "#171717, which is BG/A3 Transparent over the dark artwork. If it reads #191919 or lighter, the material's own colour adds to the tint and D056's tint bullet needs fixing, not only recording."
+  },
+  {
+   "area": "C-bridge",
+   "id": "C-safeinset-scale",
+   "steps": "Play Test Show S01E01.mp4 (has a .srt) on a Retina display and enter fullscreen. Move the pointer to reveal the control bar while a cue is on screen. If a non-Retina external display is attached, move the fullscreen window there (or toggle display scaling) while the bar is revealed.",
+   "expect": "With the bar revealed, the cue sits fully above it on both displays, and drops back to its normal position when the bar hides. Subtitles never hide under the bar after the screen or scale change, and never jump twice the bar height."
+  },
+  {
+   "area": "C-bridge",
+   "id": "C-safeinset-resize",
+   "steps": "In a window (not fullscreen), open Customize so the control bar overlays the picture, with a subtitle cue showing. Resize the window taller and wider, so letterbox bars appear above and below the picture.",
+   "expect": "The cue stays just above the bar. Once a letterbox band below the picture is taller than the bar, the cue goes back to its normal position, not higher."
+  },
+  {
+   "area": "C-bridge",
+   "id": "C-jump-osd",
+   "steps": "Play S01E03 (10 min). Press the seek-forward hotkey (⌘⌥→) twice quickly. Then press it once and immediately click on the seek bar.",
+   "expect": "After the double press, the OSD shows the second jump's target, matching the seek bar. After the single press plus click, the OSD shows the jump's target once; the click does not post a second position OSD."
+  },
+  {
+   "area": "C-bridge",
+   "id": "C-restore-external",
+   "steps": "With Continue set to Ask, play a file from outside any library folder (e.g. drag ../build/media/Test Show S01E03.mp4 in) to about 3:00 and quit with ⌘Q. Relaunch and open the same file.",
+   "expect": "The Continue Watching toast offers a time near 3:00, not --:-- and not 0:00, and Continue seeks there."
+  },
+  {
+   "area": "C-bridge",
+   "id": "C-safeinset-scale",
+   "steps": "Play Test Show S01E01.mp4 (it has a .srt) fullscreen on a Retina display and reveal the control bar while a cue is on screen. If a 1x external display is attached, move the fullscreen window to it and reveal the bar again.",
+   "expect": "The cue sits just above the revealed bar on both displays, at neither half nor double the offset, and drops back when the bar hides."
+  },
+  {
+   "area": "C-bridge",
+   "id": "C-safeinset-resize",
+   "steps": "In a window, open Customize so the bar overlays the picture, with a cue showing. Resize the window taller until a letterbox band appears below the picture, taller than the bar.",
+   "expect": "The cue stays just above the bar while the band is shorter than the bar. Once the band is taller, the cue returns to its normal position and is not raised further."
+  },
+  {
+   "area": "C-bridge",
+   "id": "C-jump-osd",
+   "steps": "Play S01E03 (10 min). Press the seek-forward hotkey (⌥⌘→) twice quickly. Then press it once and immediately click the seek bar elsewhere.",
+   "expect": "After the double press, the OSD shows the second jump's target, which matches the seek bar. After the press and the click, the jump OSD shows its target once, and the click posts no extra position OSD."
+  },
+  {
+   "area": "C-bridge",
+   "id": "C-mac-keys-menu",
+   "steps": "Right-click the video during playback.",
+   "expect": "The rows show Stop ⌘., Previous ⌘←, Next ⌘→, Record ⇧⌘R, Hide UI ⌘\\ and Quit ⌘Q, the same as the S09 gallery."
+  },
+  {
+   "area": "D-menus",
+   "id": "S08-live",
+   "steps": "Play S01E01 so Open Recent has entries, click the top bar's ⋯ button, hover 'Open Recent'.",
+   "expect": "The submenu opens to the right, with its first history row level with the Open Recent row (not one row higher). The rows are history items, then a divider, then Clear Menu."
+  },
+  {
+   "area": "D-menus",
+   "id": "S68-live",
+   "steps": "Click ⋯, hover 'Profile (…)'.",
+   "expect": "The submenu's top row is level with the Profile row. The current profile has the orange check on BG/A2. There is no visible shadow seam or artifact between the parent card and the submenu card."
+  },
+  {
+   "area": "D-menus",
+   "id": "S09-keys-live",
+   "steps": "Right-click the video while S01E01 plays.",
+   "expect": "The shortcut column reads: Pause 'Space', Stop '⌘.', Previous Item '⌘←' (disabled with no previous item), Next Item '⌘→', Record '⇧⌘R', Hide UI '⌘\\', Quit VLC '⌘Q'. This is the same as the offscreen render ../build/evidence/final5/polish/D-menus/S09-S10-subtitle-macos-keys.png."
+  },
+  {
+   "area": "D-menus",
+   "id": "S10-subtitle-keys-live",
+   "steps": "Right-click the video › hover Subtitle. Then press H and J with the player focused.",
+   "expect": "Subtitle Earlier shows 'H' and Subtitle Later shows 'J'. Pressing H moves the subtitle delay by -50 ms and J by +50 ms (the OSD shows the delay)."
+  },
+  {
+   "area": "D-menus",
+   "id": "S10-hover-live",
+   "steps": "Right-click the video, hover Playback, then move the pointer diagonally into the Speed row of the submenu, crossing the Video row.",
+   "expect": "The Playback submenu stays open during the diagonal move (it does not switch to Video), and Speed opens its own submenu with 1× checked."
+  },
+  {
+   "area": "D-menus",
+   "id": "S11-menubar-live",
+   "steps": "Open each menu in the macOS menu bar with VLC Redesign frontmost.",
+   "expect": "The menus are App/File/Edit/View/Playback/Audio/Video/Window/Help. Playback shows Stop ⌘., Previous ⌘←, Next ⌘→, Record ⇧⌘R. View has Enter Full Screen ⌘F. Video has no Full Screen row. There are no window-tab items. The Subtitles submenu shows Subtitle Earlier H / Later J. With a dialog open, menu commands are disabled while media keys still play/pause."
+  },
+  {
+   "area": "D-menus",
+   "id": "S08-live",
+   "steps": "While S01E01 plays (so Open Recent has entries), click the top bar's ⋯ button and hover 'Open Recent'.",
+   "expect": "The submenu opens to the right. Its first history row is level with the Open Recent row, not one row higher. The rows are history items, then a divider, then Clear Menu."
+  },
+  {
+   "area": "D-menus",
+   "id": "S68-live",
+   "steps": "Click ⋯ and hover 'Profile (…)'.",
+   "expect": "The submenu's top row is level with the Profile row. The current profile has the orange check on BG/A2. There is no shadow seam or artifact between the two cards."
+  },
+  {
+   "area": "D-menus",
+   "id": "S09-keys-live",
+   "steps": "Right-click the video while S01E01 plays.",
+   "expect": "The shortcut column reads: Pause Space, Stop ⌘., Previous Item ⌘← (disabled when there is no previous item), Next Item ⌘→, Record ⇧⌘R, Hide UI ⌘\\, Quit VLC ⌘Q. This matches the offscreen render r/S09_ContextMenu_default.png."
+  },
+  {
+   "area": "D-menus",
+   "id": "S10-subtitle-keys-live",
+   "steps": "Right-click the video and hover Subtitle. Close the menu. With the player focused (no text field), press H, then J. Then focus the library search field and type 'hj'.",
+   "expect": "Subtitle Earlier shows H and Subtitle Later shows J. H moves the subtitle delay by -50 ms and J by +50 ms, and the OSD shows the delay. Typing in the search field inserts 'hj' and does not change the subtitle delay."
+  },
+  {
+   "area": "D-menus",
+   "id": "S10-hover-live",
+   "steps": "Right-click the video and hover Playback. Move the pointer diagonally into the submenu's Speed row, crossing the Video row on the way.",
+   "expect": "The Playback submenu stays open during the diagonal move and does not switch to Video. Speed opens its own submenu with 1× checked."
+  },
+  {
+   "area": "D-menus",
+   "id": "S11-menubar-live",
+   "steps": "With VLC Redesign frontmost, open each menu in the macOS menu bar. Then open a dialog (New Playlist) and press the media Play/Pause key.",
+   "expect": "The menus are App/File/Edit/View/Playback/Audio/Video/Window/Help. Playback shows Stop ⌘., Previous ⌘←, Next ⌘→, Record ⇧⌘R. View has Enter Full Screen ⌘F, and Video has no Full Screen row. There are no window-tab items. Video › Subtitles shows Subtitle Earlier H and Subtitle Later J. While the dialog is open, menu key equivalents do nothing, and the media key still toggles play/pause."
+  },
+  {
+   "area": "E-library",
+   "id": "E-audio-tracks-folder",
+   "steps": "Library > Videos > Shows > The Wand > S01, open the header ⋯ and choose Edit Audio Tracks. Pick an audio file named like an episode (for example The_Wand_S01E02_English.m4a; the test media in ../build/media/ can be renamed copies). Then play S01E02 from the library.",
+   "expect": "The row is enabled and opens 'Add Audio File'. An OSD notice reads 'Audio track added to The_Wand_S01E02.mp4.' When E02 starts, the Audio tracks popover lists the external track selected and its audio is heard. A file naming no episode shows the 'No Audio Tracks Were Added' dialog."
+  },
+  {
+   "area": "E-library",
+   "id": "E-audio-tracks-playing",
+   "steps": "While an episode plays, right-click its row > Add Audio Tracks and choose any .m4a.",
+   "expect": "The track is added to the running playback and selected at once. It is also selected the next time that episode plays."
+  },
+  {
+   "area": "E-library",
+   "id": "E-audio-tracks-playlist",
+   "steps": "Library > Playlists, right-click a playlist of songs only > Add Audio Tracks; then the same on a playlist that holds videos.",
+   "expect": "The songs playlist shows 'There are no videos in this playlist.' and opens no panel. The video playlist opens Add Audio File."
+  },
+  {
+   "area": "E-library",
+   "id": "E-light-header",
+   "steps": "Switch to Light, open the compact library on The Wand > S01.",
+   "expect": "The '▶' separators are dark gray (#404040), '...' is mid gray (#8F8F8F) and a dark hairline sits under the header, as in Player - Light. The rows and the current crumb stay readable Light colours."
+  },
+  {
+   "area": "E-library",
+   "id": "E-nav-rows",
+   "steps": "Compact library: Music root, Videos root, Shows, The Wand, Network, Playlists, in Dark and Light.",
+   "expect": "Songs/Albums/Artists/Genres, Shows/Films/Anime, The Wand, S01/S02 and Podcasts/Radio rest dimmer (FG/A3), like 'Add'. Playlist rows and unwatched episode rows are brighter (FG/A1). At the Videos root the rail's videos icon is orange; inside a folder it is the plain filled icon."
+  },
+  {
+   "area": "E-library",
+   "id": "E-arrow-keys",
+   "steps": "Full library grid of S01: click a card, then press ↓ ← → ↑.",
+   "expect": "↓ selects the card drawn directly below, ←/→ the neighbours, ↑ the card above, following the drawn columns."
+  },
+  {
+   "area": "E-library",
+   "id": "E-min-window",
+   "steps": "Resize the window to the 480 pt minimum with the compact library open (no right panel), on S01, Home and Music.",
+   "expect": "Nothing in the library panel draws past its column into the video. Crumbs fold to '...', and the count and Open Full Library give way."
+  },
+  {
+   "area": "E-library",
+   "id": "E-audio-tracks-folder",
+   "steps": "Library > Videos > Shows > The Wand > S01: open the header ⋯ > Edit Audio Tracks. Pick an audio file named like an episode, for example a copy of a test-media audio file renamed The_Wand_S01E02_English.m4a. Then play S01E02 from the library.",
+   "expect": "The row is enabled and opens Add Audio File. An OSD notice reads 'Audio track added to The_Wand_S01E02.mp4.' When E02 starts, the Audio tracks popover lists the external track as selected, and its audio is heard. A file that names no episode shows the 'No Audio Tracks Were Added' dialog."
+  },
+  {
+   "area": "E-library",
+   "id": "E-audio-tracks-playing",
+   "steps": "While an episode plays, right-click its row > Add Audio Tracks and choose any .m4a. Stop, then play the same episode again.",
+   "expect": "The track is added to the running playback and selected at once. On the second playback it is again listed and selected."
+  },
+  {
+   "area": "E-library",
+   "id": "E-audio-tracks-playlist",
+   "steps": "Library > Playlists: right-click a songs-only playlist > Add Audio Tracks. Then do the same on a playlist that holds videos.",
+   "expect": "The songs playlist shows 'There are no videos in this playlist.' and opens no panel. The video playlist opens Add Audio File."
+  },
+  {
+   "area": "E-library",
+   "id": "E-audio-tracks-song",
+   "steps": "Music > Songs: right-click a song > Add Audio Tracks.",
+   "expect": "Decide and record whether this should be offered. D039 says songs take no audio track, but the row is currently enabled and attaches one."
+  },
+  {
+   "area": "E-library",
+   "id": "E-light-header",
+   "steps": "Switch to Light and open the compact library on The Wand > S01. Then open the full library (Light) on the same folder.",
+   "expect": "Compact: the '▶' separators are #404040, '...' is #8F8F8F and a dark hairline sits under the header, as in Player - Light. Rows and the current crumb stay in readable Light colours. Full library: confirm the dark hairline and separators look intended on the light panel."
+  },
+  {
+   "area": "E-library",
+   "id": "E-nav-rows",
+   "steps": "Compact library in Dark and Light: Music root, Videos root, Shows, The Wand, Network, Playlists.",
+   "expect": "Songs/Albums/Artists/Genres, Shows/Films/Anime, The Wand, S01/S02 and Podcasts/Radio rest at FG/A3, as dim as 'Add'. Playlist rows and unwatched episode rows are brighter (FG/A1). The rail videos icon is the accent only at the Videos root."
+  },
+  {
+   "area": "E-library",
+   "id": "E-arrow-keys",
+   "steps": "Full library grid of S01: click a card, then press ↓ ← → ↑.",
+   "expect": "↓ selects the card drawn directly below, ←/→ select the neighbours and ↑ the card above, following the drawn columns."
+  },
+  {
+   "area": "E-library",
+   "id": "E-min-window",
+   "steps": "Resize the window to the 480 pt minimum with the compact library open and no right panel, on S01, Home and Music. Then open a right panel.",
+   "expect": "Nothing in the library panel draws past its 216 pt column into the video, unlike A-window's 248 pt report. Crumbs fold to '...', and the count and Open Full Library give way. With the panel open, the library yields as A-window implemented."
+  },
+  {
+   "area": "E-library",
+   "id": "E-mini-player",
+   "steps": "Open the full library while an episode plays and hover the mini player. Expand its queue, drag it to each corner, then pop it out.",
+   "expect": "Video keeps playing. Prev/play/next are centred about 1.5 pt above the video centre. The queue expands upward, the player snaps to the 4 corners, and pop-out returns the video to the player."
+  },
+  {
+   "area": "F-settings",
+   "id": "F-S25-noscrim",
+   "steps": "Play a bright 1080p video in a 1920×1080 window (Dark). Note the top bar, control bar and picture brightness. Open Add Subtitles (⌘⇧A or the menu).",
+   "expect": "The picture, top bar and control bar keep the same brightness as before (no dimming, as at 06m02.47). The dialog body runs from y 140 to 940 and shows the video only as a soft blur. Clicking outside the dialog does nothing (it is a form); Esc closes it."
+  },
+  {
+   "area": "F-settings",
+   "id": "F-S48-light",
+   "steps": "Open Settings over a playing video, then switch the Theme segment to Light.",
+   "expect": "Every page recolours live and the dialog is opaque (D045). The bars around it stay light grey (not near-black #2C). Buttons such as Browse and Reset all settings, and the Keyboard Shortcuts Cancel, show a visible tile."
+  },
+  {
+   "area": "F-settings",
+   "id": "F-dialogs-light-buttons",
+   "steps": "In Light, open Convert, Stream, Open Disc, Open Network Stream and Properties & Metadata (Media Info).",
+   "expect": "Choose…, Cancel/Close and Show in Finder draw a BG/A4 grey tile (#B3) on the #D5 dialog surface; the primary button keeps its accent tile."
+  },
+  {
+   "area": "F-settings",
+   "id": "F-compact",
+   "steps": "Resize the window to about 960×540, then open Settings, Convert and Keyboard Shortcuts in turn.",
+   "expect": "Each dialog starts below the 40 pt top bar (no overlap with the traffic lights), ends 40 pt above the bottom, stays centred, and its body scrolls."
+  },
+  {
+   "area": "F-settings",
+   "id": "F-mediainfo",
+   "steps": "Play The Wand S01E04 (or any file with 1 video, 2 audio and 3 subtitle tracks) and open Properties & Metadata.",
+   "expect": "The dialog is as tall as its content, all track rows are visible with no scroll edge, and Close is at the bottom."
+  },
+  {
+   "area": "F-settings",
+   "id": "F-toggles",
+   "steps": "Open Settings ▸ General and toggle Developer mode on and off.",
+   "expect": "ON shows the label cell 3 pt from the left edge and a 3 pt gap before the knob; OFF mirrors this."
+  },
+  {
+   "area": "F-settings",
+   "id": "F-speed-slider",
+   "steps": "Settings ▸ Playback ▸ Default playback speed at 1×.",
+   "expect": "The '1' label sits directly under the thumb and each label is under its tick."
+  },
+  {
+   "area": "F-settings",
+   "id": "F-addsubs-save",
+   "steps": "Open Add Subtitles (To This File) while a file plays, choose a subtitle file, click Save twice quickly.",
+   "expect": "Save shows 'Saving…' briefly, the subtitle is added to the playing video once, and the dialog closes; the window never stalls."
+  },
+  {
+   "area": "F-settings",
+   "id": "F-shortcuts-save",
+   "steps": "Settings ▸ Controls ▸ Edit Keyboard Shortcuts without changing anything.",
+   "expect": "Save is dimmed (warm dark grey, Figma #1F1E1D); after editing a key it turns accent."
+  },
+  {
+   "area": "F-settings",
+   "id": "F-confirmations",
+   "steps": "(1) Settings ▸ Controls ▸ Reset all shortcuts; (2) delete a subtitle preset in the sidebar; (3) Convert to an existing file.",
+   "expect": "Each shows a native sheet in the current appearance with a destructive button; Esc cancels without closing the dialog underneath."
+  },
+  {
+   "area": "F-settings",
+   "id": "F-sub-filename",
+   "steps": "Settings ▸ Subtitles ▸ the autodetect fuzziness dropdown.",
+   "expect": "Off / Any title / Contains title / Title with extra characters / Exact title match, with ✓ on the current one (placement over or below the field is the open D034 question)."
+  },
+  {
+   "area": "F-settings",
+   "id": "V-S25-noscrim",
+   "steps": "In Dark, play a bright video in a 1920×1080 window. Open Add Subtitles. Compare the top bar, the control bar (play tile) and the picture outside the dialog with the moment before it opened.",
+   "expect": "No dimming anywhere outside the dialog, as at 06m02.47. A click outside does nothing, and Esc closes the dialog."
+  },
+  {
+   "area": "F-settings",
+   "id": "V-S50-light",
+   "steps": "Open Settings over a playing video and switch Theme to Light.",
+   "expect": "The bars stay light grey, not near-black. Browse, Reset and the Keyboard Shortcuts Cancel show a visible grey tile."
+  },
+  {
+   "area": "F-settings",
+   "id": "V-light-dialogs",
+   "steps": "In Light, open Convert, Stream, Open Disc, Open Network Stream, Properties & Metadata and Add Subtitles in turn.",
+   "expect": "Every Choose…, Cancel, Close and Show in Finder button has a visible BG/A4 tile on the opaque surface. The primary button stays accent."
+  },
+  {
+   "area": "F-settings",
+   "id": "V-compact",
+   "steps": "Resize the window to about 960×540, then open Settings, Convert and Keyboard Shortcuts in turn.",
+   "expect": "Each dialog starts at or below y 40 (clear of the traffic lights), ends 40 pt above the bottom, stays centred, and its body scrolls."
+  },
+  {
+   "area": "F-settings",
+   "id": "V-addsubs-save",
+   "steps": "While a file plays, open Add Subtitles (To This File), choose an .srt and double-click Save quickly.",
+   "expect": "The subtitle is added once, the dialog closes, and the window does not stall."
+  },
+  {
+   "area": "F-settings",
+   "id": "V-mediainfo",
+   "steps": "Open Properties & Metadata on a file with 6 tracks.",
+   "expect": "The dialog fits its content, every track row shows, and there is no scroll edge."
+  },
+  {
+   "area": "G-panels",
+   "id": "G-live-1 sidebar tab underline",
+   "steps": "Open a video, open the settings sidebar, click the Video tab, then the Audio tab.",
+   "expect": "The orange underline under the selected Video/Audio tab is wider than the icon+title group (about 4.5 pt beyond it on each side, 70 pt in all). The Playback and Subtitles underlines span their whole cell minus 8 pt."
+  },
+  {
+   "area": "G-panels",
+   "id": "G-live-2 playback hairline",
+   "steps": "Open the sidebar on the Playback tab, then switch to Video.",
+   "expect": "On Playback, a faint 1 px grey line spans the full panel width directly under the tab strip. The Video, Audio and Subtitles tabs have no such line."
+  },
+  {
+   "area": "G-panels",
+   "id": "G-live-3 stepped sliders",
+   "steps": "Video tab > Essential > Expand Settings; drag Gamma and Film Grain through their stops. Repeat for Audio > Spatializer and Subtitles > Appearance > Background Opacity.",
+   "expect": "No tick marks inside the rounded track ends. Inner ticks are dim on the empty track and warmer brown on the fill. The thumb snaps to a stop and is centred on its tick. Dragging to the far left or right stops the thumb 2 pt inside the track end."
+  },
+  {
+   "area": "G-panels",
+   "id": "G-live-4 delay slider",
+   "steps": "Subtitles tab: type -4 into Subtitle Track Delay, then drag the slider through 0 to +4.",
+   "expect": "The fill runs from the thumb to just past the centre ('0 s'), covering where the thumb would be at 0. At +4 it runs from the centre to the thumb's right edge. At 0 the thumb sits centred above '0 s'. The value field follows the drag."
+  },
+  {
+   "area": "G-panels",
+   "id": "G-live-5 sleep timer / visualizer dropdowns",
+   "steps": "Playback tab: open Sleep Timer, pick a value; open Audio Visualizer, pick a value.",
+   "expect": "The list opens under the field in the shared dropdown style with the current value checked. Picking a value closes it and updates the field. Esc or a click outside closes it."
+  },
+  {
+   "area": "G-panels",
+   "id": "GV-live-1 tab underline width",
+   "steps": "Open a video and open the settings sidebar. Click Video, then Audio, then Playback, then Subtitles.",
+   "expect": "The selected Video or Audio underline is 70 pt wide, about 4.5 pt beyond the icon and title on each side. The unselected narrow tabs keep a 61 pt grey underline. The Playback and Subtitles underlines span their cell minus 8 pt. Nothing jumps or shifts sideways when switching tabs."
+  },
+  {
+   "area": "G-panels",
+   "id": "GV-live-2 playback hairline",
+   "steps": "On the Playback tab, scroll the content a little. Then switch to Video.",
+   "expect": "Playback shows a 1 px #222 line across the full width directly under the tab strip, and it stays put while the content scrolls under it. The Video, Audio and Subtitles tabs have no such line."
+  },
+  {
+   "area": "G-panels",
+   "id": "GV-live-3 stepped slider drag",
+   "steps": "Video > Essential > Expand Settings, then drag Gamma and Film Grain from one end to the other. Audio > Spatializer: drag Size. Subtitles > Appearance: drag Background Opacity and Font Size.",
+   "expect": "There are no marks inside the rounded track ends. The thumb snaps to each stop, centred on its tick, and stops 2 pt inside the track at both ends. Dragging moves the thumb under the pointer with no lag or offset at the ends."
+  },
+  {
+   "area": "G-panels",
+   "id": "GV-live-4 light-scheme ticks",
+   "steps": "Switch the app to Light. Open Video > Essential (expanded) and Subtitles > Appearance.",
+   "expect": "The inner ticks stay visible as subtle marks on both the empty track and the fill. They are not invisible and do not clash, now that screen blending makes them lighter than the light track."
+  },
+  {
+   "area": "G-panels",
+   "id": "GV-live-5 delay slider",
+   "steps": "Subtitles tab: type -4 into Subtitle Track Delay, then drag the slider through 0 to +4. Repeat on the Audio tab's delay sliders.",
+   "expect": "At −4 s the fill runs from the thumb to the far edge of the 0 s position. At +4 s it runs from the 0 s position to the thumb's right edge. At 0 the thumb is centred over '0 s'. The labels read −10 s / 0 s / +10 s on both tabs. The value field follows the drag."
+  },
+  {
+   "area": "G-panels",
+   "id": "GV-live-6 sleep timer / visualizer dropdowns",
+   "steps": "Playback tab: open Sleep Timer and choose a value. Open Audio Visualizer and choose a value. Then press Esc on an open list.",
+   "expect": "The list opens below the field in the shared dropdown style, with the current value checked. Choosing a value closes the list and updates the field. Esc, or a click outside, closes it."
+  },
+  {
+   "area": "H-design",
+   "id": "H-light-bars",
+   "steps": "Installed app, Light theme, windowed, bars pinned (no auto-hide), any video playing (one bright and one dark clip). Sample the top bar at an empty spot (e.g. x 600, y 10 pt) and the control bar's empty area.",
+   "expect": "Both bars read #ABABAA (±1) for both clips; the video never shows through the bars."
+  },
+  {
+   "area": "H-design",
+   "id": "H-light-bars-transition",
+   "steps": "Light theme: enter and leave Customize; set auto-hide to always and let the bars hide and reveal; open and close the full library.",
+   "expect": "No black or #2D2B29 flash bigger than one frame above or below the picture while the bars fade. In Customize and when auto-hidden, the bars blur the video (material path). In the full library the top bar looks as before."
+  },
+  {
+   "area": "H-design",
+   "id": "H-dropdown-below",
+   "steps": "Settings ▸ General ▸ Log details dropdown; Settings ▸ Subtitles autoload/filename dropdown; a side-panel dropdown (e.g. HDR or EQ preset in the sidebar, not the preset picker). Click each to open.",
+   "expect": "The list opens 6 pt below the field, as wide as the field. The field stays visible with its down chevron. If the field is near the screen bottom, the list opens above it. Arrow keys, Return and Esc still work."
+  },
+  {
+   "area": "H-design",
+   "id": "H-dropdown-overfield",
+   "steps": "Open Add Subtitles and click the header 'To This File' dropdown; open the sidebar preset picker.",
+   "expect": "Both still open over their field, with the current row on the field's row (06m08.5, 07m58.9)."
+  },
+  {
+   "area": "H-design",
+   "id": "H-onboarding",
+   "steps": "Run onboarding on a clean profile (isolated HOME). Step 2: check the preview; switch to Light and pick a non-orange accent. Step 3: read every keycap.",
+   "expect": "The preview shows red, yellow and green traffic lights, then the cone, and only fullscreen at the right. In Light the selected swatch matches Next's colour. Step 3 shows Space; ⌥⌘← / ⌥⌘→; ⌘← / ⌘→; ⇧E / E; S; L; ⌘ F; ⌘↑ / ⌘↓; Q; ⌘ L; ⌥ ⌘ S; ⇧ ⌘ R. No 'SHIFT', no empty keycaps, and a '/' between each pair."
+  },
+  {
+   "area": "H-design",
+   "id": "H-customize-volume",
+   "steps": "View ▸ Customize Player over a playing video.",
+   "expect": "The volume tile's dashed box leaves about 5 pt of padding on both sides of the speaker and cone, as in 19m12.4. The dialog body shows the blurred video (about #181818), not flat #0F0F0F."
+  },
+  {
+   "area": "H-design",
+   "id": "H-light-bars",
+   "steps": "Installed app, Light theme, windowed, auto-hide off (bars pinned). Play a bright clip, then a dark one. Sample the top bar at an empty spot (about x 600, y 10 pt) and an empty area of the control bar.",
+   "expect": "Both bars read #ABABAA ±1 for both clips. No video shows through. No #BBB7BC or #A7A7A7."
+  },
+  {
+   "area": "H-design",
+   "id": "H-light-bars-transition",
+   "steps": "Light theme: enter and leave View ▸ Customize Player. Set controls auto-hide to always and let the bars hide and reveal. Open and close the full library.",
+   "expect": "No black, #090909 or #2D2B29 flash longer than one frame above or below the picture while the bars fade. Bars that are auto-hidden or in Customize blur the video (material path). The full-library top bar is unchanged (about #191919 in Dark)."
+  },
+  {
+   "area": "H-design",
+   "id": "H-dropdown-below",
+   "steps": "Settings ▸ General ▸ Log details; Settings ▸ Subtitles autoload/filename dropdown; a side-panel standard dropdown (e.g. HDR in the sidebar). Click each to open. Then move the window so a dropdown field sits near the bottom of the screen and open it again.",
+   "expect": "The list opens about 6 pt below the field and is as wide as it. The field stays visible with its down chevron. Near the screen bottom the list opens above the field. Arrow keys, Return, Esc and click-outside all work."
+  },
+  {
+   "area": "H-design",
+   "id": "H-dropdown-overfield",
+   "steps": "Open Add Subtitles and click the header 'To This File' pop-up. Open the sidebar subtitle preset picker.",
+   "expect": "Both open over their field, with the current row on the field's row (06m08.5, 07m58.9)."
+  },
+  {
+   "area": "H-design",
+   "id": "H-onboarding",
+   "steps": "Run onboarding on a clean profile (isolated HOME). Step 2: inspect the preview, switch to Light and pick a non-orange accent. Step 3: read every keycap.",
+   "expect": "The preview shows red, yellow and green traffic lights, then the cone, and only fullscreen on the right. In Light, the selected swatch matches Next's colour. Step 3 shows Space; ⌥⌘← / ⌥⌘→; ⌘← / ⌘→; ⇧E / E; S; L; ⌘ F; ⌘↑ / ⌘↓; Q; ⌘ L; ⌥ ⌘ S; ⇧ ⌘ R. There is no 'SHIFT', no empty or truncated keycap, and a '/' sits between each pair."
+  },
+  {
+   "area": "H-design",
+   "id": "H-customize-volume",
+   "steps": "View ▸ Customize Player over a playing video.",
+   "expect": "The volume tile's dashed box leaves about 5 pt on each side of the speaker and cone, as in 19m12.4. The dialog body shows the blurred video (about #181818), not a flat #0E0E0E."
+  },
+  {
+   "area": "I-build",
+   "id": "I-build-install",
+   "steps": "Integrator, after the wave commit, under the native lock and then the live lock: run tools/install-app.sh (do not launch). Then run `make -C ../build/codex-arm64/modules check-macosx-redesign` (it now also runs tools/test-screens-doc.py).",
+   "expect": "Install is green and leaves only /Applications/VLC.app (untouched) and /Applications/VLC Redesign.app. The check target passes, including test-screens-doc.py. Two consecutive make runs leave the plugin archive, dylib and .la mtimes unchanged."
+  },
+  {
+   "area": "I-build",
+   "id": "I-build-install-and-check",
+   "steps": "Integrator, after the wave commit. Take the native lock, then the live lock. Run modules/gui/macosx_redesign/tools/install-app.sh (do not launch the app). Then run `make -C ../build/codex-arm64/modules check-macosx-redesign`; automake regenerates first because Makefile.am gained a test-screens-doc.py line.",
+   "expect": "Install is green. Only /Applications/VLC.app (untouched) and /Applications/VLC Redesign.app exist. check-macosx-redesign passes, including test-screens-doc.py and test-native-runtime-isolation.py (6 tests)."
+  },
+  {
+   "area": "I-build",
+   "id": "I-build-noop-make-frozen",
+   "steps": "Integrator, on the committed tree with no agents editing, under the native lock: run `make -C ../build/codex-arm64` twice. Before and after the second run, record the mtimes of the macosx_redesign plugin archive, dylib and .la.",
+   "expect": "The second make rebuilds nothing: the archive, dylib and .la mtimes are unchanged. Record the wall time in BUILD.md or the handoff."
+  },
+  {
+   "area": "J-media-io",
+   "id": "J-dropdown-live",
+   "steps": "Open File > Convert. Click the Format field, choose Audio — MP3, then reopen it and choose Video — MP4. Repeat in Light appearance.",
+   "expect": "The list opens over the field at the field's width, with the current format checked. The field shows the choice. In Light the field is a light #F4F4F4 tile on the grey dialog, not a dark pressed block."
+  },
+  {
+   "area": "J-media-io",
+   "id": "J-overwrite-live",
+   "steps": "Convert: choose a source, Save As ~/Movies/Test.mp4, Convert, wait for 'Saved'. Click Convert again. Then cancel, switch the format to MP3 and back to MP4, and Convert again. Choose Replace.",
+   "expect": "Each repeat conversion asks before replacing Test.mp4. After Replace, the conversion runs without a second question."
+  },
+  {
+   "area": "J-media-io",
+   "id": "J-sheet-edges",
+   "steps": "On a 1x external display, open Open Capture Device and Stream.",
+   "expect": "The sheet edges are crisp, with no half-pixel blur. Capture is 343 pt tall, Stream is 680 pt."
+  },
+  {
+   "area": "J-media-io",
+   "id": "J-clipboard",
+   "steps": "Copy an http(s) media URL and use Open from Clipboard (Option-Cmd-V). Then copy plain text and try again.",
+   "expect": "The URL plays. With plain text, the command is disabled or shows a clear notice."
+  },
+  {
+   "area": "J-media-io",
+   "id": "J-disc-dropdown",
+   "steps": "Insert a DVD or mount a VIDEO_TS disc image, then open Open Disc.",
+   "expect": "The disc dropdown is enabled and lists the disc with a check. Choosing it enables Open."
+  },
+  {
+   "area": "J-media-io",
+   "id": "J-dropdown-live",
+   "steps": "Open File > Convert. Click the Format field and choose Audio — MP3, then reopen it and choose Video — MP4. Repeat in Light appearance, and with Open Disc and Open Capture Device that have a disc or camera present.",
+   "expect": "The menu opens anchored to the field, with the current choice checked. The field shows the new choice. In Light the field is a #F4F4F4 tile on the grey dialog."
+  },
+  {
+   "area": "J-media-io",
+   "id": "J-overwrite-live",
+   "steps": "Convert: choose a source, Save As ~/Movies/Test.mp4, then Convert and wait for 'Saved'. Click Convert again at once and choose Replace. When it finishes, switch the format to MP3 and back to MP4, Convert, and choose Replace.",
+   "expect": "Each repeat conversion asks once before replacing Test.mp4. After Replace the conversion starts without asking a second time, and it never asks in a loop."
+  },
+  {
+   "area": "J-media-io",
+   "id": "J-sheet-edges",
+   "steps": "On a 1x display, open Open Capture Device, Open Disc and Stream.",
+   "expect": "The sheet edges are crisp with no half-pixel blur. The sheets are 343, 432 and 680 pt tall."
+  },
+  {
+   "area": "J-media-io",
+   "id": "J-clipboard",
+   "steps": "Copy an http(s) media URL and use Open from Clipboard (Option-Cmd-V). Then copy plain text and try again.",
+   "expect": "The URL plays. With plain text on the clipboard, the command is disabled or shows a clear notice."
+  },
+  {
+   "area": "J-media-io",
+   "id": "J-disc-dropdown",
+   "steps": "Mount a VIDEO_TS disc image, then open Open Disc.",
+   "expect": "The disc dropdown is enabled and lists the disc with a check. Open is enabled and plays the disc from its menu."
+  }
+ ],
+ "ownerDecisions": [
+  "A-window: D057 added: accepted (agent, 2026-10-17); waits for the owner (narrow-window library-yields rule; S67 row semantics)",
+  "A-window: D051 amended: the narrow toast uses 'Continue' instead of a truncated 'Continue Watching'",
+  "A-window: D042 amended: the PiP placeholder is dark in Light too",
+  "A-window: D055 amended twice: evidence for the Light canvas without a frame and for the picture/subtitles under the compact library (critic P2 stays an owner call)",
+  "A-window: D057 (new, accepted (agent, 2026-10-17)): two spacers centre the run between them; header controls keep their header spacing in control rows; the compact library yields to a right panel below 648 pt; customize frames' plain gear left to B-controls. Verified as matching Figma/video where they exist; waits for owner.",
+  "A-window: D051 amended: narrow resume toast uses VLC 4's 'Continue' instead of a truncated 'Continue Watching' (makes it match rather than excuse).",
+  "A-window: D042 amended: PiP placeholder is dark in Light as well (between the pinned bars).",
+  "A-window: D055 amended: Light canvas has no 10 pt frame (verified against Player - Light samples), and the picture/subtitles run under the compact library (verified against Player 187:328 and Player - Light); critic P2 subtitles-under-library stays an owner call.",
+  "B-controls: D056 (new, agent): play/pause hover = iconHover tile over the fill (amends D048's hover bullet); disabled bar controls at Figma's 30 %; music layout without gear (Player - Music frames over component 4778:26181 and video 12m56.6); music bar Δ2 attributed to the offscreen backdrop",
+  "B-controls: D056 (new, agent, 2026-10-17): play/pause hover uses the iconHover tile over the fill (amends D048's hover bullet). Bar buttons have no press highlight, and a disabled control is drawn at Figma's 30 %. The cone uses 244:214's exact paint. The OSD casts one shadow. The music layout has no gear, because both Player - Music frames win over component 4778:26181 and video 12m56.6. The music bar's Δ2 is put down to the offscreen backdrop; that cause is not established, see the issue above.",
+  "B-controls: Not yet recorded: the Light frame's gear uses Dark/FG/A2 (#8F8F8F, style 217:218), a partial conversion like the one D049 records for the play button. The product draws Light FG/A2, and a deviation or a D049 amendment should record it.",
+  "C-bridge: No DECISIONS entry added or amended by C-bridge. The mock keys now follow D026 (engine hotkeys keep VLC's macOS defaults) and D034's right-click-keys amendment (Gallery fixtures show the same macOS keys, D030). Both entries already cover Figma's bare S/N/P/F letters in S09/S64/S71.",
+  "C-bridge: No DECISIONS entry was added or amended by C-bridge. The Mac engine keys shown in S09, S64 and S71 rely on D026 (with H-design's 2026-10-17 amendment) and on D034's right-click-keys amendment. Both are agent decisions waiting for the owner. They record a real constraint: VLC's macOS key bindings, with bare S as the subtitle-track key and ⌘P as Print.",
+  "C-bridge: D055 (subtitles under the compact library) is still open. It is a geometry question for A-window and cannot be fixed with a bottom sub-margin.",
+  "D-menus: D034 amendment (agent, 2026-10-17): the right-click menu's shortcut column shows VLC's macOS engine keys (Stop ⌘., Previous ⌘←, Next ⌘→, Record ⇧⌘R) instead of Figma's Windows bare letters S/P/N/R; Subtitle Earlier/Later show H/J. Waiting for the owner's sign-off.",
+  "D-menus: D034 amendment 'Right-click menu keys' (agent, 2026-10-17; verified, agree): the right-click menu and gallery fixtures show VLC's macOS engine bindings. That is Stop ⌘., Previous ⌘←, Next ⌘→ and Record ⇧⌘R, not Figma's Windows bare S/P/N/R. Subtitle Earlier/Later show H/J (src/libvlc-module.c __APPLE__ block). Waiting for the owner's sign-off.",
+  "E-library: D032 amendment (E-library) revised, accepted (agent, 2026-10-17): the Player - Light header divider, '▶' separators and '...' slot now match Figma's Dark styles in both themes. Kept: the rows and the current crumb stay in Light styles, because Figma's Dark FG/A1/A2 there is about 1.7:1 on the #C2C2C1 panel, below D032's 4.5:1.",
+  "E-library: D039 'Library audio tracks' (COMP-08) resolved, accepted (agent, 2026-10-17): the rows are enabled and the feature is implemented. Attached soundtracks are selected when the media starts, because VLC keeps the media's own audio for an equal-priority slave. Songs take no audio track.",
+  "E-library: D044 amendment 'Counts and players follow the data' extended, accepted (agent, 2026-10-17): videos2 and videos3 count their own 1 and 2 folders where Figma repeats '3 items'.",
+  "E-library: D032 amendment (E-library), revised, accepted (agent, 2026-10-17). Figma's Dark header styles (divider, '▶' separators, '...') are now drawn in Light too; the rows and the current crumb stay in Light styles for contrast (Figma ~1.8:1). Owner: confirm, and say whether it also applies to the full-window library in Light (it currently does).",
+  "E-library: D039 'Library audio tracks' (COMP-08), resolved, accepted (agent, 2026-10-17). Edit/Add Audio Tracks is implemented, and an attached soundtrack is explicitly selected at every later playback. Owner: confirm that auto-selecting it is wanted, and whether songs may take audio tracks from the file menu (the decision text says they don't, the code allows it).",
+  "E-library: D044 amendment 'Counts and players follow the data', extended, accepted (agent, 2026-10-17). videos2 and videos3 count their own 1 and 2 folders where Figma repeats '3 items'.",
+  "E-library: D044 'Narrow compact panel' (pre-existing). At the 480 pt minimum window, rows leave about 40 pt for the label. Owner may prefer a larger compact share or minimum (A-window PlayerGeometry.compactLibraryWidth).",
+  "F-settings: D035 amendment (no scrim behind dialogs; top-bar-clear margin for shrunk dialogs): accepted (agent, 2026-10-17), owner sign-off pending",
+  "F-settings: D045 amendment (Light secondary dialog buttons on BG/A4): accepted (agent, 2026-10-17), owner sign-off pending; D045 itself is owner-accepted",
+  "F-settings: D050 addition (disabled caching fields show the value as a placeholder): accepted (agent, 2026-10-17), owner sign-off pending",
+  "F-settings: Open owner question (unchanged): S63 settings dropdown placement over the field vs below it (D034, H-design's MXRDropdown)",
+  "F-settings: D035 amendment (no scrim behind dialogs; shrunk dialogs keep the 40 pt top bar clear) — accepted (agent, 2026-10-17), owner sign-off pending. The verifier agrees for Dark; the owner should confirm the Light evidence (17m44.0 shows mid-grey bars).",
+  "F-settings: D045 amendment (Light secondary dialog buttons on BG/A4; no Figma Light dialog exists) — accepted (agent, 2026-10-17), owner sign-off pending",
+  "F-settings: D050 line (disabled caching fields draw the preset value in FG/A4, so they read as empty like 6543:15649) — accepted (agent, 2026-10-17), owner sign-off pending",
+  "F-settings: Open question (unchanged, H-design): S63 settings dropdown placement over its field vs below it (D034)",
+  "G-panels: D054 amended 2026-10-17 (agent): '+10 s' on the Audio tab's delay sliders instead of Figma's '-10 s' typo. Still waiting for the owner, like the rest of D054.",
+  "G-panels: D054 amended 2026-10-17 (agent): the Audio tab's delay sliders read '+10 s' where Figma 536:1087 has the '-10 s' typo. I verified it is justified (Subtitles tab 1905:7372, ±10 s range). It still waits for the owner, like the rest of D054.",
+  "G-panels: Suggested follow-up, not written: add the Equalizer Preamp thumb (12 dB at its value in −20…20, where Figma draws about 82–84 %) as a D054 example with a matching figmaDeviation.",
+  "H-design: D053 bullet 1 amended (agent, 2026-10-17): Light bars match Figma's layer stack exactly via the videoUnderBars base and no material",
+  "H-design: D053 new bullet (agent, 2026-10-17): full-library top bar #191919 vs Figma #191A1A–#1C1C1D, tint over Figma's photo",
+  "H-design: D034 amended (agent, 2026-10-17): settings and sidebar dropdown lists drop below the field; preset and dialog headers open over the field. This answers D034's open owner question",
+  "H-design: D022 amended (agent, 2026-10-17): onboarding preview shows the Mac window chrome",
+  "H-design: D026 amended (agent, 2026-10-17): onboarding keycaps use ⇧, show the engine's macOS defaults, and draw paired bindings as one keycap each",
+  "H-design: D049 amended (agent, 2026-10-17): theme-aware onboarding swatches",
+  "H-design: D032 amended (agent, 2026-10-17): Light Settings selected segment and Browse keep the Figma token mapping rather than video 17m44.0; owner may choose the video look",
+  "H-design: D015 updated: PiP question resolved by D007/D055",
+  "H-design: D053 bullet 1 amended (agent, 2026-10-17): Light bars use Figma's exact layer stack (BG/A3 tint over the #2D2B29 videoUnderBars base, no material). Verified as a fix, not an excuse.",
+  "H-design: D053 new bullet (agent, 2026-10-17): the full-library top bar is #191919 against Figma #191A1A–#1C1C1D, because Figma has a photo under its bar. Δ≤3; the owner should approve.",
+  "H-design: D034 amended (agent, 2026-10-17): settings and side-panel dropdown lists drop below the field; the preset list and dialog header pop-ups open over the field. This answers D034's former open owner question, so the owner should confirm.",
+  "H-design: D022 amended (agent, 2026-10-17): the onboarding preview draws the Mac window chrome (Theme.MacWindowControls).",
+  "H-design: D026 amended (agent, 2026-10-17): onboarding keycaps use ⇧, show the engine's macOS defaults, and draw a paired binding as one keycap. This mixes keycap styles on S71; the owner should confirm.",
+  "H-design: D049 amended (agent, 2026-10-17): onboarding swatches use each accent's Accent/Main in the shown theme; unselected swatches stay at 50 % (pastel in Light). The Settings swatch row is not aligned yet.",
+  "H-design: D032 amended (agent, 2026-10-17): Light Settings keep the BG/Accent Bright segment and ON cell and the BG/A4 Browse instead of video 17m44.0's solid accent and dark Browse. The owner may choose the video look.",
+  "H-design: D015 updated: the PiP item is marked resolved by D007/D055."
+ ]
+}

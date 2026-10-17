@@ -1,0 +1,81 @@
+{
+ "area": "J-media-io",
+ "reports": [],
+ "verdict": {
+  "pass": true,
+  "summary": "Independent round-1 check of J-media-io at HEAD 4c457baa03. The fixer's work is all committed in 4c457baa03. None of the area's files have uncommitted changes. The engine is untouched: `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty.\n\n**J-01 (blocker): fixed.**\n- I re-ran the old chain on Test Show S01E01.mp4 with the app's options. It still aborts 3 of 3 times (pcr_sync.c:268 assertion, no moov atom), so the bug is real.\n- The new chain (`venc=x264{keyint=60}` plus `no-forward-pcr`) passed 6 of 6 runs. ffprobe reads every file as h264 + aac + mov_text, 60.03 s, about 2.67 Mbit/s, so the bitrate is now honoured.\n- MP3, AAC and WAV also produce valid files of the right length.\n- H.264 over HTTP (stream mode, paced in real time): a viewer joining 4 s late decoded 260 and 272 frames in two 10 s captures, and nothing aborted.\n- `native-tests.py --suite contracts` and `--suite media` both pass. I held the lock for about 15 min. The media suite runs the A+V H.264 conversion 5 times and checks each output with ffprobe. It also checks the \"already exists\" (EEXIST) guard, the Stop sequence (stopping, then cancelled) and that no partial file is left behind.\n\n**Other findings, code traced:**\n- **J-05: fixed.** `stopping` is now a state; `isActive` drives both form locks; an unknown state shows as a failure instead of dropping the job.\n- **J-03: fixed.** The form keeps `confirmedDestination`; overwrite is sent only when the destination equals it. EEXIST becomes `OutputError.destinationExists`, which shows a native Replace alert.\n- **J-04: fixed.** The status overlay is gone. The renders show no overlap (Convert empty and running in dark and light, Stream running in hosting view and shipping window).\n- **J-02: fixed.** `#duplicate{dst=display}` is used only in stream mode. The output player sets `MXR_AUXILIARY_VIDEO_VAR`, so MXRVoutWindow and MXRAppController give its video its own window and never the main surface.\n- **J-06: fixed in code.** Audio CDs are detected by the cddafs file system and opened as `cdda:///dev/rdiskN`. Not checked on hardware.\n- **J-07: fixed.** Disc scanning runs off the main actor, skips volumes that are not local or not removable/ejectable, and rescans on mount and unmount.\n- **J-08: fixed.** The title is \"Open Capture Device\" and the error reads \"Choose a camera.\"\n- **J-09: fixed.** `MockOutput` and `MockRenderers` exist; the S37 Convert and Stream entries now show the enabled state, plus new running entries.\n- **J-10: bridge part fixed.** Renderer ids are stable (type + sout target), the selected renderer survives rediscovery, and \"discovering\" clears after 5 s. The wording mismatch between the two menus remains.\n- **J-11: fixed.** Conversions write a hidden `.vlc-partial` file and rename it into place (`renamex_np`, exclusive unless replace was confirmed); it is deleted on stop, failure and shutdown.\n- **J-12: token used.** The token is declared in the view file rather than in MXRDesign.\n\n**Build and tests:** `swift build` is clean, with no warnings in the area's files. The targeted suites pass: OutputAdapterTests, OutputModelTests, OpenMediaIOTests, DialogsTests and DeviceDiscoveryTests.\n\n**Scope and quality:** the fixer's edits outside the area are small and listed. No masks or thresholds hide visual differences, and the views use tokens.\n\nOnly minor issues remain (listed in issues). Evidence is in <scratch> (sweep/, stream/, renders/, native-*.log).",
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "module/bridge/MXRMediaServices.m:609-614 (outputStopping)",
+    "description": "After Stop, the player's on_stopping_current_media callback (reason USER) overwrites the bridge's `stopping` state with `finishing`. Until the player reaches STOPPED, the Convert hint changes from 'Stopping…' to 'Finishing “name”…', and the main button is enabled again as 'Stop', because it is disabled only for `.stopping`. The runtime test reads the state synchronously right after Stop, so it does not catch this. Fix: when `_activeJob.cancelRequested` is set, keep `stopping` in outputStopping."
+   },
+   {
+    "severity": "minor",
+    "where": "module/bridge/MXRMediaServices.m:202-205 (aac/audio profiles); OpenMediaDialogs.swift Format hint",
+    "description": "The 'Audio — AAC (M4A)' output keeps the source's subtitle track. A headless conversion of Test Show S01E01.mp4 produced aac plus mov_text. This contradicts the hint 'Audio formats keep only the sound'. The runtime fixture has no subtitles, so the media suite cannot catch it. Fix: add scodec=none or no-sout-spu to the audio-only profiles."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Player/PlayerMenus.swift vs Sources/MXRUI/Panels/EffectsSidebars.swift",
+    "description": "J-10 UI part is still open: the two menus label renderer discovery differently ('Discovering…'/'Discover Renderers' vs 'Discovering Destinations…'/'Refresh Destinations'). Now that the bridge clears 'discovering' after 5 s, the disabled state is only brief. The files belong to other areas."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Dialogs/OpenMediaDialogs.swift:10-14, 238",
+    "description": "J-12: the pathFieldWidth token (buttonWidth × 1.5) is declared in the view file, not in MXRDesign as the fix asked. OutputProgressBar takes its height from Theme.Spacing.gap4, a spacing token used as a size."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRGalleryCatalog/Entries/DialogsGallery.swift S37.Stream/running",
+    "description": "The S37.Stream/running render is not deterministic. Its hint shows the build machine's own name (e.g. MacBook-Pro-2.local), because receivingURL reads SCDynamicStoreCopyLocalHostName."
+   },
+   {
+    "severity": "minor",
+    "where": "Tests/MXRCoreTests/OutputModelTests.swift",
+    "description": "The J-03 tests exercise only MockOutput's EEXIST behaviour. Nothing tests the view logic that decides overwrite (a format change renames the destination and loses confirmedDestination; confirmedDestination clears on completion); that logic exists only inside OutputMediaForm."
+   }
+  ],
+  "liveChecks": [
+   {
+    "id": "J-live-01",
+    "steps": "Reinstall the app with install-app.sh so it includes keyint=60. In the app, choose File > Convert, pick build/media/Test Show S01E01.mp4, keep 'Video — MP4 (H.264)', Save As ~/Movies/verify.mp4, press Convert and wait until it finishes. Run ffprobe on the output.",
+    "expect": "Progress bar and percentage advance, then 'Saved “verify.mp4”.' with Show in Finder. The app does not crash. ffprobe shows h264 + aac, about 60 s, about 2.7 Mbit/s. No .vlc-partial file is left in ~/Movies."
+   },
+   {
+    "id": "J-live-02",
+    "steps": "With verify.mp4 from J-live-01 present, choose File > Convert again with the same source. Pick format 'Audio — MP3' after choosing ~/Movies/verify.mp4 in the save panel, so the destination becomes verify.mp3, and create ~/Movies/verify.mp3 beforehand. Press Convert.",
+    "expect": "A native alert says '“verify.mp3” already exists. Do you want to replace it?'. Cancel leaves verify.mp3 byte-identical (same md5). Replace converts and overwrites it."
+   },
+   {
+    "id": "J-live-03",
+    "steps": "Start an H.264 conversion to a file name that already exists and press Replace. Press Stop at about 20%. Watch the Save As hint and the main button until it settles.",
+    "expect": "The hint reads 'Stopping…' (it may briefly read 'Finishing…', see the minor issue), then 'Stopped. Nothing was saved.'. The original file's md5 is unchanged and no .vlc-partial file remains. The form unlocks only after the job is cancelled."
+   },
+   {
+    "id": "J-live-04",
+    "steps": "Turn on 'Play locally while streaming' (sout-display) in Settings. While the main player shows a video, open File > Stream, choose Web (HTTP) on 0.0.0.0:8080/live, press Start, and on another device or with ffplay open the URL from the hint.",
+    "expect": "The local copy appears in a separate auxiliary window. The main player's surface is never taken over. The remote viewer gets a picture within about 2 s. Stop closes the server (curl returns 000)."
+   },
+   {
+    "id": "J-live-05",
+    "steps": "Insert an Audio CD (or mount a cddafs volume). Open File > Open Disc.",
+    "expect": "The disc is listed and preselected with Audio CD as the kind. Open plays the tracks through cdda:///dev/rdiskN. Ejecting the disc while the dialog is open removes it from the list; inserting a DVD adds it."
+   },
+   {
+    "id": "J-live-06",
+    "steps": "With a Chromecast on the network, open the renderer menu in the player and in the effects sidebar. Discover, select the device, then discover again.",
+    "expect": "The selected device stays listed and checked after rediscovery. Neither menu stays in 'Discovering…' for more than about 5 s after the first results arrive."
+   },
+   {
+    "id": "J-live-07",
+    "steps": "File > Open Capture Device (menu and shortcut) with a camera or Continuity Camera available.",
+    "expect": "The dialog is titled 'Open Capture Device', lists the camera, and Open shows the camera in the player."
+   }
+  ],
+  "ownerDecisions": [
+   "D045 (opaque light dialogs): the S37 Convert, Stream, Disc and Capture dialogs render as opaque light dialogs in the light scheme. I kept them as they are, pending the owner's decision.",
+   "D036 / D031: the engine bug in pcr_sync.c (an ES added after a PCR event is indexed out of range) is worked around in the interface with no-forward-pcr. Whether to also carry a quarantined engine patch under redesign/patches/engine is the owner's call."
+  ]
+ }
+}

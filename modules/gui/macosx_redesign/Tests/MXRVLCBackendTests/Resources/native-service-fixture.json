@@ -1,0 +1,335 @@
+{
+  "capabilities" : {
+    "addons" : false,
+    "dialogs" : true,
+    "extensions" : false,
+    "globalHotkeys" : false,
+    "library" : false,
+    "mediaSources" : false,
+    "player" : true,
+    "queue" : true,
+    "recording" : true,
+    "settings" : true,
+    "shortcuts" : true,
+    "supportsPictureInPicture" : false,
+    "supportsReversePlayback" : false,
+    "supportsSubtitleTimeline" : false,
+    "supportsWaveform" : false,
+    "thumbnails" : true
+  },
+  "dialogs" : {
+    "dialogs" : [
+
+    ],
+    "requests" : [
+
+    ]
+  },
+  "library" : {
+    "isIndexing" : false,
+    "mediaCount" : 0
+  },
+  "player" : {
+    "abLoop" : {
+      "a" : -1,
+      "b" : -1,
+      "state" : 0
+    },
+    "audioDelay" : 0,
+    "audioDevices" : [
+      {
+        "id" : "0",
+        "name" : "System Sound Output Device"
+      },
+      {
+        "id" : "72",
+        "name" : "MacBook Pro Speakers"
+      }
+    ],
+    "audioEffects" : {
+      "compressor" : {
+        "attack" : 25,
+        "isEnabled" : false,
+        "kneeRadius" : 5,
+        "makeupGain" : 7,
+        "ratio" : 4,
+        "release" : 100,
+        "rmsPeak" : 0.20000000298023224,
+        "threshold" : -11
+      },
+      "equalizer" : {
+        "bands" : [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "isEnabled" : false,
+        "preamp" : 12,
+        "presetID" : "none",
+        "twoPass" : false
+      },
+      "pitch" : 0,
+      "spatializer" : {
+        "damp" : 0.5,
+        "dry" : 0.5,
+        "isEnabled" : false,
+        "roomSize" : 0.85000002384185791,
+        "wet" : 0.40000000596046448,
+        "width" : 1
+      },
+      "stereoMode" : 0,
+      "stereoWidener" : {
+        "crossfeed" : 0.30000001192092896,
+        "delay" : 20,
+        "dryMix" : 0.80000001192092896,
+        "feedback" : 0.30000001192092896,
+        "isEnabled" : false
+      }
+    },
+    "audioTracks" : [
+
+    ],
+    "audioVisualization" : "disabled",
+    "bufferingProgress" : 1,
+    "canChangeRate" : false,
+    "canPause" : false,
+    "canRecord" : 0,
+    "canSeek" : false,
+    "chapters" : [
+
+    ],
+    "currentAudioDeviceID" : "0",
+    "isFullscreen" : false,
+    "isMuted" : 0,
+    "isRecording" : false,
+    "programs" : [
+
+    ],
+    "rate" : 1,
+    "selectedChapterIndex" : -1,
+    "selectedTitleIndex" : -1,
+    "state" : 0,
+    "subtitleDelay" : 0,
+    "subtitleDurationFactor" : 1,
+    "subtitleFPS" : 0,
+    "subtitleStyle" : {
+      "background" : false,
+      "backgroundColor" : {
+        "blue" : 0,
+        "green" : 0,
+        "red" : 0
+      },
+      "backgroundOpacity" : 0,
+      "bold" : false,
+      "fontFamily" : "Helvetica Neue",
+      "offset" : 0,
+      "outline" : 4,
+      "outlineColor" : {
+        "blue" : 0,
+        "green" : 0,
+        "red" : 0
+      },
+      "pixelSize" : 18,
+      "position" : "bottom",
+      "relativeSize" : 20,
+      "shadow" : true,
+      "shadowColor" : {
+        "blue" : 0,
+        "green" : 0,
+        "red" : 0
+      },
+      "shadowDistance" : "small",
+      "sizeMode" : "relative",
+      "textColor" : {
+        "blue" : 255,
+        "green" : 255,
+        "red" : 255
+      },
+      "textOpacity" : 1,
+      "useEmbeddedStyles" : true
+    },
+    "subtitleTextScale" : 80,
+    "subtitleTracks" : [
+
+    ],
+    "teletext" : {
+      "available" : false,
+      "enabled" : false,
+      "page" : 0,
+      "transparent" : false
+    },
+    "titles" : [
+
+    ],
+    "trackDefaults" : {
+      "audioTrack" : 2,
+      "subtitleLanguage" : "ru"
+    },
+    "videoEffects" : {
+      "colors" : {
+        "cartoon" : true,
+        "colorExtraction" : false,
+        "colorThreshold" : false,
+        "extractionColor" : {
+          "blue" : 0,
+          "green" : 0,
+          "red" : 255
+        },
+        "gradient" : false,
+        "gradientColor" : false,
+        "negate" : false,
+        "posterize" : false,
+        "posterizeLevel" : 6,
+        "sepia" : false,
+        "sepiaIntensity" : 120,
+        "thresholdColor" : {
+          "blue" : 0,
+          "green" : 0,
+          "red" : 255
+        },
+        "thresholdSaturation" : 20,
+        "thresholdSimilarity" : 15
+      },
+      "cropInsets" : {
+        "bottom" : 0,
+        "left" : 0,
+        "right" : 0,
+        "top" : 0
+      },
+      "deinterlace" : "automatic",
+      "essential" : {
+        "bandingRemovalRadius" : 0,
+        "brightness" : 1,
+        "contrast" : 1,
+        "filmGrainVariance" : 0,
+        "gamma" : 1,
+        "hue" : -30,
+        "isEnabled" : true,
+        "saturation" : 1,
+        "sharpenSigma" : 0
+      },
+      "flip" : "none",
+      "hdr" : "auto",
+      "rotation" : 0,
+      "zoom" : "fitWindow"
+    },
+    "videoTracks" : [
+
+    ],
+    "volume" : 1
+  },
+  "queue" : {
+    "currentIndex" : -1,
+    "hasNext" : true,
+    "hasPrevious" : false,
+    "items" : [
+      {
+        "id" : "1",
+        "media" : {
+          "duration" : -1,
+          "id" : "file:\/\/\/tmp\/mxr-test-b.mp4",
+          "isFavorite" : false,
+          "kind" : "unknown",
+          "title" : "B",
+          "url" : "file:\/\/\/tmp\/mxr-test-b.mp4"
+        }
+      },
+      {
+        "id" : "2",
+        "media" : {
+          "duration" : -1,
+          "id" : "file:\/\/\/tmp\/mxr-test-c.mp4",
+          "isFavorite" : false,
+          "kind" : "unknown",
+          "title" : "C",
+          "url" : "file:\/\/\/tmp\/mxr-test-c.mp4"
+        }
+      }
+    ],
+    "mediaStoppedAction" : 1,
+    "order" : 0,
+    "pauseAtEnd" : false,
+    "repeatMode" : 0
+  },
+  "settings" : {
+    "options" : [
+      {
+        "choices" : [
+
+        ],
+        "defaultValue" : 1,
+        "longText" : "You can completely disable the audio output. The audio decoding stage will not take place, thus saving some processing power.",
+        "max" : 9223372036854775807,
+        "min" : -9223372036854775808,
+        "module" : "core",
+        "name" : "audio",
+        "text" : "Enable audio",
+        "type" : "bool"
+      },
+      {
+        "choices" : [
+
+        ],
+        "defaultValue" : "",
+        "longText" : "Language of the audio track you want to use (comma separated, two or three letter ISO-639 country code; you may use 'none' to avoid a fallback to another language).",
+        "module" : "core",
+        "name" : "audio-language",
+        "text" : "Audio language",
+        "type" : "string"
+      },
+      {
+        "choices" : [
+
+        ],
+        "defaultValue" : 1,
+        "longText" : "This defines the playback speed (nominal speed is 1.0).",
+        "max" : 3.4028234663852886e+38,
+        "min" : -3.4028234663852886e+38,
+        "module" : "core",
+        "name" : "rate",
+        "text" : "Playback speed",
+        "type" : "float"
+      },
+      {
+        "choices" : [
+
+        ],
+        "defaultValue" : 1000,
+        "longText" : "Caching value for network resources, in milliseconds.",
+        "max" : 60000,
+        "min" : 0,
+        "module" : "core",
+        "name" : "network-caching",
+        "text" : "Network caching (ms)",
+        "type" : "integer"
+      }
+    ],
+    "values" : {
+      "audio" : 1,
+      "audio-language" : "",
+      "network-caching" : 2345,
+      "rate" : 1
+    }
+  },
+  "shortcuts" : {
+    "actions" : [
+      {
+        "global" : [
+
+        ],
+        "hotkeys" : [
+          "Ctrl+Space"
+        ],
+        "id" : "play-pause",
+        "name" : "play-pause"
+      }
+    ]
+  }
+}

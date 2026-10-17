@@ -1,0 +1,130 @@
+{
+ "codexAssessment": "Area I-build, reviewed read-only at HEAD a215064366 on branch claude/final. Repository files were not edited.\n\nWhat I ran in this environment:\n- The full Swift test runner passed: all 354 discovered XCTest cases ran, none skipped, 3 min 18 s. So CODE-01 (DialogsTests no longer registers the test process as a GUI app) is really fixed in the Claude Desktop environment. The DialogsTests change is minimal and correct.\n- All 26 tooling tests pass.\n- The default native contracts suite passes against build/codex-arm64 in 30 s. This includes the live dumpconfig to schema-drift.py run, so TST-01 is a real, working gate.\n- ARC-01 (icon and tools in EXTRA_DIST), the ARC-02 always-invoke-SwiftPM rule, CODE-10 (generators run with --check from make check), and PERF-02 (signing order: nested code, then vlc-cache-gen, then a non-deep seal, then a metadata recheck in finalize-app.py) are real code changes and correct in principle.\n\nThe serious problem is that none of the packaging work was ever run for real, and the main path is broken:\n- `install-app.sh` reads the toolchain PATH with `sed 's/^PATH=...'`. Autoconf writes config.log as `PATH: dir/` lines, so the result is always empty and PATH falls back to /usr/bin:/bin with no automake or autoconf.\n- Codex itself changed Makefile.am, so the first `make` re-runs automake-1.18 and fails. My real run, under the lock, exited 2 after 5 s with \"automake-1.18: command not found\". Rollback did work: the installed app was unchanged and the lock and stage were removed.\n- test-install-app.py writes a fake config.log in the invented `PATH='...'` format. That fake is the only way its fake make, ditto and codesign get onto PATH, so the test asserts the bug away. The supported installer, which every area agent is told to use, does not work at this HEAD.\n- So PERF-02 (\"no stale plugins cache at startup\") is still unproven at runtime. A later attempt to work around the PATH problem was blocked because other areas' in-flight Swift edits no longer compile.\n\nOver-engineering and noise:\n- finalize-app.py redoes all the signing and cache generation that package.mak's codesign.sh already did correctly. dev-sync.sh now re-signs every plugin and regenerates the whole cache, which slows the fast dev loop.\n- The ARC-02 fix makes every `make` re-copy libMXRPlugin.a and re-run actool, which forces a plugin relink each time.\n- About 6 of the 26 tooling tests are text greps of Makefile.am or mock tests of the test runner itself.\n- The schema policy has 1435 hidden entries that share two blanket reasons, and there is no tool to propose new entries for review.\n\nLeft unfinished despite the И (fixed) marks:\n- BUILD.md: Codex only rewrote the header. §6 still calls dev-sync.sh with the wrong number of arguments and launches $BUILD/VLC.app. Other sections still tell the reader to create VLC-stocktest.app and run `swift test`, and the doc says check-macosx-redesign needs no VLC (it now requires a built engine).\n- Hard-coded ~ paths remain in two bridge test .md files.\n- PROVENANCE.md still points at a /private/tmp build script that no longer exists.\n- smoke-native.py, the only check that greps for \"stale plugins cache\", is still wired to nothing.\n\nCodex's ledger was honest that no real install or startup was done. But marking PERF-02, DOC-01 and the installer \"defects\" as И overstated the result.\n\nDesign parity does not apply to this area (no gallery entries).",
+ "confirmed": [
+  {
+   "id": "B-01",
+   "severity": "blocker",
+   "title": "install-app.sh never finds the toolchain PATH in config.log, so any automake rerun fails; the installer test fakes a config.log format autoconf never writes",
+   "evidence": "tools/install-app.sh:58 runs `sed -n 's/^PATH=\\(.*\\)$/\\1/p' ... | head -1`. The real ../build/codex-arm64/config.log:39-44 has only `PATH: <dir>/` lines; the one `PATH...=` line is PATH_SEPARATOR at :15302. So mxr_tools is empty and PATH falls back to /usr/bin:/bin. The reviewer's log (scratchpad/final/I-build-review/install.log) ends with Makefile.in Error 127 and EXIT 2. tools/test-install-app.py:60 writes `PATH='<fakebin>:...'`, which is why its 5 tests pass. build-native.sh:45 builds the PATH explicitly, so the two scripts disagree.",
+   "files": [
+    "modules/gui/macosx_redesign/tools/install-app.sh",
+    "modules/gui/macosx_redesign/tools/test-install-app.py"
+   ],
+   "fix": "In install-app.sh:58, use `mxr_tools=$(sed -n 's|^PATH: \\(.*\\)/$|\\1|p' \"$mxr_build/config.log\" | paste -sd: -)` and keep every line in order; drop `head -1` and `tr`. Before make, fail with a clear message unless `command -v autoconf automake libtool` succeeds. In test-install-app.py:60, write real `PATH: <fakebin>/` lines, one per directory. Add a test where config.log has no PATH: lines and expect a clear failure. Then run one real install-app.sh under the lock and launch /Applications/VLC Redesign.app."
+  },
+  {
+   "id": "B-02",
+   "severity": "major",
+   "title": "BUILD.md body is stale and contradicts AGENTS single-copy rule (DOC-01 fixed only in header)",
+   "evidence": "redesign/docs/BUILD.md:13 names the codex/audit-fixes branch, but work is on claude/final. :48-52 recommends build-native.sh, which leaves a build-dir VLC.app. :333-335 and :383 launch $BUILD/VLC.app. :357-362 creates VLC-stocktest.app. :382 calls dev-sync.sh with one argument, but dev-sync.sh:4 requires 2 and exits with usage. :386-391 describes dev-sync as cp+codesign, but it now runs finalize-app.py. :409 says check-macosx-redesign needs no VLC, but it depends on check-macosx-redesign-native. :512 lists bare `swift test`. The file has 12 ~ paths. AGENTS.md:40 allows only install-app.sh and one bundle.",
+   "files": [
+    "redesign/docs/BUILD.md"
+   ],
+   "fix": "Rewrite §4-§6 and §9 around three supported paths. (1) tools/install-app.sh [build-dir]. (2) Dev loop with the app closed: `make -C $BUILD/modules libmacosx_redesign_plugin.la && tools/dev-sync.sh $BUILD '/Applications/VLC Redesign.app'`. (3) Tests: `python3 tools/run-swift-tests.py` and `native-tests.py --engine-build $BUILD`, or `make -C $BUILD/modules check-macosx-redesign`. Move the stock-baseline and VLC-stocktest steps to a historical appendix that deletes the bundle. Replace user paths with $SRC/$BUILD, and refer to the branch by commit, not by name."
+  },
+  {
+   "id": "B-09",
+   "severity": "minor",
+   "title": "native-tests.py leaks a work dir on every run (23 already in $TMPDIR); WORKFLOW hand-copies the check list",
+   "evidence": "tools/native-tests.py:38 calls mkdtemp and never removes the directory; :186 prints 'evidence retained at'. `ls -d $TMPDIR/mxr-native-contract-*` returns 23 directories. redesign/docs/WORKFLOW.md:172-186 repeats the Makefile.am check-macosx-redesign recipe line by line and will drift from it.",
+   "files": [
+    "modules/gui/macosx_redesign/tools/native-tests.py",
+    "redesign/docs/WORKFLOW.md"
+   ],
+   "fix": "Wrap the work dir in try/finally and shutil.rmtree it on PASS. Keep it on failure or when --keep is passed, and print the path only then. In WORKFLOW, replace the expanded list with `make -C $BUILD/modules check-macosx-redesign` plus the named runtime-gate targets."
+  },
+  {
+   "id": "B-05",
+   "severity": "minor",
+   "title": "smoke-native.py (real start/play/quit gate incl. stale-cache check) is unreferenced; the PERF-02 runtime proof is missing",
+   "evidence": "Outside the audits, grep finds smoke-native.py only in redesign/research/codex-review-findings.json. No Makefile target, script or doc calls it. The script is more than a cache check. It requires the macosx_redesign intf/vout, videotoolbox, auhal, the first picture for each item and a clean exit, and it fails on 'stale plugins cache'. The ledger marks PERF-02 as И with 'not verified'.",
+   "files": [
+    "modules/gui/macosx_redesign/tools/smoke-native.py",
+    "modules/gui/macosx_redesign/Makefile.am",
+    "redesign/docs/WORKFLOW.md"
+   ],
+   "fix": "Add an explicit `check-macosx-redesign-app` target (not part of `check`). It runs `python3 -I tools/smoke-native.py '/Applications/VLC Redesign.app' <log> <build/media files>`. Document it in WORKFLOW as the step after install. Run it once after the B-01 fix to close PERF-02, which needs 0 'stale plugins cache' lines."
+  },
+  {
+   "id": "B-03",
+   "severity": "minor",
+   "title": "swiftpm-build.sh always re-copies libMXRPlugin.a (and runs actool), so the plugin relinks on every no-op make",
+   "evidence": "tools/swiftpm-build.sh:61 runs an unconditional `cp \"$mxr_bin/libMXRPlugin.a\" \"$mxr_archive\"`, which gives the archive a new mtime. :52-57 always runs actool on the native build system. Makefile.am:54 has EXTRA_libmacosx_redesign_plugin_la_DEPENDENCIES = $(MXR_SWIFT_LIB), and :14 has the phony force prerequisite, so every make relinks the dylib. That makes dev-sync and install see a changed plugin. The fake wrapper in test-build-contracts.py `touch`es $6.",
+   "files": [
+    "modules/gui/macosx_redesign/tools/swiftpm-build.sh",
+    "modules/gui/macosx_redesign/tools/test-build-contracts.py"
+   ],
+   "fix": "Copy only on change: `cmp -s \"$mxr_bin/libMXRPlugin.a\" \"$mxr_archive\" || cp \"$mxr_bin/libMXRPlugin.a\" \"$mxr_archive\"`. Compile actool into a temporary directory and copy Assets.car only when it differs, or skip actool when Assets.car is newer than every file under Icons.xcassets. In the contract test, the fake wrapper should not touch an unchanged archive. Add an assertion that a second no-change make leaves the archive mtime unchanged."
+  },
+  {
+   "id": "B-04",
+   "severity": "minor",
+   "title": "Installer re-signs every Mach-O and regenerates the cache although `make VLC.app` already ran codesign.sh in the right order; dev-sync does a full finalize for one dylib",
+   "evidence": "extras/package/macosx/package.mak:89-97 runs vlc-cache-gen and then codesign.sh. codesign.sh:125-150 signs the plugins, runs vlc-cache-gen, signs plugins.dat and the libraries, then signs VLC.app without --deep. That is the order the Claude PERF-02 audit asked for. ditto preserves it. install-app.sh:84 then runs finalize-app.py:53-62, which re-signs every Mach-O serially and runs vlc-cache-gen again. dev-sync.sh:22 does the same after copying one plugin.",
+   "files": [
+    "modules/gui/macosx_redesign/tools/install-app.sh",
+    "modules/gui/macosx_redesign/tools/finalize-app.py",
+    "modules/gui/macosx_redesign/tools/dev-sync.sh"
+   ],
+   "fix": "Add a `--verify-only` mode to finalize-app.py. It keeps the containment, identity and stock-interface guards, checks that plugins.dat is not older than any dylib, and runs `codesign --verify --deep --strict`. Use that mode in install-app.sh. Keep the full sign+cache path for dev-sync, but sign only the copied dylib there: `codesign -f -s - <dylib>`, then vlc-cache-gen, then a non-deep seal of the app. Keep the test-finalize-app ordering tests."
+  },
+  {
+   "id": "B-07",
+   "severity": "minor",
+   "title": "MXRSettingsInheritanceTests.c has side effects inside assert() and overrides the isolated user-data dir with a fixed shared path",
+   "evidence": "module/bridge/tests/MXRSettingsInheritanceTests.c:19 has `assert(var_Create(...)==VLC_SUCCESS)` and :27 has `assert(libvlc_InternalInit(...)==VLC_SUCCESS)`. Both calls disappear under NDEBUG. The current config.h:660 has `/* #undef NDEBUG */`, so the problem is latent. :24 calls setenv for VLC_USERDATA_PATH=/private/tmp/mxr-settings-native-userdata and :26 sets --config=/private/tmp/..., which override the per-run dir that native-tests.py:55 provides. The test calls var_SetFloat itself rather than the bridge's settings writer.",
+   "files": [
+    "modules/gui/macosx_redesign/module/bridge/tests/MXRSettingsInheritanceTests.c"
+   ],
+   "fix": "Store each call's result in a variable and check it with `if`, returning 1 on failure; leave only pure checks in assert. Remove the setenv and the fixed --config path, and use the inherited VLC_USERDATA_PATH (or one under it). Optionally, compile the bridge's rate-default writer into the test, the same way native-tests.py:103 does for media-contract, and drive it through that writer."
+  },
+  {
+   "id": "B-06",
+   "severity": "minor",
+   "title": "Native test docs and fixture provenance cite personal paths and /private/tmp scripts outside the repo",
+   "evidence": "MXRAudioServicesTests.md:8,11,15 and MXRAudioPreferenceServicesTests.md:57,60,66 hard-code ../build/arm64. module/bridge/tests/README.md:57-68 uses /private/tmp binaries. PROVENANCE.md:15-17 cites /private/tmp/*-v9 artifacts. The reviewer is wrong that the compile script is gone: it still exists today. It lives outside the repo, though, so it is not reproducible. native-tests.py already has --suite fixture/audio/media.",
+   "files": [
+    "modules/gui/macosx_redesign/module/bridge/tests/MXRAudioServicesTests.md",
+    "modules/gui/macosx_redesign/module/bridge/tests/MXRAudioPreferenceServicesTests.md",
+    "modules/gui/macosx_redesign/module/bridge/tests/README.md",
+    "modules/gui/macosx_redesign/Tests/MXRVLCBackendTests/Resources/PROVENANCE.md"
+   ],
+   "fix": "Replace the hand-written clang recipes with `python3 tools/native-tests.py --engine-build $BUILD --suite audio|media|extensions`. In PROVENANCE.md, add 'Re-capture: native-tests.py --engine-build $BUILD --suite fixture --output NEW.json' and label the /private/tmp hashes as historical."
+  },
+  {
+   "id": "B-14",
+   "severity": "minor",
+   "title": "build-native.sh ends with `make VLC.app`, leaving an extra build-dir bundle (AGENTS single-copy rule)",
+   "evidence": "tools/build-native.sh's last line is `make VLC.app`. BUILD.md:48-52 points engine-patch builds to it, which produces a second org.example.vlc-redesign.codex bundle in codex-arm64-engine-patches. AGENTS.md:40 says to never leave other VLC bundles.",
+   "files": [
+    "modules/gui/macosx_redesign/tools/build-native.sh",
+    "redesign/docs/BUILD.md"
+   ],
+   "fix": "Remove the final `make VLC.app` and stop at `make -j8`. In BUILD.md, tell readers to install a patched build with `tools/install-app.sh <patched-build-dir>`."
+  },
+  {
+   "id": "B-10",
+   "severity": "minor",
+   "title": "Installer lock is a bare mkdir with no owner, so a SIGKILLed run blocks all future installs",
+   "evidence": "install-app.sh:65 runs `mkdir \"$mxr_lock\"` and writes no PID. The cleanup trap cannot run on SIGKILL, so a killed run leaves /Applications/.vlc-redesign-install.lock behind and every later run fails with 'another redesign installation owns'. The check-then-swap window (:85-90) is a few milliseconds after a second require_idle. Rolling back a bundle that just launched would be worse, so leave that alone. The ../build/codex-arm64 default is the actual local build dir and is acceptable.",
+   "files": [
+    "modules/gui/macosx_redesign/tools/install-app.sh",
+    "modules/gui/macosx_redesign/tools/test-install-app.py"
+   ],
+   "fix": "After mkdir, write $$ to $mxr_lock/pid. When mkdir fails, read the pid. If `kill -0` fails, remove the stale lock (rm pid; rmdir) and retry once; otherwise refuse. Change cleanup to `rm -f $mxr_lock/pid; rmdir`. Add one installer test for the stale-lock case."
+  },
+  {
+   "id": "B-15",
+   "severity": "minor",
+   "title": "CODE-08 huge-file decomposition not started (plan only; files owned by other areas)",
+   "evidence": "MXRServicesBridge.m has 1480 lines, MXRLibraryServices.m 1269, MXRMediaServices.m 935 and GalleryCatalog.swift 1857, all grown since the Codex wave. Helpers are duplicated across the bridge .m files. I-build owns none of these files.",
+   "files": [
+    "modules/gui/macosx_redesign/module/bridge/MXRServicesBridge.m",
+    "modules/gui/macosx_redesign/module/bridge/MXRLibraryServices.m",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/GalleryCatalog.swift",
+    "modules/gui/macosx_redesign/Makefile.am"
+   ],
+   "fix": "Plan only for this wave. The bridge owner extracts the shared helpers into module/bridge/MXRBridgeSupport.{h,m}; I-build adds it to libmacosx_redesign_plugin_la_SOURCES and to the native-tests.py compile lists. MXRServicesBridge.m is then split by service, and the gallery owner splits GalleryCatalog.swift by screen family. Each step must keep native-tests contracts and run-swift-tests green. Do not start it during the parallel wave."
+  }
+ ]
+}

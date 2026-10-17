@@ -1,0 +1,117 @@
+{
+ "area": "G-panels",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "Finished the G-panels leftovers and the three cross-area items. (1) D-07: the queue row now uses the shared MXRPlayerMenus.addToPlaylist submenu (playlists load on open; New Playlist…; per-playlist errors go through app.dialogs). The private QueuePlaylistPicker popup and the playlistTarget state are deleted. A row inside a multi-row selection adds the whole selection in queue order (PanelQueueInteraction.media). The item is now shown disabled, rather than hidden, when there is no media library, as in the mini player and the player menus. (2) S20.Sidebar/subtitles-appearance no longer declares figmaNode 800:1126, so `check --all` reports `skip (no figmaNode)` instead of a spurious size FAIL. The notes and a code comment keep the frame and slider node ids, the reason, and the geometry to compare against figma_file.json (86 pt rows on a 91 pt pitch, 6/4/11 stops). Nothing is masked. (3) The panel test files compile and pass. PanelAuditRegressionTests already uses MXRPlayerMenus.playlist(...).children and ThemeContrastTests no longer references readableSecondary, both at HEAD. I added a behaviour test for the queue row's Add to Playlist media resolution. (4) The verifier's G-09 minor: a bookmark rename in progress is now saved, not dropped, when you click another bookmark row, use Rename on another row, press + to add a bookmark, change tab, or close the panel. Rows cannot take focus (D028), so the TextField's focus loss never fired in those cases. Build is clean. Panel suites pass: PanelAuditRegressionTests 9/9 (incl. the new test), PanelsTests 5/5, SidePanelContentTests 3/3, ThemeContrastTests 8/8, MenuAuditRegressionTests, PanelValuesRegressionTests 4/4. Offscreen checks: S22.Queue/default REVIEW (only the documented header-total difference), S23.Queue/bookmarks REVIEW. I looked at both next to Figma.",
+   "fixed": [
+    "D-07 remainder: queue row context menu uses shared MXRPlayerMenus.addToPlaylist submenu; private QueuePlaylistPicker popup deleted; multi-selection aware via PanelQueueInteraction.media(for:in:)",
+    "S20.Sidebar/subtitles-appearance: removed clipped figmaNode 800:1126 (check --all now skips instead of spurious FAIL), notes record node ids and figma_file.json geometry to compare",
+    "Panel test files compile and pass (PanelAuditRegressionTests, PanelsTests, SidePanelContentTests, ThemeContrastTests, PanelValuesRegressionTests, MenuAuditRegressionTests)",
+    "G-09 minor (verify r1): a bookmark rename in progress is saved on a click to another row, Rename on another row, + Add bookmark, a tab change or the panel closing, instead of staying open or being discarded"
+   ],
+   "notFixed": [
+    {
+     "id": "D033 relative font-size Auto stop order",
+     "why": "Owner decision pending (Auto at stop 0 vs Figma stop 3); kept current implementation."
+    },
+    {
+     "id": "shift-click-range",
+     "why": "PanelQueueInteraction.selection has never supported a Shift range, so this is new behaviour, not a regression, and outside this pass. The fixer report already notes it as out of scope."
+    },
+    {
+     "id": "S23 disabled minus tint",
+     "why": "In the Figma bookmarks frame the − button has the same tint as +. The product dims − while no bookmark is selected, which is the state-correct native behaviour. The difference was left on purpose and not hidden."
+    },
+    {
+     "id": "live keyboard/FKA checks G-03/G-04/G-09/G-10",
+     "why": "Need the installed app; listed in liveChecks."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Panels/QueuePanel.swift",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/PanelsGallery.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/PanelAuditRegressionTests.swift"
+   ],
+   "editsOutsideOwnership": [
+    "Tests/MXRUISnapshotTests/PanelAuditRegressionTests.swift: added testQueueRowAddToPlaylistResolvesRowOrSelection (panel test file, assigned by cross-area item 3)"
+   ],
+   "liveChecks": [
+    {
+     "id": "G-D07-queue-add-to-playlist",
+     "steps": "Open the queue panel with several items and a media library present. Right-click a row and hover Add to Playlist. Choose New Playlist…, then repeat and choose an existing playlist. Cmd-click to select 2 rows, right-click one of them and add to a playlist.",
+     "expect": "The submenu matches the mini player and Playlist menus: New Playlist…, a separator, then the saved playlists. The single-row add adds only that row. The selection add adds both rows in queue order. No separate popup card appears."
+    },
+    {
+     "id": "G-09-bookmark-click-away",
+     "steps": "In Bookmarks, right-click a bookmark and choose Rename, then type a new name. Click a different bookmark row (not Return). Repeat, then switch to the Queue tab. Repeat, then press +.",
+     "expect": "Each time the typed name is saved and the editor closes. An empty name keeps the old one."
+    },
+    {
+     "id": "G-03/G-04/G-10-keyboard",
+     "steps": "With Full Keyboard Access on, Tab to a queue row. Press Return, Up/Down, Option-Up/Down, Space and Delete. Cmd-click two rows, then drag a row to reorder.",
+     "expect": "Return plays the row. The arrows move the selection and the fgA1 ring. Option-arrows reorder. Space still play/pauses. Delete removes the selection. No system accent ring appears after a click. Cmd-click and drag reorder work."
+    }
+   ],
+   "ownerDecisions": [
+    "D033: Relative subtitle Font Size slider puts Auto at stop 0 (VLC enum order) vs Figma 804:1341 at stop 3 — unchanged",
+    "D041/D045/D039 not touched by this area's changes"
+   ],
+   "evidence": [
+    "swift test --filter PanelAuditRegressionTests: 9 tests, 0 failures (incl. new testQueueRowAddToPlaylistResolvesRowOrSelection)",
+    "swift test PanelsTests|SidePanelContentTests|ThemeContrastTests|MenuAuditRegressionTests|PanelValuesRegressionTests: all pass",
+    "mxr-snapshot check S22.Queue/default REVIEW, S23.Queue/bookmarks REVIEW; renders in <scratch>",
+    "SnapshotCLI check --all prints 'skip (no figmaNode)' for entries without figmaNode (SnapshotCLI.swift:201)"
+   ],
+   "notesForOthers": "EffectsSidebars.swift (my area) has an uncommitted edit by another agent: the Cast-device choice label is now \"Discover Cast Devices\". I left it as is. The queue's Add to Playlist item is now disabled, not hidden, when hasMediaLibrary is false, which matches the mini player and the Playlist menu."
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "Tests/MXRUISnapshotTests/PanelAuditRegressionTests.swift testQueueRowAddToPlaylistResolvesRowOrSelection",
+    "description": "The new test only checks the pure media-resolution helper (PanelQueueInteraction.media). It does not check that the queue row's context menu really contains the shared Add to Playlist submenu (New Playlist…, a separator, then the playlists). The wiring was verified by reading QueuePanel.swift:236-243 and :356. MenuAuditRegressionTests covers the shared submenu itself. A small test that builds the queue row's menu items would close the gap."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRGalleryCatalog/Entries/PanelsGallery.swift S20.Sidebar/subtitles-appearance",
+    "description": "With figmaNode removed, `check --all` correctly reports skip, but `check --id S20.Sidebar/subtitles-appearance` now exits 2 with an error (no figmaNode). This is expected tool behaviour, not a product issue. The row geometry can now only be compared by eye or with figma_file.json. I rendered it and it matches r1's geometry check: text values over 6/4/11-stop ticked sliders, Outline thumb at stop 2."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Panels/SettingsSidebar.swift relative Font Size slider (D033)",
+    "description": "Auto is still at stop 0 with no fill, while Figma 804:1341 has it at stop 3. This was documented and left as an owner decision, not a defect of this pass."
+   },
+   {
+    "severity": "minor",
+    "where": "S17.Sidebar/playback, S20.Presets/open, S21.Timeline/default",
+    "description": "These panel entries still FAIL `check`. S17 fails on the D033 row set (Waveform and Metadata rows, Reverse disabled with an info icon, Statistics absent) and the resulting surface-colour shift; I looked at the side-by-side and confirmed this. S20.Presets fails on homeCard vs bgA4, Δ2, which belongs to the tokens area. S21 fails on the timeline accent fill, a documented timeline note. The same causes as r1; nothing new and nothing masked."
+   }
+  ],
+  "summary": "Round 2 verification of G-panels at HEAD 4c457baa03 plus the working tree.\n\nCross-area item (1), D-07: done. The queue row's context menu now uses MXRPlayerMenus.addToPlaylist(app, isEnabled: hasMediaLibrary, newPlaylist:, media:, onError: app.dialogs.presentError), the same call the mini player makes (MXRMiniPlayerView.swift:235). The private QueuePlaylistPicker popup, its separate LibraryModel and the playlistTarget state are deleted (-62 lines). The row adds the whole selection in queue order when it is part of a multi-row selection (PanelQueueInteraction.media), otherwise only itself. \"New Playlist…\" passes the same media. The item is disabled, not hidden, when there is no media library.\n\nCross-area item (2): done. S20.Sidebar/subtitles-appearance no longer declares figmaNode, and `check --all` prints `skip (no figmaNode)`. The notes keep the node ids and the geometry. I rendered both the Relative and Pixels variants and looked at them: Font Size, Outline Thickness and Background Opacity show text values over 6/4/11-stop ticked sliders, as r1 confirmed against figma_file.json. No mask or threshold was added.\n\nCross-area item (3): done. playlistDestinations and readableSecondary have no remaining references. The panel suites pass in the shared package: PanelAuditRegressionTests 9/9, PanelsTests 5/5, SidePanelContentTests 3/3, ThemeContrastTests 8/8, PanelValuesRegressionTests 4/4 and MenuAuditRegressionTests, 33+4 tests with 0 failures. The MXRUISnapshotTests target compiles again.\n\nG-09 click-away: done. saveBookmarkName() is now called on a tap on another row, on Rename of another row (beginRename saves first), on + Add bookmark, on a tab change and in onDisappear. The TextField's focus-loss handler, Return and Esc are kept. An empty name keeps the old one.\n\nRemaining findings, unchanged since r1 and still in place in code and renders:\n- G-01, G-02, G-06, G-07 and G-08: S18 and S20 are REVIEW, with the Rotate field, the active HDR Auto dropdown, no Resolution caption and field-only offset rows.\n- G-03, G-04 and G-10: key routing, the activate-only focusable rows with an fgA1 ring, and no zero-distance DragGesture.\n- G-11, G-13 and G-15: values.\n- G-14: S17 shows the timeline toggle enabled.\n\ncheck --all for panel entries: S14, S15, S16, S18, S19, S20, S22, S23, S24 and C.Dropdown are REVIEW with 1–2 pt offsets. S17, S20.Presets and S21 FAIL for the documented, already-known reasons; I looked at the S17 side-by-side myself.\n\nOther checks:\n- swift build is clean.\n- The engine diff (git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx) is empty.\n- Ownership is respected: only QueuePanel.swift, PanelsGallery.swift and one panel test file were changed. Another agent changed the EffectsSidebars Cast label to \"Discover Cast Devices\", a copy-only change.\n- The new code uses tokens only.\n\nNo blocker or major remains. The keyboard, FKA, drag and live submenu behaviour still needs the live-acceptance checks below.\n\nOutputs: <scratch>",
+  "liveChecks": [
+   {
+    "id": "G-D07-queue-add-to-playlist",
+    "steps": "Open the queue panel with at least 3 items and the media library available. Right-click a row and hover Add to Playlist. Choose New Playlist…. Repeat and pick an existing playlist. Then Cmd-click to select rows 1 and 3, right-click row 3 and add them to a playlist. Finally, right-click the unselected row 2 and add it.",
+    "expect": "The submenu looks the same as the mini player's: New Playlist…, a separator, then the playlists, which load when the submenu opens. No separate popup card appears. The selection add puts rows 1 and 3 into the playlist in queue order. The row 2 add puts in only row 2. An error appears as an app dialog titled 'Couldn’t Add to “name”'."
+   },
+   {
+    "id": "G-09-bookmark-click-away",
+    "steps": "In the Bookmarks tab, right-click a bookmark, choose Rename and type a new name. Click another bookmark row. Repeat, then right-click a different row and choose Rename. Repeat, then press +. Repeat, then switch to the Queue tab. Repeat, then close the panel. Repeat with an empty name, then Esc.",
+    "expect": "Each time, the typed name is saved and the editor closes; in the Rename case the second row's editor opens next. An empty name keeps the old one. Esc discards the edit."
+   },
+   {
+    "id": "G-03/G-04/G-10-keyboard",
+    "steps": "With Full Keyboard Access on, Tab to a queue row. Press Return, Up/Down, Option-Up/Down, Space and Delete. Click a row with the mouse. Cmd-click two rows, then drag a row to reorder it. Repeat in Bookmarks.",
+    "expect": "Return plays the row (or jumps to the bookmark). The arrows move the fgA1 ring and the selection. Option-arrows reorder. Space still play/pauses. Delete removes the selection. A mouse click shows no system accent ring. Cmd-click and drag reorder work."
+   }
+  ],
+  "ownerDecisions": [
+   "D033: the relative subtitle Font Size slider puts Auto at stop 0 (VLC enum order), while Figma 804:1341 puts it at stop 3. Unchanged.",
+   "D033 row set in the Playback tab: Waveform and Metadata rows, and Statistics absent. This is the main cause of the S17 check FAIL.",
+   "D041, D045 and C-09/D039 (HDR Off trade-off): not affected by this area's changes."
+  ]
+ }
+}

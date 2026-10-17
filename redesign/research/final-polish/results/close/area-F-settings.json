@@ -1,0 +1,219 @@
+{
+ "area": "F-settings",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "F-settings fixed every offscreen item on its work list, at the root cause, with renders, Figma comparisons and 9 new pixel and behaviour tests. Each test, except the label-anchor function test, fails when its fix is reverted (an isolated copy gave 11 failures; see neg-tests.log).\n\n- **P1 Light dialog buttons:** DialogButton's secondary tile is now scheme-aware. Dark keeps Figma's BG/A3 (6216:13750, 1994:5586); Light uses BG/A4. This covers every DialogShell dialog plus the Cancel buttons in Keyboard Shortcuts.\n- **MAJOR S25/S37/S48 scrim:** The dialog host's layer still catches clicks but draws nothing. This follows the video (06m02.47, 17m40.9) and spec-part1 §06; D035 is amended.\n- **Compact windows:** A shrunk dialog keeps the 40 pt top bar clear at both edges. It stays centred and no longer runs under the traffic lights.\n- **Toggles:** They use Figma 536:1013's 3 pt inset and 3 pt gap. The toggle region is gone from all 14 Settings checks; all remain REVIEW.\n- **S54 slider labels:** Each label stands under its tick (Figma 3062:13083 and 3176:16483).\n- **S56 Replay gain preamp:** It reads '0.0'. The fix is a one-line mock edit plus step 0.1 in the catalog.\n- **S59 caching fields:** The disabled fields draw their value in the placeholder colour, so they read as empty like Figma. A D050 line records this.\n- **Narrow Settings:** 'Always starts at:' stays on one line; the 'Startup volume' label wraps instead.\n- **S64 disabled Save:** The fill now uses the W3C Luminosity compositing Figma uses. It reads #1F1E1D, and the check went from FAIL to REVIEW.\n- **S65 Media Info:** The dialog height fits its content, so all six track rows show.\n- **S27 Choose Files:** The tile uses Figma's Cancel style (BG/A3), not BG/A5.\n- **PER-02:** The symlink check (resolvingSymlinksInPath) that Add Subtitles Save ran on the MainActor now runs on the lookup queue. Save is async and blocks a second click while it runs.\n\nAll related suites pass. The swift build has no warnings in my files.",
+   "fixed": [
+    "P1 (critic) Light secondary DialogButton tiles invisible: DialogButton.secondaryFill(for:) gives BG/A3 in Dark (Figma 6216:13750, 1994:5586) and BG/A4 in Light; Keyboard Shortcuts Cancel and conflict Cancel use the same. Evidence: before/convert-light.png vs after/convert-light.png, after/mediainfo-light.png (tile #B3 on #D5), after/ks-conflict-light.png; test testSecondaryDialogButtonsStandOutFromTheLightDialogSurface",
+    "MAJOR S25.App Add Subtitles scrim (also S37.App/S48.App compact): the scrim is now a clear, click-catching layer; the bars and the picture keep their brightness. Evidence: before/s25-app-ship.png vs after/s25-app-ship.png, after/settings-light-ship.png; test testDialogHostLeavesTheWindowBehindAtFullBrightness; D035 amended",
+    "S48.App/settings-compact top edge: MXRDialogFrame.available keeps topBarHeight clear at both edges, so the dialog runs from y 40 to 500 in a 540 pt window, centred. Evidence: before/s48-compact-ship.png vs after/s48-compact-ship.png; test testShrunkDialogStaysBelowTheTopBar",
+    "Settings toggles (critic P2, verifier open[0]): 3 pt inset and 3 pt gap per 536:1013 (SettingsDetail.toggleInset/toggleGap), leading-aligned. The toggle REVIEW region is gone on all 14 pages (after/check/*/report.txt); test testToggleKeepsFigmaInsetAndGap",
+    "S54 Default playback speed labels: SettingsSlider.labelAnchor puts each label under its tick. End labels sit at the end ticks when every tick has a label, at the track edges otherwise (3176:16483). '1' is now under the thumb. Evidence: after/speed-compare.png (before / after / Figma); test testScaleLabelsStandUnderTheirTicks",
+    "S56 Replay gain preamp '0' -> '0.0': mock types a number row with a fractional step as float (MockServices.swift, one line); catalog row has step 0.1. Evidence: after/audio-compare.png; test testReplayGainPreampIsAFloatInTheMock",
+    "S59 disabled caching fields: SettingsTextEditor draws a disabled field's value in FG/A4, inside the 30 % row, so it reads as empty like 6543:15649. Evidence: after/network-compare.png; D050 line added",
+    "Narrow Settings 'Always starts at:' wrap: the stacked choice may grow past the half-width column up to its design width, and its title is one line. Evidence: before/narrow.png vs after/narrow.png",
+    "S64 disabled Save #1F1F1F@98% vs #1F1E1D@97%: FigmaDisabledLuminosity now applies W3C Luminosity compositing against the dialog fill (Cs' = (1-ab)Cs + ab·SetLum). The check went from FAIL to REVIEW (after/check/S64.KeyboardShortcuts_default/report.txt). Test testDisabledShortcutsSaveBlendsLikeFigma",
+    "S65 Media Info fourth track row cut: DialogShell(fitsContent:), and Media Info is as tall as its content up to 800 pt. The host gives .mediaInfo a max-height frame; the gallery entry shows the fitted dialog. Evidence: after/mediainfo.png (all 6 rows); test testMediaInfoFitsAllTrackRows",
+    "S27 'Choose Files' tile contrast (verifier open[2]): it uses Figma's Cancel style (BG/A3 on BG/B1, 1994:5586) instead of BG/A5. Evidence: after/s27-unavail.png",
+    "PER-02 blocking subtitle syscall on MainActor: SubtitleImportDraft.save is async. It resolves the playing-file symlink identity on the lookup queue (playingFileIDs), checks the player did not move on, and stays busy while it runs. Callers and tests updated. Test testSavingSubtitlesResolvesFilePathsOffTheMainThread",
+    "Gallery notes for S48.App and S25.App no longer claim a BG/B2 Transparent scrim"
+   ],
+   "notFixed": [
+    {
+     "id": "S63 settings dropdown opens over its field (also S63 'sub filename')",
+     "why": "The placement lives in MXRDesign/Popup/MXRDropdown.swift (.overField), which H-design owns and which shows uncommitted edits by another agent right now. D034 leaves it as an owner question. 'sub filename' content matches; it is a live check."
+    },
+    {
+     "id": "S50 Light selected theme segment / Browse colour vs video 17m44.0",
+     "why": "Those are H-design's tokens (SettingsSegmented/selected-segment style). The scrim half of S50 is fixed here."
+    },
+    {
+     "id": "S54 residual ±1.5 pt on '0.5' and '1.75'",
+     "why": "Figma lays these labels out as 26 pt boxes spread space-between, not exactly at the ticks; the tick-centred rule matches '1', '1.25', '1.5' and the ends. Remaining REVIEW region only."
+    },
+    {
+     "id": "S27 owner question: hide 'From OpenSubtitles' entirely without an API key",
+     "why": "This is already the case in the source menu; the unavailable state only appears when a caller opens Add Subtitles at that source. Owner question, no change needed."
+    },
+    {
+     "id": "Dialog body blur, confirmations, Settings live behaviour",
+     "why": "These need the real window (no live UI in this wave); they are listed in liveChecks."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/DialogSupport.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/MXRDialogHost.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/AddSubtitlesView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/DialogInput.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/MediaInfoDialogs.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Settings/SettingsControls.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Settings/SettingsMetrics.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Settings/MXRSettingsView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Settings/MXRKeyboardShortcutsView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRCore/Resources/settings-map.json5",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/DialogsGallery.swift",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/SettingsGallery.swift",
+    "modules/gui/macosx_redesign/Sources/MXRMockBackend/MockServices.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/SettingsDialogsPolishTests.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/DialogsTests.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/SubtitleReopenRegressionTests.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/WindowShippingParityTests.swift",
+    "redesign/docs/DECISIONS.md"
+   ],
+   "editsOutsideOwnership": [
+    "Sources/MXRMockBackend/MockServices.swift: one `case .number where row.step is fractional: .float` line in type(for:value:), so a JSON float mock (0.0) registers as float (S56).",
+    "Tests/MXRUISnapshotTests/DialogsTests.swift and SubtitleReopenRegressionTests.swift: `try draft.save` -> `try await draft.save` and 5 test functions made async (save is async for PER-02).",
+    "Tests/MXRUISnapshotTests/WindowShippingParityTests.swift testShippingEngineOnAnAppEntryKeepsTheTitlebarAndCentresTheDialog: the expected dialog rows moved from 20…520 to 40…500, because a shrunk dialog now keeps the top bar clear; the message no longer says 'scrimmed'.",
+    "redesign/docs/DECISIONS.md: amended D035 and D045 and added one D050 line (re-read right before editing)."
+   ],
+   "decisionsWritten": [
+    "D035 amended (agent, 2026-10-17): the layer behind a dialog catches clicks but draws nothing. Evidence: video 06m02.47, 17m40.9 and 17m44.0, and spec-part1 §06; Figma never uses BG/B2 Transparent; a macOS sheet does not dim its window. A shrunk dialog keeps the 40 pt top bar clear at both edges.",
+    "D045 amended (agent, 2026-10-17): in Light, secondary dialog buttons use BG/A4, because Figma's BG/A3 tile is the opaque Light surface itself.",
+    "D050 line added (agent, 2026-10-17): disabled caching fields draw the preset value in FG/A4 inside the 30 % row (they read as empty like 6543:15649)."
+   ],
+   "ownerDecisions": [
+    "D035 amendment (no scrim behind dialogs; top-bar-clear margin for shrunk dialogs): accepted (agent, 2026-10-17), owner sign-off pending",
+    "D045 amendment (Light secondary dialog buttons on BG/A4): accepted (agent, 2026-10-17), owner sign-off pending; D045 itself is owner-accepted",
+    "D050 addition (disabled caching fields show the value as a placeholder): accepted (agent, 2026-10-17), owner sign-off pending",
+    "Open owner question (unchanged): S63 settings dropdown placement over the field vs below it (D034, H-design's MXRDropdown)"
+   ],
+   "liveChecks": [
+    {
+     "id": "F-S25-noscrim",
+     "steps": "Play a bright 1080p video in a 1920×1080 window (Dark). Note the top bar, control bar and picture brightness. Open Add Subtitles (⌘⇧A or the menu).",
+     "expect": "The picture, top bar and control bar keep the same brightness as before (no dimming, as at 06m02.47). The dialog body runs from y 140 to 940 and shows the video only as a soft blur. Clicking outside the dialog does nothing (it is a form); Esc closes it."
+    },
+    {
+     "id": "F-S48-light",
+     "steps": "Open Settings over a playing video, then switch the Theme segment to Light.",
+     "expect": "Every page recolours live and the dialog is opaque (D045). The bars around it stay light grey (not near-black #2C). Buttons such as Browse and Reset all settings, and the Keyboard Shortcuts Cancel, show a visible tile."
+    },
+    {
+     "id": "F-dialogs-light-buttons",
+     "steps": "In Light, open Convert, Stream, Open Disc, Open Network Stream and Properties & Metadata (Media Info).",
+     "expect": "Choose…, Cancel/Close and Show in Finder draw a BG/A4 grey tile (#B3) on the #D5 dialog surface; the primary button keeps its accent tile."
+    },
+    {
+     "id": "F-compact",
+     "steps": "Resize the window to about 960×540, then open Settings, Convert and Keyboard Shortcuts in turn.",
+     "expect": "Each dialog starts below the 40 pt top bar (no overlap with the traffic lights), ends 40 pt above the bottom, stays centred, and its body scrolls."
+    },
+    {
+     "id": "F-mediainfo",
+     "steps": "Play The Wand S01E04 (or any file with 1 video, 2 audio and 3 subtitle tracks) and open Properties & Metadata.",
+     "expect": "The dialog is as tall as its content, all track rows are visible with no scroll edge, and Close is at the bottom."
+    },
+    {
+     "id": "F-toggles",
+     "steps": "Open Settings ▸ General and toggle Developer mode on and off.",
+     "expect": "ON shows the label cell 3 pt from the left edge and a 3 pt gap before the knob; OFF mirrors this."
+    },
+    {
+     "id": "F-speed-slider",
+     "steps": "Settings ▸ Playback ▸ Default playback speed at 1×.",
+     "expect": "The '1' label sits directly under the thumb and each label is under its tick."
+    },
+    {
+     "id": "F-addsubs-save",
+     "steps": "Open Add Subtitles (To This File) while a file plays, choose a subtitle file, click Save twice quickly.",
+     "expect": "Save shows 'Saving…' briefly, the subtitle is added to the playing video once, and the dialog closes; the window never stalls."
+    },
+    {
+     "id": "F-shortcuts-save",
+     "steps": "Settings ▸ Controls ▸ Edit Keyboard Shortcuts without changing anything.",
+     "expect": "Save is dimmed (warm dark grey, Figma #1F1E1D); after editing a key it turns accent."
+    },
+    {
+     "id": "F-confirmations",
+     "steps": "(1) Settings ▸ Controls ▸ Reset all shortcuts; (2) delete a subtitle preset in the sidebar; (3) Convert to an existing file.",
+     "expect": "Each shows a native sheet in the current appearance with a destructive button; Esc cancels without closing the dialog underneath."
+    },
+    {
+     "id": "F-sub-filename",
+     "steps": "Settings ▸ Subtitles ▸ the autodetect fuzziness dropdown.",
+     "expect": "Off / Any title / Contains title / Title with extra characters / Exact title match, with ✓ on the current one (placement over or below the field is the open D034 question)."
+    }
+   ],
+   "evidence": [
+    "../build/evidence/final5/polish/F-settings/before/ and /after/ (convert-light, mediainfo, mediainfo-light, s25-app-ship, s48-compact-ship, narrow, playback, network, audio, s27-unavail)",
+    "../build/evidence/final5/polish/F-settings/after/speed-compare.png (before / after / Figma 3062:13069)",
+    "../build/evidence/final5/polish/F-settings/after/network-compare.png, audio-compare.png, ks-conflict-light.png, settings-light-ship.png",
+    "../build/evidence/final5/polish/F-settings/after/check/*/report.txt + side-by-side.png: 14 Settings pages REVIEW with no toggle region; S64.KeyboardShortcuts/default REVIEW (was FAIL); S27 results, S25 folder and S36 REVIEW",
+    "../build/evidence/final5/polish/F-settings/neg-tests.log: with the fixes reverted in an isolated copy, SettingsDialogsPolishTests has 11 failures across 8 of its 9 tests",
+    "Suites passing on the current tree: SettingsDialogsPolishTests 9/9, DialogsTests 20, SubtitleReopenRegressionTests 5, WindowShippingParityTests 6, DialogScrollEdgeTests 1, SettingsUITests 12, SettingsWorkflowTests 20, SettingsCatalogLintTests 4, SettingsRestartAndInfoTests 4, DialogIsolation/ModalIsolation/DialogKeyLoop*, GalleryRenderTests 13, OpenMediaIOTests, ProfileDeletionTests",
+    "Key frames used: 06-add-subtitles__dialog-empty-native__06m02.5s.jpg, 14-settings__general-native__17m40.9s.jpg, 14-settings__general-light-theme__17m44.0s.jpg"
+   ],
+   "notesForOthers": "[\"Integrator: FigmaDeviationTests has one failure that is not mine: S71.Onboarding/shortcuts, deviation rect (845,154,303,452) lies outside the entry.\", \"Integrator: OpenMediaDialogs.swift:58 (J-media-io) briefly failed to compile ('box.radius' optional); it built again a few minutes later.\", \"H-design: Tokens.swift's bgB2Transparent comment says it is 'intended for modal scrims'; nothing uses it any more after the D035 amendment.\", \"H-design: MXRBackdropSurface comments mention 'a dialog scrim'; the base stays dark.\", \"J-media-io: DialogButton's `fill` is now optional; nil means the dialog style (BG/A3 Dark, BG/A4 Light). Pass a fill only for a deliberate exception.\", \"Anyone calling SubtitleImportDraft.save: it is now `async throws`.\"]"
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "summary": "I checked F-settings independently (round 1). No blocker or major remains. Every item on the work list is fixed at its root cause, and I looked at fresh renders of each one next to Figma or the key frames.\n\n**Build and tests**\n- swift build is clean.\n- These suites pass on the shared tree: SettingsDialogsPolishTests 9/9, DialogsTests, SubtitleReopenRegressionTests, WindowShippingParityTests, DialogScrollEdgeTests, SettingsUITests, SettingsWorkflowTests, SettingsCatalogLintTests, and the DialogIsolation, ModalIsolation and DialogKeyLoop suites.\n- The engine is untouched: the diff of src, lib, include and modules/gui/macosx against upstream-base-2026-10-14 is empty.\n\n**Negative tests (my own isolated copy, F-settings-verify-r1/pkg, log in neg-tests.log)**\n- Reverting the Light secondary fill and the scrim fails testSecondaryDialogButtonsStandOutFromTheLightDialogSurface and testDialogHostLeavesTheWindowBehindAtFullBrightness (3 points).\n- Reverting only the top-bar margin in MXRDialogFrame.available fails testShrunkDialogStaysBelowTheTopBar: the dialog top is at 20, not 39 or more. So that test catches its own fix, not just the scrim.\n- The fixer's log covers the other tests.\n\n**Renders I looked at (F-settings-verify-r1/r2)**\n- **P1 Light buttons:** In Light Convert, Choose… and Cancel now show a visible BG/A4 tile (#B3 on #D5). Stream, Disc, Media Info and Add Subtitles get the same.\n- **S25 scrim:** Compared with key frame 06m02.5, the before render had the bars dimmed nearly black. The after render keeps the top bar and the control bar lit, and a pixel check confirms no dimming.\n- **S48 Light over the player:** the bars are now light grey.\n- **Compact windows:** Settings and Convert at 960×540 run from y 40 to 500, centred, with the header clear of the traffic lights.\n- **S65 Media Info:** fitted height, all 6 track rows visible, Close at the bottom.\n- **S54 speed labels:** match Figma 3062:13083 within about 1.5 pt.\n- **S59 caching fields:** read as empty like 6543:15649.\n- **Narrow Settings:** 'Always starts at:' stays on one line.\n- **S27 Choose Files:** the tile is #1B on the #0E surface (Figma's Cancel style).\n\n**Checks against Figma**\n- S64 default: REVIEW. The only region left is key-cap text; the Save fill no longer appears.\n- S48 general, playback, audio, network and controls: REVIEW, and the toggle region is gone.\n- S25 folder, S36 and S27 results: REVIEW.\n\n**Gate and code**\n- SettingsFigmaDeviations is unchanged and the fixer added no deviations, so the gate was not loosened. The gallery-note edits only fix wording.\n- New values are tokens or SettingsMetrics constants.\n\n**PER-02**\n- The last main-actor file-system call (the symlink identity check in Save) now runs on the shared lookup queue, and the result is dropped if the player has moved on.\n- The other subtitle lookups (folder targets, rule application) were already on that queue.\n\n**Decisions**\n- D035 is well supported for the scrim: the video at 06m02.47 shows identical pixels with the dialog open, spec-part1 §06 says there is no visible scrim, and BG/B2 Transparent has a usage count of 0. Its Light wording is a little generous (see the issue below).\n- D045 (Light secondary buttons on BG/A4): Figma has no Light dialog frame, and BG/A3 equals the Light surface, so a darker step on the same ramp is the smallest choice that keeps the tile visible. Owner sign-off pending.\n- D050 (disabled caching fields): it now visually matches Figma's empty fields.",
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "redesign/docs/DECISIONS.md D035 amendment (scrim evidence)",
+    "description": "The amendment says frames 17m40.9 and 17m44.0 keep the top bar 'at its normal value' in both themes. In the Light key frame (17m44.0) the top bar and control bar read mid-grey (about #8x), not the Light bar colour, so the Light half of that evidence is weak. The Dark evidence at 06m02.47 is solid. The owner should confirm the Light case when signing off D035."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Settings/MXRSettingsView.swift controlFrame (.stackedChoice), S48.Settings/narrow",
+    "description": "Keeping 'Always starts at:' on one line at 480 pt now makes the 'Startup volume' row label wrap onto two lines, and the stacked control extends past the half-width column. It reads fine, but it is a trade-off rather than a match: no Figma narrow frame exists."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Settings/SettingsControls.swift SettingsSlider.labelAnchor (S54)",
+    "description": "'0.5' and '1.75' are still about 1.5 pt off Figma. The REVIEW region at 742,242 says it matches if moved +1.5 pt. Figma lays these labels out as 26 pt boxes spread space-between, not exactly centred on the ticks. This is cosmetic, but a decision line or space-between anchoring would close it."
+   },
+   {
+    "severity": "minor",
+    "where": "Tests/MXRUISnapshotTests/SettingsDialogsPolishTests.swift testScaleLabelsStandUnderTheirTicks",
+    "description": "This test checks the anchor function, not drawn pixels, and the fixer says it does not fail when the fix is reverted (the old layout did not use the function). It documents the geometry but does not guard the drawn layout."
+   },
+   {
+    "severity": "minor",
+    "where": "Tests/MXRUISnapshotTests/DialogIsolationTests.swift:53-56",
+    "description": "A clean build of the test target warns 'call to main actor-isolated static method location(of:) in a synchronous nonisolated context'. This is test-only and predates this wave, but it is not Swift 6 clean. The product build has no warnings in F-settings files."
+   }
+  ],
+  "liveChecks": [
+   {
+    "id": "V-S25-noscrim",
+    "steps": "In Dark, play a bright video in a 1920×1080 window. Open Add Subtitles. Compare the top bar, the control bar (play tile) and the picture outside the dialog with the moment before it opened.",
+    "expect": "No dimming anywhere outside the dialog, as at 06m02.47. A click outside does nothing, and Esc closes the dialog."
+   },
+   {
+    "id": "V-S50-light",
+    "steps": "Open Settings over a playing video and switch Theme to Light.",
+    "expect": "The bars stay light grey, not near-black. Browse, Reset and the Keyboard Shortcuts Cancel show a visible grey tile."
+   },
+   {
+    "id": "V-light-dialogs",
+    "steps": "In Light, open Convert, Stream, Open Disc, Open Network Stream, Properties & Metadata and Add Subtitles in turn.",
+    "expect": "Every Choose…, Cancel, Close and Show in Finder button has a visible BG/A4 tile on the opaque surface. The primary button stays accent."
+   },
+   {
+    "id": "V-compact",
+    "steps": "Resize the window to about 960×540, then open Settings, Convert and Keyboard Shortcuts in turn.",
+    "expect": "Each dialog starts at or below y 40 (clear of the traffic lights), ends 40 pt above the bottom, stays centred, and its body scrolls."
+   },
+   {
+    "id": "V-addsubs-save",
+    "steps": "While a file plays, open Add Subtitles (To This File), choose an .srt and double-click Save quickly.",
+    "expect": "The subtitle is added once, the dialog closes, and the window does not stall."
+   },
+   {
+    "id": "V-mediainfo",
+    "steps": "Open Properties & Metadata on a file with 6 tracks.",
+    "expect": "The dialog fits its content, every track row shows, and there is no scroll edge."
+   }
+  ],
+  "ownerDecisions": [
+   "D035 amendment (no scrim behind dialogs; shrunk dialogs keep the 40 pt top bar clear) — accepted (agent, 2026-10-17), owner sign-off pending. The verifier agrees for Dark; the owner should confirm the Light evidence (17m44.0 shows mid-grey bars).",
+   "D045 amendment (Light secondary dialog buttons on BG/A4; no Figma Light dialog exists) — accepted (agent, 2026-10-17), owner sign-off pending",
+   "D050 line (disabled caching fields draw the preset value in FG/A4, so they read as empty like 6543:15649) — accepted (agent, 2026-10-17), owner sign-off pending",
+   "Open question (unchanged, H-design): S63 settings dropdown placement over its field vs below it (D034)"
+  ]
+ }
+}

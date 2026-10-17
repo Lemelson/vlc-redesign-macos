@@ -1,0 +1,146 @@
+{
+ "area": "D-menus",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "I closed every item on the D-menus work list.\n\n1. **S08 placement.** There is now one source for where a menu row sits: `MXRPopupStyle.rowTop(_:in:)` / `submenuTop(_:in:submenu:)` in MXRPopupStyle.swift. The presenter's `rowFrame`, the S10 `ContextSubmenuComposition` and the S08/S68 `AppSubmenuComposition` all use it. The S08 Open Recent submenu used to sit 48 pt too high; its first row now lines up with the Open Recent row. S68 is unchanged: still REVIEW, with the same 38×12 pt shortcut-column difference as before.\n\n2. **Subtitle Earlier / Later.** In the right-click › Subtitle menu (and the native Subtitles menu, which mirrors it), these rows now show VLC's subtitle delay keys. They are bound to `subdelay-down` / `subdelay-up`, one 50 ms step, the same step the row's action takes. They also follow a rebinding.\n\n3. **S09 shortcut column.** C-bridge has switched the mock to VLC's macOS defaults. The S09/S10 render now shows ⌘. Stop, ⌘← / ⌘→, ⇧⌘R Record, ⌘\\ Hide UI, ⌘Q, and H / J for the subtitle delay. That matches what the VLC backend reads from the `__APPLE__` block in src/libvlc-module.c. I recorded the departure from Figma's bare S/P/N/R in a new D034 bullet: bare S is VLC's macOS subtitle-track key, and ⌘P would be Print.\n\n4. **Already fixed in HEAD:**\n   - The Swift 6 `preferredSize` warning: `onboardingBackRect` is `@MainActor`, and a fresh compile of MXRGalleryCatalog gives no warnings.\n   - The dead `rescan-plugins` action: it is gone from AppModel.\n\n5. **DialogKeyLoopTests.** The test now gives the New Playlist dialog's own name field the keyboard before it sends Tab, so each Tab really goes through the key loop.\n\n**Tests.** The new tests fail without the fixes and pass with them. I checked this in an isolated copy with both fixes reverted: Open Recent placement failed, the subtitle shortcut assertions failed (3), and Profile placement still passed, as expected. The D-menus suites pass: PopupMenuTests, MenuAuditRegressionTests, NativeMenuMirrorTests, ShortcutDefaultsTests, MenuExtensionsAndShadowTests, AnchoredPopupPinPolicyTests, FigmaDeviationTests (35 + 7), DialogKeyLoopTests, and the new tests. `swift build` is clean.",
+   "fixed": [
+    "(d)/(a) S08 parity minor-diff + critic P2 + verifier open #1: Open Recent submenu drawn 48 pt above its row. Root cause: a hand-written (row-1)*rowHeight offset. Fix: MXRPopupStyle.rowTop/submenuTop is now the one row-geometry source, used by the presenter's rowFrame and by both gallery compositions. Evidence: ../build/evidence/final5/polish/D-menus/S08-before.png (2x, card top 241 pt vs row 292 pt) and S08-after.png (card top 288 pt + 4 pt padding = row top 292 pt); S68 unchanged: S68-check/side-by-side.png and report.txt (REVIEW, the same local 38x12 pt shortcut-column area as before).",
+    "S10 parity note: Subtitle Earlier/Later showed no key. They now show VLC's subdelay-down/subdelay-up bindings (macOS H / J) in the right-click submenu and the native Subtitles menu. Evidence: ../build/evidence/final5/polish/D-menus/S09-S10-subtitle-macos-keys.png",
+    "(d) S09 shortcut column after C-bridge's mock fix: the gallery now shows the installed app's keys (⌘. Stop, ⌘← Previous, ⌘→ Next, ⇧⌘R Record, ⌘\\ Hide UI, ⌘Q, Space), from the src/libvlc-module.c __APPLE__ block (KEY_STOP Command+., KEY_PREV/NEXT Command+Left/Right, KEY_RECORD Command+Shift+r). 'Record ⇧R vs R' is resolved to ⇧⌘R in both. The difference from Figma's bare letters is covered by the amended D034. Evidence: S09-S10-subtitle-macos-keys.png",
+    "(d) Swift 6 'preferredSize referenced from a nonisolated context' warning: already fixed in HEAD (CustomizationGallery.onboardingBackRect is @MainActor). A forced recompile of MXRGalleryCatalog and a full swift build show no warnings.",
+    "F-settings note: the dead 'rescan-plugins' action in AppModel is already gone (performSettingsAction has no such case; only rescan-library remains).",
+    "F-settings note: DialogKeyLoopTests now gives the New Playlist name field the keyboard before sending Tab, so the Tab presses really go through the dialog's key loop (Tests/MXRUISnapshotTests/DialogIsolationTests.swift)."
+   ],
+   "notFixed": [
+    {
+     "id": "S11 native menu bar (not-checked)",
+     "why": "Needs the real window and the menu bar, and a live wave is running. Listed in liveChecks."
+    },
+    {
+     "id": "S10 hover-open timing / diagonal pointer movement into a submenu",
+     "why": "Behaviour of the real presenter on screen; listed in liveChecks."
+    },
+    {
+     "id": "S68 shadow between the two panels (handoff D-12)",
+     "why": "Offscreen rendering draws no native blur or shadow artifact between the child panels; listed in liveChecks."
+    },
+    {
+     "id": "Critic decision items D051 / D055 / D039 / D053",
+     "why": "These belong to A-window and the control/track areas, not to D-menus files. Nothing in D-menus excuses them."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Popup/MXRPopupStyle.swift",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Popup/MXRPopupPresenter.swift",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/MenusGallery.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerMenus.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/AppSubmenuPlacementTests.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/DialogIsolationTests.swift",
+    "redesign/docs/DECISIONS.md"
+   ],
+   "editsOutsideOwnership": [
+    "Tests/MXRUISnapshotTests/DialogIsolationTests.swift: DialogKeyLoopTests now focuses the New Playlist name field before sending Tab. F-settings attributed this test to D-menus; it is not in the explicit ownership list.",
+    "redesign/docs/DECISIONS.md: one new bullet at the end of D034."
+   ],
+   "decisionsWritten": [
+    "D034 amended: new 'Right-click menu keys' bullet. Figma's bare S/P/N/R give way to VLC's macOS engine defaults (⌘. / ⌘← / ⌘→ / ⇧⌘R; Space, ⌘Q, ⌘\\ unchanged). Reason: bare S is VLC's macOS subtitle-track key and ⌘P is Print. Subtitle Earlier/Later show H / J. Gallery fixtures show the same keys (D030). Accepted (agent, 2026-10-17)."
+   ],
+   "ownerDecisions": [
+    "D034 amendment (agent, 2026-10-17): the right-click menu's shortcut column shows VLC's macOS engine keys (Stop ⌘., Previous ⌘←, Next ⌘→, Record ⇧⌘R) instead of Figma's Windows bare letters S/P/N/R; Subtitle Earlier/Later show H/J. Waiting for the owner's sign-off."
+   ],
+   "liveChecks": [
+    {
+     "id": "S08-live",
+     "steps": "Play S01E01 so Open Recent has entries, click the top bar's ⋯ button, hover 'Open Recent'.",
+     "expect": "The submenu opens to the right, with its first history row level with the Open Recent row (not one row higher). The rows are history items, then a divider, then Clear Menu."
+    },
+    {
+     "id": "S68-live",
+     "steps": "Click ⋯, hover 'Profile (…)'.",
+     "expect": "The submenu's top row is level with the Profile row. The current profile has the orange check on BG/A2. There is no visible shadow seam or artifact between the parent card and the submenu card."
+    },
+    {
+     "id": "S09-keys-live",
+     "steps": "Right-click the video while S01E01 plays.",
+     "expect": "The shortcut column reads: Pause 'Space', Stop '⌘.', Previous Item '⌘←' (disabled with no previous item), Next Item '⌘→', Record '⇧⌘R', Hide UI '⌘\\', Quit VLC '⌘Q'. This is the same as the offscreen render ../build/evidence/final5/polish/D-menus/S09-S10-subtitle-macos-keys.png."
+    },
+    {
+     "id": "S10-subtitle-keys-live",
+     "steps": "Right-click the video › hover Subtitle. Then press H and J with the player focused.",
+     "expect": "Subtitle Earlier shows 'H' and Subtitle Later shows 'J'. Pressing H moves the subtitle delay by -50 ms and J by +50 ms (the OSD shows the delay)."
+    },
+    {
+     "id": "S10-hover-live",
+     "steps": "Right-click the video, hover Playback, then move the pointer diagonally into the Speed row of the submenu, crossing the Video row.",
+     "expect": "The Playback submenu stays open during the diagonal move (it does not switch to Video), and Speed opens its own submenu with 1× checked."
+    },
+    {
+     "id": "S11-menubar-live",
+     "steps": "Open each menu in the macOS menu bar with VLC Redesign frontmost.",
+     "expect": "The menus are App/File/Edit/View/Playback/Audio/Video/Window/Help. Playback shows Stop ⌘., Previous ⌘←, Next ⌘→, Record ⇧⌘R. View has Enter Full Screen ⌘F. Video has no Full Screen row. There are no window-tab items. The Subtitles submenu shows Subtitle Earlier H / Later J. With a dialog open, menu commands are disabled while media keys still play/pause."
+    }
+   ],
+   "evidence": [
+    "../build/evidence/final5/polish/D-menus/S08-before.png",
+    "../build/evidence/final5/polish/D-menus/S08-after.png",
+    "../build/evidence/final5/polish/D-menus/S68-check/side-by-side.png",
+    "../build/evidence/final5/polish/D-menus/S68-check/report.txt",
+    "../build/evidence/final5/polish/D-menus/S09-S10-subtitle-macos-keys.png",
+    "Revert check (isolated copy, deleted afterwards): AppSubmenuPlacementTests.testOpenRecentSubmenuStartsLevelWithItsRow failed and SubtitleDelayMenuShortcutTests failed 3 assertions with the fixes reverted; both pass with the fixes."
+   ],
+   "notesForOthers": "[\"Integrator: new test file Tests/MXRUISnapshotTests/AppSubmenuPlacementTests.swift (AppSubmenuPlacementTests reads the rendered S08/S68 pixels; SubtitleDelayMenuShortcutTests depends on the mock binding subdelay-down/up, now h/j after C-bridge's MockServices change). MXRPopupStyle.rowTop(_:in:) is now the single row-geometry helper; anything that places something next to a menu row should use it.\"]"
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "Sources/MXRGalleryCatalog/GalleryCatalog.swift:403-410 (GalleryPaths.locate, not a D-menus file)",
+    "description": "When no repo marker is found above a start directory, the loop never ends. At '/', deletingLastPathComponent() returns '/../', so `parent.path == dir.path` is never true. A package copy outside the repo hangs FigmaDeviationTests and the snapshot tests forever (seen here: 36 min) instead of throwing the 'set MXR_REPO_ROOT' error. Owner of MXRGalleryCatalog/integrator: compare standardized paths, or stop at '/'."
+   },
+   {
+    "severity": "minor",
+    "where": "Tests/MXRCoreTests/ShortcutDefaultsTests.swift:18,75, MockShortcutDefaultsTests.swift:19",
+    "description": "These tests read src/libvlc-module.c and module/MXRAppOptions.inc through #filePath-relative paths, so they fail in an isolated package copy. They pass in the shared tree. Informational only: isolated runs of these suites need the shared tree."
+   }
+  ],
+  "summary": "I verified D-menus independently on the working tree over ddd9d23a9d. The fixer's claims hold.\n\nWork list:\n- (d) S08 placement: fixed at the root. MXRPopupStyle.rowTop(_:in:) and submenuTop(_:in:submenu:) are now the single row-geometry source. The presenter's rowFrame, ContextSubmenuComposition and AppSubmenuComposition all use it. Tokens only. My render r/S08_RecentSubmenu_default.png shows the first history row level with Open Recent (top at 292 pt). S68 still lines up: Movies is level with Profile, and the check is REVIEW with the same 38×12 pt shortcut-column area as before.\n- (d) Swift 6 'preferredSize' warning: gone. onboardingBackRect is @MainActor. I touched the D-menus files and rebuilt: no warnings.\n- (d) S09 shortcut column: the render shows Space, ⌘., ⌘←, ⌘→, ⇧⌘R, ⌘\\ and ⌘Q (check/S09/side-by-side.png). I checked these against the __APPLE__ block of src/libvlc-module.c: KEY_STOP Command+., KEY_PREV/NEXT Command+Left/Right, KEY_RECORD Command+Shift+r, KEY_SUBDELAY_DOWN/UP h/j. 'Record ⇧R vs R' now resolves to ⇧⌘R, as the installed app will show.\n- (a) S10: Subtitle Earlier and Later now show H and J, follow a rebinding, and the native Subtitles menu mirrors them (r/S10_subtitle.png). The submenu's top lines up with the Subtitle row. Bare H and J in the native menu go through MXRKeyRouting.shouldPerformMenuEquivalent, which blocks them while a text field is being edited.\n- (b) Critic P2 (S08): closed. The D051, D055, D039 and D053 critic items are owned by A-window and the control/track areas, and no D-menus file excuses them.\n- (c) Verifier open #1 (S08) and #2 (the warning): closed. F-settings' notes: rescan-plugins is gone; DialogKeyLoopTests now focuses the New Playlist name field before sending Tab.\n\nD034 amendment ('Right-click menu keys'): justified. The rows show the engine's real bindings. Figma's bare S/P/N/R are the Windows defaults, and on the Mac they would clash with VLC's own keys (bare S is the subtitle-track key) or with ⌘P Print. Changing them would mean changing engine defaults or showing keys the product does not have. It is not an excuse for a fixable visual difference.\n\nTests:\n- Shared tree: AppSubmenuPlacementTests, SubtitleDelayMenuShortcutTests, PopupMenuTests, MenuAuditRegressionTests, NativeMenuMirrorTests, MenuExtensionsAndShadowTests, AnchoredPopupPinPolicyTests, DialogKeyLoopTests and FigmaDeviationTests: 40/40 pass. ShortcutDefaultsTests, MockShortcutDefaultsTests, SpaceAfterEndTests, ExtensionMenuObservationTests and AppActionFeedbackTests: 15/15 pass.\n- Revert check in an isolated copy (deleted afterwards), with both fixes undone: the Open Recent test fails (submenu row at 245 pt, parent row at 292 pt), the subtitle-key test fails 3 assertions, and the Profile test still passes. The new tests do catch the bugs.\n- One transient: during the isolated run, FigmaDeviationTests failed on S71.Onboarding/shortcuts ('outside the entry'). That comes from another area's in-progress CustomizationGallery work, and the test passes in the current shared tree.\n\nNeighbour checks:\n- S07: REVIEW, shortcut glyphs only.\n- S29: REVIEW, the 70×16 pt area already covered by D034.\n- S32 sort: PASS.\n- S68 Profiles list: REVIEW, the 11×11 pt corner, as before.\n\nOther checks:\n- Ownership: the only edits outside D-menus files (DialogIsolationTests.swift and one DECISIONS bullet) are declared.\n- The engine is untouched: `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty.\n- No masks or Settings-gate changes in D-menus files.\n\nEvidence is in ../build/evidence/final5/polish/D-menus-verify-r1/ (r/, check/S09/, tests.log, tests-shared.log, revert.log).",
+  "liveChecks": [
+   {
+    "id": "S08-live",
+    "steps": "While S01E01 plays (so Open Recent has entries), click the top bar's ⋯ button and hover 'Open Recent'.",
+    "expect": "The submenu opens to the right. Its first history row is level with the Open Recent row, not one row higher. The rows are history items, then a divider, then Clear Menu."
+   },
+   {
+    "id": "S68-live",
+    "steps": "Click ⋯ and hover 'Profile (…)'.",
+    "expect": "The submenu's top row is level with the Profile row. The current profile has the orange check on BG/A2. There is no shadow seam or artifact between the two cards."
+   },
+   {
+    "id": "S09-keys-live",
+    "steps": "Right-click the video while S01E01 plays.",
+    "expect": "The shortcut column reads: Pause Space, Stop ⌘., Previous Item ⌘← (disabled when there is no previous item), Next Item ⌘→, Record ⇧⌘R, Hide UI ⌘\\, Quit VLC ⌘Q. This matches the offscreen render r/S09_ContextMenu_default.png."
+   },
+   {
+    "id": "S10-subtitle-keys-live",
+    "steps": "Right-click the video and hover Subtitle. Close the menu. With the player focused (no text field), press H, then J. Then focus the library search field and type 'hj'.",
+    "expect": "Subtitle Earlier shows H and Subtitle Later shows J. H moves the subtitle delay by -50 ms and J by +50 ms, and the OSD shows the delay. Typing in the search field inserts 'hj' and does not change the subtitle delay."
+   },
+   {
+    "id": "S10-hover-live",
+    "steps": "Right-click the video and hover Playback. Move the pointer diagonally into the submenu's Speed row, crossing the Video row on the way.",
+    "expect": "The Playback submenu stays open during the diagonal move and does not switch to Video. Speed opens its own submenu with 1× checked."
+   },
+   {
+    "id": "S11-menubar-live",
+    "steps": "With VLC Redesign frontmost, open each menu in the macOS menu bar. Then open a dialog (New Playlist) and press the media Play/Pause key.",
+    "expect": "The menus are App/File/Edit/View/Playback/Audio/Video/Window/Help. Playback shows Stop ⌘., Previous ⌘←, Next ⌘→, Record ⇧⌘R. View has Enter Full Screen ⌘F, and Video has no Full Screen row. There are no window-tab items. Video › Subtitles shows Subtitle Earlier H and Subtitle Later J. While the dialog is open, menu key equivalents do nothing, and the media key still toggles play/pause."
+   }
+  ],
+  "ownerDecisions": [
+   "D034 amendment 'Right-click menu keys' (agent, 2026-10-17; verified, agree): the right-click menu and gallery fixtures show VLC's macOS engine bindings. That is Stop ⌘., Previous ⌘←, Next ⌘→ and Record ⇧⌘R, not Figma's Windows bare S/P/N/R. Subtitle Earlier/Later show H/J (src/libvlc-module.c __APPLE__ block). Waiting for the owner's sign-off."
+  ]
+ }
+}

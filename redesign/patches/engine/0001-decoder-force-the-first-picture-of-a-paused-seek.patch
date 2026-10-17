@@ -1,0 +1,65 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lemelson <97357844+Lemelson@users.noreply.github.com>
+Date: Wed, 14 Oct 2026 15:07:20 +0300
+Subject: [PATCH 1/5] decoder: force the first picture of a paused seek
+
+A seek while the input is paused restarts buffering with
+vlc_input_decoder_StartWait() (b_first = b_waiting = true). Because the
+decoder is paused, vlc_input_decoder_Wait() returns without waiting for
+data, and es_out calls vlc_input_decoder_StopWait(), which clears
+b_waiting. An asynchronous decoder (avcodec frame threads, VideoToolbox)
+returns the target picture only after that.
+
+ModuleThread_PlayVideo() forces the first picture only when
+b_first && b_waiting. The target picture then reaches the video output
+with b_first=1, b_waiting=0 and b_force=0. It is scheduled against the
+frozen, paused clock and dropped as late. Time and position report the
+new target, but the screen keeps the pre-seek frame until playback
+resumes.
+
+Also force the first picture while the decoder is paused. b_first is
+cleared on the spot, so exactly one picture is forced, and playback
+does not advance.
+
+Reproduction (libvlccore at 4ca4eb0c3e, macOS arm64):
+ - open a generated 60 s video file, play, then pause;
+ - while paused, seek with vlc_player_SetTime(), vlc_player_SeekByTime()
+   (absolute or relative) or vlc_player_SetPosition();
+ - the displayed picture PTS stays on the pre-seek frame.
+Reproduced on the unmodified core with software avcodec and with
+VideoToolbox + samplebufferdisplay, before any interface code receives
+a frame (LLDB at the drop: b_first=1, b_waiting=0, b_force=0). The
+stock macOS (VLCPlayerController) and Qt (PlayerController) interfaces
+call the same player API with no paused-specific path, so stock VLC 4
+is affected. A NextVideoFrame-based workaround in the interface shows
+the target, but breaks the following resume and clean shutdown.
+
+This hunk is narrow and the first upstream candidate. Test:
+redesign/patches/engine/tests/run-paused-seek-smoke.sh (12 failures on
+the unpatched core in video mode; all four topologies pass with the
+whole series).
+
+Possibly related upstream reports (found by title, not verified):
+https://code.videolan.org/videolan/vlc/-/issues/25315
+https://code.videolan.org/videolan/vlc/-/issues/22456
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/input/decoder.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src/input/decoder.c b/src/input/decoder.c
+index 0988eb6..514bc80 100644
+--- a/src/input/decoder.c
++++ b/src/input/decoder.c
+@@ -1519,7 +1519,9 @@ static int ModuleThread_PlayVideo( vlc_input_decoder_t *p_owner, picture_t *p_pi
+             return VLC_ENOENT;
+     }
+ 
+-    if( p_owner->b_first && p_owner->b_waiting )
++    /* Buffering may stop waiting before the first asynchronous paused picture
++     * arrives. It still needs a forced display without advancing playback. */
++    if( p_owner->b_first && (p_owner->b_waiting || p_owner->paused) )
+     {
+         msg_Dbg( p_dec, "Received first picture" );
+         p_owner->b_first = false;

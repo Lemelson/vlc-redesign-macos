@@ -1,0 +1,145 @@
+{
+ "area": "D-menus",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "I finished everything left for D-menus that can be checked without the live app. swift build is green with no warnings in my files. These targeted suites pass:\n- MenuAuditRegressionTests 8/8 and the new MenuExtensionsAndShadowTests 2/2\n- PopupMenuTests 13/13 and AnchoredPopupPinPolicyTests 9/9\n- GalleryRenderTests 13/13 and PanelAuditRegressionTests 13/13 (38 tests in that run)\n- ModalIsolationTests 6/6 and ShortcutDefaultsTests 7/7\n\nChanges:\n1. **D-12 shadow (S68 FAIL → REVIEW).** I measured Figma's menu shadow against the render. Figma's falloff is a Gaussian of σ ≈ 0.45 × blur, cut off at about 0.93 × blur. Core Graphics' setShadow drew σ ≈ 7 pt with a long tail, and that tail caused the 2/255 FAIL. MXRPopupShadowImage now blurs the card shape itself (vImage, separable) with that kernel. The fit is documented in the code and no threshold was changed.\n   - Along the card edges the render now matches Figma's profile almost value for value, and the tail is gone.\n   - The S68 composition also stretched the Profile submenu card to 375 pt. It is now shown at its own width, as the presenter shows it.\n   - S68 is REVIEW on the hosting, image and shipping-window engines (mean |Δ| 0.81–0.82). The only regions left are the D026 Mac shortcut glyphs; I checked side-by-side.png.\n   - The other menu entries: C.Menu/context-hover, C.Menu/view-options and S32 sort/view are PASS. S07, S09, S29–S31 and the two dropdowns are REVIEW.\n2. **Disabled submenus in the menu bar.** The shared-model menus (Audio, Video, their submenus, Extensions) no longer let AppKit enable their rows automatically. On every update, refreshEnabledState(of:) sets each row from its own enabled state plus isBehindModal. A disabled submenu row (Speed with a fixed rate, Audio Device with no devices) now looks disabled.\n3. **PiP gate.** The overflow menu's PiP row and the menu bar's PiP item no longer borrow canPerform(.toggleFullscreen). Behind a dialog they wait via !isBehindModal (D040).\n4. **J-10 renderer wording.** Figma uses \"Discover cast devices\" (Settings ▸ Casting). Both the right-click Playback ▸ Renderer submenu and the Video sidebar's Render dropdown now say \"Discover Cast Devices\" / \"Discovering Cast Devices…\". This was a one-line edit in EffectsSidebars.swift.\n5. **View ▸ Extensions submenu (C-05).** New shared builder MXRPlayerMenus.extensions(app), wired into the menu bar as a lazy submenu under View.\n   - An enabled extension that has its own menu opens it as a checked submenu with its entries (triggerMenu), then Disable.\n   - An on-demand extension runs; errors go to app.dialogs.\n   - Any other extension is a checkable enable/disable row, gated by activate availability.\n   - With nothing installed it shows a disabled \"No Extensions\". The submenu always ends with \"Manage Extensions…\", which opens Settings ▸ Extensions.\n6. **Gallery frames.** S10.Overflow/compact-bar and the S10.ContextSubmenu/* entries are now sized from their actual cards (new MenusFigmaFrame.card(style:items:)). The empty space below the cards is gone; I looked at the renders.\n7. **D-07 queue.** Already resolved in HEAD: QueuePanel.addToPlaylistMenu uses the shared MXRPlayerMenus.addToPlaylist. No edit from me.",
+   "fixed": [
+    "D-12 residual: popup shadow bitmap now uses Figma's fitted kernel (σ 0.45×blur, cut at 0.93×blur) through vImage, replacing CG setShadow. S68 goes from FAIL to REVIEW on all three engines; only the D026 glyph regions remain.",
+    "S68 gallery composition: the Profile submenu card is shown at its own 265 pt width (.fixedSize()) instead of stretched to 375 pt.",
+    "Verify issue: submenu rows built from the shared model in the menu bar now show their disabled state. These menus turn off autoenabling and set every row from its own state plus isBehindModal (refreshEnabledState).",
+    "Verify issue: the PiP gate in the overflow menu and menu bar no longer borrows canPerform(.toggleFullscreen); it uses !isBehindModal.",
+    "Verify/notFixed D-13 cosmetic: the S10.Overflow/compact-bar frame, and also the S10.ContextSubmenu/* frames, are sized from their content.",
+    "J-10: renderer discovery wording is now 'Discover Cast Devices' / 'Discovering Cast Devices…' in PlayerMenus and EffectsSidebars, matching Figma's 'Discover cast devices'.",
+    "C-05 UI entry: native View ▸ Extensions submenu, using the new MXRPlayerMenus.extensions builder (extension menus, enable/disable, run on demand, Manage Extensions…).",
+    "Verify issue D-07 queue: already fixed in HEAD (QueuePanel uses the shared addToPlaylist); confirmed, no edit needed."
+   ],
+   "notFixed": [
+    {
+     "id": "live-app verification (D-01, D-02, D-05, Esc, new View ▸ Extensions, disabled submenu rows)",
+     "why": "No live UI in this wave. The steps are in liveChecks."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Popup/MXRMenuCard.swift",
+    "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRNativeMenus.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerMenus.swift",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/MenusGallery.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Panels/EffectsSidebars.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/MenuAuditRegressionTests.swift"
+   ],
+   "editsOutsideOwnership": [
+    "Sources/MXRUI/Panels/EffectsSidebars.swift rendererChoices: one line changed, 'Discovering Destinations…'/'Refresh Destinations' → 'Discovering Cast Devices…'/'Discover Cast Devices' (assigned cross-area item J-10)."
+   ],
+   "evidence": [
+    "<scratch> (REVIEW, mean |Δ| 0.81; only D026 glyph regions)",
+    "<scratch>",
+    "<scratch>",
+    "<scratch> (check reports for every menu/dropdown entry)",
+    "<scratch>",
+    "<scratch>",
+    "Shadow fit on Figma Profiles.png: untruncated Gaussian best σ 12.7 px, error 52; truncated σ 13.6 px, cut at 28 px, error 17.5 (right and bottom edges at 2×)."
+   ],
+   "liveChecks": [
+    {
+     "id": "D-menus-extensions-menu",
+     "steps": "Install an extension (e.g. VLsub) in ~/Library/Application Support/org.videolan.vlc/lua/extensions. Launch VLC Redesign and open View ▸ Extensions. Choose VLsub, then open View ▸ Extensions again. Choose 'Manage Extensions…'.",
+     "expect": "1) VLsub is listed unchecked. 2) After choosing it, it shows checked with a submenu: its own entries, a separator, Disable. Picking an entry runs it. Disable removes the submenu. 3) Manage Extensions… opens Settings on the Extensions category. 4) With no extensions installed, there is a disabled 'No Extensions' row."
+    },
+    {
+     "id": "D-menus-disabled-submenus",
+     "steps": "Play a stream that cannot change rate, or a file with no audio device change possible. Open the menu-bar Audio and Video menus. Then open Settings (⌘,) and look at the Audio/Video menus again.",
+     "expect": "Audio Device with no devices, and Speed when the rate cannot change, show greyed with no hover submenu. Behind the Settings dialog, every row of Audio/Video/Extensions, including submenu rows, is greyed and key equivalents do nothing."
+    },
+    {
+     "id": "D-menus-shadow-live",
+     "steps": "Over a light video frame, open the ⋯ menu and its Profile submenu, then right-click the video. Take a screenshot and compare it with Figma Profiles.png.",
+     "expect": "The shadow below and around the cards fades out within about 14 pt, with no faint long tail. Cards, rows and text match Figma except the Mac glyphs."
+    },
+    {
+     "id": "D-menus-pip-gate",
+     "steps": "With a video playing, open Settings, then try Video ▸ Picture in Picture and the compact bar's ⋯ ▸ Picture in Picture. Close Settings and repeat.",
+     "expect": "Both are disabled behind the dialog and enabled (and work) after it closes."
+    },
+    {
+     "id": "D-menus-renderer-wording",
+     "steps": "Right-click the video ▸ Playback ▸ Renderer. Then open the Video sidebar's Render dropdown.",
+     "expect": "Both show 'Discover Cast Devices', and 'Discovering Cast Devices…' while discovery runs."
+    },
+    {
+     "id": "D-menus-carried-over",
+     "steps": "From the earlier report: with a sheet open, press a media key; inspect the ⋯ and right-click menus with VoiceOver / Accessibility Inspector; compare View vs Video Full Screen; press Esc in menus.",
+     "expect": "Media keys work behind the sheet. Menus are AXMenu with AXMenuItem children. Full Screen appears only in View. Esc closes one menu level."
+    }
+   ],
+   "ownerDecisions": [
+    "D045 (extensions page per D035): View ▸ Extensions › Manage Extensions… opens Settings category 'extensions' as it exists now. If the owner moves the extensions page, only that one action needs updating.",
+    "D039 C-09 HDR 'Off' trade-off: kept as is (hdrModes: Auto enabled and checked, manual modes disabled with the reason)."
+   ],
+   "notesForOthers": "Integrator:\n- **S68.Profiles/movies (CustomizationGallery, not my area)** FAILs with mean |Δ| 81/255. The render is #FFCC00 against Figma #181818, which looks like a placeholder or failed render of MXRProfilesView in the image engine. Worth a look by the owning area.\n- **Accelerate dependency.** MXRMenuCard.swift now imports Accelerate. The plugin build uses autolinking: UniformTypeIdentifiers, CryptoKit and ImageIO are imported without being listed in Makefile.am either. If the native link complains, add -framework,Accelerate to libmacosx_redesign_plugin_la_LDFLAGS.\n- **Other Figma shadows.** Figma's kernel is σ ≈ 0.45 × blur, cut off at about 0.93 × blur, not the CSS blur/2. Other mxrShadow users (radius = blur/2) may have slightly long tails in their own compares."
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Player/PlayerMenus.swift extensions(_:) + VLCServiceBackends.menu(forExtension:)",
+    "description": "The entries of an extension's own menu come from the cached extensions catalog snapshot. The bridge fills that snapshot (extension_GetMenu) only when the catalog is rebuilt, and the menu bar rebuilds the submenu only when Observation marks it dirty. VLC's own UIs query extension_GetMenu each time the menu opens. If a Lua extension's menu() is not ready right after activation, or changes later, View ▸ Extensions can show a stale or missing submenu: the extension appears as a checked toggle row with no entries. This needs a live check with a real extension. It is not a blocker."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRDesign/Popup/MXRMenuCard.swift (import Accelerate)",
+    "description": "Accelerate is not listed in Makefile.am LDFLAGS. On Darwin, Swift autolinking (LC_LINKER_OPTION) should resolve it, as it already does for CryptoKit and ImageIO. The native plugin link was not run in this verification, so the integrator should confirm the libtool link at install time."
+   },
+   {
+    "severity": "minor",
+    "where": "S68.ProfileSubmenu/movies diff-heatmap",
+    "description": "S68 is now REVIEW on all three engines (mean |Δ| 0.81). The remaining boxed regions are the D026 Mac shortcut glyphs. A few faint single-pixel speckles remain along the submenu card's left edge, below visibility. The shadow tail that caused the earlier FAIL is gone. No threshold or mask was changed, and the fit is documented in code and pinned by a test that checks the drawn alpha profile."
+   }
+  ],
+  "summary": "I verified the area independently against HEAD 4c457baa03 plus the working tree. `swift build` is green, with no warnings in D-menus files. Targeted tests pass: MenuAuditRegressionTests, the new MenuExtensionsAndShadowTests (2), PopupMenuTests 13, AnchoredPopupPinPolicyTests 9, ModalIsolationTests 6 and ShortcutDefaultsTests 7.\n\nNew fixes, checked in code:\n- **Disabled submenu rows.** `autoenablesItems = false` is set on the lazy shared-model menus. `refreshEnabledState` runs in `menuNeedsUpdate` on every update (which also covers key-equivalent searches). Submenu rows use the row's own enabled state AND `!isBehindModal`; other rows go through `validateMenuItem`. `runNativeAction` still guards on enabled and `!isBehindModal`.\n- **PiP gate.** It uses `!isBehindModal` in both the overflow menu and the menu bar, and no longer borrows the `.toggleFullscreen` gate.\n- **J-10.** Both the right-click Renderer submenu and the Video sidebar's Render dropdown say \"Discover Cast Devices\" / \"Discovering Cast Devices…\". The EffectsSidebars edit is one line and is declared.\n- **C-05, View ▸ Extensions.** The submenu is lazy and builds:\n  - a run row for on-demand extensions, with errors going to the dialogs;\n  - a checked submenu holding the extension's entries plus Disable for an enabled extension that has a menu;\n  - a checkable toggle row for other extensions, gated by activate availability;\n  - \"No Extensions\" when nothing is installed;\n  - \"Manage Extensions…\", which opens Settings ▸ extensions.\n\n  The test exercises the real builder: it enables an extension, runs its actions, opens its submenu and disables it.\n- **D-12 shadow.** The shadow is now a separable vImage convolution with a truncated Gaussian kernel (σ = 0.45 × blur, cut at 0.93 × blur). The test checks the drawn alpha profile: clear inside the card, about half at the edge, about 16% at 1σ, and roughly 0 at the kernel's reach.\n\nRenders I ran and looked at, under scratchpad/final2/D-menus-verify-r2/check:\n- **S68.ProfileSubmenu/movies:** REVIEW on the image, hosting and shipping-window engines (mean |Δ| 0.81). The side-by-side and heatmap show only the D026 Mac shortcut glyph regions; the shadow tail is gone and the Profile submenu is shown at its own width.\n- **PASS:** C.Menu/context-hover, C.Menu/view-options, S32 sort and S32 view.\n- **REVIEW, glyph or shortcut regions only:** S07, S09, S29, S30, S31 and both dropdowns.\n- **S10.Overflow/compact-bar and S10.ContextSubmenu/playback:** frames hug the cards and the rows are in Figma style.\n\nEarlier findings D-01 to D-13 were verified in round 1, and nothing in this round's diff regresses them. The lint test still finds no `.contextMenu`, `.popover` or `.menuStyle` under MXRUI. The QueuePanel issue from round 1 is resolved: it now uses the shared addToPlaylist.\n\nHygiene: `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty. No thresholds or masks were changed. No literal design values were added to views; the shadow kernel constants describe how the renderer is modelled and are documented. The only edit outside ownership is the declared one-line J-10 change.\n\nWhat remains is live-only checking (listed below) plus minor follow-ups: extension menus may be stale until refreshed, and the Accelerate link should be confirmed at install.",
+  "liveChecks": [
+   {
+    "id": "D-menus-extensions-menu",
+    "steps": "Copy a Lua extension that has a menu (e.g. VLsub) into ~/Library/Application Support/org.videolan.vlc/lua/extensions. Launch VLC Redesign and open View ▸ Extensions. Choose VLsub, wait 2 s, then open View ▸ Extensions again. Choose an entry, then Disable. Finally choose Manage Extensions….",
+    "expect": "VLsub is first listed unchecked. After it is enabled it shows checked, with a submenu containing its own entries, a separator and Disable. The submenu entries appear without restarting the app. If they are missing, the cached-snapshot staleness issue is confirmed. Choosing an entry runs it, and Disable returns VLsub to an unchecked row. Manage Extensions… opens Settings on Extensions. With no extensions installed, the menu shows a disabled 'No Extensions' row."
+   },
+   {
+    "id": "D-menus-disabled-submenus",
+    "steps": "Play a stream whose rate cannot change, on a Mac with no alternative audio device. Open the menu-bar Audio and Video menus. Then open Settings (⌘,) and reopen Audio, Video and View ▸ Extensions, pressing their key equivalents as well.",
+    "expect": "Speed and Audio Device are greyed and open no submenu on hover. Behind Settings, every row of Audio, Video and Extensions is greyed, including submenu rows, and key equivalents do nothing."
+   },
+   {
+    "id": "D-menus-pip-gate",
+    "steps": "With a video playing, open Settings and try both Video ▸ Picture in Picture and the compact bar's ⋯ ▸ Picture in Picture. Close Settings and try both again.",
+    "expect": "Both are disabled while Settings is open. After it closes, both are enabled and enter or leave PiP."
+   },
+   {
+    "id": "D-menus-shadow-live",
+    "steps": "Over a light video frame, open the ⋯ menu and its Profile submenu, then right-click the video. Screenshot both and compare with Figma Profiles.png.",
+    "expect": "Card shadows fade out within about 14 pt with no faint long tail. Cards, rows and text match Figma except the D026 Mac glyphs."
+   },
+   {
+    "id": "D-menus-renderer-wording",
+    "steps": "Right-click the video and open Playback ▸ Renderer. Then open the Video sidebar's Render dropdown.",
+    "expect": "Both show 'Discover Cast Devices', and 'Discovering Cast Devices…' while discovery runs."
+   },
+   {
+    "id": "D-menus-carried-over",
+    "steps": "Check four things carried over from round 1. 1) With a sheet open, press a media key (play/pause). 2) Inspect the ⋯ menu and the right-click menu with Accessibility Inspector or VoiceOver. 3) Open the View menu and the Video menu. 4) Press Esc inside a submenu.",
+    "expect": "1) Transport works behind the sheet. 2) The menus are AXMenu with AXMenuItem children, carrying the mark and shortcut attributes. 3) Enter Full Screen appears only in View. 4) Esc closes one menu level."
+   },
+   {
+    "id": "D-menus-native-link",
+    "steps": "While holding the native lock, run tools/install-app.sh (integrator only) and confirm the libmacosx_redesign_plugin link succeeds now that MXRMenuCard.swift imports Accelerate.",
+    "expect": "The link succeeds with no undefined vImage symbols. If it fails, add -framework,Accelerate to libmacosx_redesign_plugin_la_LDFLAGS."
+   }
+  ],
+  "ownerDecisions": [
+   "D045 (extensions page per D035): View ▸ Extensions › Manage Extensions… opens the Settings category 'extensions' as it exists now. If the extensions page moves, that one action needs updating.",
+   "D039 / C-09 HDR 'Off' trade-off: kept as is. hdrModes shows Auto enabled and checked, and the manual modes disabled with the reason.",
+   "D041 pause pin and the D033 subtitle font-size slider order: not affected by D-menus changes; the current implementation is kept."
+  ]
+ }
+}

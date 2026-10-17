@@ -1,0 +1,177 @@
+{
+ "area": "C-bridge",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "I continued C-bridge from HEAD 4c457baa03. The stopped refixer's code was checked against the engine source and kept: C-01, the C-02 MRL canonicalisation and the D045 text were already correct.\n\n**C-01 (the verifier's major):** \"Open paused\" now works when it replaces a media that is already playing. Only the started item gets a one-shot \":start-paused\" option. `input_Create` applies item options at once (src/input/input.c:249). `on_current_media_changed` fires only after `vlc_player_input_New`, and that callback removes the option again, so the next items and later replays don't start paused. The real-engine bridge smoke now covers this: open paused while playing → PAUSED, stays paused, the option is gone from the queue item, and a replay plays.\n\n**Smoke test fix:** the smoke had been failing earlier, at a stale thumbnail check. It expected PNG `data`, but the service has returned a CGImage for a while. The refixer had skipped that block. I rewrote the check to assert a CGImage of exactly 160×90. `native-tests.py --suite fixture` now passes end to end (run under the native lock).\n\n**C-10 minor:** `setVideoEffects` no longer gates on the lagging snapshot alone. A side is skipped only when the request equals both the snapshot and the previous request. So a value changed and changed back before the topic arrives (also together with a resolution change) still reaches the engine. So does a value set elsewhere, for example by a crop hotkey, and then requested back. Three new behaviour tests run through a fake transport that publishes topics.\n\n**Hide UI OSD:** app actions (`app-*`) triggered by a key now show the two-line OSD. The first line is what the key just did (\"Hide UI\"/\"Show UI\", \"Show/Hide Queue\", \"Show/Hide Library\", \"Show/Hide Sidebar\", \"Bookmark added\", or the command's name), the second is \"Pressed ⌘\\\". A menu or tile trigger shows no OSD, and a blocked action shows only the key. Tests: AppActionFeedbackTests.\n\n**Results:** swift build is green. All 57 MXRVLCBackendTests and the MXRCoreTests target (177) pass.",
+   "fixed": [
+    "C-01 (major, verifier r1): one-shot per-item ':start-paused' consumed in the on_current_media_changed callback (MXRServicesBridge.m queueCommand playNow, PlayerMedia, dropStartPausedItem; refixer's code, verified against src/input/input.c:249 and src/player/player.c:60-95). Proven by the real-engine bridge smoke (module/tests/bridge-smoke.m) via native-tests.py --suite fixture: PASS",
+    "C-02 (minor, verifier r1): CanonicalMRL (vlc_uri2path + vlc_path2uri) is applied before hashing and storing in _addedTrackURLs, so sidecars named like 'Movie (2020).srt' are selected rather than added twice (refixer's code, checked)",
+    "C-10 (minor, verifier r1): VLCPlayerBackend.setVideoEffects skips a side only when the request equals both the snapshot and the previous request; tests testRevertTogetherWithAResolutionChangeSendsBothSides and testRequestEqualToThePreviousOneIsSentAfterAnOutsideChange, plus the existing revert and resolution tests",
+    "D045 stale 'no extension-dialog provider' wording (verifier r1 minor): updated in DECISIONS.md by the refixer; the SettingsExtensionsView comment is already gone",
+    "Stale bridge-smoke thumbnail assertion (it expected PNG data; the service returns a CGImage): now asserts a 160x90 CGImage, so the whole fixture smoke passes again",
+    "B-controls note, Hide UI (⌘\\) OSD showed only 'Pressed ⌘\\': app actions triggered by a key now show the action line plus the key (ShortcutsModel passes keyed to appActionHandler; AppModel reports the result through osd.actionPerformed). Tests: Tests/MXRCoreTests/AppActionFeedbackTests.swift",
+    "C-13: services join in parallel with os_signpost (first fixer); verified in code. The latency number itself is a live check"
+   ],
+   "notFixed": [
+    {
+     "id": "C-09",
+     "why": "Owner decision (D039 HDR 'Off' trade-off): the default avsamplebuffer vout has no tone-map override, so Off means forcing caopengllayer, which gives up PiP and EDR. Auto stays the only honoured mode."
+    },
+    {
+     "id": "C-15",
+     "why": "SettingsExtensionsView.swift belongs to F-settings (missing Advanced Options row, extra ⓘ)."
+    },
+    {
+     "id": "C-05-risk",
+     "why": "Trigger-only Lua scripts still run synchronously on the media-services serial queue, the same pattern Qt uses. I kept it on purpose: the serial queue is what keeps a concurrent rescan or unload from freeing the extension manager while a script runs. The verifier rated it acceptable and not a correctness failure."
+    },
+    {
+     "id": "C-03-runtime",
+     "why": "A headless run cannot reach MXRVoutWindow: vdummy/vmem never request a window. So the claim that a 'Play locally while streaming' vout is tagged auxiliary and stays off the main surface goes to liveChecks. The mode check (stream only) is covered by the contracts suite, and the parent chain (window → vout → dummy vout → stream_out → sout instance → output player) matches src/input/resource.c and stream_out/display.c."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRVLCBackend/VLCPlayerBackend.swift",
+    "modules/gui/macosx_redesign/Tests/MXRVLCBackendTests/BridgeWireBehaviourTests.swift",
+    "modules/gui/macosx_redesign/Sources/MXRCore/Models/ServiceModels.swift",
+    "modules/gui/macosx_redesign/Sources/MXRCore/App/AppModel.swift",
+    "modules/gui/macosx_redesign/Tests/MXRCoreTests/AppActionFeedbackTests.swift",
+    "modules/gui/macosx_redesign/module/tests/bridge-smoke.m"
+   ],
+   "editsOutsideOwnership": [
+    "Sources/MXRCore/App/AppModel.swift: the shortcuts.appActionHandler closure now takes (actionID, keyed), checks canPerform first and calls osd.actionPerformed(keyFeedback(after:)) when keyed; plus a private keyFeedback(after:) next to blocksCustomization. Re-read right before editing; another agent's 6-line WIP in the same file was left alone",
+    "Tests/MXRCoreTests/AppActionFeedbackTests.swift: new test file for the app-action OSD feed",
+    "module/tests/bridge-smoke.m: the stale thumbnail assertion (PNG → CGImage) only; the start-paused block was the refixer's"
+   ],
+   "evidence": [
+    "swift build: Build complete",
+    "swift test --filter MXRVLCBackendTests: 57 tests, 0 failures",
+    "swift test --filter 'MXRVLCBackendTests|MXRCoreTests': 177 tests, 0 failures (includes AppActionFeedbackTests x3 and ShortcutsAndOSDTests)",
+    "native-tests.py --suite fixture under lock.sh: PASS. 'PASS: real VLC schema, config, queue, hotkey and shutdown contracts', which includes 'paused open replaces a playing media and stays paused', 'start-paused is one-shot and leaves the queue item' and 'replaying the paused-opened item plays'. Log: <scratch>",
+    "Before the smoke fix, the fixture suite failed at 'actual thumbnail PNG: (null)'. A verbose engine log showed the thumbnail itself decoding fine (swscale 320x180 → 160x90 BGRA); the assertion was out of date (smoke-verbose.log in the same folder)",
+    "Engine sequencing checked: src/input/input.c:249 input_item_ApplyOptions inside input_Create; src/player/player.c:85-94 vlc_player_input_New, then on_current_media_changed"
+   ],
+   "liveChecks": [
+    {
+     "id": "C-01-live",
+     "steps": "Settings → turn off 'Start playing when opened'. Play file A. While A plays, open file B with ⌘O. Then let B finish into the next queue item, and replay B from the queue.",
+     "expect": "B opens paused at 0:00. The next queue item plays normally when reached. Replaying B from the queue plays it."
+    },
+    {
+     "id": "OSD-app-actions",
+     "steps": "Play a video. Press ⌘\\ twice, then Q twice, then ⌘L.",
+     "expect": "The two-line OSD shows 'Hide UI' / 'Pressed ⌘\\', then 'Show UI' / 'Pressed ⌘\\', 'Show Queue' / 'Pressed Q', 'Hide Queue' / 'Pressed Q', and 'Show Library' / 'Pressed ⌘L'. Choosing Hide UI from the menu bar shows no OSD."
+    },
+    {
+     "id": "C-02-live",
+     "steps": "Put 'Movie (2020).mkv' and 'Movie (2020).srt' in one folder. Open the movie, turn subtitles off, then drag 'Movie (2020).srt' onto the window.",
+     "expect": "The existing subtitle track is selected again and no duplicate subtitle track appears."
+    },
+    {
+     "id": "C-03-live",
+     "steps": "Turn on 'Play locally while streaming'. Start a Stream job, then start normal playback of another file.",
+     "expect": "The stream's local copy opens in its own auxiliary window. Main playback lands in the main window. A Convert job never opens a local display."
+    },
+    {
+     "id": "C-13-live",
+     "steps": "Run Instruments (os_signpost; subsystem org.videolan.vlc.macosx-redesign, category Shutdown) on the installed app. Quit with Cmd-Q once from a clean start, and once after browsing Network.",
+     "expect": "Cmd-Q to process exit stays short (target under 1 s). The 'Services' interval is about as long as its slowest 'Service' step, not the sum of them."
+    },
+    {
+     "id": "C-05-live",
+     "steps": "Install VLsub into the user Lua extensions folder. Settings → Extensions → enable it and open its dialog.",
+     "expect": "A native dialog appears. Typing and buttons reach the script. Closing the dialog deactivates the extension. Quit is not blocked."
+    },
+    {
+     "id": "C-10-live",
+     "steps": "In Video effects, drag Brightness, return it to its start value quickly, then change Resolution.",
+     "expect": "The final brightness is the one on screen. Changing Resolution does not restart the video."
+    }
+   ],
+   "ownerDecisions": [
+    "C-09 / D039: HDR 'Off' means forcing the caopengllayer vout, which loses PiP and EDR for that video. Until decided, Auto stays the only honoured mode.",
+    "D045: extensions page, opaque light dialogs, track numbers from 1. The native extension dialogs (C-05) follow the current D045 implementation."
+   ],
+   "notesForOthers": "- **AppModel owner:** the app-action OSD wiring is in AppModel. `ShortcutsModel.appActionHandler` now takes `(actionID, keyed)`, and AppModel's `keyFeedback(after:)` returns the OSD line.\n- **Engine actions:** VLC actions with no OSD text in the bridge (fullscreen, quit, snapshot) still show only \"Pressed <key>\", as before.\n- **Integrator:** the fixture native suite passes again. Its thumbnail assertion had been stale since the service switched to returning a CGImage.\n- **F-settings:** C-15 (Advanced Options row, extra ⓘ on the extensions page) is still yours."
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "module/bridge/MXRHotkeyFeedback.inc MXRHotkeyFeedback default branch (~line 439)",
+    "description": "Cross-area item 'every custom command produces the two-line OSD' is met for all app-* commands (AppModel.keyFeedback). Engine actions VLC itself draws no text for (fullscreen, quit, navigation, bookmarks, viewpoint) still show only 'Pressed <key>', and a snapshot shows its file once the file is written. This follows VLC's behaviour and is documented in the code. It is not a defect, but the owner or live wave should confirm it is acceptable for fullscreen (⌘F/F)."
+   },
+   {
+    "severity": "minor",
+    "where": "module/bridge/MXRServicesBridge.m addExternalTrack + CanonicalMRL",
+    "description": "C-02: the canonicalisation is correct by code. It uses the same vlc_uri2path/vlc_path2uri path that src/input/subtitles.c:346 and input.c:1043 use to build sidecar MRLs, and the same MD5 as input.c:2826. No native runtime test covers a sidecar named with ( ) or ', so it stays a live check (C-02-live)."
+   },
+   {
+    "severity": "minor",
+    "where": "module/bridge/MXRServicesBridge.m queueCommand playNow / PlayerMedia",
+    "description": "C-01 edge case: if vlc_player_input_New fails (ENOMEM), on_current_media_changed fires with media NULL, and the ':start-paused' option stays on the item until the next playNow calls dropStartPausedItem. This is practically unreachable."
+   },
+   {
+    "severity": "minor",
+    "where": "module/bridge/MXRMediaServices.m extension trigger path",
+    "description": "C-05 risk carried over from r1 and accepted: trigger-only Lua scripts run synchronously on the serial media-services queue, the same pattern as Qt. The native 'extensions' suite passes again: a real Lua dialog is drawn, input reaches the script, close deactivates it, and quit never waits for main."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Settings/SettingsExtensionsView.swift (F-settings)",
+    "description": "C-15 (missing Advanced Options row, extra ⓘ) is still open and belongs to F-settings, not C-bridge."
+   }
+  ],
+  "summary": "Pass. The r1 major (C-01) is fixed and I confirmed it independently against the real engine. All other confirmed C-bridge findings are fixed, deferred to the owner, or belong to another area, with only minor notes left.\n\nHow I checked:\n- `swift build`: green.\n- `swift test --filter MXRVLCBackendTests`: 57 tests, 0 failures.\n- AppActionFeedbackTests, ShortcutsAndOSDTests, QueueStartPaused and OpenAutoplay tests: pass.\n- Native suites, run under lock.sh by me: fixture PASS, contracts PASS, extensions PASS. Logs are in scratchpad/final2/C-bridge-verify-r2/native-*.log.\n- `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty, so there are no engine edits.\n\nC-01: playNow now puts a one-shot ':start-paused' only on inputs[index]. I traced this against the engine:\n- src/input/input.c:249 applies item options inside input_Create, and input.c:656 reads start-paused.\n- src/player/player.c:85-94 has on_current_media_changed as the only sender, firing right after vlc_player_input_New, on both the synchronous path and the destructor-thread path.\n- PlayerMedia strips the option under the player lock, which is the same lock the playlist uses.\n- The real-engine bridge smoke (argv[3] audio branch, which runs in the fixture suite) proves four things: open paused while playing gives PAUSED, it stays paused for 1 s, the option has left the queue item, and replaying the item plays.\n\nC-02: CanonicalMRL uses the engine's own vlc_path2uri, which matches how sidecar MRLs and their MD5 str-id prefixes are built (subtitles.c:346, input.c:2826). The case with ( ) or ' in the file name has no runtime test, so it is a live check.\n\nC-10: the new two-baseline gate (snapshot and previous request) closes the revert-during-lag hole. I walked through these sequences and none of them drops a request:\n- change then revert before the topic arrives;\n- revert together with a resolution change;\n- a stale intermediate topic;\n- an outside hotkey change followed by a re-request.\n\nThe behaviour tests use a fake transport that publishes topics.\n\nHide UI OSD: app actions triggered by a key now go through canPerform, then perform, then osd.actionPerformed(keyFeedback). Menu triggers stay silent, and a blocked action shows only the key. The tests check the real OSD message and pressed-key text through AppModel.mock.\n\nOther findings, all re-checked in code:\n- C-03: the stream-only mode check is correct; the auxiliary-vout runtime part is a live check.\n- C-06, C-07, C-08, C-11, C-12, C-14: fixed in code.\n- C-13: services shut down in parallel with signposts; the latency number is a live check.\n- C-09: deferred to the owner (D039).\n- C-15: belongs to F-settings.\n\nOwnership: the edits outside C-bridge (AppModel.swift, the new AppActionFeedbackTests) are small and declared. Neither the Swift build nor the tests showed any errors, and I found no masks, thresholds or literal design values.",
+  "liveChecks": [
+   {
+    "id": "C-01-live",
+    "steps": "Settings: turn off 'Start playing when opened'. Play file A. While A plays, open file B with ⌘O. Then let B finish into the next queue item, and replay B from the queue.",
+    "expect": "B opens paused at 0:00 and stays paused. The next queue item plays normally. Replaying B plays it."
+   },
+   {
+    "id": "OSD-app-actions",
+    "steps": "Play a video. Press ⌘\\ twice, then Q twice, then ⌘L twice. Then choose Hide UI from the menu bar.",
+    "expect": "The two-line OSD shows 'Hide UI' / 'Pressed ⌘\\', 'Show UI' / 'Pressed ⌘\\', 'Show Queue' / 'Pressed Q', 'Hide Queue' / 'Pressed Q', 'Show Library' / 'Pressed ⌘L', then 'Hide Library' / 'Pressed ⌘L'. The menu-bar Hide UI shows no OSD. While the UI is hidden, the OSD is still visible."
+   },
+   {
+    "id": "OSD-engine-silent",
+    "steps": "Play a video. Press the fullscreen hotkey and take a snapshot with its hotkey.",
+    "expect": "Fullscreen shows only 'Pressed <key>' (as in VLC). The snapshot shows its file line once the file is written."
+   },
+   {
+    "id": "C-02-live",
+    "steps": "Put 'Movie (2020).mkv' and 'Movie (2020).srt' in one folder. Open the movie, turn subtitles off, then drag 'Movie (2020).srt' onto the window.",
+    "expect": "The existing subtitle track is selected again and no duplicate subtitle track appears in the subtitle menu."
+   },
+   {
+    "id": "C-03-live",
+    "steps": "Turn on 'Play locally while streaming'. Start a Stream job, then start normal playback of another file. Separately, start a Convert job.",
+    "expect": "The stream's local copy opens in an auxiliary window and main playback stays in the main window. A Convert job opens no local display."
+   },
+   {
+    "id": "C-13-live",
+    "steps": "Record os_signpost (subsystem org.videolan.vlc.macosx-redesign, category Shutdown) in Instruments on the installed app. Quit with Cmd-Q once from a clean start, and once after browsing Network.",
+    "expect": "Cmd-Q to process exit takes under about 1 s. The 'Services' interval is about as long as the slowest 'Service' step, not their sum."
+   },
+   {
+    "id": "C-05-live",
+    "steps": "Install VLsub into the user Lua extensions folder. Settings → Extensions → enable it, open its dialog, type text, press a button, close it, then quit.",
+    "expect": "A native dialog appears and input reaches the script. Closing the dialog deactivates the extension, and quit is not blocked."
+   },
+   {
+    "id": "C-10-live",
+    "steps": "In Video effects, drag Brightness and quickly return it to its start value, then change Resolution.",
+    "expect": "The final brightness on screen matches the slider. Changing Resolution does not restart the video."
+   }
+  ],
+  "ownerDecisions": [
+   "C-09 / D039: HDR 'Off' would force the caopengllayer vout and lose PiP and EDR. Until decided, Auto is the only honoured mode.",
+   "D045: extensions page, opaque light dialogs and track numbers from 1. The native Lua extension dialogs (C-05) follow the current D045 implementation.",
+   "D041 pause pin and the order of the D033 relative subtitle font-size slider are not affected by C-bridge changes."
+  ]
+ }
+}

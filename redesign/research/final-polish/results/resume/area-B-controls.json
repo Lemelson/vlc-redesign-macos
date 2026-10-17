@@ -1,0 +1,221 @@
+{
+ "area": "B-controls",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "I handled every (e) and (f) item and re-checked the earlier (a)–(d) fixes on the current tree; they still hold. Live finding: when ← was pressed repeatedly, the OSD text was wrong and the seek bar was right. The bridge worked out the OSD time itself, from vlc_player_GetTime(), which ignores a seek that has not landed yet; an arrow's jump also runs later on the input thread. So the second press printed the old time minus one jump ('00:48' while the bar showed 00:38). The fix: the OSD now shows the exact target the core seeks to, which a seek-only player timer (on_seek) reports, in the order the hotkeys were pressed. I added a native regression test to bridge-smoke (fixture suite). Against the old bridge it fails ('00:01 / 00:02' instead of '00:02 / 00:02'); with the fix it passes. The play control after the end of the media is right: STOPPED with the media kept draws the orange Play tile, and pressing it starts the item again. A new test checks both what is drawn and the command sent. S34.Player/music: the waveform is opt-in under D028. Evidence: the video's Playback tab at 09m17.5 shows the toggle OFF, and the transcript at 12:00 says 'the waveform seekbar if you want'. So the screen entry keeps the solid default and records a D028 deviation. A new entry, S34.Player/music-waveform, renders the opt-in, and its waveform matches Figma apart from the D048 head. What still FAILs in both entries is window and bar backgrounds off by 2/255, which are not in my files. D028 now cites this evidence, and VIDEO_BREAKDOWN line 138 no longer lists bar-icon hover as OPEN. Re-checks on the current tree: C.SeekBar/default, S01.ControlBar/default, C.PlayButton play/pause, C.CurrentTime and C.Duration default/remaining all PASS. S34.ControlBar/music, S21.Timeline/default, C.SeekPreview and C.VolumeTooltip are REVIEW. The OSD render is still correct (outline, sits left of the queue panel). Tests: ControlBarParityTests (10, one new), FigmaDeviationTests, PlayerInteractionTests (the earlier Customize-row failure is now fixed by its owner), OSDLayout, OSDTypography, SeekProgressRedraw, PlayerProgressRegression, MiniPlayerSeekBinding, ConeScrollIsolation, PauseButtonContrast, Scrubbing and the GalleryRenderTests catalog checks all pass. swift build is clean.",
+   "fixed": [
+    "(f) Live: OSD '00:48' while the bar read 00:38 during repeated ← seeks. The OSD was wrong. MXRHotkeyFeedback.inc predicted the target from vlc_player_GetTime (seeking=false), which misses a seek still in flight, and an arrow's jump runs later on the input thread. Jump and arrow actions now wait for MXRFeedbackAwaitSeek. MXRServicesBridge registers a seek-only player timer (on_seek gives the core's exact target, as vlc_player_input_SeekByTime prints it) and posts '<target> / <length>' for each pending jump hotkey, in order, within 1 s. Seeks from the seek bar produce no OSD. Regression test in module/tests/bridge-smoke.m: two synchronous jump+extrashort (1 s) presses while paused. Before the fix: FAIL 'the OSD shows the second jump's target 00:02 / 00:02, not 00:01 / 00:02' (../build/evidence/final4/B-controls/native-fixture-before.log). After: PASS fixture (../build/evidence/final4/B-controls/native-fixture-after.log).",
+    "(f) Play/pause state after the end of the media: verified correct. VLC reports STOPPED with the media kept; isPlaying is false, so the button draws the orange Play tile; playOrOpenLibrary sends play (playlist Start). New test ControlBarParityTests.testPlayControlAfterTheEndShowsPlayAndRestarts checks the drawn tile colour before and after, and the command. It is a guard test: there was no bug to fix in my files. D-menus' SpaceAfterEndTests covers Space.",
+    "(f) S34.Player/music: decided under D028 with evidence. The video's Playback tab at 09m17.5 shows 'Show Waveform on Seekbar' OFF, and the transcript at 12:00 says 'the waveform seekbar if you want'. The screen entry keeps the solid product default and records a figmaDeviation at I4767:23748;4778:26191 citing D028. New entry S34.Player/music-waveform (the user's opt-in, as in key frame 12m56.6) records a D048 head deviation; outside it the waveform matches Figma (structural difference 0.018 %). Evidence: ../build/evidence/final4/B-controls/after/S34_waveform_bar_render_vs_figma.png, after/S34.Player_music*/, before/S34.Player_music_side_by_side_small.png.",
+    "(f) VIDEO_BREAKDOWN.md line 138: OPEN replaced by DECIDED with references: hover per 177:99 (D048), no press highlight (D028), cone wheel (D047), mute = active speaker glyph with an empty cone.",
+    "(e) notes from other areas: nothing left for B-controls. H-design's MXRPlayPauseButton edit-mode change is in place. The redundant MXRIcon(.vlc) tint and the 'Move to New Row' behaviour are in other areas' files.",
+    "Earlier in this wave, re-verified on the current tree (evidence ../build/evidence/final4/B-controls/before/): C.SeekBar/default with its own 00:01:53 fixture PASS; S01.ControlBar/default PASS (D048 head and no top stroke); S21.Timeline REVIEW (1 pt label); S34.ControlBar/music REVIEW (waveform sample drift); C.PlayButton play/pause, C.CurrentTime and C.Duration default/remaining PASS.",
+    "Earlier in this wave: bar icon hover per Icon Wrapper 177:99. The glyph stays FG/A2 and only the white 6 % radius-4 tile appears (MXRPlayerIconTile, tested).",
+    "Earlier in this wave: seek thumbnail card centred on the pointer, its bottom gap5 above the control bar, clamped to the window with the 10 pt inset (video 03m29.3, D048, tested).",
+    "Earlier in this wave: B-08. The OSD sizes from the aspect-fit picture and anchors to the picture's visible part. OSD edge uses VLC's freetype outline and shadow. MXRTimeLabel's accessibility value is set once. Re-checked: after/S13_osd_crop.png.",
+    "Earlier in this wave: live streams show '--:--:--' with no fill or head; the music head is clamped to a pill shape; played waveform bars use Accent/DIm."
+   ],
+   "notFixed": [
+    {
+     "id": "S01.Window/shipping FAIL",
+     "why": "Only the top bar differs: the 'Videos' chip area at 168,10 and the traffic lights and title, which are A-window's (D022/D042). The seek-head part is a documented D048 deviation."
+    },
+    {
+     "id": "S34.Player/music and S34.Player/music-waveform remain FAIL on flat colour",
+     "why": "What is left is backgrounds off by 2/255: the window or backdrop (#1B1B1B vs #1D1D1D), the control bar background (bgA4 #191919 vs Figma's homeCard #171717 in the music frame) and the dark artwork. These come from MXRBackdropSurface, PlayerBars and window tokens (A-window/H-design), not my files. The seek-bar differences are now covered by D028 (solid default) and D048 (head)."
+    },
+    {
+     "id": "S34.ControlBar/music REVIEW (waveform sample drift)",
+     "why": "Fixture data: Figma clips its 244 bars, while the product fits peaks from the whole signal. This is documented in the entry notes."
+    },
+    {
+     "id": "S21.Timeline REVIEW (1 pt label offset), C.SeekPreview and C.VolumeTooltip REVIEW",
+     "why": "Sub-point text-rasterisation offsets; no layout change is warranted."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/module/bridge/MXRHotkeyFeedback.inc",
+    "modules/gui/macosx_redesign/module/bridge/MXRServicesBridge.m",
+    "modules/gui/macosx_redesign/module/tests/bridge-smoke.m",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/ControlBarParityTests.swift",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/PlayerGallery.swift",
+    "redesign/docs/DECISIONS.md",
+    "redesign/docs/design/VIDEO_BREAKDOWN.md",
+    "Earlier this wave (already committed in 3c690eb2a0): Sources/MXRUI/Player/PlayerControls.swift, NativeSeekProgress.swift, MXROSDView.swift, Sources/MXRDesign/Typography/OSDTypography.swift, Sources/MXRUI/MXRAppView.swift, Entries/ShippingGallery.swift, Entries/PanelsGallery.swift"
+   ],
+   "editsOutsideOwnership": [
+    "module/bridge/MXRHotkeyFeedback.inc (C-bridge): jump and arrow actions now wait for MXRFeedbackAwaitSeek instead of predicting the target. Removed the unused intf parameter and the arrow-to-jump remap.",
+    "module/bridge/MXRServicesBridge.m (C-bridge): a seek-only player timer (SeekFeedbackTimer: on_seek copies ts/length and dispatches to main), ivars _seekTimer/_seekFeedbackPending/_seekFeedbackDeadline, seekFeedbackArrivedAt:length:, a pending count in triggerAction, and timer add/remove in init/shutdown/dealloc. Other agents' concurrent edits in this file (subtitle safe inset, restore prompt) were left intact.",
+    "module/tests/bridge-smoke.m (C-bridge/I-build): one block in the audio section. It creates the hotkeys interface, sets extrashort-jump-size 1, plays and pauses the tone, triggers jump+extrashort twice and checks the OSD text equals the second target.",
+    "Sources/MXRGalleryCatalog/Entries/PlayerGallery.swift (gallery): S34.Player/music notes and a D028 deviation; new entry S34.Player/music-waveform with a D048 head deviation.",
+    "redesign/docs/DECISIONS.md: D028 amended with the music evidence.",
+    "redesign/docs/design/VIDEO_BREAKDOWN.md line 138: OPEN changed to DECIDED."
+   ],
+   "decisionsWritten": [
+    "D048 (earlier this wave): Seek bar and OSD where Figma contradicts itself or is silent. Accepted (agent, 2026-10-17).",
+    "D028 amended (agent, 2026-10-17): music keeps the solid seek bar by default. Evidence: video 09m17.5 toggle OFF and the transcript at 12:00 ('if you want'). S34.Player/music shows the default, S34.Player/music-waveform the opt-in."
+   ],
+   "ownerDecisions": [
+    "D048 (agent-written): head at the labelled time, no dark top stroke, subtitle-timeline fill to the head, live-stream '--:--:--' with no head, thumbnail placement from video 03m29.3, VLC freetype OSD edge with picture-based sizing, and bar icon hover per 177:99.",
+    "D028 amendment (agent-written, 2026-10-17): solid seek bar by default for music too; the waveform is opt-in.",
+    "Still pending from before, implementations unchanged: D042, D044, D046, D047, D049, D050, D051, D052, D053 and the D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies)."
+   ],
+   "liveChecks": [
+    {
+     "id": "B-osd-seek",
+     "steps": "Play a local video. Press ← five times quickly, then → three times quickly. Pause, and repeat both. With the queue panel open, repeat once more.",
+     "expect": "After each burst the OSD's first line ('mm:ss / mm:ss') equals the elapsed label and the head position on the seek bar; it is never one jump behind. The second line reads 'Pressed ←' or 'Pressed →'. Dragging the seek bar shows no OSD."
+    },
+    {
+     "id": "B-eos-play",
+     "steps": "Play a 60 s file to its end, with a single-item queue. Look at the play button, then click it. Play it to the end again and press Space.",
+     "expect": "After the end the button is the orange Play tile. A click or Space starts the item from the beginning, and the button turns into the grey Pause tile."
+    },
+    {
+     "id": "B-music-waveform",
+     "steps": "Play an audio file with default settings, then turn on Playback ▸ Show Waveform on Seekbar.",
+     "expect": "By default the solid thick bar is shown. With the toggle on, waveform bars appear: played bars darker orange, a clean 4 pt bright-orange head, unplayed bars grey."
+    },
+    {
+     "id": "B-seek-preview",
+     "steps": "Play a local video with thumbnails on. Hover the seek bar near its left end, the middle and its right end, then drag-scrub.",
+     "expect": "The card is centred on the pointer, its bottom about 5 pt above the control bar, never overlapping the bar or clipped. Near the window sides it keeps a 10 pt inset and follows the pointer every frame while dragging."
+    },
+    {
+     "id": "B-icon-hover",
+     "steps": "Hover each bar icon: subtitles, audio, gear, queue, fullscreen, speaker.",
+     "expect": "Only a faint white tile with radius 4 appears; the glyph stays grey. The active queue icon stays orange."
+    },
+    {
+     "id": "B-pressed",
+     "steps": "Press and hold each bar button, then release.",
+     "expect": "No flicker, no system highlight and no focus ring appear."
+    },
+    {
+     "id": "B-osd",
+     "steps": "On a bright frame press C. Open the queue and press C again. Play a 4:3 video in a wide window and press C.",
+     "expect": "Crisp white text with a black edge, at the top right of the picture. With the queue open it sits left of the panel. With 4:3 it stays on the picture, not in the pillarbox, and its size follows the picture height."
+    },
+    {
+     "id": "B-live",
+     "steps": "Open a live network stream.",
+     "expect": "The duration reads '--:--:--', the seek bar shows no fill and no head, and VoiceOver says 'Unknown'."
+    },
+    {
+     "id": "B-timelabel-a11y",
+     "steps": "With VoiceOver on, move to the elapsed and duration labels.",
+     "expect": "Each value is announced once, as a button with its hint."
+    },
+    {
+     "id": "C1-focus",
+     "steps": "Click the seek bar, the cone and the time labels, then Tab through the controls.",
+     "expect": "No focus box after a mouse click; keyboard navigation shows only the design ring."
+    },
+    {
+     "id": "C7-volume",
+     "steps": "Drag and scroll the cone and press the volume hotkeys.",
+     "expect": "The volume tooltip and the redesign OSD text are the only indicators; no core OSD slider appears."
+    }
+   ],
+   "evidence": [
+    "../build/evidence/final4/B-controls/native-fixture-before.log: old bridge, FAIL 'the OSD shows the second jump's target 00:02 / 00:02, not 00:01 / 00:02'",
+    "../build/evidence/final4/B-controls/native-fixture-after.log: PASS fixture with the fix (also 'real VLC schema, config, queue, hotkey and shutdown contracts')",
+    "../build/evidence/final4/B-controls/before/<entry>/{render,ref,side-by-side,diff-heatmap,report.txt}: re-check of the earlier fixes on the current tree",
+    "../build/evidence/final4/B-controls/after/S34.Player_music, after/S34.Player_music-waveform, after/S34_waveform_bar_render_vs_figma.png (top: render; bottom: Figma 4767:23726)",
+    "../build/evidence/final4/B-controls/after/S13_osd_crop.png, after/S13.Window_osd-queue.png",
+    "Video key frame 07-sidebar__playback-tab-full-toggles__09m17.5s.jpg: 'Show Waveform on Seekbar' OFF; transcript [12:00] 'you have the waveform seekbar if you want'",
+    "Swift tests: ControlBarParityTests 10/10, FigmaDeviationTests 5/5, PlayerInteractionTests 11/11, the GalleryRenderTests catalog checks 3/3, plus OSDLayout, OSDTypography, SeekProgressRedraw, PlayerProgressRegression, MiniPlayerSeekBinding, ConeScrollIsolation, PauseButtonContrast and Scrubbing all pass"
+   ],
+   "notesForOthers": "C-bridge / I-build: at HEAD the native fixture suite (tools/native-tests.py --suite fixture) did not compile or link bridge-smoke. MXRAudioPreferenceServices.m uses CONFIG_CLASS and CONFIG_ITEM_* from vlc_plugin.h without including it, and its msg_Warn/msg_Dbg need vlc_module_name, which this standalone link does not define. I ran the suite in an isolated mirror with a local shim (../build/evidence/final4/B-controls/repo); that file has been modified again in the working tree since then, so please re-run the fixture suite on the real tree. Also, the services bridge now holds a second player timer with a 3600 s period that only uses on_seek; please keep it if you touch init or shutdown. A-window / H-design: S34.Player/music still FAILs only on 2/255 background differences: the window or backdrop #1B1B1B vs #1D1D1D, and the control bar bgA4 #191919 vs Figma's homeCard #171717 in Player - Music. Integrator: new gallery entry S34.Player/music-waveform."
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "summary": "B-controls verify r1: PASS. I went through every item on the work list again myself on the current tree.\n\nBuilds and tests:\n- swift build is clean with 0 warnings.\n- The targeted suites all pass: ControlBarParity, FigmaDeviation, PlayerInteraction, OSDLayout, OSDTypography, SeekProgressRedraw, PlayerProgressRegression, MiniPlayerSeekBinding, ConeScrollIsolation, PauseButtonContrast, Scrubbing and the GalleryRender catalog checks. Log: ../build/evidence/final4/B-controls-verify-r1/tests.log.\n- I ran the native fixture suite on the real tree, under the lock, and released the lock. It passes, including bridge-smoke with the new jump OSD test. This means the compile problem the fixer reported for MXRAudioPreferenceServices.m is gone at HEAD. Log: native-fixture.log in the same folder.\n- I did not reproduce the \"fails without the fix\" step myself. The fixer's before log (../build/evidence/final4/B-controls/native-fixture-before.log) shows the exact new failure message, \"00:02 / 00:02, not 00:01 / 00:02\".\n\nThe OSD fix (live finding '00:48' while the bar read 00:38) has the right root cause:\n- In src/player/input.c, vlc_player_input_SeekByTime adds the jump to vlc_player_input_GetTime(seeking=true) and calls vlc_player_UpdateTimerSeekState. That sends the target to on_seek through timer.c.\n- The old code predicted the target from vlc_player_GetTime, which does not see a seek still in flight.\n- The bridge now waits for on_seek. The callback ignores the NULL value sent when a seek ends. Commands are asserted to run on main, so the pending counter is updated before the queued seek reports arrive. The timer is added and removed in init and shutdown, and dealloc asserts it is gone.\n\nRenders (check output in check/):\n- PASS: C.SeekBar/default (own 00:01:53 fixture, no mask), S01.ControlBar/default (D048 head and stroke deviations), C.PlayButton play/pause, C.CurrentTime, C.Duration default/remaining, and S01.Window/shipping with --engine shipping-window.\n- REVIEW, sub-point offsets only: C.SeekPreview, C.VolumeTooltip, C.VolumeCone/50, S21.Timeline (D048 fill-to-head), S34.ControlBar/music.\n- FAIL: S34.Player/music and S34.Player/music-waveform, only on flat backgrounds 2/255 off. The window is #1B1B1B vs #1D1D1D (D053 explains the glow), and the bar is bgA4 #191919 vs #171717. These come from window and bar tokens, not B-controls files.\n\nWhat I looked at by eye:\n- The waveform opt-in bar crop matches Figma 4767:23726 apart from the D048 head.\n- The OSD has a crisp black outline and sits on the picture, left of the queue panel.\n- A live stream shows '--:--:--' with no fill and no head.\n\nCode checks:\n- Hover keeps the glyph FG/A2 and adds only the iconHover tile.\n- The thumbnail card is centred on the pointer, gap5 above the bar, and clamped to the window with the 10 pt inset.\n- The OSD sizes from the aspect-fit picture in the media canvas and anchors to the visible part of the picture.\n- MXRTimeLabel sets its accessibility value once.\n- The play control after the end of the media draws the orange Play tile and sends play. That is covered by a guard test; there was no bug.\n\nDocs and rules:\n- VIDEO_BREAKDOWN line 138 is updated.\n- D048's entries are real contradictions inside Figma (labels vs head, component stroke vs Player-6, S21 fill vs the video) or places where Figma is silent. They do not excuse a difference that could be made to match.\n- The D028 music amendment is a judgement call with evidence: 09m17.5 shows the toggle OFF and the transcript says \"if you want\". It goes to the owner.\n- The engine is untouched: the diff against upstream-base-2026-10-14 for src, lib, include and modules/gui/macosx is empty.\n- Edits outside ownership (MXRHotkeyFeedback.inc, MXRServicesBridge.m, bridge-smoke.m) are small, listed, and leave other agents' concurrent changes intact.\n- No masks or thresholds were added in B-controls' work.\n\nOnly minor issues remain.\n\nEvidence: ../build/evidence/final4/B-controls-verify-r1/",
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "modules/gui/macosx_redesign/module/bridge/MXRServicesBridge.m seekFeedbackArrivedAt / triggerAction (_seekFeedbackPending)",
+    "description": "The jump OSD matches on_seek reports to hotkey presses only by count and a 1 s deadline. Within that second, a different seek can take a pending slot: a seek-bar seek, a chapter or title seek (player.c UpdateChapterSeekState also calls UpdateTimerSeekState), or the next seek after a jump whose input_ControlPush failed. An arrow press followed at once by a chapter key could then show the chapter's time, and the arrow's target would be dropped. This is an edge case and does not affect the live finding. A fix would tag the expected target or clear the pending count on non-jump actions."
+   },
+   {
+    "severity": "minor",
+    "where": "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerControls.swift:33 and :504",
+    "description": "The disabled-control dimming uses a literal opacity of 0.4 instead of a token. It predates this wave (commit 3d1fbcbfd3). Theme.Popup.disabledOpacity, or a player token, should be used to meet the tokens-only rule."
+   },
+   {
+    "severity": "minor",
+    "where": "S34.Player/music, S34.Player/music-waveform (MXRBackdropSurface / PlayerBars tokens, A-window/H-design)",
+    "description": "Both entries still FAIL on flat colours 2/255 off: the window backdrop is #1B1B1B vs #1D1D1D (D053 explains this as the cover-art glow) and the bar is bgA4 #191919 vs Figma's homeCard #171717 in Player - Music. These are outside B-controls' files. The bar-colour difference is not covered by a decision; it belongs to the bar's owner."
+   }
+  ],
+  "liveChecks": [
+   {
+    "id": "B-osd-seek",
+    "steps": "Play a local video. Press ← five times quickly, then → three times quickly. Pause and repeat both bursts. Open the queue panel and repeat once more. Finally press → once and then immediately the next-chapter key on a file with chapters.",
+    "expect": "After each burst the OSD's first line ('mm:ss / mm:ss') equals the elapsed label and the head position on the seek bar; it is never one jump behind. The second line reads 'Pressed ←' or 'Pressed →'. Dragging the seek bar shows no OSD. Note whether the → plus chapter case shows the right time."
+   },
+   {
+    "id": "B-eos-play",
+    "steps": "Play a 60 s file (build/media S01E01) to its end, with a single-item queue. Look at the play button, then click it. Play it to the end again and press Space.",
+    "expect": "After the end the button is the orange Play tile. A click or Space starts the item from the beginning, and the button turns into the grey Pause tile."
+   },
+   {
+    "id": "B-music-waveform",
+    "steps": "Play an audio file with default settings, then turn on Playback ▸ Show Waveform on Seekbar.",
+    "expect": "By default the solid thick bar is shown. With the toggle on, waveform bars appear: played bars in the darker orange, a clean 4 pt bright-orange head, unplayed bars grey."
+   },
+   {
+    "id": "B-seek-preview",
+    "steps": "Play a local video with thumbnails on. Hover the seek bar near its left end, in the middle and near its right end, then drag-scrub.",
+    "expect": "The card is centred on the pointer, its bottom about 5 pt above the control bar, never overlapping the bar or clipped. Near the window sides it keeps a 10 pt inset and follows the pointer every frame while dragging."
+   },
+   {
+    "id": "B-icon-hover",
+    "steps": "Hover each bar icon: subtitles, audio, gear, queue, fullscreen, speaker.",
+    "expect": "Only a faint white tile with radius 4 appears; the glyph stays grey. The active queue icon stays orange."
+   },
+   {
+    "id": "B-pressed",
+    "steps": "Press and hold each bar button, then release.",
+    "expect": "No flicker, no system highlight and no focus ring appear."
+   },
+   {
+    "id": "B-osd",
+    "steps": "On a bright frame press C. Open the queue and press C again. Play a 4:3 video in a wide window and press C.",
+    "expect": "Crisp white text with a black edge, at the top right of the picture. With the queue open it sits left of the panel. With 4:3 it stays on the picture, not in the pillarbox, and its size follows the picture height."
+   },
+   {
+    "id": "B-live",
+    "steps": "Open a live network stream.",
+    "expect": "The duration reads '--:--:--', the seek bar shows no fill and no head, and VoiceOver says 'Unknown'."
+   },
+   {
+    "id": "B-timelabel-a11y",
+    "steps": "With VoiceOver on, move to the elapsed and duration labels.",
+    "expect": "Each value is announced once, as a button with its hint, and the container label is not read as a second value."
+   },
+   {
+    "id": "C1-focus",
+    "steps": "Click the seek bar, the cone and the time labels, then Tab through the controls.",
+    "expect": "No focus box after a mouse click; keyboard navigation shows only the design ring."
+   },
+   {
+    "id": "C7-volume",
+    "steps": "Drag and scroll the cone and press the volume hotkeys.",
+    "expect": "The volume tooltip and the redesign OSD text are the only indicators; no core OSD slider appears."
+   },
+   {
+    "id": "B-cpu",
+    "steps": "Play the 10 min S01E03 for 60 s with the controls visible, then 60 s with Hide UI, and read the app's CPU in Activity Monitor or with top.",
+    "expect": "CPU stays near the AUDIT_FIXES numbers (about 7 % visible, about 6 % with Hide UI); the extra seek-only player timer adds no measurable load."
+   }
+  ],
+  "ownerDecisions": [
+   "D028 amendment (agent, 2026-10-17): music also defaults to the solid seek bar; the waveform is opt-in. Figma 4767:23726 and the video's music frames (12m18.4, 12m56.6) show the waveform. The opt-in reading rests on the toggle OFF at 09m17.5 (during video playback) and the transcript at 12:00, 'if you want'. The other reading, waveform by default for audio-only media, is the owner's call.",
+   "D048 (agent-written): head at the labelled time, no dark top stroke, subtitle-timeline fill to the head, live-stream '--:--:--' with no head, thumbnail placement from video 03m29.3, VLC freetype OSD edge with picture-based sizing, bar icon hover per 177:99.",
+   "Still pending from before, implementations unchanged: D042, D044, D046, D047, D049, D050, D051, D052, D053, D054 and the D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies)."
+  ]
+ }
+}

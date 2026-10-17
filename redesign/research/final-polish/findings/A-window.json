@@ -1,0 +1,139 @@
+{
+ "codexAssessment": "I reviewed the window area on claude/final (HEAD a215064366). In this area Codex's fixes are mostly real, small and pointed at root causes. I found no regression of wave-1 work.\n\n**Fixes that look correct and minimal:**\n- COMP-01: `library.didSet` clears `rightPanel` and the app menu when the full library opens. `hasTransientPopup` now ignores a panel while the full library is shown, and `selectTab` is guarded. No invisible catcher layer is left.\n- PLAYER-05: the control-bar border is drawn only in light mode or Customize. Pixel check on S72 confirms Figma light has the 2 px #ACACAC line and dark has none.\n- PLAYER-06: the tracking area uses `.activeInActiveApp`.\n- PLAYER-11: a single click is immediate when the double-click action is off; the preference is read live.\n- NAT-03: a small pinch/smartMagnify policy with modal and shortcut-capture guards.\n- PLAYER-04: the always-on PiP button outside the layout is removed, so the top bar matches Player-6 (only fullscreen on the right) and PiP is the optional tile the video describes.\n- PERF-01 (partial): `NativeSeekProgress` moves the playhead redraw into an AppKit view, with an interval derived from the half-pixel speed. No SwiftUI invalidation per display tick, and it is gated by bars-visible, Hide UI, PiP and Reduce Motion. A real improvement, but CPU was never measured.\n- TST-02 (partial): the shipping-window engine now hosts content in a real titled, fullSizeContentView window and captures the frame view with AppKit's own traffic lights. Entries cannot be downgraded to the surrogate. The renders show the lights centred in the 40 pt bar and the cone after them, as D022 requires.\n- WIN-01: Hide UI now hides metadata and the resume toast.\n\n**Where the fixes are wrong or only shift the problem:**\n- COMP-09: the folder chip simply disappears for media outside the library (the common case: a file opened from Finder). The divider before it is left dangling. Figma and the video both show a chip.\n- PLAYER-03: moving the OSD to the top-right was not paired with the right-panel and library geometry, so the OSD now draws over an open queue or sidebar. Before, it collided only with the breadcrumb.\n- CTL-03: the toast only stops overflowing. At 480 pt it sits edge to edge with no inset.\n- WIN-02 and CTL-03 tests check pure helpers or model flags, not the real layout or composition at narrow widths. `headerFolderWidth` has a `reserved` parameter that is always 0.\n- PLAYER-13: the new test re-asserts `pins()`, which already existed. It adds coverage but does not prove the popup-to-reveal path.\n- WT-17 / COMP-18: Codex kept the filename extension in the title, citing VLC semantics. Figma and the video both show the title without it, and no decision in DECISIONS.md covers this.\n- LIBSET-04: Codex declined to fix the light bar material without a real screenshot, which is honest. But the offscreen render already shows a large, real difference: #D5D5D5 against Figma's #ABABAA.\n- NAT-04 (ChatGPT audit): vout pointer reporting works but now routes every ordinary video click and mouse move through a serial queue and back to main.\n\n**Honesty:** Codex marked runtime items (CPU, real window, PiP, AX) as Ч rather than claiming them, and recorded D038 and D041 truthfully. The installed app is still the Oct 15 build.\n\n**What I verified:** The owner was using the Mac (HID idle about 0.1 s), so I did not touch the real app; behaviour is checked from code and offscreen renders only.\n\n**Visual checks:**\n- S06 hidden-ui passes the strict Figma comparison.\n- S01 shipping fails only on fixture data differences: title, folder name, volume, duration.\n- S72 light fails on the bar colour.\n- The thin frame, queue panel, launch-to-Home and resume toast match the video key frames (03m53.6, 09m30.1, 13m57.3, 14m09.8) closely.\n\nOverall rating for this area: solid, mostly correct engineering, with two visible design regressions introduced and the acceptance gates still open.",
+ "confirmed": [
+  {
+   "id": "A-01",
+   "severity": "major",
+   "title": "Codex's COMP-09 change hides the folder chip whenever the media has no library folder",
+   "evidence": "git diff 5ac081046e a215064366 shows that Codex added PlayerBars.swift:16, `.filter { isCustomizing || app.player.media?.folder != nil || ![.folderName,.folderNameTile].contains($0.control) }`. The chip already had a correct fallback (PlayerBars.swift:306-312): it labels itself 'Videos' or 'Songs' and selects that category. The filter makes that fallback dead code. With the default layout [.logo,.menu,.sidebarToggle,.divider,.folderName,...] (LayoutStore.swift:147), the divider is left with nothing after it. Video key frame 12-continue-watching 14m09.8 shows the 'Videos' chip on DON'T BLINK, which is not a library-folder item.",
+   "fix": "Delete the `.filter` at PlayerBars.swift:16. Keep the existing fallback label and category navigation at :306-312; the video shows 'Videos' there, not the parent directory name, so do not use the parent directory. Add a WindowCompositionTests case for media with `folder == nil` that asserts the chip shows 'Videos' and that no divider is left without a following item.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerBars.swift"
+   ]
+  },
+  {
+   "id": "A-04",
+   "severity": "major",
+   "title": "The title shows the file name with its extension; Figma and the video show a clean title",
+   "evidence": "AppModel+Preferences.swift:40-43 returns `url.lastPathComponent`. The S72 shipping render shows 'The_Wand_S01E11.mp4'. Figma 2425:13639 shows 'The Wand S01E04'. Key frame 09m30.1 has the top bar 'The Wand S01E04' while the queue lists 'The_Wand_S01E05.mp4'. Key frame 14m09.8 shows 'DON'T BLINK'. No D-entry supports keeping the extension (the AUDIT_FIXES COMP-18 row only claims VLC semantics).",
+   "fix": "In AppModel+Preferences.swift:40-43, prefer VLC's metadata title when it differs from the file name. Otherwise use `url.deletingPathExtension().lastPathComponent`. Keep the full file name in the tooltip and accessibility label. Record this in DECISIONS as a design-over-VLC choice. Update the shipping-gallery expectations. The file belongs to MXRCore App; list it in editsOutsideOwnership.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRCore/App/AppModel+Preferences.swift",
+    "redesign/docs/DECISIONS.md"
+   ]
+  },
+  {
+   "id": "A-05",
+   "severity": "major",
+   "title": "No real-window, CPU or PiP runtime check has been done on the Codex build",
+   "evidence": "The binaries in /Applications/VLC Redesign.app/Contents/MacOS are dated Oct 15 04:32. Commit a215064366 is dated Oct 16 17:18, so none of Codex's window fixes have run in the real app. GalleryRenderTests has a strict Figma test only for S06 (testShippingHiddenUIWindowMatchesFigma).",
+   "fix": "Under lock.sh and wait-idle.sh, run install-app.sh. Capture `screencapture -l` for S01, S72, the compact library, the queue and Hide UI, and run `mxr-snapshot compare` on each. Measure CPU at 1080p with bars visible against Hide UI (target: at most 2 pp more), then fullscreen and PiP. Check cursor hiding in fullscreen and the PiP placeholder. Add a mock scenario whose media data matches Figma Player-6: title 'The Wand S01E04', the 'Videos' chip, 00:25:40 and the Figma volume. This is media data, so D030 holds. Then give S01.Window/shipping a strict test like S06's.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/ShippingGallery.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/GalleryRenderTests.swift"
+   ]
+  },
+  {
+   "id": "A-02",
+   "severity": "minor",
+   "title": "The top-right OSD covers an open right panel and the full-library header",
+   "evidence": "MXRAppView.swift:200-203 anchors the OSD `.topTrailing` across the whole window. It is drawn after the right panel layer (MXRAppView.swift:113-121). PlayerGeometry.rightPanelFrame:46-58 puts the panel at the same trailing edge. D027 places the OSD 'top-right in the video', so the video rect is the correct anchor. The OSD has no `showsPlayerInformation` or full-library guard. The OSD is brief, so this is minor.",
+   "fix": "In overlays(size:), set the OSD trailing padding to `panelInset + (rightPanel != nil && library != .full ? rightPanelFrame(...).width + placementRightInset : 0)`. Set the leading limit to libraryWidth(in:). In full library, leave the OSD out of the window (as metadata is left out) or move it to the mini-player. Add a composition test with rightPanel = .queue that asserts the OSD frame does not intersect rightPanelFrame.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/MXRAppView.swift"
+   ]
+  },
+  {
+   "id": "A-07",
+   "severity": "minor",
+   "title": "At 480 pt the title collapses to a lone '…'",
+   "evidence": "The S01.Player/compact render (A-window-triage/compact.png) shows 'Videos …'. PlayerRowLayout.placeSubviews (PlayerBars.swift:159-191) gives the folder its full intrinsic width first. The centred title then gets `bounds.width - 2*max(leading,trailing)` ≈ 0.",
+   "fix": "In PlayerRowLayout.placeSubviews, budget the folder against the centred title. If centeredSpace is less than a token minimum (add Theme.Metric.Window.titleMinWidth, about 8-10 characters), first truncate the folder with a tail ellipsis down to icon plus minimum. If that is still not enough, place the title with zero width so it is hidden, rather than drawing '…'. Add a layout test at 480 pt in the shipping-window host with a long folder name.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerBars.swift"
+   ]
+  },
+  {
+   "id": "A-08",
+   "severity": "minor",
+   "title": "The resume toast ignores the visible video rect and can reach the window edges",
+   "evidence": "MXRAppView.swift:212-214 uses `.frame(width: size.width)` with no horizontal inset. PlayerView.swift:92 uses `.frame(maxWidth: box.width)`. At 480 pt the surface reaches both window edges. The toast is centred on the window, so it can sit over the compact library or under the right panel. Key frame 14m09.8 shows it centred in the video.",
+   "fix": "Frame the toast to the video rect. Leading is libraryWidth(in:). Trailing is the right panel width plus inset when a panel is open. Add `.padding(.horizontal, Theme.Metric.panelInset)` and centre the toast. Add composition tests at 480 pt and with the compact library open.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/MXRAppView.swift"
+   ]
+  },
+  {
+   "id": "A-06",
+   "severity": "minor",
+   "title": "The PiP placeholder is undocumented invented UI with literal strings",
+   "evidence": "MXRAppView.swift:70-89 shows 'Playing in Picture in Picture' and an accent 'Return to Player' button. These are inline literals. No D-entry covers the state; the only PiP reference in DECISIONS is line 104, about the button. There is no gallery entry.",
+   "fix": "Follow the system pattern. Show a centred PiP icon from the icon set and one caption, 'This video is playing in Picture in Picture', in fg2 using a copy constant. Make the whole placeholder a button that leaves PiP. Add a D-entry and an S01.Window/pip gallery entry.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/MXRAppView.swift",
+    "redesign/docs/DECISIONS.md"
+   ]
+  },
+  {
+   "id": "A-03",
+   "severity": "minor",
+   "title": "Light bars differ from the Figma Player-Light render, and no decision records why",
+   "evidence": "`mxr-snapshot check --id S72.Window/light --engine shipping-window` fails: render #D5D5D5 against Figma #ABABAA/#C2C2C1. The Figma topbar 2425:13626 has a 0.75-opacity #D6D6D6 fill with a 50 px background blur. Its parent frames (2425:13624/13625) have no fill. The darker gray therefore comes from compositing over an unfilled, partially-Light frame; figma/INDEX.md:149 says this frame mixes Light and Dark styles. Copying it would put mid-gray bars on a light theme. The real gap is that no decision documents the deviation.",
+   "fix": "Do not darken the bars. Add a D-entry: Light bars use BG/A3 75% over the window. The Figma Player-Light gray comes from a frame without a fill (INDEX.md:149). Get owner sign-off. Then make S72 a documented, known difference, not a silent FAIL.",
+   "files": [
+    "redesign/docs/DECISIONS.md"
+   ]
+  },
+  {
+   "id": "A-10",
+   "severity": "minor",
+   "title": "Video clicks and moves reach AppKit asynchronously, outside the original event dispatch",
+   "evidence": "In MXRVoutWindow.m:136-157, every mouse event goes to _reportQueue, which locks, runs var_InheritString(\"video-filter\") and splits strings. It then calls `[super mouseDown:]` through dispatch_async(main). The tracking area is NSTrackingActiveAlways (:279), so this runs on every pointer move. Calling super late breaks NSApp.currentEvent and window-drag or tracking semantics, and adds latency to click-to-pause.",
+   "fix": "Decide routing on the main thread from cached state: the interactiveVideo flag plus a filter set refreshed by a `video-filter` var callback, plus the pressed-button mask. Use the report queue only when routing is needed; otherwise call super synchronously. The file is outside A-window ownership (module/).",
+   "files": [
+    "modules/gui/macosx_redesign/module/MXRVoutWindow.m"
+   ]
+  },
+  {
+   "id": "A-13",
+   "severity": "minor",
+   "title": "Sidebar and track commands are enabled in full library but do nothing",
+   "evidence": "InterfaceModel.selectTab:274-275 returns early when library == .full. AppModel.canPerform:226 disables only .toggleQueue. .toggleSettingsSidebar, .showSubtitleTracks and .showAudioTracks (AppModel.swift:298-300) stay enabled but have no effect. showPreferences(for:) is silently dropped as well.",
+   "fix": "In AppModel.canPerform, return false for .toggleSettingsSidebar, .showSubtitleTracks and .showAudioTracks when library == .full, like .toggleQueue. Add a test.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRCore/App/AppModel.swift"
+   ]
+  },
+  {
+   "id": "A-11",
+   "severity": "minor",
+   "title": "The pause pin is still the provisional D041",
+   "evidence": "PlayerChrome.swift:50 has `!playing` in pins(). D041 (DECISIONS:469-473) is provisional. Key frame 04m10.9 (paused) shows both bars.",
+   "fix": "Ask the owner to decide. The recommendation is to keep the pin, which matches the paused key frame. Then mark D041 accepted and cross-reference it from D023. No code change unless the owner rejects it.",
+   "files": [
+    "redesign/docs/DECISIONS.md"
+   ]
+  },
+  {
+   "id": "A-12",
+   "severity": "minor",
+   "title": "The PLAYER-13 test only toggles a hand-built flag",
+   "evidence": "AnchoredPopupPinPolicyTests sets inputs.barPopupOpen by hand. It never presents a popup through MXRPopupCenter, so it would still pass if the composition stopped reading isPresentingAnchored (PlayerChrome.swift:41).",
+   "fix": "Present a real anchored popup through MXRPopupCenter.shared. Build `PlayerChromeReveal.Inputs(app:)` and assert that it pins both bars. Dismiss the popup and assert the pin is released.",
+   "files": [
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/AnchoredPopupPinPolicyTests.swift"
+   ]
+  },
+  {
+   "id": "A-09",
+   "severity": "minor",
+   "title": "headerFolderWidth's `reserved` parameter is never used, and the tests check arithmetic, not layout",
+   "evidence": "The only call site, PlayerBars.swift:167, passes reserved: 0. Only PlayerProgressRegressionTests:29-31 uses non-zero values.",
+   "fix": "Remove the parameter, or inline min() as part of the A-07 fix. Replace the arithmetic test with the A-07 layout test at 480 pt.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerGeometry.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/PlayerProgressRegressionTests.swift"
+   ]
+  }
+ ]
+}

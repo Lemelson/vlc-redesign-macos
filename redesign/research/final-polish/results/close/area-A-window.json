@@ -1,0 +1,218 @@
+{
+ "area": "A-window",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "A-window fixer pass. S67 (major): a control-bar row with exactly two spacers now centres the run between them on the window (PlayerGeometry.rowWidths). The ⋯/sidebar/divider/folder cluster keeps its header spacing (2160:8404) in any row. A row title is the padded 2160:8419 cell. Fullscreen in a row is a 30 pt bar icon. The stray divider before the queue in twoRowExample is removed, and the gallery uses a customize-7 fixture. Render vs Figma is now within 1 pt on every glyph, and play is centred at 960. Fullscreen sits at 1878, matching key frame 19m27.6 exactly (Figma 1875).\n\nP1: the compact library never draws below LibraryGeometry.compactMinimumWidth. Next to a right panel it stays only while library minimum + 400 pt panel + insets fit (648 pt). Below that it yields to the panel and comes back when the panel closes, and opening the library closes the panel instead (InterfaceModel.reconcileLibraryAndPanel, driven from MXRAppView on library, panel and width changes).\n\nCompact library vs picture: Figma Player 187:328 and Player - Light 2425:13624 put the picture centred on the window under the library: the cat is at x 780–1066, the same as our render, and Light's library is BG/B1T over the video. So it already matched; the D055 subtitles bullet is amended with this evidence. Light with no 10 pt frame is also Figma's (the video reaches x 1919): D055 amended.\n\nD051: the narrow toast now uses VLC 4's own \"Continue\" (qt/player/qml/ResumeDialog.qml) and fits whole at 480 pt. PiP placeholder: drawn in the Dark scheme between the pinned bars, so in Light the surface is dark and the bars match the shipping Light bars. S01.App/default: uses the figmaPlayer6 fixture plus a D022 deviation, verdict PASS. S72.App/light: D048 and D049 deviations added.\n\nFullscreen strip: a new MXRSystemStripTracker samples the strip window's frame at 10 Hz, only while fullscreen, and also on every notification. It no longer depends on AppKit posting didMove/didResize/occlusion. It is tested offscreen.\n\nDocumented-deviation tool: a new FigmaDeviation.moved kind compares a node shifted to where the product draws it. S01.Window/shipping and S72.Window/light now compare the left group and the fullscreen glyph shifted, instead of excluding them. Excluded area went from 1.17 % to 0.32 %, and S01.Window/shipping still PASSes.\n\nTests: 8 new in WindowFinalPolishTests, 1 in FigmaDeviationTests. Every suite I ran passed (MXRUISnapshotTests filtered 93/93, MXRCoreTests 198/198) except the existing deviation-gate test, which fails only on another area's S71 entry (see notesForOthers).",
+   "fixed": [
+    "S67 transport not centred (MAJOR): rowWidths centres the run between two spacers. Play is at 933-986 (Figma 935-985, centre 960). Evidence: ../build/evidence/final5/polish/A-window/before/s67-bars.png and after/s67-bars.png (render top, Figma bottom). Test WindowFinalPolishTests.testTwoRowLayoutCentresTheTransportOnTheWindow and testRowWidthsCentreTheRunBetweenTwoSpacers",
+    "S67 left cluster: header spacing in control rows plus the 2160:8419 title cell put folder/title/heart at 114/190/324 (Figma 115/190/324). Test testHeaderClusterKeepsItsFigmaSpacingInAControlRow",
+    "S67 extra divider before the queue removed from LayoutStore.twoRowExample (outside my ownership, one token). With fullscreen as a bar icon in rows, volume/queue/fullscreen are at 1549/1826/1878 (Figma 1548/1825/1875, video 1550/1828/1878)",
+    "S67 Previous drawn disabled: the gallery fixture figmaCustomize7 (E11 mid-queue, 00:02:10/00:25:40, 50 % volume) gives Previous enabled, as in Figma and the video",
+    "P1 compact library under its minimum next to a panel: PlayerGeometry.compactLibraryWidth clamps it to 208 pt, and it yields to the panel below 648 pt. Gallery entries S28.Window/compact-queue-minimum and compact-queue-narrow; evidence after/S28.Window_compact-queue-*.png. Tests testCompactLibraryNeverDropsBelowItsMinimum... and testNarrowWindowLibraryYieldsToThePanelAndComesBack",
+    "D051 'Continue Watchi…' at 480 pt: the toast now shows VLC 4's 'Continue', whole. Evidence after/S12.Window_continue-minimum.png. Test testNarrowResumeToastUsesTheShortLabelInsteadOfTruncating",
+    "PiP placeholder in Light (#DEDEDE surface, #B1B1B1 bar): now on the dark video base between the bars, and the bars match S01.Window/shipping Light. Evidence after/S01_pip_light.png. Test testLightPiPPlaceholderSitsOnTheDarkVideoBase (the old scheme test was updated to sample the top bar)",
+    "S01.App/default title fixture: uses ShippingGallery.figmaPlayer6 plus a D022 right-group deviation, verdict PASS (check/S01.App_default/report.txt)",
+    "S72 gallery hygiene: D048 head and D049 play deviations added to S72.App/light (S72.Window/light already had them). Both bars now read #ABABAA, the same as Figma",
+    "Fullscreen strip robustness: MXRSystemStripTracker samples the strip frame while fullscreen, with notifications kept as a fast path. Test testStripTrackerFollowsTheStripWithoutNotifications",
+    "Verifier open[1], S01.Window/shipping D022 deviations too wide: the new FigmaDeviation.moved compares the left group shifted by the traffic-light reserve and the fullscreen glyph shifted +36 pt. Only Windows minimise/maximise and the vacated strip are excluded (0.32 %). Test FigmaDeviationTests.testMovedNodeIsComparedWhereTheProductDrawsIt",
+    "Light shipping render with no 10 pt inset: checked against Player - Light. Figma's video reaches x 1919 and runs under the rail, so it already matched; D055 amended with the samples",
+    "Compact library vs picture (live-run note, D055 subtitles): Figma Player and Player - Light both put the picture under the library, centred on the window (cat x 780-1066 in render and Figma). Already matched; D055 amended with the evidence"
+   ],
+   "notFixed": [
+    {
+     "id": "S05 fullscreen-menubar, top bar/traffic lights/tooltip, real-window behaviour (S05/S06/S72 live), S05 bottom reveal",
+     "why": "These need the real window; all are in liveChecks. The offscreen fullscreen-menubar composition is unchanged"
+    },
+    {
+     "id": "S68 Manage Profiles discoverability (not-checked)",
+     "why": "Rename and Delete exist only in the row context menu (Sources/MXRUI/Customization/MXRProfilesView.swift). That file is not mine; it needs a live judgement and the profiles owner"
+    },
+    {
+     "id": "S67 gear icon (plain gear 42:355 in customize frames vs playback-settings 2230:9222)",
+     "why": "The icon belongs to B-controls. D057 records it, and it is left to B-controls/the owner"
+    },
+    {
+     "id": "S72 breadcrumb chevrons and '…' colours, and the library thumbnail/row regions that keep S72.Window/light and S72.App/light at FAIL",
+     "why": "E-library files (its parity item 2). The bars now match exactly (#ABABAA)"
+    },
+    {
+     "id": "Verifier open[2]: bridge resume time for external media has no test",
+     "why": "MXRServicesBridge.m belongs to C-bridge"
+    },
+    {
+     "id": "D055 subtitles partly under the compact library in narrow windows (critic P2)",
+     "why": "Kept. Figma puts the picture under the library, and VLC has no horizontal subtitle margin. D055 is amended with the Figma evidence; it waits for the owner"
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/MXRAppView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerBars.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerGeometry.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerMetrics.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerChrome.swift",
+    "modules/gui/macosx_redesign/Sources/MXRCore/Models/InterfaceModel.swift",
+    "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRAppController.swift",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/FigmaDeviation.swift",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/ShippingGallery.swift",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/AppGallery.swift",
+    "modules/gui/macosx_redesign/Sources/MXRCore/Stores/LayoutStore.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/WindowFinalPolishTests.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/FigmaDeviationTests.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/WindowShippingParityTests.swift",
+    "redesign/docs/DECISIONS.md"
+   ],
+   "editsOutsideOwnership": [
+    "Sources/MXRCore/Stores/LayoutStore.swift: removed `.divider` before `.queue` in PlayerLayout.twoRowExample, the only change (H-design file; matches customize-7 and 19m27.6)",
+    "Tests/MXRUISnapshotTests/WindowShippingParityTests.swift testSchemeOverrideReachesWindowEntries: now samples the top bar (1400,20) instead of the PiP placeholder, because the placeholder is now dark in both schemes (D042 amended)"
+   ],
+   "decisionsWritten": [
+    "D057 (new) Saved control-bar rows and the compact library beside a panel: two spacers centre what is between them; header controls keep their header spacing in any row, with the title cell 2160:8419 and fullscreen as a bar icon in rows; the library yields to a panel below 648 pt; customize frames' plain gear goes to B-controls",
+    "D051 amended (resume toast bullet): VLC 4 'Continue' short label; truncation only below that",
+    "D042 amended (PiP placeholder): dark video background in both themes, drawn between the pinned bars",
+    "D055 amended (Light canvas): no 10 pt frame in Figma Light, with samples",
+    "D055 amended (Subtitles under overlays): Figma evidence that the picture runs under the compact library"
+   ],
+   "ownerDecisions": [
+    "D057 added: accepted (agent, 2026-10-17); waits for the owner (narrow-window library-yields rule; S67 row semantics)",
+    "D051 amended: the narrow toast uses 'Continue' instead of a truncated 'Continue Watching'",
+    "D042 amended: the PiP placeholder is dark in Light too",
+    "D055 amended twice: evidence for the Light canvas without a frame and for the picture/subtitles under the compact library (critic P2 stays an owner call)"
+   ],
+   "evidence": [
+    "../build/evidence/final5/polish/A-window/before/s67-bars.png (render top vs Figma customize-7 bottom, before)",
+    "../build/evidence/final5/polish/A-window/after/s67-bars.png (after)",
+    "../build/evidence/final5/polish/A-window/after/S67.png",
+    "../build/evidence/final5/polish/A-window/kf-1927-bars.png (key frame 19m27.6 bars)",
+    "../build/evidence/final5/polish/A-window/after/S12.Window_continue-minimum.png",
+    "../build/evidence/final5/polish/A-window/after/S01_pip_light.png",
+    "../build/evidence/final5/polish/A-window/after/S28.Window_compact-queue-minimum.png and S28.Window_compact-queue-narrow.png",
+    "../build/evidence/final5/polish/A-window/S72-sbs.png (Light render vs Figma: same picture position, library #C2C2C1, bars #ABABAA)",
+    "../build/evidence/final5/polish/A-window/check/*/report.txt (S01.Window/shipping PASS with moved deviations; S01.App/default PASS; S72.* FAIL only in E-library row regions)"
+   ],
+   "liveChecks": [
+    {
+     "id": "A-fs-topedge",
+     "steps": "Open S01E03 (10 min) and press ⌘⌃F (or the top-bar fullscreen button) to enter fullscreen. Wait 3 s for the bars to hide. Move the pointer to the top screen edge and hold it there 1 s. Then move it slowly down 60 pt.",
+     "expect": "The macOS menu bar and titlebar strip (traffic lights) slide in, and within about 0.1 s the app's top bar (cone, ⋯, sidebar toggle, chip, title, exit-fullscreen) appears right below the strip, not under it. Moving down, the pointer reaches the top bar and it stays; leaving it hides both. The strip is never the only thing shown."
+    },
+    {
+     "id": "A-fs-bottom",
+     "steps": "In fullscreen while playing, move the pointer to the bottom edge, then into the middle, then idle 2 s. Pause with Space and idle 3 s.",
+     "expect": "Only the control bar appears at the bottom; both bars hide after idling and the cursor hides; when paused, both bars stay visible (D041)."
+    },
+    {
+     "id": "A-topbar",
+     "steps": "In the window with media open, capture the top 40 pt at 2x and compare with Player-6 x0-640. Press ⌘\\ twice. Click the top-bar fullscreen button, wait 5 s.",
+     "expect": "One 40 pt bar with centred traffic lights and the cone right after them. ⌘\\ hides the lights with the bars. No lingering 'Fullscreen' tooltip once the bars hide."
+    },
+    {
+     "id": "A-S67-two-row",
+     "steps": "Customize Player: drag the time/seek group onto the empty band, add spacers either side of the transport so the bottom row is ⋯ sidebar | folder title ♥ spacer prev play next spacer volume tracks subs gear queue fullscreen, then Save. Capture the window at 1920 pt wide (or measure at any width).",
+     "expect": "The play button's centre is at the window's horizontal centre (±1 pt). The folder icon follows the divider with no gap. No divider is added before the queue."
+    },
+    {
+     "id": "A-narrow-library-panel",
+     "steps": "Resize the window to its 480×270 minimum. Open the compact library (sidebar toggle), then open the queue (queue button). Close the queue. Then with the queue open press the sidebar toggle. Repeat at 800 pt wide.",
+     "expect": "At 480 pt: opening the queue makes the library close (toggle inactive) and the queue shows full width; closing the queue brings the library back; pressing the toggle while the queue is open closes the queue and shows the library. Nothing overlaps or overflows its column. At 800 pt both show side by side (library ≥ 208 pt, queue 400 pt)."
+    },
+    {
+     "id": "A-toast-480",
+     "steps": "Open a file with a saved position (resume prompt) in a 480 pt window with the compact library open.",
+     "expect": "The toast in the video area reads 'Continue' (whole, not 'Continue Watchi…') with the close button. VoiceOver reads 'Continue Watching'. At 1920 pt the toast still shows the full message and 'Continue Watching'."
+    },
+    {
+     "id": "A-pip-light",
+     "steps": "Switch to Light theme, play a video, choose Video › Picture in Picture; look at the main window; click the placeholder. Repeat in Dark.",
+     "expect": "In both themes the main window shows a dark (#090909) area with the PiP glyph and the caption between the bars; the Light bars read about #ABABAA, the same as over a dark clip. Clicking it returns the video."
+    },
+    {
+     "id": "A-light-bars",
+     "steps": "Light theme, play a dark #2D2D2D clip, sample the bars and the compact library; toggle the compact library on and off.",
+     "expect": "Bars about #ABABAA, library about #C2C2C1 (D053). Toggling the library never rescales or moves the picture (colour-bar width unchanged), and the picture stays centred under the library as in Figma Player - Light."
+    },
+    {
+     "id": "A-hideui-queue",
+     "steps": "Open the queue, press ⌘\\ twice.",
+     "expect": "The queue reopens when the UI returns (D055)."
+    },
+    {
+     "id": "A-fs-subtitles",
+     "steps": "Fullscreen with S01E01 and its .srt; reveal the control bar at the bottom.",
+     "expect": "Subtitles rise above the revealed control bar and drop back when it hides."
+    }
+   ],
+   "notesForOthers": "[\"Integrator: FigmaDeviationTests.testDeviationsCiteAcceptedDecisionsAndOwnNodes currently fails on S71.Onboarding/shortcuts. Its differs rect (845,154,303,452) lies outside the entry, in Sources/MXRGalleryCatalog/Entries/CustomizationGallery.swift, which another agent is editing now; this is not an A-window change. New gallery entries: S28.Window/compact-queue-minimum and S28.Window/compact-queue-narrow. New test file: WindowFinalPolishTests.swift. FigmaDeviation has a new `.moved(node:by:)` kind; any external switch over FigmaDeviation.Kind must handle it (the build is clean).\", \"H-design: LayoutStore.twoRowExample lost its `.divider` before `.queue` (customize-7, 19m27.6). MXRBackdropBase now resolves to #2D2B29, and the S72 bars measure #ABABAA exactly offscreen.\", \"B-controls: Player - customize* frames and key frame 19m27.6 draw the plain gear (42:355) where Player frames draw playback settings (2230:9222). D057 notes it; the icon choice is yours.\", \"E-library: S72 remaining FAIL regions are library rows and thumbnails (x 70,752 and x 144,764) plus the breadcrumb chevron/ellipsis colours (parity S72 item 2).\", \"Profiles owner: S68 rename/delete live only in the row context menu (MXRProfilesView); the parity judge asks whether that is discoverable.\", \"C-bridge: the A-window verifier still flags that the external-media resume time in MXRServicesBridge.m has no bridge smoke test.\"]"
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "Tests/MXRUISnapshotTests/WindowFinalPolishTests.swift testNarrowResumeToastUsesTheShortLabelInsteadOfTruncating",
+    "description": "This regression test still passes without the fix. In an isolated copy I made the button always read MXRPlayerCopy.continueWatching. The render then shows the original bug, 'Continue Watchi…' (evidence s12-reverted.png), and the test still passed. It also passed with only the .short ViewThatFits branch removed, which draws a stretched 'Continue' button. The test counts accent pixels on the label's middle line, and the glyph strokes lower that count enough to stay under the threshold. A test that would catch it: measure the button's accent extent (first to last accent x) against the label's width, or check for an ellipsis or the text width. The fix itself is correct: at 480 pt the button reads 'Continue' (VLC 4 ResumeDialog.qml qsTr(\"Continue\"), verified)."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRCore/Models/InterfaceModel.swift reconcileLibraryAndPanel + toggleUIHidden",
+    "description": "Hide UI loses the library that yielded to a panel. Steps in a 480 pt window: library compact, open the queue (the library yields), press ⌘\\. toggleUIHidden sets rightPanel = nil, so the reconcile clears libraryYieldedToPanel but does not reopen the library, because isUIHidden is true. When the UI returns, the queue reopens. When the queue then closes, the library does not come back. It is an edge case but breaks the D057 promise that the library 'comes back when the panel closes'. A fix: skip the reconcile while isUIHidden, or keep the flag across Hide UI."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/MXRAppView.swift onChange(library/rightPanel/size.width) wiring",
+    "description": "Only the InterfaceModel method is tested. No test proves that the view calls it. S28.Window/compact-queue-minimum calls reconcileLibraryAndPanel(fit:false) itself in configure, so if the onChange wiring were removed the gallery and tests would stay green. Rendering is safe either way, because libraryWidth returns 0 when both cannot fit. The model state (sidebar toggle shown active, the library coming back) rests on the live check A-narrow-library-panel."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRGalleryCatalog/Entries/AppGallery.swift S01.App/default and S72.App/light",
+    "description": "These App entries still leave out the whole right group (247:464 / 2425:13640) under D022. The Window entries now compare the fullscreen glyph shifted with the new .moved kind. Using macTopBar(...) here too would bring the fullscreen glyph back under the check."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Player/PlayerMetrics.swift rowTitleCell",
+    "description": "rowTitleCell is a literal Theme.Box(node: \"2160:8419\", width 129, height 25, padding 6). It follows the existing node-cited headerIcon pattern in this metrics file, but it is not a generated token."
+   }
+  ],
+  "summary": "Independent verification of A-window, round 1. Every work-list item is fixed or honestly covered, and no major remains.\n\nBuild and tests: `swift build` is clean in Swift 6 mode. A fresh rebuild of an isolated copy produced no warnings or errors. WindowFinalPolishTests passes 8/8, FigmaDeviationTests 6/6 (the S71 failure the fixer mentioned is gone) and WindowShippingParityTests 6/6.\n\nRegression proof: in an isolated copy (since deleted) I reverted four fixes: rowWidths centring, the reconcile, the Light PiP .mxrTheme(.dark) and the toast's short layout. The S67 centring, rowWidths, library-yield and PiP-Light tests then fail. The toast test does not fail without its fix, even with the label reverted to 'Continue Watching' and the bug visibly back (minor issue).\n\nWhat I rendered and compared:\n- **S67:** checked against Figma 2160:8301 and key frame 19m27.6. The play centre is 959.5 in both render and Figma (Figma 935–984, render 933–986). The left cluster, right icons and video area match. The only remaining differences are the D048 head and the gear icon, which D057 hands to B-controls.\n- **Narrow windows (S28 at 480 and 800 pt):** at 480 pt the library yields and the queue is whole. At 800 pt the library is 256 pt (above its 208 minimum) and the 400 pt queue sits clear of it.\n- **S12 at 480 pt:** the toast reads 'Continue' (VLC 4 ResumeDialog.qml) and fits.\n- **PiP in Light:** the placeholder is #090909 and both bars are #ABABAA, the same as S01.Window/shipping Light.\n- **S72:** both bars are now #ABABAA, as in Figma. The remaining FAIL is E-library's row and thumbnail regions.\n- **Picture under the compact library:** Figma 187:328 and 2425:13624 both centre the picture under the library, the same as our render (s72-trio.png). So the D055 subtitles bullet is justified, and it stays an owner call.\n- **Light canvas with no 10 pt frame:** confirmed by samples. Figma Light has video at x 1905–1919, while Player 187:328 has #1B1B1B at x 1911.\n\nSnapshot checks: S01.Window/shipping and S01.App/default PASS. The new .moved deviation really compares the shifted left group and fullscreen glyph; it hides nothing (it has a negative test), and the area left out dropped to 0.32 %. Neighbouring entries (S06×3 PASS, S34/S43/S44/S66.App FAIL, S72 FAIL) have the same verdicts as the integration baseline, so nothing regressed. Renders of S01 narrow, S05 bottom-reveal and fullscreen-menubar, S22 queue, S28 compact-queue and S66 customization look right.\n\nStrip tracker: the 10 Hz sampling runs only while fullscreen, notifications remain a fast path, and it is tested offscreen.\n\nRules: the engine diff against upstream-base-2026-10-14 (src, lib, include, modules/gui/macosx) is empty. The Settings deviation gate is untouched. The two edits outside ownership (the LayoutStore divider and a WindowShippingParityTests sample point) are declared and minimal.\n\nDecisions: D057, the D051/D042 amendments and the D055 amendments record real constraints or cite Figma, video and VLC evidence. None excuses a difference that could be made to match.\n\nRemaining minors: the toast regression test does not detect the bug; Hide UI loses a yielded library; the onChange wiring has no test; the App entries still exclude the whole right group; rowTitleCell is a literal metric.\n\nEvidence in ../build/evidence/final5/polish/A-window-verify-r1/: s67-bars-0.png, s67-bars-960.png, s67-full.png, s72-trio.png, pip-ship-light.png, S12.Window_continue-minimum.png, s12-reverted.png, S28.Window_compact-queue-*.png, neighbours.png, check/*/report.txt.",
+  "liveChecks": [
+   {
+    "id": "A-fs-topedge",
+    "steps": "Open S01E03 and press ⌘⌃F. Wait 3 s for the bars to hide. Hold the pointer at the top screen edge for 1 s, then move it slowly down 60 pt.",
+    "expect": "The menu bar and titlebar strip slide in, and within about 0.1 s the app's top bar appears right below the strip, not under it. It stays while the pointer is on it and hides together with the strip when the pointer leaves. The strip is never shown alone (MXRSystemStripTracker polling)."
+   },
+   {
+    "id": "A-narrow-library-panel",
+    "steps": "Resize the window to 480×270. Open the compact library, then the queue. Close the queue. Open the queue again and press the sidebar toggle. Repeat at 800 pt.",
+    "expect": "At 480 pt the library closes when the queue opens (toggle inactive), comes back when the queue closes, and pressing the toggle with the queue open closes the queue and shows the library. At 800 pt both show side by side (library ≥ 208 pt, queue 400 pt), with no overlap."
+   },
+   {
+    "id": "A-narrow-hideui-yield",
+    "steps": "At 480 pt: open the compact library, open the queue (the library yields), press ⌘\\ twice, then close the queue.",
+    "expect": "The queue returns with the UI. After the queue closes, the compact library should come back. Known minor: the current code is expected to leave it closed."
+   },
+   {
+    "id": "A-S67-two-row",
+    "steps": "Customize Player to the two-row layout (seek row on top; bottom row ⋯ sidebar | folder title ♥ spacer prev play next spacer volume tracks subs gear queue fullscreen). Save, then measure at 1920 pt.",
+    "expect": "The play button's centre is at the window's centre (±1 pt). The folder follows the divider with no gap. There is no divider before the queue."
+   },
+   {
+    "id": "A-toast-480",
+    "steps": "In a 480 pt window with the compact library open, open a file that has a saved position.",
+    "expect": "The toast shows 'Continue' (whole) and the close button. VoiceOver reads 'Continue Watching'. At 1920 pt the full message and 'Continue Watching' are shown."
+   },
+   {
+    "id": "A-pip-light",
+    "steps": "In Light theme, play a video, choose Picture in Picture and sample the main window.",
+    "expect": "A dark #090909 placeholder with the glyph and caption between the bars. The bars read about #ABABAA. Clicking the placeholder returns the video."
+   }
+  ],
+  "ownerDecisions": [
+   "D057 (new, accepted (agent, 2026-10-17)): two spacers centre the run between them; header controls keep their header spacing in control rows; the compact library yields to a right panel below 648 pt; customize frames' plain gear left to B-controls. Verified as matching Figma/video where they exist; waits for owner.",
+   "D051 amended: narrow resume toast uses VLC 4's 'Continue' instead of a truncated 'Continue Watching' (makes it match rather than excuse).",
+   "D042 amended: PiP placeholder is dark in Light as well (between the pinned bars).",
+   "D055 amended: Light canvas has no 10 pt frame (verified against Player - Light samples), and the picture/subtitles run under the compact library (verified against Player 187:328 and Player - Light); critic P2 subtitles-under-library stays an owner call."
+  ]
+ }
+}

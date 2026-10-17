@@ -1,0 +1,72 @@
+{
+ "area": "E-library",
+ "reports": [],
+ "verdict": {
+  "pass": true,
+  "summary": "Independent verification, round 1, of E-library at HEAD 4c457baa03. The working tree is clean, and `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty. I re-checked all 13 confirmed findings in code. 12 are fixed correctly. E-06 cannot be closed without the real window.\n\n- E-01: compact Home runs ForEach(homeSections) with prefix(3). I rendered S40.Library/home and looked at it: all five Figma sections appear in the compact panel. The only differences are fixture names. D044 records the decision.\n- E-02: in mediaAt 'playlist', INSERTIONDATE keeps the storage order, and b_desc reverses it. The dateRanks query and the importDates tie-break are gone, and SortedMedia only reorders for the watched sorts, so it does not override this.\n- E-03: -playlistMedia:complete: compares i_nb_media, i_nb_present_media and the listing count. A partial playlist gets no playlistOccurrence, so the popup hides Remove. A removal request against a partial playlist is refused with the disconnected-drive message. The positions-only API is deleted from the protocol, the VLC backend, the mock and LibraryModel (grep is clean).\n- E-05: Home caps are native again. Ranking uses a 200-play window, per-kind limits come from LibraryHomeSectionKind.homeLimit, and the playlist scan is capped at 200. The literal 20/8 is gone from the view. The '›' page uses the uncapped homeSections:nil and goes through the page cache.\n- E-04: fgA3 is restored, and readableSecondary no longer appears anywhere in Sources or Tests.\n- E-07: ↑/↓ move by columns(width:) and ←/→ move by 1. moveSelection clamps.\n- E-08: imports are typed via UTType and vlc_ml_media_set_type. A cached imported snapshot replaces the N+1, and Add File navigates to Videos or Songs with the new files selected.\n- E-09: one shared audioTrackHelp string is used in all three menus.\n- E-10: Remove from Playlist acts on the multi-selection, and its title shows the count.\n- E-11: rows are keyed by entry id, with a suffix for repeats.\n- E-12: S43 fixture progress bars now match Figma (render checked), and the sort-dot rule is in D044.\n- E-13: listsMedia is deleted. The hidden ⌥⌘F button is removed, and Edit ▸ Find ▸ Search Library is registered with [.command, .option].\n\nChecks run:\n- `swift build`: green.\n- `swift test --filter 'Library|MiniPlayer|Playlist'`: 79 test cases passed, 0 failures, rc=0.\n- The 3 native library tests, compiled standalone against the engine build: PASS (lifetime, import-sort, playlist-order with 8 assertions).\n- S72.App/light rendered offscreen in the shipping window: the panel is #C1C1C1 against Figma #C1C1C0. E-06 still needs the real-window capture.\n\nNo new literal design values in the library views. Evidence is in <scratch> (S40, S43_Library_home, S28_Library_folder, S38_Library_playlists, S46_*, S72_light, tests.log, build.log, native-lib-tests.sh).",
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "Tests/NativeLibraryPlaylistOrderRegression.m",
+    "description": "The native test stubs -playlistMedia:complete:, so it never exercises the real comparison of i_nb_media, i_nb_present_media and the listing count against the engine. It only covers what the page and remove paths do with the flag. The real check is a 3-line comparison that reads correctly. Upstream entities.cpp:448/475 fills i_nb_present_media from nbPresentMedia(). Even so, nothing tests an unmounted-media playlist against a real ML database."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRCore/Models/LibraryModel.swift importFiles",
+    "description": "A mixed import (audio and video files picked together) navigates to Videos and selects only the video rows. The audio files go to Songs and are neither shown nor selected, so for them the user gets no feedback."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Library/MXRLibraryView.swift",
+    "description": "No test drives the view-level behaviours: E-07 (arrow-key columns), E-10 (multi-select Remove title and targets) and E-11 (id-keyed rows). They were verified by reading the code only."
+   },
+   {
+    "severity": "minor",
+    "where": "mxr-snapshot check (tooling, not E-library owned)",
+    "description": "One `mxr-snapshot check --id S40.Library/home` run exited with SIGSEGV (rc 139) and wrote no output. The identical rerun succeeded, and `render` of the same entry is fine. Likely a race with a concurrent SwiftPM build or a crash in the compare stage. Worth a look by whoever owns the tool."
+   }
+  ],
+  "liveChecks": [
+   {
+    "id": "E-06-light-compact-panel",
+    "steps": "Installed /Applications/VLC Redesign.app, System Appearance Light (or app scheme Light). Play a video with dark content, open the compact library (S01 folder), then screencapture -l the window. Sample the panel background away from rows, and sample the icon rail.",
+    "expect": "Panel about #C2C2C1 and rail about #ABABAA (Figma Player - Light 2425:13624), not about #EBEBEB. If it is lighter, the material wash under bgB1Transparent must be fixed at the MXRLibraryView call site."
+   },
+   {
+    "id": "E-13-search-library-shortcut",
+    "steps": "With the library hidden, press ⌥⌘F. Repeat with the compact narrow library and with the full library. Then press ⌘F.",
+    "expect": "⌥⌘F opens the compact library if it is hidden, shows the search field and gives it focus (Edit ▸ Find ▸ Search Library shows ⌥⌘F). ⌘F still toggles fullscreen."
+   },
+   {
+    "id": "E-07-arrow-keys-grid",
+    "steps": "Full library, Videos folder, grid view with at least 3 columns. Click a tile, then press ↓, →, ↑ and ←, and Shift+↓.",
+    "expect": "↓/↑ move one row (the same column), ←/→ move one tile, and Shift extends the selection. The selection scrolls into view."
+   },
+   {
+    "id": "E-10-multi-remove",
+    "steps": "Open a user playlist whose media are all present. ⌘-click 3 rows, then open ⋯ on one of the selected rows.",
+    "expect": "The menu says 'Remove 3 Items from Playlist', and choosing it removes exactly those 3 rows. On a row that is not selected, the menu says 'Remove from Playlist' and removes only that row."
+   },
+   {
+    "id": "E-03-missing-media-playlist",
+    "steps": "Make a playlist with media from an external drive followed by local media. Eject the drive and reopen the playlist.",
+    "expect": "Only the present items are listed, and no row offers 'Remove from Playlist'. After you reconnect the drive, removal works and removes the intended row."
+   },
+   {
+    "id": "E-08-add-file-feedback",
+    "steps": "In a folder's ⋯ menu choose Add File, then pick one .m4a. Repeat with one .mkv.",
+    "expect": "The library navigates to Music ▸ Songs (or Videos) with the imported file selected and visible. The help text on Add File explains where files appear."
+   },
+   {
+    "id": "E-02-playlist-order",
+    "steps": "Create a playlist by adding a recently indexed file first and an older indexed file second. Open the playlist under the default sort, then under Newest First.",
+    "expect": "The default (Oldest First) shows the order you built, and Newest First shows it reversed. No ordering by media index date."
+   }
+  ],
+  "ownerDecisions": [
+   "D044 sort-dot rule: the dot marks only a sort that differs from the category default. This follows key frame 20m14.8, against Figma S28, which shows the dot under Unwatched First. The S28 render shows no dot. This D044 call is already implemented; the owner may want to confirm it.",
+   "D044: no artist chip for media without an artist (S46 differs from Figma 970:3090's placeholder second chip). Already implemented; the owner may want to confirm it.",
+   "D041 pause pin, D045, C-09 HDR Off and the D033 subtitle slider order are not touched by this area."
+  ]
+ }
+}

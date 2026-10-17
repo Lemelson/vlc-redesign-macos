@@ -1,0 +1,635 @@
+// Settings mapping (D013, ARCHITECTURE §5.2): Figma row → VLC option, control, category, basic/advanced.
+//
+// - `option`: a VLC option (config name) or an app option prefixed `macosx-redesign-` (declared by our module).
+// - `mock`: the value the Figma render shows; only the mock backend reads it.
+// - `choices`: [value, "Label"] pairs (VLC values, human labels: PHILOSOPHY principle 9).
+// - `info`: the ⓘ text, written for people (a lint rejects developer notes such as "verify" or "TODO").
+// - `choiceSource`: dropdown choices computed at runtime ("audio-devices", "optical-drives") after the static ones.
+// - Rows whose option the engine does not provide are hidden; D035 lists the Figma rows left out on macOS.
+// - Figma typos are fixed in labels ("changew" → "changes", duplicated "Last.fm username" → password, D015).
+{
+  version: 1,
+  categories: [
+    // ───────────────────────────── App ─────────────────────────────
+    { id: "general", group: "app", sidebar: "General", title: "Global Settings", icon: "preferences",
+      sections: [
+        // D035: "Interface language" (no localizations yet) and "Check for updates" (no updater in
+        // this build) are not shown; every row here changes something.
+        { title: "Appearance", rows: [
+          { option: "macosx-redesign-theme", control: "segmented", label: "Theme", apply: { live: "instance" },
+            choices: [["dark", "Dark"], ["light", "Light"], ["system", "System"]], mock: "dark" },
+          { option: "macosx-redesign-accent", control: "swatches", label: "Accent color", apply: { live: "instance" },
+            choices: [["orange", "Orange"], ["red", "Red"], ["olive", "Olive"], ["green", "Green"], ["teal", "Teal"], ["blue", "Blue"],
+                      ["purple", "Purple"], ["pink", "Pink"], ["gray", "Gray"]], mock: "orange" },
+        ]},
+        { title: "Startup", rows: [
+          { option: "macosx-redesign-show-errors", control: "toggle", label: "Show confirmation and error dialogs",
+            info: "When a file can't be opened, VLC explains why in a dialog. Off shows the problem briefly over the video instead. Questions that need an answer, such as passwords, always appear.",
+            mock: true },
+        ]},
+        { title: "Diagnostics", rows: [
+          { option: "macosx-redesign-developer-mode", control: "toggle", label: "Developer mode",
+            info: "Shows the developer options in Settings: the system log, decoder and clock tuning, and every option of every VLC module.", mock: false },
+          { option: "file-logging", control: "toggle", label: "Save a log", info: "Writes VLC's messages to a file, which helps when reporting a problem.", mock: true },
+          { option: "logfile", control: "file", label: "Log file", buttonTitle: "Browse", info: "Where the log is written. Empty saves it as vlc-log.txt in your Library/Logs folder, where the Console app shows it.",
+            enabledWhen: { option: "file-logging", equals: true }, mock: "" },
+          // -1 follows VLC's global verbosity, which reports errors only unless VLC was started with -v.
+          { option: "log-verbose", control: "dropdown", label: "Log details", info: "How much detail the log contains. More detail makes the file grow faster.",
+            choices: [[-1, "Errors only"], [1, "Errors and warnings"], [2, "Everything (debug)"]], mock: -1 },
+        ]},
+        // D035: Figma's "Show minor warnings" is VLC's `verbose` level, a command-line-only option read
+        // before any interface starts; its saved form is "Log details" above.
+        { title: "Advanced Options", advanced: true, rows: [
+          // 3046:9524. Applied to the VLC instance when the interface starts, the way VLC applies
+          // options given on its command line (MXRApplyExtraCommandLineOptions).
+          { option: "macosx-redesign-extra-args", control: "text", label: "Additional command line options", apply: "restart", rowHeight: 46,
+            info: "VLC options to use every time it starts, written as on the command line, for example --no-osd --deinterlace=1. They apply to everything played after VLC starts.",
+            mock: "" },
+          { option: "logmode", control: "dropdown", label: "Log format", info: "Plain text is easiest to share; HTML adds colors for reading in a browser.",
+            choices: [["text", "Plain text"], ["html", "HTML"]], mock: "text" },
+          { option: "stats", control: "toggle", label: "Collect playback statistics",
+            info: "Measures bitrates, dropped frames and lost buffers so the player can show statistics. Off saves a little CPU.", mock: true },
+          { action: "open-config-folder", control: "button", label: "Open configurations folder", buttonTitle: "Open",
+            info: "Shows the folder with VLC's settings file in Finder." },
+          { action: "reset-all-settings", control: "button", label: "Reset all settings", buttonTitle: "Reset",
+            info: "Restores every setting to its default. Keyboard shortcuts are reset too. Profiles, the library and playlists are kept." },
+        ]},
+        { title: "Developer Options", advanced: true, rows: [
+          { option: "syslog", control: "toggle", label: "Write to the system log", info: "Sends VLC's messages to the macOS log (Console app).", mock: false,
+            visibleWhen: { option: "macosx-redesign-developer-mode", equals: true } },
+          { option: "syslog-debug", control: "toggle", label: "Include debug messages in the system log", info: "Also sends VLC's detailed debug messages to the macOS log. Useful only when tracking down a problem.", mock: false,
+            enabledWhen: { option: "syslog", equals: true }, visibleWhen: { option: "macosx-redesign-developer-mode", equals: true } },
+          { option: "syslog-ident", control: "text", label: "System log identity", placeholder: "vlc", mock: "",
+            info: "The name VLC's messages carry in the system log.", visibleWhen: { option: "macosx-redesign-developer-mode", equals: true } },
+          { option: "syslog-facility", control: "dropdown", label: "System log facility", info: "The category VLC's messages are filed under in the system log.",
+            choices: [["user", "User"], ["daemon", "Daemon"], ["local0", "Local 0"], ["local1", "Local 1"]], mock: "user",
+            visibleWhen: { option: "macosx-redesign-developer-mode", equals: true } },
+        ]},
+      ]},
+
+    { id: "interface", group: "app", sidebar: "Interface", title: "Interface Settings", icon: "interface",
+      sections: [
+        // D035: the Figma "Skin" section, "Play video inside main window" and "Show window decorations"
+        // have no meaning in this macOS interface (no skins; the video always plays in the main window,
+        // which keeps its native title bar), so they are not shown.
+        { title: "Window", rows: [
+          { option: "macosx-redesign-autoresize", control: "dropdown", label: "Resize window to fit video",
+            info: "Whether the window takes the size of the video it plays.",
+            choices: [["never", "Never"], ["first", "When the first video opens"], ["always", "Always"]], mock: "never" },
+          { option: "macosx-redesign-remember-window", control: "toggle", label: "Remember window size and position",
+            info: "", mock: true },
+          { option: "video-on-top", control: "toggle", label: "Keep window above other windows", apply: { live: "vout" },
+            info: "The player stays in front of other apps.", mock: false },
+          { option: "macosx-redesign-title-filename", control: "toggle", label: "Show the file name in the title bar",
+            info: "Shows the file name instead of the media title.", mock: true },
+          { option: "macosx-redesign-fullscreen-screen", control: "dropdown", label: "Open fullscreen on",
+            info: "The display used for fullscreen.", choices: [["current", "Current screen"], ["main", "Main screen"]], mock: "current" },
+        ]},
+        { title: "Playback Controls", rows: [
+          { option: "macosx-redesign-compact-start", control: "toggle", label: "Start in compact mode",
+            info: "Opens with the library hidden and only the player visible.", mock: false },
+          { option: "macosx-redesign-autohide", control: "dropdown", label: "Auto-hide the controls",
+            info: "When the top and bottom bars hide while the pointer is away.",
+            choices: [["always", "Always"], ["fullscreen", "In fullscreen only"], ["never", "Never"]], mock: "fullscreen" },
+          { option: "macosx-redesign-autohide-delay", control: "slider", label: "Hide after", min: 0, max: 10, step: 0.5, unit: "s",
+            scaleLabels: ["0 s", "5 s", "10 s"], mock: 0.5 },
+          { option: "macosx-redesign-fullscreen-controls", control: "toggle", label: "Show controls in fullscreen",
+            info: "Bars appear when the pointer nears the top or bottom edge.", mock: true },
+        ]},
+        { title: "Menu Bar and Notifications", rows: [
+          { option: "macosx-redesign-menubar-icon", control: "toggle", label: "Show VLC in the menu bar",
+            info: "Adds a VLC icon to the menu bar with playback controls.", mock: true },
+          { option: "macosx-redesign-start-minimized", control: "toggle", label: "Start hidden in the menu bar",
+            info: "VLC opens without a window; click the menu bar icon to show it.",
+            enabledWhen: { option: "macosx-redesign-menubar-icon", equals: true }, mock: false },
+          { option: "macosx-redesign-track-notification", control: "dropdown", label: "Show a notification when the track changes",
+            info: "Shows the new title in a macOS notification.",
+            choices: [["never", "Never"], ["minimized", "When minimized"], ["always", "Always"]], mock: "minimized" },
+          { option: "macosx-redesign-notification-duration", control: "slider", label: "Notification duration", min: 0, max: 10, step: 0.5,
+            unit: "s", scaleLabels: ["0 s", "5 s", "10 s"], mock: 5 },
+        ]},
+        { title: "Advanced Options", advanced: true, rows: [
+          { option: "macosx-redesign-window-opacity", control: "slider", label: "Window opacity", min: 10, max: 100, step: 1, unit: "%",
+            info: "", scaleLabels: ["10%", "100%"], mock: 100 },
+          { option: "macosx-redesign-pause-minimized", control: "toggle", label: "Pause video when window is minimized",
+            info: "", mock: false },
+          { option: "macosx-redesign-raise-on-play", control: "dropdown", label: "Bring VLC to the front when playback starts",
+            info: "Whether VLC comes forward when something starts playing.",
+            choices: [["never", "Never"], ["video", "For video only"], ["always", "Always"]], mock: "video" },
+          { option: "macosx-redesign-show-cover", control: "toggle", label: "Show cover art in the window when playing audio",
+            info: "", mock: true },
+          { option: "macosx-redesign-fs-controls-opacity", control: "slider", label: "Fullscreen controls opacity", min: 10, max: 100, step: 1,
+            info: "", unit: "%", scaleLabels: ["10%", "100%"], mock: 100 },
+          { option: "macosx-redesign-fs-sensitivity", control: "segmented", label: "Fullscreen controls sensitivity",
+            info: "",
+            choices: [["low", "Low"], ["medium", "Medium"], ["high", "High"]], mock: "medium" },
+        ]},
+      ]},
+
+    { id: "privacy", group: "app", sidebar: "Privacy", title: "Privacy Settings", icon: "privacy",
+      sections: [
+        { title: "History", rows: [
+          { option: "save-recentplay", control: "toggle", label: "Save recently played items", apply: "next-media",
+            info: "Changes to VLC library history apply to the next file; the app Recent list changes immediately.", mock: true },
+          { option: "macosx-redesign-remember-position", control: "toggle", label: "Remember the playback position", apply: "next-media",
+            info: "Controls resume prompts immediately; saving playback position changes with the next file. VLC stores library progress and playback history together.", mock: true },
+          { option: "macosx-redesign-history-exclude", control: "text", label: "Never remember items matching", apply: "next-media", rowHeight: 46,
+            info: "Comma-separated file name matches are excluded from the app Recent list immediately and from VLC library history and saved positions on the next file.", mock: "" },
+          { action: "clear-history", control: "button", label: "Clear history now", buttonTitle: "Clear",
+            info: "Removes recently played items and saved positions." },
+        ]},
+        { title: "Network", rows: [
+          { option: "metadata-network-access", control: "toggle", label: "Fetch titles and cover art from the internet",
+            info: "Looks up missing information online. Off keeps everything on this Mac.", mock: false },
+          // D035: Last.fm submission is not offered until this interface can load the scrobbler.
+        ]},
+      ]},
+
+    { id: "controls", group: "app", sidebar: "Controls", title: "Mouse, Keyboard & Remote Controls", icon: "hotkeys",
+      sections: [
+        { title: "Keyboard Shortcuts", rows: [
+          { action: "edit-shortcuts", control: "button", label: "Defaults", buttonTitle: "Edit Keyboard Shortcuts" },
+          { action: "reset-shortcuts", control: "button", label: "Reset all shortcuts", buttonTitle: "Reset",
+            info: "" },
+        ]},
+        { title: "Skip Amounts", rows: [
+          { option: "extrashort-jump-size", control: "number", label: "Very short skip", unit: "s", min: 1, max: 3600, mock: 3 },
+          { option: "short-jump-size", control: "number", label: "Short skip", unit: "s", min: 1, max: 3600, mock: 10 },
+          { option: "medium-jump-size", control: "number", label: "Medium skip", unit: "s", min: 1, max: 3600, mock: 60 },
+          { option: "long-jump-size", control: "number", label: "Long skip", unit: "s", min: 1, max: 3600, mock: 300 },
+        ]},
+        { title: "Mouse", rows: [
+          { option: "macosx-redesign-click-action", control: "dropdown", label: "Single click on the video",
+            choices: [["play-pause", "Play / Pause"], ["controls", "Show controls"], ["none", "Nothing"]], mock: "play-pause" },
+          { option: "macosx-redesign-double-click-action", control: "dropdown", label: "Double click on the video",
+            choices: [["fullscreen", "Toggle fullscreen"], ["none", "Nothing"]], mock: "fullscreen" },
+          { option: "hotkeys-y-wheel-mode", control: "dropdown", label: "Scroll wheel",
+            choices: [[0, "Volume"], [2, "Seek"], [-1, "Nothing"]], mock: 0 },
+          { option: "hotkeys-x-wheel-mode", control: "dropdown", label: "Horizontal scroll",
+            choices: [[2, "Seek"], [0, "Volume"], [-1, "Nothing"]], mock: 2 },
+          { option: "macosx-redesign-reverse-scroll", control: "toggle", label: "Reverse scroll direction",
+            info: "", mock: false },
+        ]},
+        // D035: the browser remote is not offered until this interface can start VLC's web interface.
+      ]},
+
+    // ───────────────────────────── Media ─────────────────────────────
+    { id: "playback", group: "media", sidebar: "Playback", title: "Playback Preferences", icon: "playback",
+      sections: [
+        { title: "Startup", rows: [
+          { option: "restore-playback-pos", control: "dropdown", label: "Continue where you left off",
+            info: "What to do when you open something you already started.",
+            choices: [[0, "Never"], [1, "Ask"], [2, "Always"]], mock: 1 },
+          { option: "playlist-autostart", control: "toggle", label: "Start playing as soon as a file opens",
+            info: "Off opens files paused, ready to play.", mock: true },
+          { option: "rate", control: "slider", label: "Default playback speed", min: 0.25, max: 2, step: 0.25, unit: "x",
+            scaleLabels: ["0.25", "0.5", "0.75", "1", "1.25", "1.5", "1.75", "2"], mock: 1.0 },
+        ]},
+        { title: "Tracks", rows: [
+          { option: "preferred-resolution", control: "dropdown", label: "Preferred video quality",
+            info: "For streams that offer several qualities.",
+            choices: [[-1, "Best available"], [1080, "Full HD (1080p)"], [720, "HD (720p)"], [576, "Standard (576p)"], [360, "Low (360p)"], [240, "Very low (240p)"]],
+            mock: -1 },
+          { option: "menu-language", control: "dropdown", label: "Preferred menu language", info: "For DVD and Blu-ray menus.",
+            choices: [["", "Automatic"], ["en", "English"], ["es", "Spanish"], ["fr", "French"], ["de", "German"], ["it", "Italian"], ["ja", "Japanese"]],
+            mock: "en" },
+          // VLC stores a 0-based stream index and -1 for automatic; the field shows track 1, 2, 3… or "Auto".
+          // The mock 0 is the first track, which Figma shows as "1".
+          { option: "audio-track", control: "number", label: "Default audio track",
+            info: "Which audio track to play first when a file has several. Auto uses the preferred language.",
+            min: 1, max: 100, displayOffset: 1, automaticValue: -1, placeholder: "Auto", mock: 0 },
+          { option: "sub-track", control: "number", label: "Default subtitle track",
+            info: "Which subtitle track to show first when a file has several. Auto uses the preferred language.",
+            min: 1, max: 100, displayOffset: 1, automaticValue: -1, placeholder: "Auto", mock: 0 },
+        ]},
+        { title: "Order", rows: [
+          // The bridge applies loop, repeat, random and play-and-* to the live playlist by option name.
+          { id: "repeat-mode", control: "dropdown", label: "Repeat", info: "Repeat the whole queue or the current item.",
+            composite: [
+              { title: "Off", values: { "loop": false, "repeat": false } },
+              { title: "All", values: { "loop": true, "repeat": false } },
+              { title: "One", values: { "loop": false, "repeat": true } },
+            ]},
+          { option: "random", control: "toggle", label: "Shuffle", info: "Plays the queue in random order.", mock: true },
+          { option: "play-and-stop", control: "toggle", label: "Stop after each item", info: "Doesn't continue with the next item.", mock: true },
+          { id: "when-finished", control: "dropdown", label: "When playback finishes", info: "What happens after the last item in the queue.",
+            composite: [
+              { title: "Stop", values: { "play-and-exit": false, "play-and-pause": false } },
+              { title: "Pause on the last frame", values: { "play-and-exit": false, "play-and-pause": true } },
+              { title: "Quit VLC", values: { "play-and-exit": true, "play-and-pause": false } },
+            ]},
+        ]},
+        { title: "Seeking", rows: [
+          { option: "input-fast-seek", inverted: true, control: "toggle", label: "Seek precisely",
+            info: "Jumps to the exact time. Off is faster but lands on the nearest keyframe.", mock: false },
+          { option: "macosx-redesign-seek-thumbnails", control: "toggle", label: "Show thumbnail while scrubbing",
+            info: "Shows a preview frame above the seek bar while you drag it.", mock: true },
+        ]},
+        { title: "Files & Discs", rows: [
+          { option: "dvd", control: "dropdown", label: "Default optical drive", choiceSource: "optical-drives",
+            info: "The disc VLC opens when you choose Open Disc without picking one. Automatic uses the first disc it finds.",
+            choices: [["", "Automatic"]], mock: "" },
+          { option: "avi-index", control: "dropdown", label: "Repair damaged AVI files", info: "What VLC does when an AVI file has a broken or missing index, which otherwise makes seeking impossible.",
+            choices: [[0, "Ask"], [1, "Always fix"], [2, "Never fix"], [3, "Fix when necessary"]], mock: 0 },
+          { option: "mkv-preload-local-dir", control: "toggle", label: "Load matching .mkv files from the same folder",
+            info: "Plays split or linked Matroska files as one video.", mock: true },
+        ]},
+        { title: "Advanced Options", advanced: true, rows: [
+          { option: "input-timeshift-path", control: "directory", label: "Time-shift buffer folder", buttonTitle: "Browse",
+            info: "Where VLC keeps the buffer that lets you pause live streams. Empty uses a temporary folder.", mock: "" },
+          { option: "input-timeshift-granularity", control: "dropdown", label: "Time-shift buffer size",
+            info: "How much of a paused live stream VLC keeps.",
+            choices: [[10485760, "Small"], [-1, "Medium"], [209715200, "Large"]], mock: -1 },
+        ]},
+      ]},
+
+    { id: "video", group: "media", sidebar: "Video", title: "Video Defaults", icon: "video",
+      sections: [
+        { title: "Output", rows: [
+          { option: "video", control: "toggle", label: "Enable video", info: "Off plays only the sound.", mock: true },
+          { option: "fullscreen", control: "toggle", label: "Start videos in fullscreen",
+            info: "Every video opens in fullscreen. Press Esc to return to the window.", mock: false },
+          { option: "disable-screensaver", control: "toggle", label: "Stop the screensaver during playback",
+            info: "Keeps the display awake and the screensaver off while a video plays.", mock: true },
+          { option: "video-wallpaper", control: "toggle", label: "Play video as desktop wallpaper",
+            info: "Shows the video on the desktop, behind your windows and icons, instead of in the player.", mock: false },
+        ]},
+        { title: "Picture", rows: [
+          { option: "hue", control: "slider", label: "Hue", min: -180, max: 180, step: 1, apply: { live: "vout" }, ticks: 3, mock: 0 },
+          { option: "brightness", control: "slider", label: "Brightness", min: 0, max: 2, step: 0.01, apply: { live: "vout" }, ticks: 3, mock: 1 },
+          { option: "contrast", control: "slider", label: "Contrast", min: 0, max: 2, step: 0.01, apply: { live: "vout" }, ticks: 3, mock: 1 },
+          { option: "saturation", control: "slider", label: "Saturation", min: 0, max: 3, step: 0.01, apply: { live: "vout" }, ticks: 4, mock: 1 },
+          { option: "gamma", control: "slider", label: "Gamma", min: 0.01, max: 10, step: 0.01, apply: { live: "vout" }, ticks: 11, mock: 1 },
+          { action: "reset-picture", control: "button", label: "Reset picture", buttonTitle: "Reset" },
+        ]},
+        { title: "Deinterlacing", rows: [
+          { option: "deinterlace", control: "dropdown", label: "Deinterlacing", apply: { live: "vout" },
+            info: "Removes comb lines from interlaced video (TV recordings, DVDs).",
+            choices: [[-1, "Automatic"], [0, "Off"], [1, "On"]], mock: -1 },
+          { option: "deinterlace-mode", control: "dropdown", label: "Method", apply: { live: "vout" },
+            info: "How the two halves of each interlaced frame are combined. Yadif gives the smoothest picture; Discard and Blend use the least power.",
+            choices: [["auto", "Automatic"], ["discard", "Discard"], ["blend", "Blend"], ["mean", "Mean"], ["bob", "Bob"], ["linear", "Linear"],
+                      ["x", "X"], ["yadif", "Yadif"], ["yadif2x", "Yadif (2x)"], ["phosphor", "Phosphor"], ["ivtc", "Film NTSC (IVTC)"]],
+            mock: "auto" },
+        ]},
+        { title: "Framing", rows: [
+          { option: "aspect-ratio", control: "dropdown", label: "Aspect ratio", apply: { live: "vout" },
+            info: "The shape of the picture. Automatic uses the shape stored in the video.",
+            choices: [["", "Automatic"], ["16:9", "16:9"], ["4:3", "4:3"], ["1:1", "1:1"], ["16:10", "16:10"], ["2.21:1", "2.21:1"],
+                      ["2.35:1", "2.35:1"], ["2.39:1", "2.39:1"], ["5:4", "5:4"]], mock: "" },
+          { option: "crop", control: "dropdown", label: "Crop", info: "Cuts the picture to this shape, for example to remove black bars.", apply: { live: "vout" },
+            choices: [["", "None"], ["16:10", "16:10"], ["16:9", "16:9"], ["4:3", "4:3"], ["1.85:1", "1.85:1"], ["2.21:1", "2.21:1"],
+                      ["2.35:1", "2.35:1"], ["2.39:1", "2.39:1"], ["5:3", "5:3"], ["5:4", "5:4"], ["1:1", "1:1"]], mock: "" },
+          { option: "autoscale", control: "toggle", label: "Scale video to the window", info: "Off shows the video at its own size, even when the window is larger or smaller.", apply: { live: "vout" }, mock: true },
+          // VLC_VIDEO_FIT_SMALLER/LARGER/WIDTH/HEIGHT (include/vlc_vout_display.h).
+          { option: "fit", control: "dropdown", label: "Zoom", apply: { live: "vout" },
+            info: "How the video fills the window when their shapes differ. Fill crops the edges.",
+            choices: [[1, "Fit"], [2, "Fill"], [3, "Fit width"], [4, "Fit height"]], mock: 1 },
+          { option: "align", control: "dropdown", label: "Position in the window", info: "Where the picture sits when it does not fill the window.",
+            choices: [[0, "Center"], [1, "Left"], [2, "Right"], [4, "Top"], [8, "Bottom"], [5, "Top left"], [6, "Top right"], [9, "Bottom left"], [10, "Bottom right"]],
+            mock: 0 },
+        ]},
+        { title: "Snapshots", rows: [
+          { option: "snapshot-path", control: "directory", label: "Save to", info: "Where snapshots are saved. Empty saves them to your Pictures folder.", buttonTitle: "Browse", placeholder: "~/Pictures", mock: "" },
+          { option: "snapshot-prefix", control: "text", label: "File name prefix", info: "The start of every snapshot's file name.", mock: "vlcsnap-" },
+          { option: "snapshot-format", control: "dropdown", label: "Format", info: "The image format of snapshots. PNG keeps full quality; JPEG makes smaller files.",
+            choices: [["png", "PNG"], ["jpg", "JPEG"], ["tiff", "TIFF"], ["webp", "WebP"]], mock: "png" },
+          { id: "snapshot-size", control: "dropdown", label: "Size", info: "The size of snapshots. Same as video keeps every pixel of the frame.",
+            composite: [
+              { title: "Same as video", values: { "snapshot-width": -1, "snapshot-height": -1 } },
+              { title: "1920 × 1080", values: { "snapshot-width": 1920, "snapshot-height": 1080 } },
+              { title: "1280 × 720", values: { "snapshot-width": 1280, "snapshot-height": 720 } },
+              { title: "640 × 360", values: { "snapshot-width": 640, "snapshot-height": 360 } },
+            ]},
+          { option: "snapshot-sequential", control: "toggle", label: "Number files sequentially", info: "Names snapshots 1, 2, 3… instead of with the time in the video.", mock: true },
+          { option: "snapshot-preview", control: "toggle", label: "Show a preview after capture", info: "Briefly shows the snapshot over the video after you take it.", mock: true },
+        ]},
+        { title: "Advanced Options", advanced: true, rows: [
+          { option: "custom-aspect-ratios", control: "text", label: "Custom aspect ratios", info: "Extra shapes to offer in the Aspect ratio menus, separated by commas.", placeholder: "e.g., 16:9,4:3", mock: "" },
+          { option: "custom-crop-ratios", control: "text", label: "Custom crop ratios", info: "Extra shapes to offer in the Crop menus, separated by commas.", placeholder: "e.g., 16:9,4:3", mock: "" },
+          { option: "monitor-par", control: "text", label: "Monitor pixel aspect ratio", info: "The shape of one pixel on your display. Leave 1:1 unless the picture looks stretched on every video.", mock: "1:1" },
+        ]},
+      ]},
+
+    { id: "audio", group: "media", sidebar: "Audio", title: "Audio Defaults", icon: "audio",
+      sections: [
+        { title: "Output", rows: [
+          { option: "audio", control: "toggle", label: "Enable audio", info: "Off plays video without sound.", mock: true },
+          // auhal remembers the device itself (modules/audio_output/apple/auhal.c); "0" follows the system output.
+          { option: "auhal-audio-device", control: "dropdown", label: "Output device", choiceSource: "audio-devices",
+            info: "Where sound plays. You can also switch from the audio button while watching.",
+            choices: [["", "System default"]], mock: "" },
+          { option: "mix-mode", control: "dropdown", label: "Speaker setup", apply: { live: "aout" },
+            info: "The speakers VLC mixes the sound for. Automatic follows the output device; Binaural renders surround for headphones.",
+            choices: [[0, "Automatic"], [1, "Stereo"], [2, "Binaural"], [3, "4.0"], [4, "5.1"], [5, "7.1"]], mock: 0 },
+        ]},
+        { title: "Volume", rows: [
+          { option: "macosx-redesign-max-volume", control: "slider", label: "Maximum volume", min: 100, max: 300, step: 10, unit: "%",
+            scaleLabels: ["100%", "200%", "300%"], ticks: 9, mock: 200 },
+          { option: "volume-save", control: "stackedChoice", label: "Startup volume",
+            info: "Start with the last volume you used, or always at the same level.",
+            choices: [[true, "Remember last volume"], [false, "Always starts at:"]], mock: true,
+            secondaryOption: "macosx-redesign-startup-volume", secondaryMock: 200, unit: "%" },
+          // 3176:16509 shows the bare number; the unit is in the ⓘ.
+          { option: "macosx-redesign-volume-step", control: "number", label: "Volume step", min: 1, max: 50,
+            info: "How many percent the keys and scroll wheel change the volume.", mock: 1 },
+        ]},
+        { title: "Loudness", rows: [
+          { option: "macosx-redesign-normvol", control: "toggle", label: "Normalize loudness", apply: { live: "aout" },
+            info: "Keeps quiet and loud parts at a similar level.", mock: false },
+          // 3073:15879 draws Target level enabled while Normalize loudness is off: it can be set first.
+          { option: "norm-max-level", control: "number", label: "Target level", min: 0, max: 10, mock: 1,
+            info: "How loud normalized sound may get. Lower values keep loud passages quieter. Used when Normalize loudness is on." },
+          { option: "macosx-redesign-night-mode", control: "toggle", label: "Night mode", apply: { live: "aout" },
+            info: "Softens explosions and lifts dialog for quiet listening.", mock: false },
+          { option: "audio-replay-gain-mode", control: "dropdown", label: "Replay gain",
+            info: "Uses the loudness information stored in music files.",
+            choices: [["none", "Off"], ["track", "Track"], ["album", "Album"]], mock: "none" },
+          { option: "audio-replay-gain-preamp", control: "number", label: "Replay gain preamp", min: -20, max: 20, step: 0.1, mock: 0.0,
+            info: "Raises or lowers files that carry replay gain information, in decibels." },
+        ]},
+        { title: "Effects", rows: [
+          { option: "macosx-redesign-equalizer", control: "toggle", label: "Equalizer", info: "Shapes the sound with ten frequency bands or a preset.", apply: { live: "aout" }, mock: false },
+          { option: "equalizer-preset", control: "dropdown", label: "Equalizer preset", info: "A ready-made equalizer curve for a kind of music.", apply: { live: "aout" },
+            choices: [["", "None"], ["flat", "Flat"], ["classical", "Classical"], ["club", "Club"], ["dance", "Dance"], ["fullbass", "Full bass"],
+                      ["fullbasstreble", "Full bass & treble"], ["fulltreble", "Full treble"], ["headphones", "Headphones"], ["largehall", "Large hall"],
+                      ["live", "Live"], ["party", "Party"], ["pop", "Pop"], ["reggae", "Reggae"], ["rock", "Rock"], ["ska", "Ska"], ["soft", "Soft"],
+                      ["softrock", "Soft rock"], ["techno", "Techno"]], mock: "" },
+          { option: "equalizer-bands", control: "equalizer", label: "Equalizer", info: "Shapes the sound with ten frequency bands or a preset.", buttonTitle: "Open Equalizer", min: -20, max: 20,
+            apply: { live: "aout" }, mock: "0 0 0 0 0 0 0 0 0 0" },
+          { option: "equalizer-2pass", control: "toggle", label: "Two-pass", apply: { live: "aout" }, info: "Applies the equalizer twice for a stronger effect.", mock: false },
+          { option: "macosx-redesign-spatial-audio", control: "toggle", label: "Spatial audio", info: "Places surround sound around you on headphones or speakers.", apply: { live: "aout" }, mock: false },
+          { option: "macosx-redesign-spatial-mode", control: "dropdown", label: "Spatial audio mode", info: "Headphone virtualization for headphones; the room spatializer for speakers.", apply: { live: "aout" },
+            choices: [["headphones", "Headphone virtualization"], ["spatializer", "Room spatializer"]], mock: "headphones" },
+          { option: "macosx-redesign-stereo-widen", control: "toggle", label: "Stereo widening", info: "Makes stereo sound wider than the speakers.", apply: { live: "aout" }, mock: false },
+          { option: "macosx-redesign-compressor", control: "toggle", label: "Compressor", info: "Evens out loud and quiet moments.", apply: { live: "aout" }, mock: false },
+          { option: "pitch-shift", control: "number", label: "Pitch shift", info: "Raises or lowers the pitch without changing the speed.", unit: "semitones", min: -12, max: 12, apply: { live: "aout" }, mock: 0.0 },
+          { option: "macosx-redesign-chorus", control: "toggle", label: "Chorus/flanger", info: "Adds a shimmering, doubled effect to the sound.", apply: { live: "aout" }, mock: false },
+          { option: "macosx-redesign-karaoke", control: "toggle", label: "Karaoke", apply: { live: "aout" },
+            info: "Removes the voice from most songs.", mock: false },
+        ]},
+        { title: "Tracks", rows: [
+          { option: "audio-language", control: "dropdown", label: "Preferred audio language", info: "The audio track VLC picks first when a file has several languages.",
+            choices: [["", "System language"], ["en", "English"], ["ja", "Japanese"], ["es", "Spanish"], ["fr", "French"], ["de", "German"], ["it", "Italian"]],
+            mock: "" },
+          { option: "audio-desync", control: "number", label: "Audio delay", unit: "ms", min: -10000, max: 10000,
+            info: "Positive values play the sound later.", mock: 0 },
+        ]},
+        { title: "Visualization", rows: [
+          { id: "visualizer", control: "dropdown", label: "Visualizer", info: "Shown while playing audio without video.",
+            composite: [
+              { title: "Disabled", values: { "audio-visual": "none" } },
+              { title: "Spectrometer", values: { "audio-visual": "visual", "effect-list": "spectrometer" } },
+              { title: "Scope", values: { "audio-visual": "visual", "effect-list": "scope" } },
+              { title: "Spectrum", values: { "audio-visual": "visual", "effect-list": "spectrum" } },
+              { title: "Waveform", values: { "audio-visual": "glspectrum" } },
+            ]},
+        ]},
+        { title: "Advanced Options", advanced: true, rows: [
+          { option: "spdif", control: "toggle", label: "Pass compressed audio to the receiver",
+            info: "Sends Dolby and DTS untouched to an A/V receiver (S/PDIF, HDMI).", mock: false },
+          { option: "force-dolby-surround", control: "dropdown", label: "Detect Dolby Surround", info: "Treats stereo sound as Dolby Surround to send it to more speakers. Automatic decides per file.",
+            choices: [[0, "Automatic"], [1, "On"], [2, "Off"]], mock: 0 },
+          { option: "soxr-resampler-quality", control: "dropdown", label: "Resampling quality", info: "How carefully VLC converts sound to your output's sample rate. Higher quality uses more power.",
+            choices: [[0, "Fastest"], [1, "Fast"], [2, "Balanced"], [3, "High"], [4, "Best"]], mock: 2 },
+          { option: "role", control: "dropdown", label: "Media role", info: "Tells macOS what kind of sound VLC plays.",
+            choices: [["video", "Video"], ["music", "Music"], ["communication", "Communication"], ["game", "Game"], ["notification", "Notification"],
+                      ["animation", "Animation"], ["production", "Production"], ["accessibility", "Accessibility"], ["test", "Test"]], mock: "video" },
+          // D035: "Visualization size" is not shown; visualizations always fill the video area.
+        ]},
+      ]},
+
+    { id: "subtitles", group: "media", sidebar: "Subtitles", title: "Subtitle Defaults", icon: "subtitles",
+      sections: [
+        { title: "Tracks & Languages", rows: [
+          { option: "spu", control: "toggle", label: "Enable subtitles", info: "Shows subtitles when a file has them.", mock: true },
+          { option: "sub-language", control: "dropdown", label: "Preferred language",
+            info: "The subtitle language to choose automatically.",
+            choices: [["", "System language"], ["en", "English"], ["ja", "Japanese"], ["es", "Spanish"], ["fr", "French"], ["de", "German"], ["it", "Italian"]],
+            mock: "" },
+          { option: "subsdec-encoding", control: "dropdown", label: "Text encoding",
+            info: "Fixes garbled characters in older subtitle files.",
+            choices: [["", "Automatic"], ["UTF-8", "Universal (UTF-8)"], ["UTF-16", "Universal (UTF-16)"], ["ISO-8859-15", "Western European (Latin-9)"],
+                      ["Windows-1252", "Western European (Windows-1252)"], ["ISO-8859-2", "Eastern European (Latin-2)"], ["Windows-1251", "Cyrillic (Windows-1251)"],
+                      ["KOI8-R", "Russian (KOI8-R)"], ["GB18030", "Chinese (GB18030)"], ["Big5", "Chinese Traditional (Big5)"], ["Shift_JIS", "Japanese (Shift JIS)"],
+                      ["EUC-KR", "Korean (EUC-KR)"], ["Windows-1256", "Arabic (Windows-1256)"], ["Windows-1255", "Hebrew (Windows-1255)"]],
+            mock: "" },
+        ]},
+        { title: "Loading Subtitles", rows: [
+          { option: "sub-autodetect-file", control: "toggle", label: "Load subtitle files automatically",
+            info: "Loads subtitle files found next to the video.", mock: true },
+          { option: "sub-autodetect-fuzzy", control: "dropdown", label: "File name matching",
+            info: "How closely a subtitle file's name must match the video's name.",
+            choices: [[0, "Off"], [1, "Any title"], [2, "Contains title"], [3, "Title with extra characters"], [4, "Exact title match"]],
+            mock: 3, enabledWhen: { option: "sub-autodetect-file", equals: true } },
+        ]},
+        { title: "Appearance", rows: [
+          { option: "freetype-font", control: "text", label: "Font", apply: "next-media", info: "The font used for subtitles.",
+            placeholder: "System, sans-serif", mock: "System, sans-serif" },
+          { option: "macosx-redesign-sub-size-mode", control: "segmented", label: "Size values", apply: { live: "vout" },
+            info: "Relative sizes follow the video size; pixels stay fixed.",
+            choices: [["relative", "Relative"], ["pixels", "Pixels"]], mock: "relative" },
+          { option: "sub-text-scale", control: "dropdown", label: "Font size", apply: { live: "vout" },
+            choices: [[100, "Automatic"], [50, "Smaller"], [75, "Small"], [125, "Large"], [150, "Larger"], [200, "Huge"]], mock: 100,
+            visibleWhen: { option: "macosx-redesign-sub-size-mode", equals: "relative" } },
+          { option: "macosx-redesign-sub-pixel-size", control: "number", label: "Font size", unit: "px", min: 6, max: 200, apply: { live: "vout" },
+            mock: 18, visibleWhen: { option: "macosx-redesign-sub-size-mode", equals: "pixels" } },
+          { option: "freetype-bold", control: "toggle", label: "Bold", apply: "next-media", mock: false },
+          { option: "freetype-color", control: "color", label: "Text color", apply: { live: "vout" }, mock: 16777215 },
+          { option: "freetype-opacity", control: "slider", label: "Text opacity", min: 0, max: 255, step: 1, apply: "next-media",
+            scaleLabels: ["0%", "50%", "100%"], mock: 255 },
+          { option: "freetype-outline-thickness", control: "dropdown", label: "Outline thickness", apply: { live: "vout" },
+            choices: [[0, "None"], [2, "Thin"], [4, "Normal"], [6, "Thick"]], mock: 4 },
+          { option: "freetype-outline-color", control: "color", label: "Outline color", apply: "next-media", mock: 0 },
+          { option: "macosx-redesign-sub-shadow", control: "toggle", label: "Shadow", apply: "next-media",
+            info: "", mock: true },
+          { option: "freetype-shadow-color", control: "color", label: "Shadow color", apply: "next-media", mock: 0,
+            enabledWhen: { option: "macosx-redesign-sub-shadow", equals: true } },
+          { option: "freetype-shadow-distance", control: "dropdown", label: "Shadow distance", apply: "next-media",
+            choices: [[0.06, "Small"], [0.12, "Medium"], [0.2, "Large"]], mock: 0.06,
+            enabledWhen: { option: "macosx-redesign-sub-shadow", equals: true } },
+          { option: "macosx-redesign-sub-background", control: "dropdown", label: "Background", apply: { live: "vout" },
+            choices: [["none", "None"], ["box", "Box"]], mock: "none" },
+          { option: "freetype-background-color", control: "color", label: "Background color", apply: { live: "vout" }, mock: 0 },
+          { option: "freetype-background-opacity", control: "slider", label: "Background opacity", min: 0, max: 255, step: 1,
+            apply: { live: "vout" }, scaleLabels: ["0%", "50%", "100%"], mock: 128 },
+          { option: "macosx-redesign-sub-position", control: "dropdown", label: "Vertical position", apply: { live: "vout" },
+            choices: [["bottom", "Bottom"], ["top", "Top"]], mock: "bottom" },
+        ]},
+        { title: "Timing", rows: [
+          { option: "sub-delay", control: "slider", label: "Subtitle delay", min: -5, max: 5, step: 0.1, unit: "s", engineUnitsPerUnit: 10,
+            scaleLabels: ["-5 s", "0 s", "+5 s"], info: "", mock: 0 },
+        ]},
+        { title: "On-Screen Messages", rows: [
+          { option: "osd", control: "toggle", label: "Show feedback for shortcuts",
+            info: "Shows what a shortcut did and which key you pressed.", mock: true },
+          { option: "macosx-redesign-osd-duration", control: "slider", label: "Show feedback for", min: 0.5, max: 5, step: 0.5, unit: "s",
+            scaleLabels: ["0.5 s", "5 s"], mock: 1.5, enabledWhen: { option: "osd", equals: true } },
+          { option: "video-title-show", control: "toggle", label: "Show filename when a video starts", info: "Shows the file name over the video for a moment when it starts.", mock: true },
+          { option: "video-title-timeout", control: "slider", label: "Show filename for", min: 1000, max: 10000, step: 500, unit: "ms",
+            scaleLabels: ["1 s", "10 s"], mock: 5000, enabledWhen: { option: "video-title-show", equals: true } },
+        ]},
+        { title: "Advanced Options", advanced: true, rows: [
+          { option: "sub-autodetect-path", control: "text", label: "Load subtitles from these folders",
+            info: "Folders searched for subtitles, relative to the video (comma separated).", mock: "./Subtitles, ./subtitles, ./Subs, ./subs" },
+          { option: "macosx-redesign-sub-ignore-styles", control: "toggle", label: "Ignore styling in ASS and SSA subtitles", info: "Shows styled subtitles with your own font and colors.", mock: false },
+          { option: "freetype-shadow-angle", control: "number", label: "Shadow angle", info: "The direction the shadow falls from the text.", unit: "°", min: -360, max: 360, apply: "next-media", mock: 0 },
+          { option: "freetype-text-direction", control: "dropdown", label: "Text direction",
+            info: "The reading direction of subtitle text.",
+            choices: [[0, "Left to right"], [1, "Right to left"], [2, "Automatic"]], mock: 0 },
+          { option: "freetype-monofont", control: "text", label: "Monospace font", info: "The font used for subtitles that need equal-width letters, such as closed captions.", placeholder: "System monospace", mock: "System monospace" },
+        ]},
+      ]},
+
+    { id: "library", group: "media", sidebar: "Library", title: "Playlists, Folders & Files", icon: "folder",
+      sections: [
+        { title: "Opening Files", rows: [
+          // D035: VLC's one-instance options exist only on Windows and Linux; macOS always opens files in the running VLC.
+          { option: "recursive", control: "dropdown", label: "When opening a folder",
+            info: "Whether files inside subfolders are added too.",
+            choices: [["collapse", "Include subfolders"], ["expand", "Include and expand subfolders"], ["none", "Only this folder"]], mock: "collapse" },
+          { option: "show-hiddenfiles", control: "toggle", label: "Show hidden files",
+            info: "Includes files whose names start with a dot when opening folders.", mock: false },
+        ]},
+        { title: "Metadata & Artwork", rows: [
+          { id: "artwork-source", control: "dropdown", label: "Fetch titles and artwork",
+            info: "Where VLC looks for titles, cover art and other information.",
+            composite: [
+              { title: "From the file only", values: { "metadata-network-access": false } },
+              { title: "From the file and the internet", values: { "metadata-network-access": true } },
+            ]},
+          { option: "media-library", control: "toggle", label: "Use the media library", apply: "restart",
+            info: "Indexes your folders for the library, Home and Continue Watching.", mock: true },
+        ]},
+        { title: "Advanced Options", advanced: true, rows: [
+          { option: "ignore-filetypes", control: "text", label: "Ignored file types", info: "Extensions skipped when opening folders.",
+            mock: "m3u,db,nfo,ini,jpg,jpeg,png,txt,sub,idx,srt,cue,ssa" },
+          { action: "rescan-library", control: "button", label: "Rescan the library", buttonTitle: "Rescan",
+            info: "Looks through your library folders again for new, changed or removed files." },
+        ]},
+      ]},
+
+    // ───────────────────────────── System ─────────────────────────────
+    { id: "network", group: "system", sidebar: "Network", title: "Network Connections & Security", icon: "streaming",
+      sections: [
+        { title: "Buffering", rows: [
+          { id: "buffering", control: "dropdown", label: "Buffering",
+            info: "How much media is loaded ahead. More buffering means fewer stalls but a slower start.",
+            composite: [
+              { title: "Normal", values: { "macosx-redesign-buffering-custom": false, "file-caching": 1000, "disc-caching": 300, "network-caching": 1000, "live-caching": 300 } },
+              { title: "Low latency", values: { "macosx-redesign-buffering-custom": false, "file-caching": 300, "disc-caching": 300, "network-caching": 300, "live-caching": 100 } },
+              { title: "Large", values: { "macosx-redesign-buffering-custom": false, "file-caching": 3000, "disc-caching": 1000, "network-caching": 5000, "live-caching": 1000 } },
+              { title: "Custom", values: { "macosx-redesign-buffering-custom": true } },
+            ]},
+          { option: "file-caching", control: "number", label: "Local files", unit: "ms", min: 0, max: 60000, mock: 1000,
+            enabledWhen: { option: "macosx-redesign-buffering-custom", equals: true } },
+          { option: "disc-caching", control: "number", label: "Discs", unit: "ms", min: 0, max: 60000, mock: 300,
+            enabledWhen: { option: "macosx-redesign-buffering-custom", equals: true } },
+          { option: "network-caching", control: "number", label: "Network streams", unit: "ms", min: 0, max: 60000, mock: 1000,
+            enabledWhen: { option: "macosx-redesign-buffering-custom", equals: true } },
+          { option: "live-caching", control: "number", label: "Live capture", unit: "ms", min: 0, max: 60000, mock: 300,
+            enabledWhen: { option: "macosx-redesign-buffering-custom", equals: true } },
+        ]},
+        // D035: VLC 4 on macOS uses the proxy from System Settings; it has no proxy options of its own.
+        { title: "Security", rows: [
+          { option: "gnutls-system-trust", control: "toggle", label: "Verify certificates against the system trust store",
+            info: "Uses the certificates trusted by macOS for secure streams.", mock: true },
+          // D035: "Cipher preference" is not shown; macOS Secure Transport chooses the cipher.
+        ]},
+        { title: "Advanced Options", advanced: true, rows: [
+          { option: "ipv4-timeout", control: "number", label: "Connection timeout", unit: "ms", min: 0, max: 60000,
+            info: "How long VLC waits for a server to answer before giving up.", mock: 5000 },
+          { option: "mtu", control: "number", label: "Packet size (MTU)", unit: "bytes", min: 0, max: 65535,
+            info: "The largest network packet VLC sends when streaming. Change only if your network needs it.", mock: 1400 },
+        ]},
+      ]},
+
+    { id: "performance", group: "system", sidebar: "Performance", title: "Performance Settings", icon: "preferences",
+      sections: [
+        { title: "Decoding", rows: [
+          { option: "dec-dev", control: "dropdown", label: "Hardware-accelerated decoding",
+            info: "Uses the graphics chip to decode video, which saves battery.",
+            choices: [["any", "Automatic"], ["videotoolbox", "VideoToolbox"], ["none", "Off"]], mock: "any" },
+          { option: "postproc-q", control: "dropdown", label: "Video post-processing",
+            info: "Reduces blocky artifacts in low-quality video. Uses more CPU.",
+            choices: [[0, "Off"], [1, "Low"], [3, "Medium"], [6, "High"]], mock: 0 },
+          { option: "avcodec-skiploopfilter", control: "dropdown", label: "Skip the H.264 loop filter",
+            info: "Speeds up decoding on slow Macs at some cost in quality.",
+            choices: [[0, "Never"], [1, "Non-reference frames"], [2, "Bidirectional frames"], [3, "Non-key frames"], [4, "All frames"]], mock: 0 },
+          { option: "avcodec-threads", control: "number", label: "Decoding threads", info: "How many processor cores decode video. 0 lets VLC decide.", min: 0, max: 32, mock: 0 },
+        ]},
+        { title: "Smooth Playback", rows: [
+          // 6571:16022: no ⓘ on this row.
+          { option: "drop-late-frames", control: "toggle", label: "Drop frames when the system can't keep up",
+            info: "", mock: true },
+        ]},
+        // D035: Figma's "Give VLC real-time priority" and "Encoder" are obsolete in VLC 4 (add_obsolete_*
+        // in src/libvlc-module.c); "Rescan plugins" has nothing to rescan (the plugins are sealed in the
+        // signed app bundle and their cache is built at install).
+        // 6571:16321: the Developer section is the category's Advanced Options.
+        { title: "Developer", advanced: true, rows: [
+          { option: "codec", control: "dropdown", label: "Decoder", info: "Forces one decoder for every file. Automatic picks the best one per file.",
+            choices: [["any", "Automatic"], ["avcodec", "FFmpeg"], ["videotoolbox", "VideoToolbox"]], mock: "any" },
+          { option: "clock-synchro", control: "dropdown", label: "Clock synchronisation", info: "How VLC follows the timing of live streams. Default lets VLC decide per stream.",
+            choices: [[-1, "Default"], [0, "Off"], [1, "On"]], mock: -1 },
+          { option: "clock-jitter", control: "number", label: "Clock jitter", unit: "ms", min: 0, max: 60000, mock: 5000,
+            info: "Timing errors up to this size are smoothed out instead of corrected." },
+          { option: "cr-average", control: "number", label: "Clock reference averaging", min: 0, max: 1000, mock: 40,
+            info: "How many clock samples VLC averages for live streams." },
+        ]},
+      ]},
+
+    { id: "recording", group: "system", sidebar: "Recording", title: "Recording, Casting & Streaming Out", icon: "record",
+      sections: [
+        { title: "Recording", rows: [
+          { option: "input-record-path", control: "directory", label: "Save recordings to", buttonTitle: "Browse", placeholder: "~/Movies",
+            info: "Where the Record button saves files. Empty saves to your Movies folder.", mock: "" },
+          { option: "input-record-native", control: "toggle", label: "Record without re-encoding when possible",
+            info: "", mock: true },
+        ]},
+        // D035: cast devices are found when you open the cast menu; there is no separate discovery or quality option.
+        // 6571:16429: the record-native, play-locally and include-* rows have no ⓘ.
+        { title: "Streaming", rows: [
+          { option: "sout-display", control: "toggle", label: "Play locally while streaming",
+            info: "", mock: false },
+          { option: "sout-audio", control: "toggle", label: "Include audio", info: "", mock: true },
+          { option: "sout-video", control: "toggle", label: "Include video", info: "", mock: true },
+          { option: "sout-spu", control: "toggle", label: "Include subtitles", info: "", mock: true },
+          { option: "sout-x264-preset", control: "dropdown", label: "Encoding preset",
+            info: "Slower presets give smaller files at the same quality.",
+            // x264 uses its medium preset when none is set, so the empty default is "Medium" (6571:16813).
+            choices: [["ultrafast", "Ultra fast"], ["superfast", "Super fast"], ["veryfast", "Very fast"], ["faster", "Faster"], ["fast", "Fast"],
+                      ["", "Medium"], ["slow", "Slow"], ["slower", "Slower"], ["veryslow", "Very slow"]], mock: "" },
+          { option: "sout-x264-tune", control: "dropdown", label: "Tuning",
+            choices: [["", "None"], ["film", "Film"], ["animation", "Animation"], ["grain", "Grain"], ["stillimage", "Still image"],
+                      ["fastdecode", "Fast decode"], ["zerolatency", "Zero latency"]], mock: "",
+            info: "Tunes H.264 encoding for the kind of picture you convert." },
+        ]},
+        { title: "Advanced Options", advanced: true, rows: [
+          { option: "sout-keep", control: "toggle", label: "Keep the stream open between items",
+            info: "Keeps compatible output open for the next streaming job. Different destinations or profiles start a new output.", mock: false },
+          { option: "sout-mux-caching", control: "number", label: "Output buffer", unit: "ms", min: 0, max: 60000,
+            info: "How much VLC buffers before writing a stream or file. More is smoother on slow disks and networks.", mock: 1500 },
+        ]},
+      ]},
+
+    { id: "extensions", group: "system", sidebar: "Extensions", title: "Add-ons & Scripts", icon: "plugins",
+      sections: [
+        { title: "Add-ons", rows: [
+          { id: "extensions-list", control: "extensionList", label: "Add-ons",
+            info: "Lua extensions and add-ons. Select one to enable, disable or remove it." },
+          // 6575:17137: no ⓘ on this row; the restart note appears once it is changed.
+          { option: "lua", control: "toggle", label: "Load add-ons on startup", apply: "restart", mock: true },
+        ]},
+        // 6575:17137: "Advanced Options" under "Load add-ons on startup".
+        { title: "Advanced Options", advanced: true, rows: [
+          { action: "open-extensions-folder", control: "button", label: "Extensions folder", buttonTitle: "Open",
+            info: "Shows the folder VLC loads your Lua extensions from in Finder." },
+          { action: "show-all-modules", control: "button", label: "VLC modules", buttonTitle: "Show all modules",
+            info: "Every internal module option, for experts.", visibleWhen: { option: "macosx-redesign-developer-mode", equals: true } },
+        ]},
+      ]},
+  ],
+  // Never listed in the generic "VLC modules" tree (app options appear through the rows above).
+  hidden: ["intf", "extraintf", "control", "macosx-redesign-*", "key-*", "global-key-*", "bookmark*", "meta-*"],
+}

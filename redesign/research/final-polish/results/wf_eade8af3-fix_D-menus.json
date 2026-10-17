@@ -1,0 +1,54 @@
+{
+ "status": "partial",
+ "summary": "I checked the previous fixer's work (WIP 951f073be2) against the code, not its narration. All 12 confirmed D-menus findings are already fixed in my files. My part was getting it to build and pass. swift build is green now. These targeted suites pass: MenuAuditRegressionTests 8/8, AnchoredPopupPinPolicyTests 3/3, PopupMenuTests 13/13, PanelAuditRegressionTests 8/8, ModalIsolationTests 6/6, ShortcutDefaultsTests 7/7, ModalCaptureTests 3/3 and DialogIsolationTests 2/2. What I fixed:\n(1) Two new popup tests crashed with SIGSEGV. They created an NSWindow, left isReleasedWhenClosed at its default (true), then called close(), which over-releases the window. Fixed in the tests.\n(2) The overflow test looked for the titles \"Previous\"/\"Next\", but the real titles are \"Previous Item\"/\"Next Item\". The test now uses AppCommand.title.\n(3) The new S10.BarMenu/hdr gallery entry claimed figmaNode 2372:8733. That node is the settings HDR dropdown, 406×422 pt, so GalleryRenderTests failed on size. I removed the claim and kept the Figma choices and order in the notes.\n(4) Two test files outside my area did not compile, which blocked every test run. I made the smallest fixes, listed in editsOutsideOwnership.\nI checked the renders myself. S07, S09, S10 hdr/overflow/playlist and S68 match Figma apart from the documented D026 Mac glyphs. S68 now gets the same result on the image, hosting and shipping-window engines (mean |Δ| 0.85/255), so the capture artifact is gone. Its verdict is still FAIL, though. The cause is a shadow tail of alpha 1–2 px / 2/255 around the submenu edge. I did not loosen the threshold.\nThe live real-app check was NOT done. wait-idle.sh exited 1 (\"Mac in use (idle 10s) after 900s\"), and the native lock was held by C-bridge. I did not build, install or launch anything.",
+ "fixed": [
+  "D-01: CommandSource .ui/.system + AppCommand.isTransport. canPerform(_:from:) blocks UI behind a dialog but lets system transport through. MXRRemoteControl.run returns .commandFailed when refused. The status item uses .system. Test: ModalIsolationTests.testSystemTransportWorksBehindDialogButUIDoesNot / testSystemPlayWithEmptyQueueIsRefusedBehindDialog.",
+  "D-02: MXRMenuAccessibility.swift. The hosting view is an AXMenu. Each row is an NSAccessibilityElement AXMenuItem with MarkChar ✓, CmdChar/CmdGlyph/CmdModifiers, enabled state, press action and submenu child. AXMenuOpened/Closed and highlight notifications are posted. The 'Selected' value and button trait are gone. Test: MenuAuditRegressionTests.testPresentedMenuIsAnAXMenuOfMenuItems, testMenuKeyAttributesMatchNSMenu.",
+  "D-03: No .contextMenu, Menu, .popover or .menuStyle left under Sources/MXRUI (grep is empty). A source-lint test fails on them: testProductUIHasNoNativeMenusOrPopovers. The D034 sentence in DECISIONS.md was updated by the previous fixer.",
+  "D-04: hdrModes lists all HDRMode cases in Figma order. Only Auto is checked and enabled. A separator and a secondary disabled 'Manual modes unavailable' row follow. Test: testHDRMenuListsChoicesWithOnlyAutomaticEnabled. Render: final/D-menus/r2/S10_BarMenu_hdr.png.",
+  "D-05: video(includesFullscreen:false) for the menu-bar Video menu. The borrowed policies are gone: NativeAction rows use the row's enabled state plus isBehindModal. Test: testVideoMenuForMenuBarOmitsFullscreen.",
+  "D-06: The Audio/Video menu-bar menus are LazyMenuSource. They rebuild only when Observation marks them dirty, and each submenu gets its own lazy delegate (no eager children()).",
+  "D-07: One shared MXRPlayerMenus.addToPlaylist/playlistItems, used by the player Playlist submenu and LibraryPopup. It has the separator after New Playlist… and an onError hook. Playlists load through MXRMenuItem.onOpen, which the presenter and native menuWillOpen call, not inside the provider. Test: testAddToPlaylistLoadsOnOpenAndSeparatesNewPlaylist.",
+  "D-08: overflowMenu skips context rows already shown. Every overflow row gets PlayerControl.barIcon. PiP, Replay, Playlists, Chapters and Bookmarks are gated by canPerform/capabilities. Tests: testOverflowDoesNotRepeatContextRowsAndShowsBarIcons, testOverflowRowsFollowTheCommandGate. Render: r2/S10_Overflow_compact-bar.png.",
+  "D-09: ',' removed from the hasModal allow-list, with the doc comment and testModalMenuPolicy updated. The InterfaceModel comment no longer says ⌃\\ (grep is empty).",
+  "D-10: MXRPopupCenter.anchoredOwner plus the .mxrPopupOwner environment. PlayerBars tags .playerTopBar/.playerControlBar, and PlayerChrome pins only the bar that owns the popup. The test drives a real MXRPopupAnchor session: AnchoredPopupPinPolicyTests 3/3.",
+  "D-12: The popup outside shadow is rasterized as a CG bitmap (MXRPopupShadowImage), so all capture engines agree. S68 on image/hosting/shipping-window: mean |Δ| 0.85–0.86/255, identical verdicts (final/D-menus/S68-*/report.txt, r2/S68_ProfileSubmenu_movies).",
+  "D-13: MenusGallery adds product-built entries with a playingEpisode mock and no overrides: S10.BarMenu/{speed,hdr,zoom}, S10.Overflow/compact-bar and S10.ContextSubmenu/{playback,video,audio,subtitle,playlist}. I fixed the wrong figmaNode on the hdr entry."
+ ],
+ "notFixed": [
+  {
+   "id": "live-app verification (D-01, D-02, D-05, COMP-04 Esc)",
+   "why": "wait-idle.sh 900 exited 1: the owner was using the Mac, and the native lock was held by C-bridge. Nothing was built, installed or launched. The integrator should run the live check after install: media key behind a sheet, VoiceOver/Accessibility Inspector on the ⋯ and right-click menus, View vs Video menu Full Screen, Esc."
+  },
+  {
+   "id": "D-12 residual",
+   "why": "S68 still reports FAIL in every engine. The difference is the faint shadow tail only: render alpha 2/255 against Figma 1/255 over a sparse region around the submenu edge, and the bottom tail is about 1–2 px longer. The cards, rows and text match. I did not loosen thresholds. Tuning the bitmap blur sigma could remove it."
+  },
+  {
+   "id": "D-13 cosmetic",
+   "why": "The S10.Overflow/compact-bar gallery frame (rightClickMenu.height + contextMenu.height) is taller than the card, which leaves empty space at the bottom of the render. This only affects the gallery, not the product."
+  }
+ ],
+ "filesChanged": [
+  "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/MenuAuditRegressionTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/AnchoredPopupPinPolicyTests.swift",
+  "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/MenusGallery.swift",
+  "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/DialogIsolationTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/ModalCaptureTests.swift"
+ ],
+ "editsOutsideOwnership": [
+  "Tests/MXRUISnapshotTests/DialogIsolationTests.swift: moved three `try await markerIsReachable()` calls out of XCTAssert autoclosures into lets (compile error 'async call in an autoclosure'; unchanged for 36 min, it blocked every test build)",
+  "Tests/MXRUISnapshotTests/ModalCaptureTests.swift: added `import MXRCore` (KeyBinding not in scope; compile error blocked every test build)"
+ ],
+ "evidence": [
+  "<scratch>",
+  "<scratch>",
+  "<scratch>",
+  "<scratch>",
+  "<scratch>",
+  "<scratch>",
+  "<scratch>",
+  "<scratch>"
+ ],
+ "notesForOthers": "Integrator, in the combined GalleryRenderTests run (13 tests, 4 failures):\n- My S10 figmaNode failure is fixed.\n- Still failing outside my area: S20.Sidebar/subtitles-appearance (height 608 vs node 800:1126, 1280) and testShippingWindowMatchesFigmaPlayer6OutsideDocumentedDeviations ('transport and elapsed time' is review, not pass).\n- The other failures in that run were not read.\n\nTest windows: any test that creates an NSWindow and calls close() must set isReleasedWhenClosed = false. Otherwise the xctest process crashes with SIGSEGV and takes the whole MXRUISnapshotTests target down with it.\n\nLive real-app check of D-01, D-02, D-05 and Esc is still owed. It was skipped because the owner was using the Mac."
+}

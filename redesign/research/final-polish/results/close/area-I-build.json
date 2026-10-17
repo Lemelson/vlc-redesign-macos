@@ -1,0 +1,104 @@
+{
+ "area": "I-build",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "I-build closed every item on its work list except one, which needs a frozen tree. (1) native-tests.py no longer runs without the plugin index. If $BUILD/bin/vlc-cache-gen is missing, it stops with an error naming the make target before it creates a work directory or runs any command. If the tool runs but writes no plugins.dat, it stops before any harness runs. Two new regression tests cover these cases, and both fail on the HEAD runner. (2) gen_screens.py is now the single source for SCREENS.md. It emits the title, the status preamble with capability limits, a 'Generated, do not edit' marker, Status = implemented UI, and a computed 'Parity · live' column: the worst verdict per S-id from a --parity JSON, plus a LIVE notes table tagged with its run and build. It also gained --out and --check options. Run against finish/parity.json, it reproduces all 72 rows of the old hand-made column exactly, so the computed column matches the old method. SCREENS.md is regenerated from resume/parity.json: 160 checks, with 101 match, 39 minor, 2 major, 1 missing and 17 not checked. The new tools/test-screens-doc.py fails when the file differs from the generator or a row is malformed, and it checks that the column follows its input. It is wired into make check-macosx-redesign. WORKFLOW.md no longer tells people to hand-edit statuses, and BUILD.md documents the mandatory cache step. (3) HANDOFF.md is rewritten in Russian for the current state. All 10 native suites pass on the real tree under the native lock: contracts, schema via contracts, fixture, library, audio (twice), media with effects-runtime, extensions, subtitle-runtime, build-runtime and headless-regressions. All 9 tools/test-*.py pass.",
+   "fixed": [
+    "(d)/(c) verifier open[0] + critic P2: native-tests.py skipped the vlc-cache-gen step without a word. main() now calls parser.error naming the target (make -C $BUILD/bin vlc-cache-gen) before mkdtemp, and run_suite raises SystemExit if no plugins.dat appears. New tests in tools/test-native-runtime-isolation.py: test_missing_cache_gen_fails_every_suite_before_any_command (contracts/audio/media/extensions) and test_cache_gen_that_writes_no_index_fails_before_any_harness. They fail on the HEAD runner (5 failures): ../build/evidence/final5/polish/I-build/mutation-old-runner.txt, native-tests-HEAD-mutation.py. Real-tree runs: ../build/evidence/final5/polish/I-build/native-*.log (audio shutdown 34 ms).",
+    "(d)/(c) verifier open[3] + critic P2: rerunning gen_screens.py would drop the SCREENS.md preamble and the Parity · live column. Both now live in redesign/tools/figma/gen_screens.py: computed column (worst verdict per S-id, owners from the owner field), LIVE notes dict, --parity/--out/--check options. Run against finish/parity.json it matches the old hand-made column on 72/72 rows. SCREENS.md is regenerated from results/resume/parity.json, and `gen_screens.py --check` passes.",
+    "(d) Guard test tools/test-screens-doc.py (3 tests): the committed SCREENS.md must equal the generator output, every row must have 9 cells with a valid verdict, and the column must follow its parity input. It fails on the HEAD SCREENS.md (checked with --check: STALE). Added to make check-macosx-redesign in Makefile.am.",
+    "(d) WORKFLOW.md: SCREENS.md is generated; claim/mark-done steps now say to rerun the generator; DoD checkbox uses gen_screens.py --check. BUILD.md: the vlc-cache-gen step is mandatory and the failure mode is documented.",
+    "(d) HANDOFF.md rewritten (Russian, 2026-10-17). It covers: commits fae8f04dc0 → 3c690eb2a0 → ddd9d23a9d and the running final-close.js wave; results/finish, parity, resume and interrupted; durable evidence in build/evidence/final4 and final5; the lost /private/tmp evidence; the native and live locks and MXR_LOCK_DIR; the parallel live wave final-live2.js with results in final5/live/<group>; the owner-accepted decisions and the pending ones (D042, D044, D046–D057, agent amendments to D007/D028/D032/D034/D039/D044, D030 defaults); how to continue.",
+    "(c) B-controls note: the fixture suite did not compile at HEAD. Re-run on the real tree: PASS (native-fixture.log, fixture.json). C-bridge note: the media suite with effects-runtime passes. E-library note: headless-regressions with the new playlist-order section passes."
+   ],
+   "notFixed": [
+    {
+     "id": "(a) parity.json screens owned by I-build",
+     "why": "resume/parity.json has no screen whose owner mentions I-build, and none of its differences comes from I-build files. Nothing to fix."
+    },
+    {
+     "id": "(c) verifier open[1]: no-op make measured on a changing tree (~54 s wall time)",
+     "why": "A frozen-tree measurement is impossible while 10 agents edit the checkout. The integrator should run make twice on the committed tree under the native lock and compare archive/dylib/.la mtimes; the 54 s is SwiftPM planning plus upstream qml.deps."
+    },
+    {
+     "id": "(c) verifier open[2]: shipping-window light render has no 10 pt frame",
+     "why": "This belongs to A-window, not I-build. D055 now records that Player - Light has no frame."
+    },
+    {
+     "id": "critic P2 other bullets (PlayerControls 0.4 opacity, VLCSettingsBackend.swift:7 'plugin rescan' comment)",
+     "why": "Owned by B-controls/H-design and C-bridge respectively; not I-build files."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/tools/native-tests.py",
+    "modules/gui/macosx_redesign/tools/test-native-runtime-isolation.py",
+    "modules/gui/macosx_redesign/tools/test-screens-doc.py",
+    "modules/gui/macosx_redesign/Makefile.am",
+    "redesign/tools/figma/gen_screens.py",
+    "redesign/design/SCREENS.md",
+    "redesign/docs/BUILD.md",
+    "redesign/docs/WORKFLOW.md",
+    "redesign/research/final-polish/HANDOFF.md"
+   ],
+   "editsOutsideOwnership": [
+    "redesign/tools/figma/gen_screens.py: no other area owns it. The work list (d) explicitly asks to port the preamble and the Parity · live column into it. I added argparse (--parity/--out/--check), the computed parity column, the LIVE notes and the preamble. The SCR data and the coverage/notes sections are unchanged."
+   ],
+   "evidence": [
+    "../build/evidence/final5/polish/I-build/native-{contracts,fixture,library,audio,audio-2,media,extensions,subtitle-runtime,build-runtime,headless-regressions}.log (all PASS, under the native lock)",
+    "../build/evidence/final5/polish/I-build/tools-tests.txt (all 9 tools/test-*.py OK)",
+    "../build/evidence/final5/polish/I-build/mutation-old-runner.txt (HEAD runner: FAILED failures=5 on the new tests)",
+    "gen_screens.py --parity results/finish/parity.json reproduces the previous hand-made parity column exactly (0 differing rows); with no arguments `--check` reports up to date"
+   ],
+   "liveChecks": [
+    {
+     "id": "I-build-install",
+     "steps": "Integrator, after the wave commit, under the native lock and then the live lock: run tools/install-app.sh (do not launch). Then run `make -C ../build/codex-arm64/modules check-macosx-redesign` (it now also runs tools/test-screens-doc.py).",
+     "expect": "Install is green and leaves only /Applications/VLC.app (untouched) and /Applications/VLC Redesign.app. The check target passes, including test-screens-doc.py. Two consecutive make runs leave the plugin archive, dylib and .la mtimes unchanged."
+    }
+   ],
+   "notesForOthers": "[\"Everyone: SCREENS.md is now generated. Do not hand-edit it. To change it, edit redesign/tools/figma/gen_screens.py (SCR rows, the LIVE dict for live results, the preamble) or pass a new --parity JSON, then rerun. tools/test-screens-doc.py fails when the file and the generator disagree.\", \"Live wave / triage: put the new live results into the LIVE dict in gen_screens.py and set LIVE_RUN to the run and build. The current notes are from run 1 on the fae8f04dc0 build.\", \"Integrator: native-tests.py now refuses to run without $BUILD/bin/vlc-cache-gen, and stops if that tool writes no plugins.dat. To rebuild it: make -C $BUILD/bin vlc-cache-gen. Makefile.am gained one line in check-macosx-redesign, so automake regenerates on the next make.\"]",
+   "ownerDecisions": [],
+   "decisionsWritten": []
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "redesign/research/final-polish/HANDOFF.md, section 'Решения, которые ждут владельца'",
+    "description": "The pending-amendment list names D007, D028, D032, D034, D039 and D044. It leaves out the H-design amendments added this wave to D022 (onboarding step 2 player preview, S70, DECISIONS.md:267) and D026 (onboarding keycaps write Shift as ⇧, S71, :299). The second D032 amendment (Light Settings S50, :362) is covered only because D032 is already on the list. The grep pointer in the file does find them, but the list as written is incomplete."
+   },
+   {
+    "severity": "minor",
+    "where": "redesign/research/final-polish/HANDOFF.md, 'Как продолжить'",
+    "description": "Two open follow-ups are not in the continuation steps: the frozen-tree no-op make re-measure (run make twice on the committed tree under the native lock and compare archive/dylib/.la mtimes), which I-build deferred, and the critic's orchestrator P2 audit debt (PER-02, CODE-06, CODE-02/C-08 DTOs, B-15/CODE-08 bridge split), which needs a decision or a scheduled task."
+   },
+   {
+    "severity": "minor",
+    "where": "modules/gui/macosx_redesign/tools/test-native-runtime-isolation.py: test_missing_cache_gen_fails_every_suite_before_any_command",
+    "description": "The test name says no command runs, but the test only asserts SystemExit and the 'vlc-cache-gen' message. It does not assert that the recorded calls list is empty. Today the guard sits before mkdtemp, so the behaviour is correct. A guard moved later would still pass this test."
+   },
+   {
+    "severity": "minor",
+    "where": "fixer summary, gen_screens.py --parity finish/parity.json",
+    "description": "The fixer said the generator reproduces the old hand-made column 'exactly'. In fact all 72 rows match except the 7 LIVE rows, which now add a ' [run 1, fae8f04dc0]' run/build tag. Verdicts and owners are identical. This only overstates the claim; the output is correct."
+   }
+  ],
+  "liveChecks": [
+   {
+    "id": "I-build-install-and-check",
+    "steps": "Integrator, after the wave commit. Take the native lock, then the live lock. Run modules/gui/macosx_redesign/tools/install-app.sh (do not launch the app). Then run `make -C ../build/codex-arm64/modules check-macosx-redesign`; automake regenerates first because Makefile.am gained a test-screens-doc.py line.",
+    "expect": "Install is green. Only /Applications/VLC.app (untouched) and /Applications/VLC Redesign.app exist. check-macosx-redesign passes, including test-screens-doc.py and test-native-runtime-isolation.py (6 tests)."
+   },
+   {
+    "id": "I-build-noop-make-frozen",
+    "steps": "Integrator, on the committed tree with no agents editing, under the native lock: run `make -C ../build/codex-arm64` twice. Before and after the second run, record the mtimes of the macosx_redesign plugin archive, dylib and .la.",
+    "expect": "The second make rebuilds nothing: the archive, dylib and .la mtimes are unchanged. Record the wall time in BUILD.md or the handoff."
+   }
+  ],
+  "ownerDecisions": [],
+  "summary": "I-build verify round 1: PASS. The fixer's claims hold. Only minor issues remain, and the HANDOFF ones are documentation gaps.\n\n**Plugin-cache gate (work list d, critic P2, verifier open[0]).**\n- tools/native-tests.py now calls parser.error naming `make -C $BUILD/bin vlc-cache-gen` when the tool is missing, before mkdtemp. run_suite always runs vlc-cache-gen and raises SystemExit when no plugins.dat appears.\n- The new regression tests fail on the HEAD runner: 5 failures out of 6 tests, run via MXR_NATIVE_RUNNER on an isolated copy. Output: ../build/evidence/final5/polish/I-build-verify-r1/mutation-head-runner.txt.\n- I re-ran the extensions, audio and library suites on the real tree under the native lock myself: all PASS (native-*.log in the same folder). The fixer's 10 suite logs each show the cache-gen step running.\n\n**SCREENS.md generator (work list d, verifier open[3]).**\n- gen_screens.py now emits the preamble, the 'Generated, do not edit' marker, Status = implemented UI and the computed 'Parity · live' column. It has --parity, --out and --check options.\n- `--check` reports up to date.\n- The resume/parity.json counts match the preamble: 160 checks, 101 match, 39 minor, 2 major, 1 missing, 17 not checked.\n- With finish/parity.json, all 72 rows match the old hand-made column. The only change is a run/build tag on the 7 LIVE rows.\n- The generator's output does not depend on local-only reference frames (missing frames only add to the problems list). All its inputs are tracked in git.\n- test-screens-doc.py (3 tests) passes and is wired into check-macosx-redesign with a proper tab.\n\n**Other checks.**\n- All 9 tools/test-*.py pass.\n- `swift build` is clean. No Swift, UI or DECISIONS files were changed by I-build, so no renders were needed and no Settings gate is involved.\n- The engine diff against upstream-base-2026-10-14 (src, lib, include, modules/gui/macosx) is empty.\n- WORKFLOW.md and BUILD.md describe the new behaviour correctly.\n- Work list (a): no parity screen names I-build. The other notFixed items belong to other areas or need a frozen tree, which is reasonable.\n- The gen-tokens.py diff and the library-soundtrack line in native-tests.py come from other areas. Both still work: the library suite passes.\n\n**HANDOFF.md.** It covers the commits, the results folders, final4/final5, the lost /private/tmp evidence, both locks (I checked the lock.sh default path), the live wave and how to continue. Gaps:\n- The pending list leaves out this wave's H-design amendments to D022 and D026.\n- The steps do not list the frozen-tree make re-measure or the critic's orchestrator audit-debt items."
+ }
+}

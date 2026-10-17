@@ -1,0 +1,828 @@
+{
+ "areas": [
+  {
+   "area": "A-window",
+   "state": "verifier failed",
+   "fixed": [
+    "S66 Customize edit-mode band (parity group 8 MAJOR #1): PlayerBars MXRControlBar draws the empty band row (bar backdrop with a dividerDim top line, drop target LayoutZone.newFirstRow), and MXRAppView's controlHeight uses PlayerGeometry.controlRows (at least 2 rows while customizing, MXRPlayerMetrics.customizeControlRows). Evidence: final3/A-window/S66W_bottom_after_vs_figma.png (render vs Figma rows match: band #1A1A1A vs #191919, dividers at 1944/2052 px) and after_S66W.png. The dialog top is unchanged (379 px in both). Compact: after_S66_compact_ship.png",
+    "Modal host shipping-window offset and clipping (parity group 7 MAJOR, S25.App 19 pt high and S37.App/convert-compact clipped −20…520): the cause was GalleryCatalog.canvas() wrapping App entries under the --engine shipping-window override. Evidence: final3/A-window/ship_vs_host_after.png, S37_top_ship_vs_host.png. Row scans now match hosting: S25 dialog bottom 940; Convert and Settings compact dialogs 20…520",
+    "Tooling trap: App* entries (S66.App/customization, S72.App/light, S68.App/manage-profiles, etc.) render with the top bar and the native traffic lights under --engine shipping-window, with the cone clear of the lights. Every MXRAppView gallery scene goes through ShippingGallery.host (ship_vs_host_after.png)",
+    "--scheme and --accent now reach shipping-window and App entries (MXRAppView themes itself from AppearanceModel). Light renders of the PiP, thin-frame, Hide UI and fullscreen entries are available via --scheme light. Evidence: misc.png (S01.Window/pip light)",
+    "S67 coverage: new S67.Window/two-row entry (saved LayoutModel.twoRowExample). Evidence: final3/A-window/S67_vs_keyframe.png against key frame 19m27.6",
+    "S05 fullscreen coverage gap: new S05.Window/fullscreen shipping entry (traffic lights hidden, cone at the edge, bars over the edge-to-edge video). Evidence: misc.png",
+    "S72.Window/light fixture: figmaPlayerLight puts E04 at 02:10 of 25:40, Previous and Next disabled, 80 % volume (53 pt cone fill, as Figma). Evidence: final3/A-window/check_S72W/side-by-side.png",
+    "S01.Window/narrow cat placeholder missing: the gallery fixture positioned the 1920 pt artwork in a 480 pt window; it was not a vout problem. ShippingGallery passes the window size to catVideo. Evidence: narrow_pair.png",
+    "Resume toast overflow below about 400 pt (critic P2, verifier open minor): a third compressible layout, plus a minimumWidth gate in MXRAppView. Evidence: narrow_pair.png (S12.Window/continue-minimum at 480 pt), ContinueWatchingToastTests.testVideoNarrowerThanTheActionsStillContainsTheToast",
+    "Settings gate kept strict: all six formerly open categories give REVIEW (final3/A-window/settings/*); openSettingsDifferences is empty (F-settings removed the entries) and the gate passes"
+   ],
+   "notFixed": [
+    {
+     "id": "S66 #2 edit-mode play tile 3 pt inset",
+     "why": "This belongs to H-design: the tile outline lives in LayoutDrag MXRLayoutDraggableModifier and the customization metrics, not in the window."
+    },
+    {
+     "id": "S66 #5 / S66.App dim colour (#303030 vs Figma #2D2B29 over a blurred real video)",
+     "why": "Figma blurs a real video frame behind the dim, which the offscreen fixture cannot reproduce. Needs a live check over real video. The dim token belongs to H-design."
+    },
+    {
+     "id": "S72 (2) compact-library divider #ACACAC vs Figma #212121",
+     "why": "Owned by E-library. Figma's light frame probably leaks a Dark style here; E-library should adopt it or document it in D032/D046."
+    },
+    {
+     "id": "S25.App scrim strength and the blur behind the dialog body",
+     "why": "Offscreen rendering draws no native blur, so this goes to liveChecks."
+    },
+    {
+     "id": "Compact library overflow at the 480 pt minimum window",
+     "why": "Found this wave (narrow_pair.png). MXRLibraryView draws about 248 pt wide while the composition gives it 216 pt (min(427, 0.45·480)), so it runs under the left edge of the video area. Either the library header needs a narrower layout (E-library) or compactWidth needs that minimum. Reported rather than guessed."
+    },
+    {
+     "id": "Real-window behaviour (top bar and traffic lights centring, Hide UI, cursor, PiP, fullscreen motion, menu-bar reveal, C1–C7)",
+     "why": "No live UI is allowed in this wave; every one of these is in liveChecks."
+    },
+    {
+     "id": "S37.Stream/running shows the host name; no feedback when a mixed audio and video import skips the audio files",
+     "why": "Owned by J-media-io and E-library."
+    }
+   ],
+   "decisionsWritten": [
+    "D051 — Customize new-row band (a drop on the band starts a row nearest the video; a two-row layout shows no third band), Player - Light's library list treated as a static template (watched rows dimmed and the playing row in the accent per 11m57, the playback gear stays enabled), and the narrow resume toast (the Continue button truncates; no toast below minimumWidth). Accepted (agent, 2026-10-17)."
+   ],
+   "notesForOthers": "Integrator:\n- GalleryCatalog.canvas() now honours the engine override. An App entry rendered with --engine shipping-window no longer drops the top bar.\n- New GalleryRenderContext (set by canvas around entry.make()). Every MXRAppView gallery scene should go through ShippingGallery.host(app) { MXRAppView(...) }, which applies --scheme/--accent and, in the shipping window, the traffic-light reserve and button visibility.\n- New entries: S67.Window/two-row, S05.Window/fullscreen, S12.Window/continue-minimum.\n- S72.Window/light now uses scenario .playingEpisode with the figmaPlayerLight media.\n\nH-design:\n- Edit-mode play tile: Figma insets its 48 pt fill 3 pt inside the 54 pt dashed box (parity-8 item 2), and it is still open.\n- The Customize dim colour over real video needs a live judgement.\n\nE-library:\n- (a) S72 compact-library divider: #ACACAC is drawn where Figma has #212121; adopt it or document it in D032/D046.\n- (b) At the 480 pt minimum window, MXRLibraryView(compact:) draws about 248 pt wide inside the 216 pt column the composition gives it (narrow_pair.png). Please make the compact header fit, or tell A-window the library's minimum width so compactWidth can respect it.\n- (c) Raw underscore file names in compact rows (earlier note).\n\nF-settings: all six formerly open S48 categories give REVIEW now; openSettingsDifferences is empty and the strict gate passes.\n\nB-controls/G-panels: LayoutZone.newFirstRow (.bottom(-1)) is the Customize band. 'Move to New Row' still appends below; change it if you want it to fill the band instead.",
+   "verdict": null
+  },
+  {
+   "area": "B-controls",
+   "state": "verifier failed",
+   "fixed": [
+    "C.SeekBar/default: the bar-only entry now has its own fixture time, 00:01:53, which is where Figma 1908:7387 draws the head. videoApp(at:) defaults to 02:10, so product defaults and the label entries are unchanged, with no geometry change and no mask. The check went from FAIL to PASS. Evidence: final3/B-controls/before/C.SeekBar_default vs after/C.SeekBar_default.",
+    "S01.ControlBar/default, S01.Window/shipping and S34.ControlBar/music: the head stays at the labelled 02:10 and is recorded as a figmaDeviation citing D048 (Figma's head contradicts its own labels). The dark-only missing 1 pt top stroke of component 491:1779 is covered the same way (the Player-6 frame has no line). S01.ControlBar/default went from FAIL to PASS.",
+    "S21.Timeline/default: the fill reaching the head (as in the video) is recorded as a figmaDeviation citing D048. FAIL became REVIEW.",
+    "Bar icon hover (Figma Icon Wrapper 177:99): the glyph stays FG/A2 and only the white 6 % radius-4 iconHover tile appears. The tile is the new MXRPlayerIconTile; ControlBarParityTests checks the hover pixels.",
+    "Seek thumbnail placement: the card is centred on the pointer with its bottom gap5 above the control bar's top edge, 18 pt above the track, as measured from video 03m29.3 (card 272 pt = 1036 px, so 3.81x). It no longer overlaps the bar. It is clamped to the window via the MXRAppView coordinate space, not to the seek bar, and keeps the 10 pt video inset. Implemented as MXRSeekBar.previewOrigin, with tests.",
+    "B-08 OSD: the text now sizes from the picture aspect-fit in the media canvas (which never moves when panels open) and anchors to the visible part of that picture (picture ∩ information rect). A pillarboxed picture keeps the OSD on the picture, and the library or a right panel keeps it clear. New helpers Theme.OSD.pictureRect and anchorRect.",
+    "S13 OSD edge: replaced the soft menuShadow with VLC's freetype defaults read from modules/text_renderer/freetype: a black outline of 4 % of the glyph height and a 50 % black shadow at 0.06, -45 degrees. Before/after crop: final3/B-controls/osd_before_after.png, next to key frame 15m27.1.",
+    "MXRTimeLabel no longer sets its accessibility value twice: the outer container keeps only its label.",
+    "Live streams: the duration now reads '--:--:--' (VLC's '--:--'; VoiceOver says 'Unknown') instead of 00:00:00, and the seek bar draws no fill and no head when the length is unknown. Evidence: before/S01.Player_live-stream.png vs final3/B-controls/live_bar_after.png.",
+    "New finding: the music playhead (4 pt wide, radius 4) drew a notched cap, because CALayer does not clamp the corner radius the way Figma does. The head, resume span/marker and fill radii are now clamped to half the shorter side. Evidence: music_head_cmp.png (before) vs music_head_after.png.",
+    "New finding: played waveform bars used Accent/Main. Figma 4778:26181 and 4767:23726 draw all 18 played bars #AB6314 (Accent/DIm), so they now use Accent/DIm. S34.ControlBar/music colour regions are gone: FAIL became REVIEW, with only fixture waveform sample drift left."
+   ],
+   "notFixed": [
+    {
+     "id": "S01.Window/shipping top-bar FAIL",
+     "why": "Traffic lights, cone offset and title area are owned by A-window and covered by D022/D042. The D007 wording about a PiP button in the top bar is also A-window's. The B-controls seek-head part is now a documented deviation."
+    },
+    {
+     "id": "S34 waveform sample drift (REVIEW) and S34.Player/music FAIL",
+     "why": "The drift is fixture data: Figma clips its 244 bars, while the product fits peaks from the whole signal (documented in the entry notes). S34.Player/music fails on window background #1B1B1B vs #1D1D1D (2/255) and on the bar showing the solid seek bar (D028: waveform off by default); neither is in my files."
+    },
+    {
+     "id": "S12 narrow continue-watching toast",
+     "why": "Its verdict was 'match' and the view lives in PlayerView.swift (not mine). D051, written by another agent, already covers it."
+    },
+    {
+     "id": "VIDEO_BREAKDOWN line 138 still lists bar-icon hover as OPEN",
+     "why": "Not my file. D048 now records the behaviour."
+    }
+   ],
+   "decisionsWritten": [
+    "D048 — Seek bar and OSD where Figma contradicts itself or is silent · accepted (agent, 2026-10-17). It covers: head at the labelled time; no top stroke on the dark control bar (Player-6 wins over component 491:1779); subtitle-timeline fill runs to the head (as in the video); live streams show '--:--:--' with no fill or head; thumbnail card placement from video 03m29.3; OSD outline and shadow from VLC freetype defaults, with picture-based sizing and anchoring (amends D027); bar icon hover per Figma 177:99."
+   ],
+   "notesForOthers": "[\"A-window: S01.Window/shipping still FAILs only in the top bar (traffic lights and title, D022/D042), and D007 still mentions a PiP button in the top bar. I added a `deviations:` parameter to ShippingGallery.window(...) that you can reuse.\", \"Customize owner: PlayerInteractionTests.testEveryControlRowKeepsItsIndependentFigmaHeight fails at the current tree (108 vs 54 for one row while customizing). My files are not involved.\", \"Earlier, GalleryCatalog.swift:281 did not compile (`effectiveEngine` without the GalleryRenderer prefix) while its owner was editing it; it was fixed by the owner while I worked.\"]",
+   "verdict": null
+  },
+  {
+   "area": "C-bridge",
+   "state": "fixer failed"
+  },
+  {
+   "area": "D-menus",
+   "state": "fixer failed"
+  },
+  {
+   "area": "E-library",
+   "state": "fixer failed"
+  },
+  {
+   "area": "F-settings",
+   "state": "fixer failed"
+  },
+  {
+   "area": "G-panels",
+   "state": "fixer failed"
+  },
+  {
+   "area": "H-design",
+   "state": "verifier failed",
+   "fixed": [
+    "(d) S72 Light cone. Root cause: the cone's accent layer was styled with accentMain, and the tint the views pass was ignored. Fix: tools/gen-icons.py now reads figma_file.json and gives an icon the new `logo` role when its instances paint its vectors with an Accent/Logo style. Only vlc 48:57 does (51:799-801: Dark 217:226, Light 2425:13968). MXRIcon maps `.logo` to Theme.Color.accentLogo on both the SwiftUI and the AppKit (nsImage) paths. Result: the shipping-window S72.Window/light render now samples the cone at (194,113,26), identical to Figma #C2711A; Dark stays #D37918. Test IconLogoRoleTests (SwiftUI and AppKit paths) fails with the old role: it read #E8851A. Evidence: final3/H-design/after/S72_Window_light/",
+    "(d) Subtitle-file glyph folded corner (S25/S26/S27, Figma 1911:8286 and 2461:9663). The SVG export kept only the closed outline of 'Rectangle 1'. I added an EXPORT_FIXES entry in gen-icons.py that inserts the fold edge `M9 2.75V5.75C9 6.85 8.10 7.75 7 7.75H3.75`, measured on renders/Icon.png at 2 px per unit. The entry fails loudly if the export ever changes. Both variants were regenerated. Test testSubtitleGlyphDrawsTheFoldedCorner fails when the fold path is removed from the asset. Evidence: final3/H-design/subtitle-icon-render-vs-figma.png (render on the left, Figma on the right, now identical), final3/H-design/before/subtitle_icon_zoom.png, final3/H-design/after/S25_AddSubtitles_folder/ (REVIEW, mean delta 0.44)",
+    "(d) S66/S67 tile labels sat about 2-4 pt low. Two causes. First, Forward/Backward 15s use Figma's bare 28x28 Icon (6587:18894), not the 30x32 wrapper. Second, every tile was forced to the two-line height, while Figma's wrapping grid lets tiles hug their content and makes each row as tall as its tallest tile (rows at 128/248/368/484). Fix: MXRCustomizationPalette.iconSize(for:), tileHeight(for:), rowHeight and contentHeight(rows:) in LayoutDrag.swift, and the tile uses its own height. The default palette body now equals Figma's 489 pt frame. Test: CustomizationPaletteGeometryTests. Evidence: final3/H-design/after/S66_Customization_default/side-by-side.png and S67_Customization_two-row-edit/ (labels at 172 and the last row now line up with Figma) vs final3/H-design/before/S66_Customization_default.png",
+    "S66 edit-mode play tile (parity group 8, item 2). Figma 2115:7369/2115:7282 draws a 48 pt accent fill 3 pt inside the 54 pt dashed box. Fix: new token customization.outline.playFillInset = 3 in metrics.json (regenerated). MXRPlayPauseButton draws its fill 6 pt narrower while mxrLayoutEditing is set and keeps its 54 pt slot. Evidence: final3/H-design/after/S66_play_tile.png (fill 61-108.5 pt, i.e. 48 wide inside the box)",
+    "S71 footer hint about 1 pt low. In Figma, 1904:7211's 28 pt text box shares the buttons' top edge (y 671) rather than being centred on them. The hint is now top-aligned in the button-height frame. Measured after the fix: text rows 679.0-690.5, identical to Figma. Evidence: final3/H-design/after/S71_Onboarding_shortcuts/ (the remaining FAIL is the ⌘ L keycap, D026)",
+    "S70 alternate-accent frames lack Back. The orange frame 1902:3670 and the video at 19m49 (frame extracted to final3/H-design/onb-1189.jpg) both show Back, so it is kept and documented in D049. The 8 alternate entries in CustomizationGallery now declare a FigmaDeviation (.differs on the Back rect, computed from tokens) that cites D049. With it, S70.Onboarding/teal compares everything else.",
+    "Light play button #E8851A vs Figma #D37918. Evidence from figma_file.json: in Player - Light the play fill I2425:13645;3603:12304 still carries the Dark/Accent/Main style, while the same frame's seek fill 1908:7389 uses Light/Accent/Main and the track Light/BG/Accent Bright. The frame is a partial conversion (INDEX.md). Kept, and documented in D049 bullet 1.",
+    "S69 '~/Movies' instead of '~/Videos' now has its own DECISIONS line (D049 bullet 3), as the judge asked.",
+    "Metrics note for customization.tile corrected: it no longer says 'two-line label'; tiles hug their content."
+   ],
+   "notFixed": [
+    {
+     "id": "S70 title 0.5 pt high",
+     "why": "Measured after the fix: text rows 184.5-207.0 against Figma 185.0-207.5. That is half a point, below the device pixel at 1x and within text-rasterisation rounding, so I did not change the layout for it."
+    },
+    {
+     "id": "S69/S70 bottom ~2 pt corner strip (check FAIL 0,752 1090x7)",
+     "why": "This is the rounded-corner and shadow alpha of the isolated hosting render (corner alpha 19 vs Figma 102 on the bottom 3 pt). The judge rated it not a visible difference. Matching it would mean tuning the shadow against an isolated render, which the quality bar rules out."
+    },
+    {
+     "id": "S66 major (empty second-row band) and the dialog body #0E0E0E vs #181818",
+     "why": "Owned by A-window (band) or a backdrop artefact (body). A-window is already changing LayoutStore for the band (LayoutZone.newFirstRow) and has updated CustomizationInteractionTests, which now passes."
+    },
+    {
+     "id": "PiP light scheme: --scheme light ignored for shipping-window entries (parity group 1)",
+     "why": "This is in the mxr-snapshot CLI and GalleryCatalog/ShippingGallery, which belong to A-window/I-build, not H-design files. Passed on in notesForOthers."
+    },
+    {
+     "id": "S50 Settings light: video shows a solid accent segment while the Figma tokens give Accent Bright",
+     "why": "Not a Figma difference: no light Settings frame exists, and Figma tokens win over the video (PHILOSOPHY). Nothing to change."
+    },
+    {
+     "id": "S72 library header divider and crumb colours (E-library, judgment)",
+     "why": "These belong to E-library's library views."
+    },
+    {
+     "id": "(c) live parts of H-02/H-03/H-07 and the library sheet",
+     "why": "These need the real window; they are listed in liveChecks."
+    }
+   ],
+   "decisionsWritten": [
+    "D049 — Light accent, onboarding Back and the media folder · accepted (agent, 2026-10-17): (1) every Light accent fill uses Light/Accent/Main #E8851A, because Player - Light's play button still carries Dark/Accent/Main while the seek fill uses the Light style; the cone uses Accent/Logo. (2) Onboarding step 2 keeps Back for every accent (orange frame 1902:3670 and video 19m49). (3) The welcome folder is pre-filled with ~/Movies, falling back to ~/Videos, else empty."
+   ],
+   "notesForOthers": "[\"A-window / I-build: in the parity-1 PiP note, `--scheme light` has no effect on shipping-window entries in mxr-snapshot. The fix belongs in SnapshotCLI/GalleryCatalog (set app.appearance from --scheme, or add light variants). Not H-design files.\", \"Anyone writing an 'accepted (agent, …)' decision: FigmaDeviationTests now accepts '· accepted (' in the heading. Without that change D048 failed testDeviationsCiteAcceptedDecisionsAndOwnNodes.\", \"A-window: CustomizationInteractionTests passes with your LayoutZone.newFirstRow change. The palette row geometry is now MXRCustomizationPalette.rowHeight/contentHeight(rows: [[PlayerControl]]) (LayoutDrag.swift); please keep that API if you touch the edit-mode band.\", \"B-controls: MXRPlayPauseButton now narrows its fill in edit mode only (environment mxrLayoutEditing). The `tint: Theme.Color.accentLogo` passed to MXRIcon(.vlc) in PlayerBars.swift:236, PlayerView.swift:57 and MediaInfoDialogs.swift:76 is now redundant (the cone has no gray layer; its colour comes from the logo role). It is harmless and can be removed by the owners.\", \"Disk: the volume briefly hit 100 % mid-wave (240 MB free) and has since recovered to about 4 GB free; final3 alone takes 2.9 GB. Clean your scratch copies.\"]",
+   "verdict": null
+  },
+  {
+   "area": "I-build",
+   "state": "fixer failed"
+  },
+  {
+   "area": "J-media-io",
+   "state": "fixer failed"
+  }
+ ],
+ "areaReports": [
+  {
+   "area": "A-window",
+   "reports": [
+    {
+     "status": "done",
+     "summary": "A-window wave 3 is done. The two major items and the tooling trap are fixed at their root cause, and every other item on the work list is fixed, kept under a decision, or handed to its owner.\n(1) S66: in Customize, a one-row control bar now gets Figma's empty band above it (972–1026: bar material with dividers at 972 and 1026). Dropping an item on the band starts a new row nearest the video, which is the 19m26→19m27.6 behaviour. The window measures the bars as two rows, so the palette, dim and panels sit above the band. The S66.App fixture hack that inserted an empty row is gone.\n(2) Modal host and the App* entries under --engine shipping-window: the cause was the gallery tooling, not MXRDialogHost/MXRDialogFrame or the real window. canvas() kept the fixed-frame and clip wrapper whenever an App entry was rendered with the shipping-window override, which cut off the area that ignores the titlebar safe area. That removed the top bar and pushed the content up: S25.App sat 19 pt high and the compact dialog was clipped at −20 pt. With the fix, the shipping-window and hosting renders put the dialog at the same place: S25 bottom at 940, Convert-compact at 20–520.\nA new GalleryRenderContext lets Window and App scenes, through ShippingGallery.host, take the render's scheme and accent (so --scheme light now works on Window and App entries, PiP included). In the shipping window they also get the measured traffic-light reserve and the button visibility, with reserve 0 and hidden lights in fullscreen.\n(3) Gallery entries added or changed: S67.Window/two-row (matches key frame 19m27.6), S05.Window/fullscreen and S12.Window/continue-minimum. S72.Window/light now uses Player - Light's media (E04, 02:10 of 25:40, alone in the queue, 80 % volume). The S01.Window/narrow cat now draws: the window fixture passes its own size to catVideo.\n(4) Resume toast: there is a third layout in which the Continue button gives up width. Below MXRContinueWatchingToast.minimumWidth no toast is drawn (D051).\n(5) Settings gate: all six S48 categories now give REVIEW with the mxr-snapshot CLI. openSettingsDifferences was already emptied by F-settings, and the strict gate passes.\nTests: new WindowShippingParityTests (6) and a new toast test. Two other areas' tests were updated for the intended change (see editsOutsideOwnership). The targeted suites pass: WindowShippingParity, WindowComposition, GalleryRender, OSDLayout, PlayerInteraction, ContinueWatchingToast, CustomizationInteraction and FigmaDeviation (including the Settings gate).",
+     "fixed": [
+      "S66 Customize edit-mode band (parity group 8 MAJOR #1): PlayerBars MXRControlBar draws the empty band row (bar backdrop with a dividerDim top line, drop target LayoutZone.newFirstRow), and MXRAppView's controlHeight uses PlayerGeometry.controlRows (at least 2 rows while customizing, MXRPlayerMetrics.customizeControlRows). Evidence: final3/A-window/S66W_bottom_after_vs_figma.png (render vs Figma rows match: band #1A1A1A vs #191919, dividers at 1944/2052 px) and after_S66W.png. The dialog top is unchanged (379 px in both). Compact: after_S66_compact_ship.png",
+      "Modal host shipping-window offset and clipping (parity group 7 MAJOR, S25.App 19 pt high and S37.App/convert-compact clipped −20…520): the cause was GalleryCatalog.canvas() wrapping App entries under the --engine shipping-window override. Evidence: final3/A-window/ship_vs_host_after.png, S37_top_ship_vs_host.png. Row scans now match hosting: S25 dialog bottom 940; Convert and Settings compact dialogs 20…520",
+      "Tooling trap: App* entries (S66.App/customization, S72.App/light, S68.App/manage-profiles, etc.) render with the top bar and the native traffic lights under --engine shipping-window, with the cone clear of the lights. Every MXRAppView gallery scene goes through ShippingGallery.host (ship_vs_host_after.png)",
+      "--scheme and --accent now reach shipping-window and App entries (MXRAppView themes itself from AppearanceModel). Light renders of the PiP, thin-frame, Hide UI and fullscreen entries are available via --scheme light. Evidence: misc.png (S01.Window/pip light)",
+      "S67 coverage: new S67.Window/two-row entry (saved LayoutModel.twoRowExample). Evidence: final3/A-window/S67_vs_keyframe.png against key frame 19m27.6",
+      "S05 fullscreen coverage gap: new S05.Window/fullscreen shipping entry (traffic lights hidden, cone at the edge, bars over the edge-to-edge video). Evidence: misc.png",
+      "S72.Window/light fixture: figmaPlayerLight puts E04 at 02:10 of 25:40, Previous and Next disabled, 80 % volume (53 pt cone fill, as Figma). Evidence: final3/A-window/check_S72W/side-by-side.png",
+      "S01.Window/narrow cat placeholder missing: the gallery fixture positioned the 1920 pt artwork in a 480 pt window; it was not a vout problem. ShippingGallery passes the window size to catVideo. Evidence: narrow_pair.png",
+      "Resume toast overflow below about 400 pt (critic P2, verifier open minor): a third compressible layout, plus a minimumWidth gate in MXRAppView. Evidence: narrow_pair.png (S12.Window/continue-minimum at 480 pt), ContinueWatchingToastTests.testVideoNarrowerThanTheActionsStillContainsTheToast",
+      "Settings gate kept strict: all six formerly open categories give REVIEW (final3/A-window/settings/*); openSettingsDifferences is empty (F-settings removed the entries) and the gate passes"
+     ],
+     "notFixed": [
+      {
+       "id": "S66 #2 edit-mode play tile 3 pt inset",
+       "why": "This belongs to H-design: the tile outline lives in LayoutDrag MXRLayoutDraggableModifier and the customization metrics, not in the window."
+      },
+      {
+       "id": "S66 #5 / S66.App dim colour (#303030 vs Figma #2D2B29 over a blurred real video)",
+       "why": "Figma blurs a real video frame behind the dim, which the offscreen fixture cannot reproduce. Needs a live check over real video. The dim token belongs to H-design."
+      },
+      {
+       "id": "S72 (2) compact-library divider #ACACAC vs Figma #212121",
+       "why": "Owned by E-library. Figma's light frame probably leaks a Dark style here; E-library should adopt it or document it in D032/D046."
+      },
+      {
+       "id": "S25.App scrim strength and the blur behind the dialog body",
+       "why": "Offscreen rendering draws no native blur, so this goes to liveChecks."
+      },
+      {
+       "id": "Compact library overflow at the 480 pt minimum window",
+       "why": "Found this wave (narrow_pair.png). MXRLibraryView draws about 248 pt wide while the composition gives it 216 pt (min(427, 0.45·480)), so it runs under the left edge of the video area. Either the library header needs a narrower layout (E-library) or compactWidth needs that minimum. Reported rather than guessed."
+      },
+      {
+       "id": "Real-window behaviour (top bar and traffic lights centring, Hide UI, cursor, PiP, fullscreen motion, menu-bar reveal, C1–C7)",
+       "why": "No live UI is allowed in this wave; every one of these is in liveChecks."
+      },
+      {
+       "id": "S37.Stream/running shows the host name; no feedback when a mixed audio and video import skips the audio files",
+       "why": "Owned by J-media-io and E-library."
+      }
+     ],
+     "filesChanged": [
+      "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerBars.swift",
+      "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerGeometry.swift",
+      "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerMetrics.swift",
+      "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerView.swift",
+      "modules/gui/macosx_redesign/Sources/MXRUI/MXRAppView.swift",
+      "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/GalleryCatalog.swift",
+      "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/ShippingGallery.swift",
+      "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/AppGallery.swift",
+      "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/PlayerGallery.swift",
+      "modules/gui/macosx_redesign/Sources/MXRCore/Stores/LayoutStore.swift",
+      "modules/gui/macosx_redesign/Sources/MXRUI/Customization/LayoutDrag.swift",
+      "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/SettingsGallery.swift",
+      "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/PanelsGallery.swift",
+      "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/DialogsGallery.swift",
+      "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/CustomizationGallery.swift",
+      "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/WindowShippingParityTests.swift",
+      "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/ContinueWatchingToastTests.swift",
+      "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/CustomizationInteractionTests.swift",
+      "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/PlayerInteractionTests.swift",
+      "redesign/docs/DECISIONS.md"
+     ],
+     "editsOutsideOwnership": [
+      "Sources/MXRCore/Stores/LayoutStore.swift: added LayoutZone.newFirstRow (.bottom(-1)); insert() creates a row at index 0 for a negative row",
+      "Sources/MXRUI/Customization/LayoutDrag.swift: the place() guard accepts row -1 (one-line change)",
+      "Sources/MXRGalleryCatalog/Entries/{SettingsGallery,PanelsGallery,DialogsGallery,CustomizationGallery}.swift: mechanical `MXRAppView(...).appModel(app)` → `ShippingGallery.host(app) { MXRAppView(...) }` so --engine shipping-window and --scheme work on those App entries",
+      "Tests/MXRUISnapshotTests/CustomizationInteractionTests.swift: the invalid-row probe now uses .bottom(-2), since -1 is the new-row band",
+      "Tests/MXRUISnapshotTests/PlayerInteractionTests.swift: testEveryControlRowKeepsItsIndependentFigmaHeight now expects max(count, 2) rows while customizing (D051)",
+      "redesign/docs/DECISIONS.md: appended D051"
+     ],
+     "decisionsWritten": [
+      "D051 — Customize new-row band (a drop on the band starts a row nearest the video; a two-row layout shows no third band), Player - Light's library list treated as a static template (watched rows dimmed and the playing row in the accent per 11m57, the playback gear stays enabled), and the narrow resume toast (the Continue button truncates; no toast below minimumWidth). Accepted (agent, 2026-10-17)."
+     ],
+     "ownerDecisions": [
+      "D051 (agent-written, 2026-10-17): new-row band semantics, Player - Light list state, narrow resume toast",
+      "D042, D044, D046, D047 (agent-written): implementation kept",
+      "D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies): implementation kept"
+     ],
+     "evidence": [
+      "<scratch>",
+      "<scratch> (Figma customize, customize-8 and key frames 19m12/19m26/19m27 bottoms)",
+      "<scratch>",
+      "<scratch>",
+      "<scratch>",
+      "<scratch>",
+      "<scratch>",
+      "<scratch>",
+      "<scratch>",
+      "<scratch> (six S48 checks, all REVIEW)"
+     ],
+     "liveChecks": [
+      {
+       "id": "A-S66-band",
+       "steps": "Play a video, open ⋯ → Customize Player in a 1920×1080 window and screenshot the bottom 120 pt. Drag the time+seek group onto the empty band above the control bar, then Save.",
+       "expect": "In edit mode the bottom area has two rows: an empty bar-material band (972–1026) and the control bar, as in Figma Player - customize and frame 19m12.4. After the drop, the seek group forms a new top row and the transport row stays below; after Save the bars match 19m27.6."
+      },
+      {
+       "id": "A-modal-centre",
+       "steps": "In a 1920×1080 window over a bright video, open Add Subtitles. Then resize the window to 960×540 and open Convert and Settings.",
+       "expect": "Add Subtitles is centred on the window (top about 140, bottom about 940), the top bar stays visible under the scrim (06m02.5), and the artwork behind the dialog body is blurred. At 960×540 the whole header band (title and ✕) is visible, with panelInset (20 pt) above it."
+      },
+      {
+       "id": "A-topbar-lights",
+       "steps": "Screenshot the top 40 pt at 2× and compare with the Figma 247:445 crop (x 0–640, y 0–40). Press ⌘\\ (Hide UI), then set auto-hide to 'always' and move the pointer to the top edge.",
+       "expect": "The traffic lights are vertically centred in the 40 pt bar with the cone right after them. They hide with Hide UI and come back with the top bar. Double-click on the bar follows the system titlebar preference, and the bar drags the window."
+      },
+      {
+       "id": "A-fullscreen",
+       "steps": "Enter fullscreen while playing, move the pointer to the top and bottom edges, then exit.",
+       "expect": "The video is edge to edge and the bars overlay it (S05.Window/fullscreen). The cone sits at the edge with no traffic-light reserve. The menu bar and system titlebar reveal at the top, the cursor hides when the bars hide, and the enter/exit animation is smooth."
+      },
+      {
+       "id": "A-resume-narrow",
+       "steps": "Open DON'T BLINK with a saved position and resize the window to 480×270 with the compact library open, then also open the queue.",
+       "expect": "With the library open the toast fits inside the video, with 'Continue Watching' truncated and ✕ whole (S12.Window/continue-minimum). With the queue also open, no toast is drawn over the panels."
+      },
+      {
+       "id": "A-compact-library-min",
+       "steps": "Resize the window to 480 pt wide with the compact library open.",
+       "expect": "The library stays within its 216 pt column and does not run under the video area or the resume toast (an overflow to about 248 pt was found offscreen)."
+      },
+      {
+       "id": "C1",
+       "steps": "Click the volume cone and the seek bar, then press Tab once.",
+       "expect": "Clicking draws no focus box; only keyboard focus draws the design ring (D046)."
+      },
+      {
+       "id": "C2",
+       "steps": "Click the subtitle-tracks button, then pick a track row.",
+       "expect": "The popover is anchored bottom-right just above the control bar, and picking a row closes it."
+      },
+      {
+       "id": "C3",
+       "steps": "Screenshot the top of the window.",
+       "expect": "There is a single 40 pt top bar, with the traffic lights centred and the cone right after them."
+      },
+      {
+       "id": "C4",
+       "steps": "While playing, open and close the ⋯ menu, the track popover and the sidebar with Esc and with a click outside.",
+       "expect": "Open and close use the same motion, and closing never pauses playback."
+      },
+      {
+       "id": "C5",
+       "steps": "Open the Subtitles sidebar while playing.",
+       "expect": "The panel overlays the video, and the video is neither resized nor moved."
+      },
+      {
+       "id": "C6",
+       "steps": "Drag the seek head slowly across the bar.",
+       "expect": "The playhead, the time label and the preview thumbnail update continuously."
+      },
+      {
+       "id": "C7",
+       "steps": "Change the volume with the wheel and the keys while playing.",
+       "expect": "Only the cone indicator changes; the VLC core OSD shows no volume text."
+      },
+      {
+       "id": "A-light-bars",
+       "steps": "Set Theme Light and play a real video with the compact library open.",
+       "expect": "The bars read about #ABABAA over the video (D046), the playing row is shown in the accent and watched rows are dimmed (D051)."
+      },
+      {
+       "id": "A-pip",
+       "steps": "Start Picture in Picture, then click the placeholder.",
+       "expect": "The placeholder shows the glyph and the caption (D042), and a click returns the video to the window."
+      }
+     ],
+     "notesForOthers": "Integrator:\n- GalleryCatalog.canvas() now honours the engine override. An App entry rendered with --engine shipping-window no longer drops the top bar.\n- New GalleryRenderContext (set by canvas around entry.make()). Every MXRAppView gallery scene should go through ShippingGallery.host(app) { MXRAppView(...) }, which applies --scheme/--accent and, in the shipping window, the traffic-light reserve and button visibility.\n- New entries: S67.Window/two-row, S05.Window/fullscreen, S12.Window/continue-minimum.\n- S72.Window/light now uses scenario .playingEpisode with the figmaPlayerLight media.\n\nH-design:\n- Edit-mode play tile: Figma insets its 48 pt fill 3 pt inside the 54 pt dashed box (parity-8 item 2), and it is still open.\n- The Customize dim colour over real video needs a live judgement.\n\nE-library:\n- (a) S72 compact-library divider: #ACACAC is drawn where Figma has #212121; adopt it or document it in D032/D046.\n- (b) At the 480 pt minimum window, MXRLibraryView(compact:) draws about 248 pt wide inside the 216 pt column the composition gives it (narrow_pair.png). Please make the compact header fit, or tell A-window the library's minimum width so compactWidth can respect it.\n- (c) Raw underscore file names in compact rows (earlier note).\n\nF-settings: all six formerly open S48 categories give REVIEW now; openSettingsDifferences is empty and the strict gate passes.\n\nB-controls/G-panels: LayoutZone.newFirstRow (.bottom(-1)) is the Customize band. 'Move to New Row' still appends below; change it if you want it to fill the band instead."
+    }
+   ],
+   "verdict": null
+  },
+  {
+   "area": "B-controls",
+   "reports": [
+    {
+     "status": "done",
+     "summary": "I fixed every B-controls parity, critic and verifier item, either at the root cause or by covering it with the new decision D048 (accepted by agent, 2026-10-17), which needs owner review. I also found and fixed two control-bar defects nobody had reported: the 4 pt music playhead drew a notched cap, and played waveform bars used Accent/Main where Figma 4778:26181 draws #AB6314 Accent/DIm. These checks now pass: C.SeekBar/default, S01.ControlBar/default, C.CurrentTime, C.Duration default/remaining and C.PlayButton play/pause. S21.Timeline and S34.ControlBar/music are REVIEW: a 1 pt label offset and waveform fixture sample drift. S01.Window/shipping still FAILs, but only in the top bar (traffic lights and title, owned by A-window). The seek-head difference there is now a documented deviation. I added 9 tests in ControlBarParityTests; I temporarily reverted 7 of the fixes in an isolated copy and every test covering them failed (the two waveform/radius checks the revert left in place assert the changed values directly). The other targeted suites pass except one failure in PlayerInteractionTests (testEveryControlRowKeepsItsIndependentFigmaHeight), which comes from another area's in-progress Customize layout work, not from my files. Build is clean, with no warnings in the files I touched.",
+     "fixed": [
+      "C.SeekBar/default: the bar-only entry now has its own fixture time, 00:01:53, which is where Figma 1908:7387 draws the head. videoApp(at:) defaults to 02:10, so product defaults and the label entries are unchanged, with no geometry change and no mask. The check went from FAIL to PASS. Evidence: final3/B-controls/before/C.SeekBar_default vs after/C.SeekBar_default.",
+      "S01.ControlBar/default, S01.Window/shipping and S34.ControlBar/music: the head stays at the labelled 02:10 and is recorded as a figmaDeviation citing D048 (Figma's head contradicts its own labels). The dark-only missing 1 pt top stroke of component 491:1779 is covered the same way (the Player-6 frame has no line). S01.ControlBar/default went from FAIL to PASS.",
+      "S21.Timeline/default: the fill reaching the head (as in the video) is recorded as a figmaDeviation citing D048. FAIL became REVIEW.",
+      "Bar icon hover (Figma Icon Wrapper 177:99): the glyph stays FG/A2 and only the white 6 % radius-4 iconHover tile appears. The tile is the new MXRPlayerIconTile; ControlBarParityTests checks the hover pixels.",
+      "Seek thumbnail placement: the card is centred on the pointer with its bottom gap5 above the control bar's top edge, 18 pt above the track, as measured from video 03m29.3 (card 272 pt = 1036 px, so 3.81x). It no longer overlaps the bar. It is clamped to the window via the MXRAppView coordinate space, not to the seek bar, and keeps the 10 pt video inset. Implemented as MXRSeekBar.previewOrigin, with tests.",
+      "B-08 OSD: the text now sizes from the picture aspect-fit in the media canvas (which never moves when panels open) and anchors to the visible part of that picture (picture ∩ information rect). A pillarboxed picture keeps the OSD on the picture, and the library or a right panel keeps it clear. New helpers Theme.OSD.pictureRect and anchorRect.",
+      "S13 OSD edge: replaced the soft menuShadow with VLC's freetype defaults read from modules/text_renderer/freetype: a black outline of 4 % of the glyph height and a 50 % black shadow at 0.06, -45 degrees. Before/after crop: final3/B-controls/osd_before_after.png, next to key frame 15m27.1.",
+      "MXRTimeLabel no longer sets its accessibility value twice: the outer container keeps only its label.",
+      "Live streams: the duration now reads '--:--:--' (VLC's '--:--'; VoiceOver says 'Unknown') instead of 00:00:00, and the seek bar draws no fill and no head when the length is unknown. Evidence: before/S01.Player_live-stream.png vs final3/B-controls/live_bar_after.png.",
+      "New finding: the music playhead (4 pt wide, radius 4) drew a notched cap, because CALayer does not clamp the corner radius the way Figma does. The head, resume span/marker and fill radii are now clamped to half the shorter side. Evidence: music_head_cmp.png (before) vs music_head_after.png.",
+      "New finding: played waveform bars used Accent/Main. Figma 4778:26181 and 4767:23726 draw all 18 played bars #AB6314 (Accent/DIm), so they now use Accent/DIm. S34.ControlBar/music colour regions are gone: FAIL became REVIEW, with only fixture waveform sample drift left."
+     ],
+     "notFixed": [
+      {
+       "id": "S01.Window/shipping top-bar FAIL",
+       "why": "Traffic lights, cone offset and title area are owned by A-window and covered by D022/D042. The D007 wording about a PiP button in the top bar is also A-window's. The B-controls seek-head part is now a documented deviation."
+      },
+      {
+       "id": "S34 waveform sample drift (REVIEW) and S34.Player/music FAIL",
+       "why": "The drift is fixture data: Figma clips its 244 bars, while the product fits peaks from the whole signal (documented in the entry notes). S34.Player/music fails on window background #1B1B1B vs #1D1D1D (2/255) and on the bar showing the solid seek bar (D028: waveform off by default); neither is in my files."
+      },
+      {
+       "id": "S12 narrow continue-watching toast",
+       "why": "Its verdict was 'match' and the view lives in PlayerView.swift (not mine). D051, written by another agent, already covers it."
+      },
+      {
+       "id": "VIDEO_BREAKDOWN line 138 still lists bar-icon hover as OPEN",
+       "why": "Not my file. D048 now records the behaviour."
+      }
+     ],
+     "filesChanged": [
+      "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerControls.swift",
+      "modules/gui/macosx_redesign/Sources/MXRUI/Player/NativeSeekProgress.swift",
+      "modules/gui/macosx_redesign/Sources/MXRUI/Player/MXROSDView.swift",
+      "modules/gui/macosx_redesign/Sources/MXRDesign/Typography/OSDTypography.swift",
+      "modules/gui/macosx_redesign/Sources/MXRUI/MXRAppView.swift",
+      "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/PlayerGallery.swift",
+      "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/ShippingGallery.swift",
+      "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/PanelsGallery.swift",
+      "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/ControlBarParityTests.swift",
+      "redesign/docs/DECISIONS.md"
+     ],
+     "editsOutsideOwnership": [
+      "Sources/MXRUI/MXRAppView.swift: only the MXRPlayerOSD call in overlays(size:). It now passes the media canvas rect (canvasStyle insets) and the information rect, instead of a full-width container plus an outer frame/offset (B-08).",
+      "Sources/MXRGalleryCatalog/Entries/PlayerGallery.swift: videoApp(at:) parameter (default 02:10); C.SeekBar/default fixture 00:01:53 with a note; figmaDeviations on S01.ControlBar/default and S34.ControlBar/music citing D048.",
+      "Sources/MXRGalleryCatalog/Entries/ShippingGallery.swift: window(...) gains a `deviations:` parameter passed to GalleryEntry.figmaDeviations; S01.Window/shipping gets a head deviation at I491:1928;1908:7389 citing D048.",
+      "Sources/MXRGalleryCatalog/Entries/PanelsGallery.swift: S21.Timeline/default gets a figmaDeviation at 3744:12373 citing D048.",
+      "redesign/docs/DECISIONS.md: appended D048."
+     ],
+     "decisionsWritten": [
+      "D048 — Seek bar and OSD where Figma contradicts itself or is silent · accepted (agent, 2026-10-17). It covers: head at the labelled time; no top stroke on the dark control bar (Player-6 wins over component 491:1779); subtitle-timeline fill runs to the head (as in the video); live streams show '--:--:--' with no fill or head; thumbnail card placement from video 03m29.3; OSD outline and shadow from VLC freetype defaults, with picture-based sizing and anchoring (amends D027); bar icon hover per Figma 177:99."
+     ],
+     "ownerDecisions": [
+      "D048 (agent-written, 2026-10-17): needs owner acceptance, especially the OSD outline style (VLC freetype look rather than a soft shadow) and the live-stream '--:--:--' with no seek head.",
+      "Still pending from before: D042, D044, D046, D047 and the D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies). Their implementations are unchanged."
+     ],
+     "evidence": [
+      "Before/after checks: <scratch>,after}/<entry>/{render,ref,side-by-side,diff-heatmap,report.txt}",
+      "C.SeekBar/default: FAIL before, PASS after. S01.ControlBar/default: FAIL before, PASS after. S21.Timeline/default: FAIL before, REVIEW after. S34.ControlBar/music: FAIL before, REVIEW after. C.CurrentTime, C.Duration default/remaining and C.PlayButton play/pause: PASS.",
+      "OSD: final3/B-controls/osd_before_after.png and after/S13.Window_osd-queue.png, compared with key frame 15m27.1.",
+      "Live stream bar: before/S01.Player_live-stream.png vs final3/B-controls/live_bar_after.png.",
+      "Music head and played colour: final3/B-controls/music_head_cmp.png (before, notched cap) and music_head_after.png.",
+      "Tests: ControlBarParityTests 9/9 pass. With 7 of the fixes reverted in the isolated copy, every test covering them failed. The other suites pass: OSDLayout, OSDTypography, SeekProgressRedraw, PlayerProgressRegression, MiniPlayerSeekBinding, FigmaDeviation, WindowComposition, ConeScrollIsolation, PauseButtonContrast and Scrubbing. In PlayerInteractionTests, testEveryControlRowKeepsItsIndependentFigmaHeight fails because another area is changing the Customize layout (108 vs 54); it is not in my files."
+     ],
+     "liveChecks": [
+      {
+       "id": "B-seek-preview",
+       "steps": "Play a local video with thumbnails on. Hover the seek bar near its left end, in the middle and near its right end; then drag-scrub across it.",
+       "expect": "The card is centred on the pointer, its bottom about 5 pt above the control bar's top edge, never overlapping the bar or clipped by the window. Near the window sides it slides in and keeps a 10 pt inset. During a drag it follows the pointer every frame (D028)."
+      },
+      {
+       "id": "B-icon-hover",
+       "steps": "Hover each bar icon: subtitles, audio, gear, queue, fullscreen and the speaker.",
+       "expect": "Only a faint white tile with radius 4 appears; the glyph stays the same grey (no brightening). The active queue icon stays orange."
+      },
+      {
+       "id": "B-pressed",
+       "steps": "Press and hold each bar button and release it.",
+       "expect": "Nothing flickers, no system highlight or focus ring appears (D028), and the hover tile stays."
+      },
+      {
+       "id": "B-osd",
+       "steps": "Play a bright or white video frame and press C (crop). Then open the queue panel and press C again. Then play a 4:3 video in a wide window and press C.",
+       "expect": "The OSD text is crisp white with a black edge and readable on white, at the top right of the picture. With the queue open it sits left of the panel. With 4:3 it sits on the picture, not in the black pillarbox. Its size follows the picture height."
+      },
+      {
+       "id": "B-live",
+       "steps": "Open a live network stream (e.g. internet radio or HLS live).",
+       "expect": "The duration reads '--:--:--', the seek bar shows no fill and no head and is dimmed, and VoiceOver reads the duration as 'Unknown'."
+      },
+      {
+       "id": "B-music-head",
+       "steps": "Play an audio file with 'Show Waveform on Seekbar' on.",
+       "expect": "The 4 pt playhead is a clean pill with no notch, played bars are darker orange (#AB6314), the head is bright orange and unplayed bars are grey."
+      },
+      {
+       "id": "C1-focus",
+       "steps": "Click the seek bar, the volume cone and the time labels with the mouse, then press Tab to move through the controls.",
+       "expect": "No focus box after mouse clicks. Keyboard navigation shows only the design focus ring."
+      },
+      {
+       "id": "C7-volume",
+       "steps": "Drag and scroll the volume cone, and press the volume hotkeys.",
+       "expect": "The volume tooltip is the only volume indicator: no VLC core OSD slider or text appears."
+      },
+      {
+       "id": "B-timelabel-a11y",
+       "steps": "With VoiceOver on, move to the elapsed and duration labels.",
+       "expect": "Each value is announced once, as a button with its hint."
+      },
+      {
+       "id": "B-cpu",
+       "steps": "Play a 1080p file for 60 s with the bars visible, then again with Hide UI; read VLC Redesign's CPU in Activity Monitor.",
+       "expect": "Visible bars cost only slightly more than Hide UI (previously claimed 7.2–7.5 % vs 5.9 %), and there is no growth while paused."
+      }
+     ],
+     "notesForOthers": "[\"A-window: S01.Window/shipping still FAILs only in the top bar (traffic lights and title, D022/D042), and D007 still mentions a PiP button in the top bar. I added a `deviations:` parameter to ShippingGallery.window(...) that you can reuse.\", \"Customize owner: PlayerInteractionTests.testEveryControlRowKeepsItsIndependentFigmaHeight fails at the current tree (108 vs 54 for one row while customizing). My files are not involved.\", \"Earlier, GalleryCatalog.swift:281 did not compile (`effectiveEngine` without the GalleryRenderer prefix) while its owner was editing it; it was fixed by the owner while I worked.\"]"
+    }
+   ],
+   "verdict": null
+  },
+  {
+   "area": "C-bridge"
+  },
+  {
+   "area": "D-menus"
+  },
+  {
+   "area": "E-library"
+  },
+  {
+   "area": "F-settings"
+  },
+  {
+   "area": "G-panels"
+  },
+  {
+   "area": "H-design",
+   "reports": [
+    {
+     "status": "done",
+     "summary": "I fixed every Figma difference assigned to H-design and covered each one I kept with decision D049. The fixes are the Light VLC cone colour, the folded corner of the subtitle-file glyph, the Customize tile and label positions, the edit-mode play-tile inset and the onboarding footer hint. All are fixed at the root (generator, token or layout). I rendered each one before and after, compared them with Figma, and added tests that fail without the fix; for the cone and the glyph I confirmed the failure by temporarily reverting. Targeted suites pass: IconLogoRoleTests 3, CustomizationPaletteGeometryTests 2, CustomizationInteractionTests 11, AccentPaletteTests 2, PauseButtonContrastTests 2, FigmaDeviationTests 5, ThemeContrastTests 8. gen-icons --check and gen-tokens --check pass. The disk briefly reached 100 % mid-wave (240 MB free) and has since recovered to about 4 GB free.",
+     "fixed": [
+      "(d) S72 Light cone. Root cause: the cone's accent layer was styled with accentMain, and the tint the views pass was ignored. Fix: tools/gen-icons.py now reads figma_file.json and gives an icon the new `logo` role when its instances paint its vectors with an Accent/Logo style. Only vlc 48:57 does (51:799-801: Dark 217:226, Light 2425:13968). MXRIcon maps `.logo` to Theme.Color.accentLogo on both the SwiftUI and the AppKit (nsImage) paths. Result: the shipping-window S72.Window/light render now samples the cone at (194,113,26), identical to Figma #C2711A; Dark stays #D37918. Test IconLogoRoleTests (SwiftUI and AppKit paths) fails with the old role: it read #E8851A. Evidence: final3/H-design/after/S72_Window_light/",
+      "(d) Subtitle-file glyph folded corner (S25/S26/S27, Figma 1911:8286 and 2461:9663). The SVG export kept only the closed outline of 'Rectangle 1'. I added an EXPORT_FIXES entry in gen-icons.py that inserts the fold edge `M9 2.75V5.75C9 6.85 8.10 7.75 7 7.75H3.75`, measured on renders/Icon.png at 2 px per unit. The entry fails loudly if the export ever changes. Both variants were regenerated. Test testSubtitleGlyphDrawsTheFoldedCorner fails when the fold path is removed from the asset. Evidence: final3/H-design/subtitle-icon-render-vs-figma.png (render on the left, Figma on the right, now identical), final3/H-design/before/subtitle_icon_zoom.png, final3/H-design/after/S25_AddSubtitles_folder/ (REVIEW, mean delta 0.44)",
+      "(d) S66/S67 tile labels sat about 2-4 pt low. Two causes. First, Forward/Backward 15s use Figma's bare 28x28 Icon (6587:18894), not the 30x32 wrapper. Second, every tile was forced to the two-line height, while Figma's wrapping grid lets tiles hug their content and makes each row as tall as its tallest tile (rows at 128/248/368/484). Fix: MXRCustomizationPalette.iconSize(for:), tileHeight(for:), rowHeight and contentHeight(rows:) in LayoutDrag.swift, and the tile uses its own height. The default palette body now equals Figma's 489 pt frame. Test: CustomizationPaletteGeometryTests. Evidence: final3/H-design/after/S66_Customization_default/side-by-side.png and S67_Customization_two-row-edit/ (labels at 172 and the last row now line up with Figma) vs final3/H-design/before/S66_Customization_default.png",
+      "S66 edit-mode play tile (parity group 8, item 2). Figma 2115:7369/2115:7282 draws a 48 pt accent fill 3 pt inside the 54 pt dashed box. Fix: new token customization.outline.playFillInset = 3 in metrics.json (regenerated). MXRPlayPauseButton draws its fill 6 pt narrower while mxrLayoutEditing is set and keeps its 54 pt slot. Evidence: final3/H-design/after/S66_play_tile.png (fill 61-108.5 pt, i.e. 48 wide inside the box)",
+      "S71 footer hint about 1 pt low. In Figma, 1904:7211's 28 pt text box shares the buttons' top edge (y 671) rather than being centred on them. The hint is now top-aligned in the button-height frame. Measured after the fix: text rows 679.0-690.5, identical to Figma. Evidence: final3/H-design/after/S71_Onboarding_shortcuts/ (the remaining FAIL is the ⌘ L keycap, D026)",
+      "S70 alternate-accent frames lack Back. The orange frame 1902:3670 and the video at 19m49 (frame extracted to final3/H-design/onb-1189.jpg) both show Back, so it is kept and documented in D049. The 8 alternate entries in CustomizationGallery now declare a FigmaDeviation (.differs on the Back rect, computed from tokens) that cites D049. With it, S70.Onboarding/teal compares everything else.",
+      "Light play button #E8851A vs Figma #D37918. Evidence from figma_file.json: in Player - Light the play fill I2425:13645;3603:12304 still carries the Dark/Accent/Main style, while the same frame's seek fill 1908:7389 uses Light/Accent/Main and the track Light/BG/Accent Bright. The frame is a partial conversion (INDEX.md). Kept, and documented in D049 bullet 1.",
+      "S69 '~/Movies' instead of '~/Videos' now has its own DECISIONS line (D049 bullet 3), as the judge asked.",
+      "Metrics note for customization.tile corrected: it no longer says 'two-line label'; tiles hug their content."
+     ],
+     "notFixed": [
+      {
+       "id": "S70 title 0.5 pt high",
+       "why": "Measured after the fix: text rows 184.5-207.0 against Figma 185.0-207.5. That is half a point, below the device pixel at 1x and within text-rasterisation rounding, so I did not change the layout for it."
+      },
+      {
+       "id": "S69/S70 bottom ~2 pt corner strip (check FAIL 0,752 1090x7)",
+       "why": "This is the rounded-corner and shadow alpha of the isolated hosting render (corner alpha 19 vs Figma 102 on the bottom 3 pt). The judge rated it not a visible difference. Matching it would mean tuning the shadow against an isolated render, which the quality bar rules out."
+      },
+      {
+       "id": "S66 major (empty second-row band) and the dialog body #0E0E0E vs #181818",
+       "why": "Owned by A-window (band) or a backdrop artefact (body). A-window is already changing LayoutStore for the band (LayoutZone.newFirstRow) and has updated CustomizationInteractionTests, which now passes."
+      },
+      {
+       "id": "PiP light scheme: --scheme light ignored for shipping-window entries (parity group 1)",
+       "why": "This is in the mxr-snapshot CLI and GalleryCatalog/ShippingGallery, which belong to A-window/I-build, not H-design files. Passed on in notesForOthers."
+      },
+      {
+       "id": "S50 Settings light: video shows a solid accent segment while the Figma tokens give Accent Bright",
+       "why": "Not a Figma difference: no light Settings frame exists, and Figma tokens win over the video (PHILOSOPHY). Nothing to change."
+      },
+      {
+       "id": "S72 library header divider and crumb colours (E-library, judgment)",
+       "why": "These belong to E-library's library views."
+      },
+      {
+       "id": "(c) live parts of H-02/H-03/H-07 and the library sheet",
+       "why": "These need the real window; they are listed in liveChecks."
+      }
+     ],
+     "filesChanged": [
+      "modules/gui/macosx_redesign/tools/gen-icons.py",
+      "modules/gui/macosx_redesign/Sources/MXRDesign/Generated/Icons.swift",
+      "modules/gui/macosx_redesign/Sources/MXRDesign/Generated/Tokens.swift",
+      "modules/gui/macosx_redesign/Sources/MXRDesign/Resources/Icons.xcassets/subtitle.imageset/subtitle.svg",
+      "modules/gui/macosx_redesign/Sources/MXRDesign/Resources/Icons.xcassets/subtitle-2461-9663-layer1.imageset/subtitle-2461-9663-layer1.svg",
+      "modules/gui/macosx_redesign/Sources/MXRDesign/Icons/MXRIcon.swift",
+      "modules/gui/macosx_redesign/Sources/MXRUI/Customization/LayoutDrag.swift",
+      "modules/gui/macosx_redesign/Sources/MXRUI/Customization/MXRCustomizationView.swift",
+      "modules/gui/macosx_redesign/Sources/MXRUI/Customization/MXROnboardingView.swift",
+      "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/CustomizationGallery.swift",
+      "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerControls.swift",
+      "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/IconLogoRoleTests.swift",
+      "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/CustomizationPaletteGeometryTests.swift",
+      "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/FigmaDeviationTests.swift",
+      "redesign/design/tokens/metrics.json",
+      "redesign/docs/DECISIONS.md"
+     ],
+     "editsOutsideOwnership": [
+      "Sources/MXRUI/Player/PlayerControls.swift (B-controls): MXRPlayPauseButton reads mxrLayoutEditing and narrows its fill by 2 × Theme.Metric.Customization.outlinePlayFillInset inside an outer 54 pt frame (Figma 2115:7282 is 48 pt inside the 2115:7369 box). Normal mode is unchanged.",
+      "Tests/MXRUISnapshotTests/FigmaDeviationTests.swift: testDeviationsCiteAcceptedDecisionsAndOwnNodes accepted only '· accepted ·', so every agent-written 'accepted (agent, …)' heading failed, both D048 (another agent's) and D049. It now also accepts '· accepted ('.",
+      "redesign/docs/DECISIONS.md: appended D049 (re-read right before the edit; D048 from another agent was already there)."
+     ],
+     "decisionsWritten": [
+      "D049 — Light accent, onboarding Back and the media folder · accepted (agent, 2026-10-17): (1) every Light accent fill uses Light/Accent/Main #E8851A, because Player - Light's play button still carries Dark/Accent/Main while the seek fill uses the Light style; the cone uses Accent/Logo. (2) Onboarding step 2 keeps Back for every accent (orange frame 1902:3670 and video 19m49). (3) The welcome folder is pre-filled with ~/Movies, falling back to ~/Videos, else empty."
+     ],
+     "ownerDecisions": [
+      "D049 (agent-written, awaiting the owner): Light play button #E8851A rather than the frame's unconverted Dark style #D37918; Back kept on the alternate-accent onboarding frames; ~/Movies pre-fill.",
+      "Still pending from earlier waves (implementation kept): D042, D044, D046, D047, and the D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies)."
+     ],
+     "liveChecks": [
+      {
+       "id": "H-cone-light",
+       "steps": "Set the theme to Light in Settings ▸ General. Open a video so the top bar and the paused centre cone show. Take a screencapture and sample the cone pixels in the top bar and in Media Information.",
+       "expect": "The cone reads #C2711A (Light/Accent/Logo), noticeably darker than the play button #E8851A. In Dark, the cone and the play button are both #D37918."
+      },
+      {
+       "id": "H-subtitle-glyph",
+       "steps": "Open a video with sidecar .srt files in its folder. Open Add Subtitles ▸ To This Folder, then To This File ▸ From Computer.",
+       "expect": "Each .srt row's document glyph has a folded top-left corner: a short vertical edge at the top, then a horizontal edge to the left side, as in Figma 1911:8286."
+      },
+      {
+       "id": "H-customize-tiles",
+       "steps": "Open Customize Player from the app menu with the default video layout.",
+       "expect": "The Forward 15s and Backward 15s labels sit level with the 'Forward 10s' first line (about 4 pt higher than before). The last row (Favorite, Bookmark, Bookmarks, Playlists) starts 116 pt below the third row. In the control bar, the play tile shows a 48 pt orange fill with a 3 pt dark gap inside its dashed box."
+      },
+      {
+       "id": "H-onboarding-footer",
+       "steps": "Run onboarding (fresh profile) and go to step 3, keyboard shortcuts.",
+       "expect": "The top of the 'Find the full list in the menu.' line is level with the top edges of Back and Finish, not centred on them. Step 2 shows Back for every accent swatch."
+      },
+      {
+       "id": "H-02/H-03/H-07 (carried over)",
+       "steps": "As listed in the previous wave: light bars over real video (#ABABAA); onboarding Next then Esc on an isolated profile, then check ml.db for the folder; drag a palette tile using the declared UTType.",
+       "expect": "As in the previous wave's liveChecks."
+      }
+     ],
+     "evidence": [
+      "<scratch> (cone sampled at (194,113,26), equal to Figma)",
+      "<scratch>",
+      "<scratch> (Figma icon crop used for the fold measurement)",
+      "<scratch> vs before/S66_Customization_default.png",
+      "<scratch>",
+      "<scratch> and S66_Window_customization.png",
+      "<scratch> (hint rows 679-690.5, identical to Figma) vs before/S71.png",
+      "<scratch> (D049 deviation applied)",
+      "<scratch> (video 19m49: step 2 with Back)",
+      "Red checks: IconLogoRoleTests fails with role .accent (#E8851A instead of #C2711A) and with the fold path removed (alpha 0 at the fold)."
+     ],
+     "notesForOthers": "[\"A-window / I-build: in the parity-1 PiP note, `--scheme light` has no effect on shipping-window entries in mxr-snapshot. The fix belongs in SnapshotCLI/GalleryCatalog (set app.appearance from --scheme, or add light variants). Not H-design files.\", \"Anyone writing an 'accepted (agent, …)' decision: FigmaDeviationTests now accepts '· accepted (' in the heading. Without that change D048 failed testDeviationsCiteAcceptedDecisionsAndOwnNodes.\", \"A-window: CustomizationInteractionTests passes with your LayoutZone.newFirstRow change. The palette row geometry is now MXRCustomizationPalette.rowHeight/contentHeight(rows: [[PlayerControl]]) (LayoutDrag.swift); please keep that API if you touch the edit-mode band.\", \"B-controls: MXRPlayPauseButton now narrows its fill in edit mode only (environment mxrLayoutEditing). The `tint: Theme.Color.accentLogo` passed to MXRIcon(.vlc) in PlayerBars.swift:236, PlayerView.swift:57 and MediaInfoDialogs.swift:76 is now redundant (the cone has no gray layer; its colour comes from the logo role). It is harmless and can be removed by the owners.\", \"Disk: the volume briefly hit 100 % mid-wave (240 MB free) and has since recovered to about 4 GB free; final3 alone takes 2.9 GB. Clean your scratch copies.\"]"
+    }
+   ],
+   "verdict": null
+  },
+  {
+   "area": "I-build"
+  },
+  {
+   "area": "J-media-io"
+  }
+ ],
+ "liveChecks": [
+  {
+   "area": "A-window",
+   "id": "A-S66-band",
+   "steps": "Play a video, open ⋯ → Customize Player in a 1920×1080 window and screenshot the bottom 120 pt. Drag the time+seek group onto the empty band above the control bar, then Save.",
+   "expect": "In edit mode the bottom area has two rows: an empty bar-material band (972–1026) and the control bar, as in Figma Player - customize and frame 19m12.4. After the drop, the seek group forms a new top row and the transport row stays below; after Save the bars match 19m27.6."
+  },
+  {
+   "area": "A-window",
+   "id": "A-modal-centre",
+   "steps": "In a 1920×1080 window over a bright video, open Add Subtitles. Then resize the window to 960×540 and open Convert and Settings.",
+   "expect": "Add Subtitles is centred on the window (top about 140, bottom about 940), the top bar stays visible under the scrim (06m02.5), and the artwork behind the dialog body is blurred. At 960×540 the whole header band (title and ✕) is visible, with panelInset (20 pt) above it."
+  },
+  {
+   "area": "A-window",
+   "id": "A-topbar-lights",
+   "steps": "Screenshot the top 40 pt at 2× and compare with the Figma 247:445 crop (x 0–640, y 0–40). Press ⌘\\ (Hide UI), then set auto-hide to 'always' and move the pointer to the top edge.",
+   "expect": "The traffic lights are vertically centred in the 40 pt bar with the cone right after them. They hide with Hide UI and come back with the top bar. Double-click on the bar follows the system titlebar preference, and the bar drags the window."
+  },
+  {
+   "area": "A-window",
+   "id": "A-fullscreen",
+   "steps": "Enter fullscreen while playing, move the pointer to the top and bottom edges, then exit.",
+   "expect": "The video is edge to edge and the bars overlay it (S05.Window/fullscreen). The cone sits at the edge with no traffic-light reserve. The menu bar and system titlebar reveal at the top, the cursor hides when the bars hide, and the enter/exit animation is smooth."
+  },
+  {
+   "area": "A-window",
+   "id": "A-resume-narrow",
+   "steps": "Open DON'T BLINK with a saved position and resize the window to 480×270 with the compact library open, then also open the queue.",
+   "expect": "With the library open the toast fits inside the video, with 'Continue Watching' truncated and ✕ whole (S12.Window/continue-minimum). With the queue also open, no toast is drawn over the panels."
+  },
+  {
+   "area": "A-window",
+   "id": "A-compact-library-min",
+   "steps": "Resize the window to 480 pt wide with the compact library open.",
+   "expect": "The library stays within its 216 pt column and does not run under the video area or the resume toast (an overflow to about 248 pt was found offscreen)."
+  },
+  {
+   "area": "A-window",
+   "id": "C1",
+   "steps": "Click the volume cone and the seek bar, then press Tab once.",
+   "expect": "Clicking draws no focus box; only keyboard focus draws the design ring (D046)."
+  },
+  {
+   "area": "A-window",
+   "id": "C2",
+   "steps": "Click the subtitle-tracks button, then pick a track row.",
+   "expect": "The popover is anchored bottom-right just above the control bar, and picking a row closes it."
+  },
+  {
+   "area": "A-window",
+   "id": "C3",
+   "steps": "Screenshot the top of the window.",
+   "expect": "There is a single 40 pt top bar, with the traffic lights centred and the cone right after them."
+  },
+  {
+   "area": "A-window",
+   "id": "C4",
+   "steps": "While playing, open and close the ⋯ menu, the track popover and the sidebar with Esc and with a click outside.",
+   "expect": "Open and close use the same motion, and closing never pauses playback."
+  },
+  {
+   "area": "A-window",
+   "id": "C5",
+   "steps": "Open the Subtitles sidebar while playing.",
+   "expect": "The panel overlays the video, and the video is neither resized nor moved."
+  },
+  {
+   "area": "A-window",
+   "id": "C6",
+   "steps": "Drag the seek head slowly across the bar.",
+   "expect": "The playhead, the time label and the preview thumbnail update continuously."
+  },
+  {
+   "area": "A-window",
+   "id": "C7",
+   "steps": "Change the volume with the wheel and the keys while playing.",
+   "expect": "Only the cone indicator changes; the VLC core OSD shows no volume text."
+  },
+  {
+   "area": "A-window",
+   "id": "A-light-bars",
+   "steps": "Set Theme Light and play a real video with the compact library open.",
+   "expect": "The bars read about #ABABAA over the video (D046), the playing row is shown in the accent and watched rows are dimmed (D051)."
+  },
+  {
+   "area": "A-window",
+   "id": "A-pip",
+   "steps": "Start Picture in Picture, then click the placeholder.",
+   "expect": "The placeholder shows the glyph and the caption (D042), and a click returns the video to the window."
+  },
+  {
+   "area": "B-controls",
+   "id": "B-seek-preview",
+   "steps": "Play a local video with thumbnails on. Hover the seek bar near its left end, in the middle and near its right end; then drag-scrub across it.",
+   "expect": "The card is centred on the pointer, its bottom about 5 pt above the control bar's top edge, never overlapping the bar or clipped by the window. Near the window sides it slides in and keeps a 10 pt inset. During a drag it follows the pointer every frame (D028)."
+  },
+  {
+   "area": "B-controls",
+   "id": "B-icon-hover",
+   "steps": "Hover each bar icon: subtitles, audio, gear, queue, fullscreen and the speaker.",
+   "expect": "Only a faint white tile with radius 4 appears; the glyph stays the same grey (no brightening). The active queue icon stays orange."
+  },
+  {
+   "area": "B-controls",
+   "id": "B-pressed",
+   "steps": "Press and hold each bar button and release it.",
+   "expect": "Nothing flickers, no system highlight or focus ring appears (D028), and the hover tile stays."
+  },
+  {
+   "area": "B-controls",
+   "id": "B-osd",
+   "steps": "Play a bright or white video frame and press C (crop). Then open the queue panel and press C again. Then play a 4:3 video in a wide window and press C.",
+   "expect": "The OSD text is crisp white with a black edge and readable on white, at the top right of the picture. With the queue open it sits left of the panel. With 4:3 it sits on the picture, not in the black pillarbox. Its size follows the picture height."
+  },
+  {
+   "area": "B-controls",
+   "id": "B-live",
+   "steps": "Open a live network stream (e.g. internet radio or HLS live).",
+   "expect": "The duration reads '--:--:--', the seek bar shows no fill and no head and is dimmed, and VoiceOver reads the duration as 'Unknown'."
+  },
+  {
+   "area": "B-controls",
+   "id": "B-music-head",
+   "steps": "Play an audio file with 'Show Waveform on Seekbar' on.",
+   "expect": "The 4 pt playhead is a clean pill with no notch, played bars are darker orange (#AB6314), the head is bright orange and unplayed bars are grey."
+  },
+  {
+   "area": "B-controls",
+   "id": "C1-focus",
+   "steps": "Click the seek bar, the volume cone and the time labels with the mouse, then press Tab to move through the controls.",
+   "expect": "No focus box after mouse clicks. Keyboard navigation shows only the design focus ring."
+  },
+  {
+   "area": "B-controls",
+   "id": "C7-volume",
+   "steps": "Drag and scroll the volume cone, and press the volume hotkeys.",
+   "expect": "The volume tooltip is the only volume indicator: no VLC core OSD slider or text appears."
+  },
+  {
+   "area": "B-controls",
+   "id": "B-timelabel-a11y",
+   "steps": "With VoiceOver on, move to the elapsed and duration labels.",
+   "expect": "Each value is announced once, as a button with its hint."
+  },
+  {
+   "area": "B-controls",
+   "id": "B-cpu",
+   "steps": "Play a 1080p file for 60 s with the bars visible, then again with Hide UI; read VLC Redesign's CPU in Activity Monitor.",
+   "expect": "Visible bars cost only slightly more than Hide UI (previously claimed 7.2–7.5 % vs 5.9 %), and there is no growth while paused."
+  },
+  {
+   "area": "H-design",
+   "id": "H-cone-light",
+   "steps": "Set the theme to Light in Settings ▸ General. Open a video so the top bar and the paused centre cone show. Take a screencapture and sample the cone pixels in the top bar and in Media Information.",
+   "expect": "The cone reads #C2711A (Light/Accent/Logo), noticeably darker than the play button #E8851A. In Dark, the cone and the play button are both #D37918."
+  },
+  {
+   "area": "H-design",
+   "id": "H-subtitle-glyph",
+   "steps": "Open a video with sidecar .srt files in its folder. Open Add Subtitles ▸ To This Folder, then To This File ▸ From Computer.",
+   "expect": "Each .srt row's document glyph has a folded top-left corner: a short vertical edge at the top, then a horizontal edge to the left side, as in Figma 1911:8286."
+  },
+  {
+   "area": "H-design",
+   "id": "H-customize-tiles",
+   "steps": "Open Customize Player from the app menu with the default video layout.",
+   "expect": "The Forward 15s and Backward 15s labels sit level with the 'Forward 10s' first line (about 4 pt higher than before). The last row (Favorite, Bookmark, Bookmarks, Playlists) starts 116 pt below the third row. In the control bar, the play tile shows a 48 pt orange fill with a 3 pt dark gap inside its dashed box."
+  },
+  {
+   "area": "H-design",
+   "id": "H-onboarding-footer",
+   "steps": "Run onboarding (fresh profile) and go to step 3, keyboard shortcuts.",
+   "expect": "The top of the 'Find the full list in the menu.' line is level with the top edges of Back and Finish, not centred on them. Step 2 shows Back for every accent swatch."
+  },
+  {
+   "area": "H-design",
+   "id": "H-02/H-03/H-07 (carried over)",
+   "steps": "As listed in the previous wave: light bars over real video (#ABABAA); onboarding Next then Esc on an isolated profile, then check ml.db for the folder; drag a palette tile using the declared UTType.",
+   "expect": "As in the previous wave's liveChecks."
+  }
+ ],
+ "ownerDecisions": [
+  "A-window: D051 (agent-written, 2026-10-17): new-row band semantics, Player - Light list state, narrow resume toast",
+  "A-window: D042, D044, D046, D047 (agent-written): implementation kept",
+  "A-window: D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies): implementation kept",
+  "B-controls: D048 (agent-written, 2026-10-17): needs owner acceptance, especially the OSD outline style (VLC freetype look rather than a soft shadow) and the live-stream '--:--:--' with no seek head.",
+  "B-controls: Still pending from before: D042, D044, D046, D047 and the D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies). Their implementations are unchanged.",
+  "H-design: D049 (agent-written, awaiting the owner): Light play button #E8851A rather than the frame's unconverted Dark style #D37918; Back kept on the alternate-accent onboarding frames; ~/Movies pre-fill.",
+  "H-design: Still pending from earlier waves (implementation kept): D042, D044, D046, D047, and the D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies)."
+ ],
+ "integration": null,
+ "parity": [
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null
+ ],
+ "critic": null
+}

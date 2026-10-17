@@ -1,0 +1,140 @@
+{
+ "codexAssessment": "Overall the D-menus area is in reasonable shape, but Codex's fixes here are uneven. Several are real and correctly scoped: Add to Playlist in the player Playlist submenu (PNL-03/COMP-13, the bridge resolves MRL-based player media ids, so it really works); hotkey cache invalidation for key-*/global-key-* writes in MXRServicesBridge.m (SET-05); a clock-aware Now Playing gate that publishes on rate change, seek generation or drift above 0.5 s (PERF-05; paused seeks still publish); PiP validation and checkmarks in the menu bar (CL NAT-02); full library clears rightPanel through the `library` didSet, and the hidden interceptor is gated on library != .full (COMP-01); the overflow ⋯ keeps per-control semantics (CTL-02); queue and bookmark rows moved to mxrContextMenu (PLAYER-01). Two fixes go too far or hide the problem. (1) COMP-03 modal isolation was done by putting a blanket guard inside AppModel.canPerform and making perform() honour it. That also kills system media keys, Control Center and the status-item transport while any dialog or file picker is open: a real regression of the D026 intent, and the tests assert the over-broad behaviour (playPause is blocked under a sheet). (2) COMP-05 HDR was 'fixed' by replacing the HDR choice list with one checked, disabled row whose title carries the explanation. D039's wording (non-Automatic choices disabled with an explanation) is not what was built. NAT-01 reuses the shared menu models, as asked, but carries over Fullscreen (now twice in the menu bar with the same ⌘F) and rebuilds the menus lazily on every key-equivalent search. PLAYER-07 (menu/menuItem roles) and PLAYER-13 (real anchored-popup wiring) are honestly marked Ч. Nothing changed in Sources/MXRDesign/Popup, and the new pin test only checks a hand-set flag. Codex duplicated the Add to Playlist builder instead of sharing LibraryPopup.playlistItems. The 'only catalog options in profiles' change (D037) quietly removes engine hotkeys from profiles, so the SET-05 scenario can no longer happen at all. Visual parity of the existing gallery menus is intact (S07, S09, S32 sort, dropdowns): the only differences are the D026 Mac glyphs. The S68 FAIL is a capture artifact (hosting and shipping-window capture drop the SwiftUI blur, while the image engine matches Figma's shadow falloff). No wave-1 visual regressions were found in the popup system. D034's wave-2 list of native menus and one arrowed NSPopover is still open, so D024/D025 are not yet met product-wide. Live real-app verification was not done (installed app predates a215064366; no build/install under the lock in this review). Targeted tests pass (ModalIsolation, PopupMenu, ShortcutDefaults, NowPlayingClock, AnchoredPopupPinPolicy).",
+ "confirmed": [
+  {
+   "id": "D-01",
+   "severity": "major",
+   "title": "Modal gate in AppModel.canPerform blocks media keys, Now Playing and status-item transport behind any dialog",
+   "evidence": "AppModel.swift:220-225 returns false for every command except quit (and keyboardShortcuts under Settings) while sheet/fileRequest != nil; perform() starts with guard canPerform (:249). MXRRemoteControl.swift:41-44,70 routes togglePlayPause/stop/next/previous via model.perform and always returns .success. play/pause commands bypass perform (:68-69), which is inconsistent. MXRNativeWindowServices.swift:175-181 status item uses canPerform too. ModalIsolationTests.swift:16 asserts .playPause is blocked under a sheet.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRCore/App/AppModel.swift",
+    "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRRemoteControl.swift",
+    "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRNativeWindowServices.swift",
+    "modules/gui/macosx_redesign/Tests/MXRCoreTests/ModalIsolationTests.swift"
+   ],
+   "fix": "Split the gate. Keep canPerform as the capability check. Add `canPerformFromUI(_:)`, which is the modal gate plus canPerform, and use it in validateMenuItem, the key monitors and the in-window handlers. Alternatively give perform a `source: .ui/.system` parameter. Transport commands (playPause, stop, next, previous, jumps, mute, volume) from MPRemoteCommandCenter, the status item and the Dock bypass the modal gate. MXRRemoteControl returns .commandFailed when canPerform is false. Update the test so that system playPause works under a sheet while the ⌘O and ⌘N UI paths stay blocked. D040's 'an app command may not replace a draft' still holds, because transport commands do not touch drafts."
+  },
+  {
+   "id": "D-02",
+   "severity": "major",
+   "title": "PLAYER-07 unfixed: custom popup rows are buttons with no menu/menuItem roles, mark char or shortcut",
+   "evidence": "MXRMenuCard.swift:141-145 uses accessibilityElement(children: .ignore), the value 'Selected' and the .isButton trait. The card is .contain at :76. There is no accessibilityRole or menuOpened/menuClosed notification anywhere in Sources/MXRDesign/Popup (grep finds none). The popup sources are unchanged between 5ac081046e and a215064366.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Popup/MXRMenuCard.swift",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Popup/MXRPopupPresenter.swift"
+   ],
+   "fix": "Set the MXRPopupPanel/level content view accessibilityRole to .menu and post NSAccessibility .menuOpened/.menuClosed in present/dismiss. Expose each row as an NSAccessibilityElement with role .menuItem: label = title, AXMenuItemMarkChar '✓' when isChecked, AXMenuItemCmdChar/AXMenuItemCmdModifiers from item.shortcut, enabled = isEnabled, a press action that calls onActivate(index), and the submenu child for submenu rows. Drop the 'Selected' value and the button trait. Verify with Accessibility Inspector on the ⋯ menu and the right-click menu."
+  },
+  {
+   "id": "D-03",
+   "severity": "major",
+   "title": "Native SwiftUI menus and an arrowed .popover remain in product UI, against D024/D025",
+   "evidence": "SettingsExtensionsView.swift:109 .popover; MXRMiniPlayerView.swift:229 .contextMenu; LibraryNavigation.swift:31 .contextMenu (Unpin) and :109 Menu (breadcrumb); MXRProfilesView.swift:79; LayoutDrag.swift:147; MediaSourceBrowser.swift:177. D034 (DECISIONS.md:372-375) lists them as deferred 'to adopt in wave 2'. This is the final wave, and D024 says 'No NSPopover arrows anywhere'.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Settings/SettingsExtensionsView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Library/MXRMiniPlayerView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibraryNavigation.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Customization/MXRProfilesView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Customization/LayoutDrag.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Library/MediaSourceBrowser.swift"
+   ],
+   "fix": "Replace each with .mxrContextMenu { ... } (style .contextMenu). Use .mxrPopupMenu(style: .textMenu) for the breadcrumb and .mxrPopup for the extensions catalog. The mini-player Add to Playlist should reuse the shared playlist builder (D-07). Also check the queue and bookmark rows that D034 lists. Then update the D034 'still native' sentence and add a source-lint test that fails on `.contextMenu {`, `Menu {` and `.popover(` under Sources/MXRUI. This touches other areas' files, so coordinate with their owners."
+  },
+  {
+   "id": "D-04",
+   "severity": "minor",
+   "title": "HDR menu collapsed into one disabled, checked row whose title carries the explanation",
+   "evidence": "PlayerMenus.swift:103-105: the single item 'Automatic HDR (manual overrides unavailable)' has isChecked true and isEnabled false. It is used by both the bar HDR textMenu and the overflow HDR submenu (:250). D039 says 'Non-Automatic HDR controls remain disabled with an explanation', which implies the choices are visible and disabled.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerMenus.swift"
+   ],
+   "fix": "Return HDRMode.allCases rows: Automatic checked and enabled (no-op), the others isEnabled: false, then a separator and one secondary/disabled explanation row ('Manual HDR isn't available in this build'). Alternatively drop the HDR control from the customizable palette. Keep the checked row title short ('Automatic')."
+  },
+  {
+   "id": "D-05",
+   "severity": "minor",
+   "title": "Menu bar Video menu duplicates View › Enter Full Screen (⌘F) and borrows .toggleFullscreen as the gating policy",
+   "evidence": "PlayerMenus.swift:153 appends submenuCommand(.toggleFullscreen) to video(). MXRNativeMenus.swift:222-223 populates the Video menu from it with policy .toggleFullscreen. D034 places Full Screen in View.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRNativeMenus.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerMenus.swift"
+   ],
+   "fix": "Filter rows whose action is the .toggleFullscreen command out of the native Video menu, or add an `includesFullscreen` parameter to video(). Make the populate policy optional, so that nil means only the modal/UI gate after D-01, instead of borrowing .toggleFullscreen and .showAudioTracks."
+  },
+  {
+   "id": "D-06",
+   "severity": "minor",
+   "title": "Audio and Video menu-bar menus are fully rebuilt, all submenus eagerly, on every key-equivalent search",
+   "evidence": "MXRNativeMenus.swift:219-233 rebuilds them in menuNeedsUpdate. populate() recurses into children() at :287-290. No menuHasKeyEquivalent is implemented (grep finds none), so AppKit calls menuNeedsUpdate during key-equivalent matching.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRNativeMenus.swift"
+   ],
+   "fix": "Implement menuHasKeyEquivalent(_:for:target:action:) for audioMenu/videoMenu and return false, or match only the known bound commands such as snapshot and mute. Make submenus lazy, so that each child NSMenu has a delegate which populates on menuNeedsUpdate, instead of calling children() eagerly."
+  },
+  {
+   "id": "D-07",
+   "severity": "minor",
+   "title": "Player Add to Playlist builder duplicates LibraryPopup.playlistItems, drifts from it and mutates state during the view body",
+   "evidence": "PlayerMenus.swift:231-243: there is no separator after 'New Playlist…', failures show as an OSD (the library uses sheets.fail), there is no success feedback, and loadPlaylistsIfNeeded() is called inside the item provider. LibraryPopup.swift:230-244 adds the separator.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerMenus.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibraryPopup.swift"
+   ],
+   "fix": "Write one shared builder, `playlistItems(media: @escaping () async -> [MediaItem], app:, onError:)`, used by the library, queue, mini player and player menu. Keep the separator. Trigger loadPlaylistsIfNeeded when the parent menu opens (an onOpen hook or the presenter), not inside the provider. Keep icons consistent with the library version."
+  },
+  {
+   "id": "D-08",
+   "severity": "minor",
+   "title": "Overflow ⋯ menu duplicates context-menu rows, mixes icon and no-icon rows, and PiP/Replay/Playlists skip proper gating",
+   "evidence": "PlayerMenus.swift:403-408 appends videoContextMenu after the overflow rows. videoContextMenu (:57) includes AppCommand.contextMenu = [.playPause, .stop, .previous, .next, .record] (AppCommand.swift:126), so overflowed Stop, Record, Previous and Next appear twice. overflow() rows at :245-266 have no icon while command rows do. PiP is enabled when media != nil, without a capability check. Replay and Playlists ignore canPerform.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerMenus.swift"
+   ],
+   "fix": "Skip context-menu rows whose command is already in the overflow section. Give overflow rows the control's bar icon through a shared PlayerControl→MXRIcon.Name mapping. Enable PiP through the same canStart predicate the menu bar uses. Gate Replay and Playlists with app.canPerform/blocksCustomization."
+  },
+  {
+   "id": "D-09",
+   "severity": "minor",
+   "title": "⌘, is allowed by the modal key-equivalent policy but canPerform refuses .settings, so it beeps; stale doc comments",
+   "evidence": "ShortcutValues.swift:229-233 allows q, w and , under hasModal, and the comment claims Settings reaches the menu. AppModel.swift:221-225 returns false for .settings under any sheet. ModalIsolationTests asserts ⌘, is allowed by the policy.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRCore/Values/ShortcutValues.swift",
+    "modules/gui/macosx_redesign/Sources/MXRCore/App/AppModel.swift",
+    "modules/gui/macosx_redesign/Tests/MXRCoreTests/ModalIsolationTests.swift"
+   ],
+   "fix": "Remove ',' from the hasModal allow-list, or allow .settings when sheet == .keyboardShortcuts opened from Settings (perform then dismisses back to Settings). Fix the doc comment and the test to match. Also fix the InterfaceModel.swift:148 comment from ⌃\\ to ⌘\\ (D026)."
+  },
+  {
+   "id": "D-10",
+   "severity": "minor",
+   "title": "Anchored-popup pin test only toggles a hand-set flag; any anchored popup pins both bars",
+   "evidence": "PlayerChrome.swift:41 wires barPopupOpen = MXRPopupCenter.shared.isPresentingAnchored, and pins() at :50 returns true for both bars. The test sets inputs.barPopupOpen directly. D034 says 'A popup anchored to a bar keeps that bar shown'.",
+   "files": [
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/AnchoredPopupPinPolicyTests.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerChrome.swift",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Popup/MXRPopupPresenter.swift"
+   ],
+   "fix": "Either record the anchoring bar in MXRPopupCenter (top for the ⋯ app menu; control for speed, HDR, zoom, overflow and tracks) and pin only that bar, or amend D023/D034 to say both bars stay pinned on purpose. Test through MXRPopupCenter begin/end with a real session, not the flag."
+  },
+  {
+   "id": "D-12",
+   "severity": "minor",
+   "title": "Hosting and shipping-window snapshot engines drop the popup shadow blur, so S68 fails on an artifact and menu shadows are unverifiable",
+   "evidence": "Reviewer measured alpha 117 flat for 8pt then 0 in hosting/shipping-window renders vs a Figma falloff (104→1 over ~22pt) that the image engine reproduces. The S68 FAIL (2.89%) is attributed to this. It is a capture-path issue, not a product bug, but it blocks automated verification.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Popup/MXRMenuCard.swift"
+   ],
+   "fix": "Draw the outside shadow as a CALayer shadow with shadowPath and a hole mask (Theme menuShadow y 8, alpha 0.46, the token blur), which layer rendering captures, or capture the offscreen window through CGWindowList. Re-run S68 and S07 with --engine shipping-window. Do not loosen thresholds."
+  },
+  {
+   "id": "D-13",
+   "severity": "minor",
+   "title": "No product-built gallery coverage for the right-click submenus, bar text menus, overflow ⋯ or Add to Playlist",
+   "evidence": "MenusGallery has only S07, S09, S29-S32 and S68. The menus Codex changed (HDR, overflow composition, player Playlist submenu) were never rendered.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/MenusGallery.swift"
+   ],
+   "fix": "Add entries built from MXRPlayerMenus with a playing mock and no fixture overrides (D030): S10 submenus (playback, video, audio, subtitle, playlist), the bar speed/HDR/zoom textMenus and the overflow ⋯. Compare them against the Figma Profiles submenu and Sorting Options styles, look at the renders, and include a live-app check of D-01, D-02, D-05 and COMP-04 Esc after install."
+  }
+ ]
+}

@@ -1,0 +1,51 @@
+{
+ "status": "partial",
+ "summary": "I resumed the H-design fixer from WIP 951f073be2 and checked each finding in the code. The previous fixer had already done most of the work: H-01, H-03 to H-12 and most of H-13. I finished the rest:\n- H-02: the backdrop material now has a dark base (darkAqua) in both themes. The previous fixer had reverted this because of D043, a proposal from another area that is still waiting for owner sign-off and that contradicts the Player - Light render. With the fix, the light bars measure #A8A8A8 against Figma #ABABAA. Before, they were #D5D5D5 and 24.9% of the render was a different flat colour.\n- H-05: the AppKit colour path did not pick up Increase Contrast, because the AppKit path can't create the high-contrast appearances, so I checked that by script. It now also reads NSWorkspace.accessibilityDisplayShouldIncreaseContrast, through an injectable overload. The test that relied on those appearances failed 4 times and has been rewritten.\n- H-13: the unused standard widths and heights are kept on purpose as the Figma reference table, and this is recorded in D046. I tried not generating them, but buttonWidth and several heights are used, so I put the generator back.\n- I marked D043 as superseded by D046.\n\n`swift build` is green and gen-tokens --check reports the tokens are up to date. ThemeContrastTests and CustomizationInteractionTests pass (19 tests). Visual checks:\n- S72 light (shipping-window): 6.48% flat-colour difference, mainly the bars at Δ3.\n- S69 to S71 (hosting): about 0.5 mean difference. The only S71 difference left is the ⌘L keycap from D034.\n- S66 (hosting and the S66.Window shipping render): matches Figma, and the top bar stays visible while customizing.\n\nThe live app check did not happen, for two reasons. The installer fails at the codesign step on Frameworks/plugins/plugins.dat, for B-controls as well as for me (I-build finding B-04, not my files). And the owner was using the Mac every time I checked. So these are still unverified in the installed app: the drag UTType, a palette tile drag, the light bars over video, and Next then Esc in onboarding on an isolated profile.",
+ "fixed": [
+  "H-01",
+  "H-02",
+  "H-03",
+  "H-04",
+  "H-05",
+  "H-06",
+  "H-07",
+  "H-08",
+  "H-09",
+  "H-10",
+  "H-11",
+  "H-12",
+  "H-13"
+ ],
+ "notFixed": [
+  {
+   "id": "H-07 (live part)",
+   "why": "Done in code. The hook adds the UTExportedTypeDeclarations entry, and running it twice on a copy of the installed Info.plist gives one entry (scratchpad/final/H-design/plistcheck/Info.plist). The real drag was not tested: install-app.sh fails at `codesign --force -s - replacement.app` because of plugins/plugins.dat (I-build B-04), and the Mac was not idle."
+  },
+  {
+   "id": "H-03 (live part)",
+   "why": "The logic is covered by testOnboardingNextAddsTheFolderImmediatelyAndOnce. I did not run the isolated-profile check (ml.db after Next then Esc) because install failed and the owner was using the Mac."
+  },
+  {
+   "id": "H-02 (live part)",
+   "why": "Verified only in the offscreen shipping-window render (#A8A8A8 vs Figma #ABABAA). I could not measure the installed app with screencapture, for the same install and idle reasons."
+  }
+ ],
+ "filesChanged": [
+  "modules/gui/macosx_redesign/Sources/MXRDesign/Materials/MXRBackdropSurface.swift",
+  "modules/gui/macosx_redesign/Sources/MXRDesign/Theme/ThemeColor.swift",
+  "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/ThemeContrastTests.swift",
+  "redesign/docs/DECISIONS.md"
+ ],
+ "editsOutsideOwnership": [
+  "redesign/docs/DECISIONS.md: D043 heading changed to 'superseded by D046', plus a short note under it. Two bullets added to D046: the dark backdrop base, and the standard sizes kept as the Figma reference table.",
+  "Tests/MXRUISnapshotTests/ThemeContrastTests.swift: testIncreasedContrastReachesAppKitColors rewritten. This test file is in the H-04 and H-09 finding scope."
+ ],
+ "evidence": [
+  "H-02/H-01: <scratch> shows 6.48% flat difference, render #A8A8A8 vs Figma #ABABAA (24.9% before). br.png in the same folder shows the grey #888888 cone track and the white @0.2 overlay next to Figma.",
+  "S66: <scratch> (shipping window during Customize: top bar visible, logo not outlined, spacers without boxes, previous not dimmed) and check2/s66-sbs.png (hosting engine vs Figma)",
+  "S69/S70/S71 hosting: about 0.5 to 0.6 mean difference. Reports are in check2/S69.Onboarding_welcome_hosting, check2/S70_hosting and check2/S71.Onboarding_shortcuts_hosting. The image engine renders the S70 appearance step blank (check2/S70.Onboarding_orange_image), but the hosting engine renders it correctly, so this is a fixture limitation, not a product bug.",
+  "Tests: swift test --filter 'ThemeContrastTests|CustomizationInteractionTests' runs 19 tests with 0 failures",
+  "Install failure log: <scratch> (same failure in B-controls/install.log)"
+ ],
+ "notesForOthers": "- I-build: install-app.sh currently fails at `codesign --force -s - replacement.app` with \"code object is not signed at all, In subcomponent: Contents/Frameworks/plugins/plugins.dat\". This happened for both B-controls and H-design, so nobody can install right now. The H-design live checks still to do once install works and the Mac is idle are listed above.\n- A-window / whoever owns D043: Figma's Player - Light render shows the bars at #ABABAA over the video. D046 now gives every MXRBackdropSurface a darkAqua base, with the theme coming only from the light tint. D043 is marked superseded; the owner may still want to confirm this.\n- The S66.App/customization entry with --engine shipping-window renders without the top bar. This is a fixture artefact: the S66.Window/customization render shows the top bar."
+}

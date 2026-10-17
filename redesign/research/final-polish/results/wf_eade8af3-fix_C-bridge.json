@@ -1,0 +1,59 @@
+{
+ "status": "partial",
+ "summary": "I continued from WIP commit 951f073be2 and checked the code itself, not the previous fixer's intentions. It had already finished C-01, C-02, C-03, C-06, C-07, C-08, C-10 (Swift side), C-11, C-12 and C-14 on disk. I re-read each one and kept them. I also fixed the backend tests that broke because of C-07.\n\nNew work this session:\n- **C-05 (major):** the native extension dialog provider. Extensions can now be activated, run on demand and trigger menu items. Active extensions follow the main player.\n- **C-13:** the services now shut down in parallel, with signposts.\n- **C-10:** a small cleanup and a new test.\n- **C-09:** I corrected the wrong reasoning in D039 and handed the decision on HDR \"Off\" to the owner. I did not implement Off.\n\nC-15 belongs to F-settings. Swift build and all 51 MXRVLCBackendTests pass, and so do the native `contracts` and `extensions` suites. The native `media` suite aborts on an engine assertion in pcr_sync.c, which also happens with the a215064366 code. Installing the app with install-app.sh worked. I skipped the live part because wait-idle.sh exited 1: the owner was using the Mac.",
+ "fixed": [
+  "C-01 (prior WIP, re-checked): AppModel passes startPaused; VLCQueueBackend sends it as a top-level arg; MXRServicesBridge playNow wraps vlc_playlist_PlayAt in vlc_player_SetStartPaused(true/false), so only the started input pauses (src/player/player.c:1282). Test: Tests/MXRVLCBackendTests/QueueStartPausedTests.swift",
+  "C-02 (prior WIP, re-checked): addExternalTrack picks an existing track whose ES str-id hash matches MD5(url) with VLC_PLAYER_SELECT_EXCLUSIVE; an add of our own that is still pending is retried after 5 s; _addedTrackURLs is now URL -> time (MXRServicesBridge.m around line 1170)",
+  "C-03 (prior WIP, re-checked): MXROutputOptions duplicates to display only in stream mode; the output player gets the MXR_AUXILIARY_VIDEO_VAR variable; MXRVideoOutput.isAuxiliary walks the window's parents; MXRAppController.surface(for:) never gives the main surface to an auxiliary output. The native contracts suite (MXRMediaServicesTests.m) passes",
+  "C-05: MXRDialogServices.m registers vlc_dialog_provider_set_ext_callback. It answers VLC's p_sys_intf/cond protocol on the extension's own thread, keeps a serial-number registry, snapshots the form and draws native NSGridView windows on main (label/HTML rich text, button, checkbox, text/password, dropdown, list, image, spinner); writes go back through the registry under the dialog lock; on shutdown it lets go of every dialog so unloading never waits for main. MXRMediaServices.m: supportsActivation/supportsDialogs YES; activate uses extension_Trigger for trigger-only scripts and extension_Activate plus SetInput otherwise; triggerMenu is implemented; active extensions get SetInput/PlayingChanged/MetaChanged from the main player. D039 updated. New native test module/bridge/tests/MXRExtensionDialogsRuntimeTests.m (a real Lua dialog is drawn, typed text and a click reach the script, the script's update is drawn, closing deactivates, quit with a dialog open never waits for main); MXRExtensionServicesRuntimeTests.m and MXRMediaServicesRuntimeTests.m updated to check real activation, deactivation and trigger runs. `native-tests.py --suite extensions`: both PASS",
+  "C-06 (prior WIP, re-checked): MXRVoutWindow routes synchronously on main; filterNeedsMouse is an atomic kept current by a video-filter variable callback; the move tracking area exists only while routing; a click that closes a popup on an interactive title is swallowed together with its release (D024), via the MXRVideoSurfaceHost protocol on MXRVideoHostView",
+  "C-07 (prior WIP) plus test fixes: VLCShortcutsBackend reloads only on the bridge's coalesced .shortcuts topic. I updated SettingsAuditRegressionTests and SettingsBackendEventTests, which assumed a reload per option write; BridgeWireBehaviourTests.testShortcutBatchReloadsOncePerShortcutsFlush",
+  "C-08 (prior WIP): the publishedServices filter that silently dropped services is gone (VLCBackends.swift) and the source-grep contract tests are removed; behaviour is now tested through a fake transport (BridgeWireBehaviourTests)",
+  "C-10: the duplicated resolution tables, the equality shortcut and the double config_PutInt were removed from MXREffectsServices (prior WIP); VLCPlayerBackend writes preferred-resolution through settings set+save and never sends resolution with setVideoEffects. I removed a meaningless apply:'next-media' argument and added testResolutionOnlyChangeWritesTheSettingAndLeavesFiltersAlone",
+  "C-11 (prior WIP): the CoreAudio enumeration is deleted; the .audioOutput device list comes from the playerDevices audioDevices (the auhal ids); cameras still use AVCaptureDevice (VLCSettingsBackend.swift)",
+  "C-12 (prior WIP): the QueueRepeat/QueueOrder listener callbacks write loop/repeat/random only when they change and schedule a save; queueCommand no longer writes the config",
+  "C-13: MXRServicesBridge finishShutdown drains the work queue, then joins library, thumbnails, media, discovery, audio and subtitle cues at the same time (dispatch_group on a global queue), with os_signpost intervals (subsystem org.videolan.vlc.macosx-redesign, category Shutdown) per service and overall. Not measured on the installed app (owner was using the Mac)",
+  "C-14 (prior WIP): MediaSourceBackend.startDiscovery(in:), a no-op by default for the mock; sources(in:) is a pure snapshot read; LibrarySourceBrowserModel starts discovery in init and select. Test: testReadingSourcesNeverStartsDiscovery"
+ ],
+ "notFixed": [
+  {
+   "id": "C-09",
+   "why": "I corrected D039 with evidence: the claim 'bridge cannot implement' is wrong, because caopengllayer's GL sampler ships target-trc/target-prim tone mapping (HAVE_LIBPLACEBO_GL). Off is still not implemented. The default display, avsamplebuffer (priority 600), has no output override, so Off would mean forcing force-darwin-legacy-display and restarting the video track. That gives up PiP and EDR for that video, and it changes UI files owned by D-menus (PlayerMenus.hdrModes, D-04) and G-panels (EffectsSidebars HDR row, G-08), which are being edited right now, plus D047's 'never applied' wording. It is an owner trade-off, so Auto stays the only honoured mode until the owner decides."
+  },
+  {
+   "id": "C-15",
+   "why": "SettingsExtensionsView.swift is F-settings' file (their F-03/F-04 cover this page); the carry finding itself says 'F-settings area'. Also note for them: line ~45 has a stale comment saying there is no extension-dialog provider yet, and the Enable/Run controls now appear because activation is supported."
+  }
+ ],
+ "filesChanged": [
+  "modules/gui/macosx_redesign/module/bridge/MXRDialogServices.m",
+  "modules/gui/macosx_redesign/module/bridge/MXRMediaServices.m",
+  "modules/gui/macosx_redesign/module/bridge/MXRServicesBridge.m",
+  "modules/gui/macosx_redesign/module/bridge/tests/MXRExtensionDialogsRuntimeTests.m",
+  "modules/gui/macosx_redesign/module/bridge/tests/MXRExtensionServicesRuntimeTests.m",
+  "modules/gui/macosx_redesign/module/bridge/tests/MXRMediaServicesRuntimeTests.m",
+  "modules/gui/macosx_redesign/tools/native-tests.py",
+  "modules/gui/macosx_redesign/Sources/MXRVLCBackend/VLCPlayerBackend.swift",
+  "modules/gui/macosx_redesign/Tests/MXRVLCBackendTests/BridgeWireBehaviourTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRVLCBackendTests/SettingsAuditRegressionTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRVLCBackendTests/SettingsBackendEventTests.swift",
+  "redesign/docs/DECISIONS.md"
+ ],
+ "editsOutsideOwnership": [
+  "modules/gui/macosx_redesign/tools/native-tests.py: one line added to the 'extensions' suite to compile and run MXRExtensionDialogsRuntimeTests (MXRMediaServices.m + MXRDialogServices.m)",
+  "modules/gui/macosx_redesign/module/bridge/tests/{MXRExtensionServicesRuntimeTests.m,MXRMediaServicesRuntimeTests.m} (tests of my bridge files): their asserts that activation is gated now check real activation and trigger runs",
+  "redesign/docs/DECISIONS.md D039 only: extension paragraph superseded (C-05); HDR sentence corrected (C-09)",
+  "Inherited from the prior WIP (not changed this session): Sources/MXRCore/App/AppModel.swift (startPaused), Sources/MXRCore/Backends/BackendOperations.swift, Sources/MXRCore/Backends/QueueAndLibraryBackends.swift (startDiscovery), Sources/MXRUI/Library/MediaSourceBrowser.swift (startDiscovery calls), Sources/MXRPlugin/MXRAppController.swift (!output.isAuxiliary), Sources/MXRPlugin/MXRVideoHost.swift (MXRVideoSurfaceHost conformance), Sources/MXRVLCBackend/VLCSettingsBackend.swift (C-11)"
+ ],
+ "evidence": [
+  "swift build: Build complete; swift test --filter MXRVLCBackendTests: 51 tests, 0 failures; --filter 'Extension|Autoplay|MediaSource|LibrarySourceBrowser': all pass",
+  "native-tests.py --suite extensions: PASS for both 'real Lua install ... activation/deactivation, on-demand runs' and 'real Lua dialog drawn natively, typed text and click reach the script, script updates drawn, close deactivates, quit never waits for main'",
+  "native-tests.py --suite contracts: PASS",
+  "native-tests.py --suite media aborts on the engine assertion pcr_sync.c:268 (vlc_pcr_sync_SignalFrameOutput) during the transcode step; the same abort happens with a215064366's MXRMediaServices.m and its test (old module copy and patched runner under scratchpad/final/C-bridge/oldrun), so it is not caused by C-bridge",
+  "All bridge ObjC files pass a syntax check against the engine headers with -Wall (scratchpad/final/C-bridge/syntax.sh)",
+  "install-app.sh rebuilt and installed /Applications/VLC Redesign.app (PASS: redesign identity, fresh plugins.dat, valid bundle signature) under the native lock; log at scratchpad/final/C-bridge/install.log. The first run failed because another agent edited install-app.sh mid-run (syntax error at line 73); the rerun passed",
+  "Live part skipped: wait-idle.sh 600 exited 1 (Mac in use, idle 0 s). The app was not launched; quit latency (C-13) and the dialog-in-app check are not done live",
+  "Offscreen snapshot of the extension dialog: scratchpad/final/C-bridge/extension-dialog.png. The text field is drawn, but the label and button text are invisible in the cached bitmap, most likely dark-mode label colour over the uncached white window background, so it is weak visual evidence"
+ ],
+ "notesForOthers": "F-settings: activation now really works, so SettingsExtensionsView shows Enable/Run controls; the comment near line 45 ('no Lua extension-dialog provider yet') is stale, and C-15 (Advanced Options row, extra ⓘ) is yours. Extension submenus (extension_HasMenu, e.g. VLsub's items) have no UI entry yet; the backend already supports menu(forExtension:) and triggerMenu, so D-menus could add a View ▸ Extensions submenu. D-menus/G-panels: HDR stays Auto-only (D039 corrected with the real trade-off for Off). Integrator: the native 'media' suite aborts on a pre-existing engine assertion (pcr_sync.c:268) that also happens with a215064366. The C-13 signposts (org.videolan.vlc.macosx-redesign / Shutdown) are ready for a Cmd-Q measurement on the installed build once the Mac is idle."
+}

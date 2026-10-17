@@ -1,0 +1,31 @@
+{
+ "pass": true,
+ "issues": [
+  {
+   "severity": "minor",
+   "where": "Sources/MXRUI/Panels/SettingsSidebar.swift wordSlider / SubtitleRelativeSize order (DECISIONS D033 bullet)",
+   "description": "In the default state, the Relative-mode Font Size slider puts Auto at stop 0 with no fill. Figma 804:1341 draws the 'Auto' thumb at stop 3 of 6 (thumb x 1642, tick 1646), with a 218 pt fill. The fixer kept VLC's enum order and recorded the deviation in D033, so it is documented, but the render does not match Figma at its default value. The owner should confirm the ordering."
+  },
+  {
+   "severity": "minor",
+   "where": "Sources/MXRGalleryCatalog/Entries/PanelsGallery.swift S20.Sidebar/subtitles-appearance",
+   "description": "The entry declares figmaNode 800:1126. That node is 400x608 and is clipped by the scroll view in renders/Controls.png, so the word-slider rows are not in the Figma render at all. `mxr-snapshot check` therefore always reports FAIL (sizes differ: 800x2560 vs 800x1216). The row geometry was verified against figma_file.json instead: 86 pt rows on a 91 pt pitch, 6/4/11 ticks at Figma x positions, the Outline thumb at stop 2, fgA3 value text. Consider dropping figmaNode or noting this in the entry, so the integrator's check --all does not count a spurious FAIL."
+  },
+  {
+   "severity": "minor",
+   "where": "Sources/MXRUI/Panels/QueuePanel.swift bookmarkRow (G-09)",
+   "description": "Click-away now saves only when the TextField actually loses focus (onChange of bookmarkEditorFocused). Clicking another row probably does not take focus from the field, because rows use .focusable(interactions: .activate) and are not click-focusable. In that case the edit stays open until Return, Esc or a tab change. This was not verified live."
+  },
+  {
+   "severity": "minor",
+   "where": "live app (G-03, G-04, G-09, G-10)",
+   "description": "The installed-app checks were not run. wait-idle.sh 900 exited 1 (owner active, idle 3 s), and the fixer also could not run them. Still unverified at runtime: Full Keyboard Access Tab to a queue or bookmark row, Return plays or jumps, arrows move, ⌥↑/⌥↓ reorder, Space still pauses, no system accent ring after a click, ⌘-click selection and drag-reorder. Code-path review supports the fix: KeyBinding maps 0x24/0x4C to Enter and the arrows to Up/Down/Left/Right, FocusedListKeys is consulted in both the keyDown monitor and shouldPerformMenuEquivalent, the flag is cleared in onDisappear, and the zero-distance DragGesture is gone."
+  },
+  {
+   "severity": "minor",
+   "where": "Tests (other areas)",
+   "description": "The MXRUISnapshotTests target does not compile at HEAD. ModalCaptureTests.swift does not import MXRCore (KeyBinding not found), which is not this area's code. I ran the panel tests in an isolated copy (scratchpad G-panels-verify-r1/pkg) that contains only the panel test files: PanelValuesRegressionTests 4/4, PanelAuditRegressionTests 8/8, PanelsTests 5/5, SidePanelContentTests 3/3, all passing. The integrator must fix ModalCaptureTests before the full runner can run. No MXRKeyRouting unit test exists, because MXRPlugin has no test target; only the pure FocusedListKeys policy is tested."
+  }
+ ],
+ "summary": "I verified all 13 code fixes in the WIP commit 951f073be2. G-05 had already been handled by the tokens area: readableSecondary is removed and DECISIONS records that secondary text stays FG/A3. The package builds cleanly with the panel files recompiled and no warnings. The panel tests pass in an isolated copy. HEAD's MXRUISnapshotTests target does not compile because of another area's ModalCaptureTests.\n\nRenders checked by eye (outputs in scratchpad final/G-panels-verify-r1/):\n- S18 Video matches Figma 498:2965: Rotate is a field-only \"0 deg\" wide row, HDR is an active Auto dropdown, the Resolution caption is gone and the rows are back in place.\n- S20 Subtitles: the field-only Subtitle Offset row and the delay labels line up with Figma (y 717).\n- S17: the timeline toggle is enabled through the fixture's external .srt track, with no product-default change. The FAIL verdict comes from the documented D033 row set and the panel surface color.\n- Appearance, Relative mode: Font Size, Outline Thickness and Background Opacity show a text value over a ticked slider in 86 pt rows. Tick positions and the Outline thumb match figma_file.json 804:1341, 804:1342 and 848:1686.\n- Appearance, Pixels mode: 18px, 2px and 0% plain fields, matching the 07m52.9 key frame.\n- S19, S22, S23, S24, S14, S15 and S16 are REVIEW with only 1–2 pt offsets, so the PanelSlider label change caused no regression. The FAILs on S20.Presets and S21 come from tokens and a documented timeline note, not from this work.\n\nCode checks:\n- Rotate wraps typed angles.\n- SubtitleStyle.background is computed; Codable ignores a decoded flag but still encodes it for the bridge.\n- VideoEffects.sanitized and the single resolutionChoices list are in place.\n- Rows use .focusable(interactions: .activate) with .focusEffectDisabled() and an fgA1 ring that matches MXRKeyboardFocus.\n- The zero-distance DragGesture is removed and .onKeyPress(.space) is dropped.\n- The InterfaceModel focus flag is wired into the key monitor and the menu equivalents.\n- Edits outside ownership are small and declared. Tokens are used and there are no masks or thresholds.\n\nThe bridge's preferred-resolution handling moved to the VLCPlayerBackend settings path, which is C-bridge's work and is consistent.\n\nNo blocker or major remains. Still open: the Auto stop position against Figma (documented in D033), the appearance entry's clipped Figma node, a possible stale bookmark-rename state on a click to another row, and the keyboard and mouse checks in the installed app. Those were skipped because the owner was using the Mac."
+}

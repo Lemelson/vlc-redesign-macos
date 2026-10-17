@@ -1,0 +1,528 @@
+[
+ {
+  "group": "1-window",
+  "checks": [
+   {
+    "id": "A-05-S01",
+    "area": "A-window",
+    "steps": "The integrator runs tools/install-app.sh under lock.sh on an idle Mac. Open a 1080p file in /Applications/VLC Redesign.app at 1920x1080, pause at 00:02:10, and capture the window with screencapture -l.",
+    "expect": "The capture matches S01.Window/shipping and Player-6 (247:445), apart from the D022 top-bar differences. There is one 40 pt top bar with centred traffic lights."
+   },
+   {
+    "id": "A-05-S72",
+    "area": "A-window",
+    "steps": "Choose the Light theme in Settings > General. While paused, open the compact library on the The Wand S01 folder, then capture the window.",
+    "expect": "Over the video the bars read about #ABABAA and the compact library about #C2C2C1 (D046). The layout matches S72."
+   },
+   {
+    "id": "A-05-queue-hideui",
+    "area": "A-window",
+    "steps": "Open the queue and capture the window. Then choose View > Hide UI and capture again.",
+    "expect": "The queue sits over the right of the video with the OSD to its left. With Hide UI there are no bars, only the thin 10 pt frame, matching S06."
+   },
+   {
+    "id": "A-05-cpu",
+    "area": "A-window",
+    "steps": "Play 1080p media for 60 s with the bars shown, then for 60 s with Hide UI on. Sample the CPU with top -pid.",
+    "expect": "CPU with the bars shown is not much higher than with Hide UI on: no constant redraw while idle."
+   },
+   {
+    "id": "A-05-cursor",
+    "area": "A-window",
+    "steps": "Enter fullscreen while playing, keep the mouse still for the auto-hide delay, then move it.",
+    "expect": "The cursor and the bars hide after the delay. Moving the mouse brings the cursor back, and each bar returns only when the pointer is near its edge (D023)."
+   },
+   {
+    "id": "A-05-pip",
+    "area": "A-window",
+    "steps": "While playing, click PiP in the top bar. Then click the placeholder. Then close the PiP window.",
+    "expect": "The video moves into the native PiP window, and the main window shows the fg2 PiP icon with its caption. Clicking the placeholder or closing PiP brings the video back."
+   },
+   {
+    "id": "A-08-live",
+    "area": "A-window",
+    "steps": "Reopen a partially watched file with the window 640 pt wide and the compact library open. Then widen the window to full width.",
+    "expect": "At 640 pt the resume toast is centred in the visible video and shows only Continue Watching and close, with nothing truncated. At full width it also shows 'You already watched till <time>'."
+   },
+   {
+    "id": "C3",
+    "area": "A-window",
+    "steps": "Look at the windowed player top bar.",
+    "expect": "Single 40 pt top bar, traffic lights vertically centred in it, VLC cone right after them.",
+    "ownerComplaint": true
+   },
+   {
+    "id": "C5",
+    "area": "A-window",
+    "steps": "Open the settings sidebar while a video plays.",
+    "expect": "Sidebar overlays the video; the video is not shrunk or moved.",
+    "ownerComplaint": true
+   },
+   {
+    "id": "critic:fullscreen bar reveal",
+    "area": "",
+    "steps": "MUST fullscreen bar reveal (A-window): in fullscreen, move the pointer near the top edge, then near the bottom edge. Expect only the matching bar to appear, the video not to jump, and no frame in fullscreen.",
+    "expect": "(see steps)"
+   }
+  ]
+ },
+ {
+  "group": "2-controls",
+  "checks": [
+   {
+    "id": "B-live-cpu",
+    "area": "B-controls",
+    "steps": "Install the current HEAD build. Open 1080p test media from ../build/media in a 1728×1001 window and play. Run `top -l 30 -stats pid,cpu -pid <pid>` for 30 s in each state: (a) bars visible, pointer still; (b) Hide UI (⌘\\); (c) PiP; (d) a continuous scrub drag; (e) the window fully covered by another app's window; (f) app hidden (⌘H).",
+    "expect": "(a) averages at most (b) + 2 pp. (e) and (f) are at or below (b). The scrub may be higher but drops back within 1 s of release."
+   },
+   {
+    "id": "B-live-scrub",
+    "area": "B-controls",
+    "steps": "Pause playback. Drag the seek head slowly from 20 % to 80 % and back, then press → and ← several times while paused. Enable System Settings › Accessibility › Display › Reduce motion and play for 5 s.",
+    "expect": "The head, fill, elapsed label and preview follow the pointer continuously with no freeze. Paused jumps move the head immediately. Under Reduce Motion the head steps once per second. The paused-seek still shows the frame at the new time, including with a subtitle track selected and with flip, rotate or crop 2.35:1 applied, where it should match the vout's geometry."
+   },
+   {
+    "id": "B-live-cone-scroll",
+    "area": "B-controls",
+    "steps": "With natural scrolling on, swipe two fingers up on the trackpad over the volume cone, then over the video. Repeat with Settings › Reverse scroll direction on, and with a mouse wheel.",
+    "expect": "The same physical gesture changes the volume in the same direction over the cone and over the video in every combination. Scrolling over the cone never also seeks or scrolls anything else."
+   },
+   {
+    "id": "B-live-timelabel",
+    "area": "B-controls",
+    "steps": "Open a live (non-seekable) stream. Look at the elapsed label, Tab to it with Full Keyboard Access, press Space, and query it with VoiceOver (VO-F3).",
+    "expect": "The label is at full FG/A2 (not dimmed) and shows the design focus ring with no system ring. Space does nothing on a live stream and opens the editor on seekable media. VoiceOver reads 'Edit playback time', the value, and 'Not available for this stream', each once."
+   },
+   {
+    "id": "B-live-osd",
+    "area": "B-controls",
+    "steps": "Play 2.39:1 media in a 16:9 window, open the compact library, and press C (crop) and other OSD shortcuts. Repeat with a right panel open.",
+    "expect": "The two-line OSD (action plus 'Pressed C') sits top-right inside the visible video area with a margin proportional to the text. It never overlaps the library or panel, and the text size tracks the picture, not the letterbox."
+   },
+   {
+    "id": "B-live-increase-contrast",
+    "area": "B-controls",
+    "steps": "Turn on Increase Contrast and play in both the light and dark themes.",
+    "expect": "The pause button keeps the FG/A3 surface, and both halves of the two-tone glyph remain clearly visible (≥ 3:1)."
+   },
+   {
+    "id": "C1",
+    "area": "A-window/B-controls",
+    "steps": "Click the volume cone and the seek bar, then press Tab and the arrow keys.",
+    "expect": "No system focus box around volume or seek at any point.",
+    "ownerComplaint": true
+   },
+   {
+    "id": "C6",
+    "area": "B-controls",
+    "steps": "Drag the seek bar slowly.",
+    "expect": "Playhead, time label and thumbnail preview update continuously during the drag.",
+    "ownerComplaint": true
+   },
+   {
+    "id": "C7",
+    "area": "B-controls",
+    "steps": "Change volume by scroll wheel, arrow keys and media keys.",
+    "expect": "Single volume indicator (cone tooltip); no VLC core volume OSD.",
+    "ownerComplaint": true
+   },
+   {
+    "id": "critic:Music layout",
+    "area": "",
+    "steps": "Music layout (B-controls/E-library): play a song with 'Show Waveform on Seekbar' on. Expect the waveform bars (played part orange), the −15/+15 buttons beside play, and the audio now-playing view.",
+    "expect": "(see steps)"
+   }
+  ]
+ },
+ {
+  "group": "3-menus-keys",
+  "checks": [
+   {
+    "id": "D-menus-extensions-menu",
+    "area": "D-menus",
+    "steps": "Copy a Lua extension that has a menu (e.g. VLsub) into ~/Library/Application Support/org.videolan.vlc/lua/extensions. Launch VLC Redesign and open View ▸ Extensions. Choose VLsub, wait 2 s, then open View ▸ Extensions again. Choose an entry, then Disable. Finally choose Manage Extensions….",
+    "expect": "VLsub is first listed unchecked. After it is enabled it shows checked, with a submenu containing its own entries, a separator and Disable. The submenu entries appear without restarting the app. If they are missing, the cached-snapshot staleness issue is confirmed. Choosing an entry runs it, and Disable returns VLsub to an unchecked row. Manage Extensions… opens Settings on Extensions. With no extensions installed, the menu shows a disabled 'No Extensions' row."
+   },
+   {
+    "id": "D-menus-disabled-submenus",
+    "area": "D-menus",
+    "steps": "Play a stream whose rate cannot change, on a Mac with no alternative audio device. Open the menu-bar Audio and Video menus. Then open Settings (⌘,) and reopen Audio, Video and View ▸ Extensions, pressing their key equivalents as well.",
+    "expect": "Speed and Audio Device are greyed and open no submenu on hover. Behind Settings, every row of Audio, Video and Extensions is greyed, including submenu rows, and key equivalents do nothing."
+   },
+   {
+    "id": "D-menus-shadow-live",
+    "area": "D-menus",
+    "steps": "Over a light video frame, open the ⋯ menu and its Profile submenu, then right-click the video. Screenshot both and compare with Figma Profiles.png.",
+    "expect": "Card shadows fade out within about 14 pt with no faint long tail. Cards, rows and text match Figma except the D026 Mac glyphs."
+   },
+   {
+    "id": "D-menus-pip-gate",
+    "area": "D-menus",
+    "steps": "With a video playing, open Settings and try both Video ▸ Picture in Picture and the compact bar's ⋯ ▸ Picture in Picture. Close Settings and try both again.",
+    "expect": "Both are disabled while Settings is open. After it closes, both are enabled and enter or leave PiP."
+   },
+   {
+    "id": "D-menus-renderer-wording",
+    "area": "D-menus",
+    "steps": "Right-click the video and open Playback ▸ Renderer. Then open the Video sidebar's Render dropdown.",
+    "expect": "Both show 'Discover Cast Devices', and 'Discovering Cast Devices…' while discovery runs."
+   },
+   {
+    "id": "D-menus-carried-over",
+    "area": "D-menus",
+    "steps": "Check four things carried over from round 1. 1) With a sheet open, press a media key (play/pause). 2) Inspect the ⋯ menu and the right-click menu with Accessibility Inspector or VoiceOver. 3) Open the View menu and the Video menu. 4) Press Esc inside a submenu.",
+    "expect": "1) Transport works behind the sheet. 2) The menus are AXMenu with AXMenuItem children, carrying the mark and shortcut attributes. 3) Enter Full Screen appears only in View. 4) Esc closes one menu level."
+   },
+   {
+    "id": "D-menus-native-link",
+    "area": "D-menus",
+    "steps": "While holding the native lock, run tools/install-app.sh (integrator only) and confirm the libmacosx_redesign_plugin link succeeds now that MXRMenuCard.swift imports Accelerate.",
+    "expect": "The link succeeds with no undefined vImage symbols. If it fails, add -framework,Accelerate to libmacosx_redesign_plugin_la_LDFLAGS."
+   },
+   {
+    "id": "C4",
+    "area": "D-menus/G-panels",
+    "steps": "Open and close popover, queue, sidebar, ⋯ menu and a dialog with Esc and with a click outside while playing.",
+    "expect": "Same open/close motion everywhere; Esc and click-outside close without pausing playback.",
+    "ownerComplaint": true
+   }
+  ]
+ },
+ {
+  "group": "4-panels",
+  "checks": [
+   {
+    "id": "G-D07-queue-add-to-playlist",
+    "area": "G-panels",
+    "steps": "Open the queue panel with at least 3 items and the media library available. Right-click a row and hover Add to Playlist. Choose New Playlist…. Repeat and pick an existing playlist. Then Cmd-click to select rows 1 and 3, right-click row 3 and add them to a playlist. Finally, right-click the unselected row 2 and add it.",
+    "expect": "The submenu looks the same as the mini player's: New Playlist…, a separator, then the playlists, which load when the submenu opens. No separate popup card appears. The selection add puts rows 1 and 3 into the playlist in queue order. The row 2 add puts in only row 2. An error appears as an app dialog titled 'Couldn’t Add to “name”'."
+   },
+   {
+    "id": "G-09-bookmark-click-away",
+    "area": "G-panels",
+    "steps": "In the Bookmarks tab, right-click a bookmark, choose Rename and type a new name. Click another bookmark row. Repeat, then right-click a different row and choose Rename. Repeat, then press +. Repeat, then switch to the Queue tab. Repeat, then close the panel. Repeat with an empty name, then Esc.",
+    "expect": "Each time, the typed name is saved and the editor closes; in the Rename case the second row's editor opens next. An empty name keeps the old one. Esc discards the edit."
+   },
+   {
+    "id": "G-03/G-04/G-10-keyboard",
+    "area": "G-panels",
+    "steps": "With Full Keyboard Access on, Tab to a queue row. Press Return, Up/Down, Option-Up/Down, Space and Delete. Click a row with the mouse. Cmd-click two rows, then drag a row to reorder it. Repeat in Bookmarks.",
+    "expect": "Return plays the row (or jumps to the bookmark). The arrows move the fgA1 ring and the selection. Option-arrows reorder. Space still play/pauses. Delete removes the selection. A mouse click shows no system accent ring. Cmd-click and drag reorder work."
+   },
+   {
+    "id": "C2",
+    "area": "G-panels",
+    "steps": "Open the track popover from the bar (audio, then subtitles button).",
+    "expect": "Popover anchored bottom-right just above the bar; right tab preselected.",
+    "ownerComplaint": true
+   },
+   {
+    "id": "critic:⌘B bookmark",
+    "area": "",
+    "steps": "MUST ⌘B bookmark + chapters (G-panels): press ⌘B while playing. Expect a bookmark with no dialog and an OSD 'Pressed ⌘B'. Clicking a bookmark or chapter row seeks to it.",
+    "expect": "(see steps)"
+   },
+   {
+    "id": "critic:Add Subtitles mapping",
+    "area": "",
+    "steps": "MUST Add Subtitles mapping (G-panels/C-bridge): open Add Subtitles on a folder, map the files, press Save, then reopen another episode in that folder. Expect the tracks under External Tracks in the popover, still mapped after a relaunch.",
+    "expect": "(see steps)"
+   },
+   {
+    "id": "critic:drag library→queue",
+    "area": "",
+    "steps": "MUST drag library→queue (E-library/G-panels): drag a row from the compact and the full library into the open queue, at the end and at a placeholder. Expect it to be added or inserted at the drop point.",
+    "expect": "(see steps)"
+   }
+  ]
+ },
+ {
+  "group": "5-library",
+  "checks": [
+   {
+    "id": "E-06-light-compact-panel",
+    "area": "E-library",
+    "steps": "Installed /Applications/VLC Redesign.app, System Appearance Light (or app scheme Light). Play a video with dark content, open the compact library (S01 folder), then screencapture -l the window. Sample the panel background away from rows, and sample the icon rail.",
+    "expect": "Panel about #C2C2C1 and rail about #ABABAA (Figma Player - Light 2425:13624), not about #EBEBEB. If it is lighter, the material wash under bgB1Transparent must be fixed at the MXRLibraryView call site."
+   },
+   {
+    "id": "E-13-search-library-shortcut",
+    "area": "E-library",
+    "steps": "With the library hidden, press ⌥⌘F. Repeat with the compact narrow library and with the full library. Then press ⌘F.",
+    "expect": "⌥⌘F opens the compact library if it is hidden, shows the search field and gives it focus (Edit ▸ Find ▸ Search Library shows ⌥⌘F). ⌘F still toggles fullscreen."
+   },
+   {
+    "id": "E-07-arrow-keys-grid",
+    "area": "E-library",
+    "steps": "Full library, Videos folder, grid view with at least 3 columns. Click a tile, then press ↓, →, ↑ and ←, and Shift+↓.",
+    "expect": "↓/↑ move one row (the same column), ←/→ move one tile, and Shift extends the selection. The selection scrolls into view."
+   },
+   {
+    "id": "E-10-multi-remove",
+    "area": "E-library",
+    "steps": "Open a user playlist whose media are all present. ⌘-click 3 rows, then open ⋯ on one of the selected rows.",
+    "expect": "The menu says 'Remove 3 Items from Playlist', and choosing it removes exactly those 3 rows. On a row that is not selected, the menu says 'Remove from Playlist' and removes only that row."
+   },
+   {
+    "id": "E-03-missing-media-playlist",
+    "area": "E-library",
+    "steps": "Make a playlist with media from an external drive followed by local media. Eject the drive and reopen the playlist.",
+    "expect": "Only the present items are listed, and no row offers 'Remove from Playlist'. After you reconnect the drive, removal works and removes the intended row."
+   },
+   {
+    "id": "E-08-add-file-feedback",
+    "area": "E-library",
+    "steps": "In a folder's ⋯ menu choose Add File, then pick one .m4a. Repeat with one .mkv.",
+    "expect": "The library navigates to Music ▸ Songs (or Videos) with the imported file selected and visible. The help text on Add File explains where files appear."
+   },
+   {
+    "id": "E-02-playlist-order",
+    "area": "E-library",
+    "steps": "Create a playlist by adding a recently indexed file first and an older indexed file second. Open the playlist under the default sort, then under Newest First.",
+    "expect": "The default (Oldest First) shows the order you built, and Newest First shows it reversed. No ordering by media index date."
+   },
+   {
+    "id": "critic:launch-to-Home",
+    "area": "",
+    "steps": "MUST launch-to-Home (E-library): quit with nothing left to resume, then launch the app. Expect the full-window library on Home, not the cone screen. With a partially watched file, expect the resume toast centred above the bar, and the seek bar shows the tinted 0→saved span plus a marker.",
+    "expect": "(see steps)"
+   }
+  ]
+ },
+ {
+  "group": "6-settings-dialogs",
+  "checks": [
+   {
+    "id": "C-15-folder",
+    "area": "F-settings",
+    "steps": "After a new install-app.sh: Settings > Extensions > Advanced Options > 'Extensions folder' > Open.",
+    "expect": "Finder opens ~/Library/Application Support/org.videolan.vlc/lua/extensions, creating it if it was missing, and the row shows 'Extensions folder opened.'"
+   },
+   {
+    "id": "C-15-restart",
+    "area": "F-settings",
+    "steps": "Settings > Extensions: turn 'Load add-ons on startup' off, close Settings and reopen it. Then turn it back on.",
+    "expect": "While it is off, the row shows 'Takes effect after restarting VLC.' and has no ⓘ. Once it is back on, the note should ideally go away; the current code keeps it, which is the minor issue above."
+   },
+   {
+    "id": "F-08-tab",
+    "area": "F-settings",
+    "steps": "Library view with the queue search field focused. Press ⌘I (Media Info) or open About, press Tab and Shift-Tab several times, then type letters.",
+    "expect": "Focus never returns to the fields behind the scrim and nothing is typed into them. Esc or ⌘W closes the dialog."
+   },
+   {
+    "id": "F-13-title",
+    "area": "F-settings",
+    "steps": "Play The_Wand_S01E04.mp4, then a tagged file whose title tag differs from its file name. Switch Settings > Interface > 'Show the file name in the title bar' on and off.",
+    "expect": "ON shows 'The Wand S01E04' (and the tagged file's name without its extension). OFF shows the tag title. '.mp4' never appears in the top bar."
+   },
+   {
+    "id": "F-02-voiceover",
+    "area": "F-settings",
+    "steps": "VoiceOver on, Settings > Playback with the default audio track automatic; move the VoiceOver cursor onto the field.",
+    "expect": "VoiceOver reads 'Default audio track, Auto'."
+   },
+   {
+    "id": "F-08-tab-under-dialog",
+    "area": "F-settings",
+    "steps": "Installed app at about 1280×800, library visible, click the library search field. Press ⌘, to open Settings. Press Tab and Shift-Tab about 15 times each, then type 'abc'.",
+    "expect": "The library search field never gets focus and nothing is typed into it. With the current geometric guard this is expected to FAIL when the search field lies under the Settings rectangle."
+   },
+   {
+    "id": "critic:Settings in the real window",
+    "area": "",
+    "steps": "Settings in the real window (F-settings): open all 13 categories in Dark and Light at 1280×800 and screencapture each one. Compare with the Figma Settings renders. Advanced Options expands below with the chevron pointing down, and ⓘ opens on click with no hover delay.",
+    "expect": "(see steps)"
+   }
+  ]
+ },
+ {
+  "group": "7-design",
+  "checks": [
+   {
+    "id": "LS-light",
+    "area": "H-design",
+    "steps": "Set System Settings > Appearance to Light. Open VLC Redesign > Library. Right-click a playlist > Rename, then screenshot the sheet. Do the same with Rename on a network stream, and with a rename that fails (failure sheet). Repeat everything in Dark.",
+    "expect": "Light: the sheet body is opaque at about #D5D5D5 with a lighter header of about #DEDEDE. It is not mid grey #A7A7A7, and no artwork shows through. Dark: the body is dark, about #191919-#1B1B1B."
+   },
+   {
+    "id": "H-02",
+    "area": "H-design",
+    "steps": "Light appearance. Play a test video from ../build/media, show the bars, and sample the top bar and control bar fill with screencapture.",
+    "expect": "The bar fill is about #ABABAA over dark video (the offscreen render gives #A8A8A8). The compact library panel is about #C2C2C1."
+   },
+   {
+    "id": "H-03",
+    "area": "H-design",
+    "steps": "Use an isolated profile (fresh preferences and a copy of ml.db). In the first-launch onboarding, pick a media folder, click Next, then press Esc. Quit and inspect the Folder table in ml.db.",
+    "expect": "The folder is present exactly once, and onboarding is marked complete."
+   },
+   {
+    "id": "H-07",
+    "area": "H-design",
+    "steps": "Open Customize mode, drag a palette tile onto the control bar, and watch the Console. Then check Info.plist in the installed bundle.",
+    "expect": "The tile is accepted, and there is no unknown-UTType warning. Info.plist has exactly one UTExportedTypeDeclarations entry, for org.videolan.vlc-redesign.player-layout-item."
+   },
+   {
+    "id": "critic:Accent change",
+    "area": "",
+    "steps": "Accent change (H-design): pick a different accent in Settings or onboarding. Expect every former orange to change, including the seek fill, active icons, the ✓ marks, the dialog primary button and chapter numbers.",
+    "expect": "(see steps)"
+   },
+   {
+    "id": "critic:H-05 accessibility",
+    "area": "",
+    "steps": "H-05 accessibility (H-design): turn on Reduce Transparency, Differentiate Without Color and Increase Contrast one at a time. Check the bars, popups, the native menu bar, the AppKit menus and dialogs. Expect opaque surfaces, non-colour state cues and higher contrast, with no unreadable text.",
+    "expect": "(see steps)"
+   }
+  ]
+ },
+ {
+  "group": "8-bridge-build",
+  "checks": [
+   {
+    "id": "C-01-live",
+    "area": "C-bridge",
+    "steps": "Settings: turn off 'Start playing when opened'. Play file A. While A plays, open file B with ⌘O. Then let B finish into the next queue item, and replay B from the queue.",
+    "expect": "B opens paused at 0:00 and stays paused. The next queue item plays normally. Replaying B plays it."
+   },
+   {
+    "id": "OSD-app-actions",
+    "area": "C-bridge",
+    "steps": "Play a video. Press ⌘\\ twice, then Q twice, then ⌘L twice. Then choose Hide UI from the menu bar.",
+    "expect": "The two-line OSD shows 'Hide UI' / 'Pressed ⌘\\', 'Show UI' / 'Pressed ⌘\\', 'Show Queue' / 'Pressed Q', 'Hide Queue' / 'Pressed Q', 'Show Library' / 'Pressed ⌘L', then 'Hide Library' / 'Pressed ⌘L'. The menu-bar Hide UI shows no OSD. While the UI is hidden, the OSD is still visible."
+   },
+   {
+    "id": "C-02-live",
+    "area": "C-bridge",
+    "steps": "Put 'Movie (2020).mkv' and 'Movie (2020).srt' in one folder. Open the movie, turn subtitles off, then drag 'Movie (2020).srt' onto the window.",
+    "expect": "The existing subtitle track is selected again and no duplicate subtitle track appears in the subtitle menu."
+   },
+   {
+    "id": "C-03-live",
+    "area": "C-bridge",
+    "steps": "Turn on 'Play locally while streaming'. Start a Stream job, then start normal playback of another file. Separately, start a Convert job.",
+    "expect": "The stream's local copy opens in an auxiliary window and main playback stays in the main window. A Convert job opens no local display."
+   },
+   {
+    "id": "C-13-live",
+    "area": "C-bridge",
+    "steps": "Record os_signpost (subsystem org.videolan.vlc.macosx-redesign, category Shutdown) in Instruments on the installed app. Quit with Cmd-Q once from a clean start, and once after browsing Network.",
+    "expect": "Cmd-Q to process exit takes under about 1 s. The 'Services' interval is about as long as the slowest 'Service' step, not their sum."
+   },
+   {
+    "id": "C-05-live",
+    "area": "C-bridge",
+    "steps": "Install VLsub into the user Lua extensions folder. Settings → Extensions → enable it, open its dialog, type text, press a button, close it, then quit.",
+    "expect": "A native dialog appears and input reaches the script. Closing the dialog deactivates the extension, and quit is not blocked."
+   },
+   {
+    "id": "C-10-live",
+    "area": "C-bridge",
+    "steps": "In Video effects, drag Brightness and quickly return it to its start value, then change Resolution.",
+    "expect": "The final brightness on screen matches the slider. Changing Resolution does not restart the video."
+   },
+   {
+    "id": "OSD-engine-silent",
+    "area": "C-bridge",
+    "steps": "Play a video. Press the fullscreen hotkey and take a snapshot with its hotkey.",
+    "expect": "Fullscreen shows only 'Pressed <key>' (as in VLC). The snapshot shows its file line once the file is written."
+   },
+   {
+    "id": "PERF-02/B-05",
+    "area": "I-build",
+    "steps": "With the Mac idle and VLC Redesign closed: make -C ../build/codex-arm64/modules check-macosx-redesign-app MXR_SMOKE_MEDIA='\"../build/media/Test Show S01E01.mp4\" \"../build/media/Test Show S01E02.mp4\"'",
+    "expect": "PASS. The log in $BUILD/modules/macosx-redesign-smoke.log shows the macosx_redesign intf and vout, videotoolbox, auhal, the first picture for each item, a clean exit, and 0 'stale plugins cache' lines"
+   },
+   {
+    "id": "install-launch",
+    "area": "I-build",
+    "steps": "Open /Applications/VLC Redesign.app from Finder (after the latest install or dev-sync)",
+    "expect": "No Gatekeeper or 'damaged app' prompt. The redesign interface starts with its own icon, and Console shows no plugins.dat signature or cache warnings"
+   },
+   {
+    "id": "B-05/PERF-02 smoke gate",
+    "area": "I-build",
+    "steps": "With the Mac idle and VLC Redesign closed: export PATH=/opt/homebrew/bin:$PATH; make -C ../build/codex-arm64/modules check-macosx-redesign-app MXR_SMOKE_MEDIA='\"../build/media/Test Show S01E01.mp4\" \"../build/media/Test Show S01E02.mp4\"'",
+    "expect": "Exit 0 and PASS. $BUILD/modules/macosx-redesign-smoke.log shows the macosx_redesign intf, videotoolbox decode, auhal output, a first picture for each item, a clean quit, and 0 'stale plugins cache' lines"
+   },
+   {
+    "id": "dialog-tab-loop",
+    "area": "I-build",
+    "steps": "In the running app, focus the library search field, open About (or New Playlist), and press Tab and Shift+Tab several times",
+    "expect": "Focus never returns to the search field behind the scrim. In New Playlist, Tab cycles only among the dialog's own controls"
+   },
+   {
+    "id": "critic:COMP-18",
+    "area": "",
+    "steps": "COMP-18 (C-bridge): drag an .srt onto the window in fullscreen, and open a file whose subtitle is auto-detected. Expect the subtitle to be added and selected, with no duplicate.",
+    "expect": "(see steps)"
+   },
+   {
+    "id": "critic:Startup and memory",
+    "area": "",
+    "steps": "Startup and memory (C-bridge/I-build): cold-launch to the first frame of a test episode, measured with os_signpost or a stopwatch. Measure RSS after 30 min of 1080p playback and after browsing Network and the library.",
+    "expect": "(see steps)"
+   }
+  ]
+ },
+ {
+  "group": "9-media-io",
+  "checks": [
+   {
+    "id": "J-live-01",
+    "area": "J-media-io",
+    "steps": "Reinstall the app with install-app.sh so it includes keyint=60. In the app, choose File > Convert, pick build/media/Test Show S01E01.mp4, keep 'Video — MP4 (H.264)', Save As ~/Movies/verify.mp4, press Convert and wait until it finishes. Run ffprobe on the output.",
+    "expect": "Progress bar and percentage advance, then 'Saved “verify.mp4”.' with Show in Finder. The app does not crash. ffprobe shows h264 + aac, about 60 s, about 2.7 Mbit/s. No .vlc-partial file is left in ~/Movies."
+   },
+   {
+    "id": "J-live-02",
+    "area": "J-media-io",
+    "steps": "With verify.mp4 from J-live-01 present, choose File > Convert again with the same source. Pick format 'Audio — MP3' after choosing ~/Movies/verify.mp4 in the save panel, so the destination becomes verify.mp3, and create ~/Movies/verify.mp3 beforehand. Press Convert.",
+    "expect": "A native alert says '“verify.mp3” already exists. Do you want to replace it?'. Cancel leaves verify.mp3 byte-identical (same md5). Replace converts and overwrites it."
+   },
+   {
+    "id": "J-live-03",
+    "area": "J-media-io",
+    "steps": "Start an H.264 conversion to a file name that already exists and press Replace. Press Stop at about 20%. Watch the Save As hint and the main button until it settles.",
+    "expect": "The hint reads 'Stopping…' (it may briefly read 'Finishing…', see the minor issue), then 'Stopped. Nothing was saved.'. The original file's md5 is unchanged and no .vlc-partial file remains. The form unlocks only after the job is cancelled."
+   },
+   {
+    "id": "J-live-04",
+    "area": "J-media-io",
+    "steps": "Turn on 'Play locally while streaming' (sout-display) in Settings. While the main player shows a video, open File > Stream, choose Web (HTTP) on 0.0.0.0:8080/live, press Start, and on another device or with ffplay open the URL from the hint.",
+    "expect": "The local copy appears in a separate auxiliary window. The main player's surface is never taken over. The remote viewer gets a picture within about 2 s. Stop closes the server (curl returns 000)."
+   },
+   {
+    "id": "J-live-05",
+    "area": "J-media-io",
+    "steps": "Insert an Audio CD (or mount a cddafs volume). Open File > Open Disc.",
+    "expect": "The disc is listed and preselected with Audio CD as the kind. Open plays the tracks through cdda:///dev/rdiskN. Ejecting the disc while the dialog is open removes it from the list; inserting a DVD adds it."
+   },
+   {
+    "id": "J-live-06",
+    "area": "J-media-io",
+    "steps": "With a Chromecast on the network, open the renderer menu in the player and in the effects sidebar. Discover, select the device, then discover again.",
+    "expect": "The selected device stays listed and checked after rediscovery. Neither menu stays in 'Discovering…' for more than about 5 s after the first results arrive."
+   },
+   {
+    "id": "J-live-07",
+    "area": "J-media-io",
+    "steps": "File > Open Capture Device (menu and shortcut) with a camera or Continuity Camera available.",
+    "expect": "The dialog is titled 'Open Capture Device', lists the camera, and Open shows the camera in the player."
+   },
+   {
+    "id": "critic:SET-04",
+    "area": "",
+    "steps": "SET-04 (J-media-io): start a Stream job with 'keep' on and two items queued. Expect the receiver to get the second item with no reconnect.",
+    "expect": "(see steps)"
+   },
+   {
+    "id": "critic:Open Network Stream",
+    "area": "",
+    "steps": "Open Network Stream and Network category (J-media-io/E-library): open an http URL through the dialog and browse SMB/UPnP shares. Expect no Enqueue action and no all-in-one Open dialog.",
+    "expect": "(see steps)"
+   }
+  ]
+ }
+]

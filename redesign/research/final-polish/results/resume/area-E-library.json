@@ -1,0 +1,199 @@
+{
+ "area": "E-library",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "E-library is finished. I made the predecessor's half-done edits coherent: the committed tree builds, and its broken E-07 test, which could never drive SwiftUI keyboard focus in an offscreen window, is replaced by tests that read the accessibility tree. I then worked through the whole list. New fixes: the compact header now fits the 216 pt column of a 480 pt window (crumbs fold, then the count, then Open Full Library); file-name rows truncate in the middle, as Finder does; the S40 fixture now matches Figma (Shows / Films / Anime folders, three playlists); the mini-player hover transport sits where Figma puts it (it was 1.5 pt off); breadcrumb separators use Figma's 8 pt box. New tests: view-level tests for E-07, E-10, E-11, the import-notice row and the minimum width; model tests for the mixed-import notice; a queue-row Add to Playlist test; and a native test that runs the real -playlistMedia:complete: against a scripted media library. I made each test fail by breaking its fix on purpose, then restored the fix. Kept differences are written into DECISIONS.md: D032 (Dark styles in the Light frame), D039 (audio tracks), D042 (rows keep file names) and D044 (Home's sixth section, counts, narrow panel, audit dispositions). The library suites (about 30, including Library*, Gallery, FigmaDeviation and QueueAddToPlaylist) pass on the shared checkout. The native test passes when compiled by hand with the harness flags; I did not run tools/native-tests.py.",
+   "fixed": [
+    "Predecessor coherence: the committed tree builds. LibraryViewBehaviourTests failed 4/4 as written (SwiftUI keyboard focus cannot be driven in an offscreen window); it is rewritten and passes 5/5. The predecessor's S40 deviation, which cited D044 text that did not exist, is removed. The S45 and mini-player deviations now have the D044 amendment text behind them.",
+    "(a)/(d) S28 narrow panel: crumbs fold into the '…' menu instead of clipping to 'Th'/'S0' (predecessor's fix, checked). Rows now truncate in the middle (The_Wan…1E05.mp4). Evidence: ../build/evidence/final4/E-library/after/S28_minimum_narrow_pair.png",
+    "(a)/(d) S29 'Mark as Watched' uses the two-tone check glyph, state=selected (predecessor's fix, checked). Evidence: ../build/evidence/final4/before/S29_LibraryMenu_file/side-by-side.png is wrong; the file is ../build/evidence/final4/E-library/before/S29_LibraryMenu_file/side-by-side.png. The remaining REVIEW is 'Show in Finder', a Mac adaptation.",
+    "(a)/(d) S46 mini player: collapsed and queue PASS. Hover went from REVIEW (transport 1.5 pt low) to a 1 px edge only: the transport now sits at Figma's 975:4337 centre (LibraryGeometry.miniTransportCenter), scaled with the video. The artist chip and the placeholder queue summary are covered by D044. Evidence: ../build/evidence/final4/E-library/after/S46_MiniPlayer_hover/side-by-side.png",
+    "(a)/(d) S40 compact Home fixture: a new gallery-only MockLibrary.useFigmaHomeFolders() lists Shows / Films / Anime, and the predecessor's three playlists are kept. Product ranking is unchanged and the deviation is removed. Evidence: ../build/evidence/final4/E-library/after/S40_Library_home/side-by-side.png. The remaining REVIEW is music thumbnail antialiasing.",
+    "(d) D042 premise checked: Figma's library rows show raw file names (848:1995 'The_Wand_S01E05.mp4', Light 2425:13624, Home 1106:5633). Rows already match Figma, so there is no rename; D042 now says so.",
+    "(d)/(c) Mixed audio and video import: the importNotice row ('1 song was added to Music ▸ Songs.') opens Songs with the songs selected. Covered by LibraryImportNoticeTests (2 tests) and a view test that presses the row.",
+    "(d)/(c) Tests for E-07, E-10 and E-11 (LibraryViewBehaviourTests): E-07 checks that ↓ selects the card drawn below and that the key offsets equal the drawn columns; E-10 presses 'Remove 2 Items from Playlist' and checks both occurrences are removed; E-11 checks, from the pixels, that the brightened open-card row follows its entry when rows above disappear. Each was confirmed to fail with its fix broken.",
+    "(f)(b) 480 pt minimum window: below LibraryGeometry.compactFullHeaderWidth (244 pt) the header leaves out the count and then Open Full Library (View ▸ Go Home still opens it), so the panel draws inside 216 pt. New gallery entry S28.Library/minimum and testCompactPanelDrawsInsideTheMinimumColumn, which fails without the fix (controls at 224 pt). Evidence: ../build/evidence/final4/E-library/after/S28_minimum.png",
+    "(f) LIVE Light tint: the compact library backdrop is MXRBackdropSurface(tint: bgB1Transparent), so H-design's material change (D053) reaches it with no library edit.",
+    "(c) Native playlist-complete stub: NativeLibraryPlaylistOrderRegression.m now also runs the real -playlistMedia:complete: and page against scripted vlc_ml_get / vlc_ml_list (13 assertions). With the comparison forced to YES it fails 3 assertions. Built and run by hand with the harness flags.",
+    "(c) Critic P2: QueueAddToPlaylistTests checks that the queue row's Add to Playlist submenu appends the selection in queue order, and a single row alone.",
+    "Extra: full-library breadcrumb separators use Figma's 8 pt '▶' box (6153:13644). The S44/S45 crumb drift falls from 2 pt to 1 pt."
+   ],
+   "notFixed": [
+    {
+     "id": "S30/S31 Edit/Add Audio Tracks (COMP-08)",
+     "why": "Not an engine limit: the media library can store soundtrack files (VLC_ML_FILE_TYPE_SOUNDTRACK) and an input can load them as slaves. What is missing is an audio version of the Add Subtitles matcher (Dialogs, J-media-io) and soundtrack slave loading in MXRServicesBridge.m (C-bridge). That is too large and spans too many other areas for this wave. The rows stay disabled; D039 is amended to say this is missing work, and the owner decides whether to schedule it."
+    },
+    {
+     "id": "S72 divider #ACACAC vs Figma #212121, and the Light row and crumb foregrounds",
+     "why": "Kept, and documented in a D032 amendment. Figma's Light frame draws them with Dark styles (Dark/Divider/Dim 217:233 and Dark/FG/A2 217:218) even though Light/Divider/Dim 2425:13982 exists. The product uses the Light styles. Evidence: ../build/evidence/final4/E-library/after/S72_light/library-pair.png. The S72 FAIL verdict comes from the bar colour (A-window / H-design), not from the library."
+    },
+    {
+     "id": "Compact library next to an open right panel at narrow windows",
+     "why": "With a right panel open, the composition gives the library 32% of the window (153 pt at 480 pt). That is below LibraryGeometry.compactMinimumWidth (208 pt), and no header fits. The geometry is A-window's (MXRAppView.compactWidth); see notesForOthers."
+    },
+    {
+     "id": "S46 queue entry height 689.69",
+     "why": "This is the Theme.Metric.Miniplayer.expanded token (H-design), not a fixture value. The queue check passes anyway."
+    },
+    {
+     "id": "PER-02",
+     "why": "This is subtitle-folder I/O on MainActor in Dialogs/DialogInput.swift and SubtitleFolderRules. Those files are not E-library's (J-media-io / C-bridge)."
+    },
+    {
+     "id": "mxr-snapshot SIGSEGV on S40",
+     "why": "Tooling, not E-library's. It did not recur in about 30 check runs this wave."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Library/MXRLibraryView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibrarySupport.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibraryEntryView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibraryNavigation.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Library/MXRMiniPlayerView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRMockBackend/MockData.swift",
+    "modules/gui/macosx_redesign/Sources/MXRMockBackend/MockLibrary.swift",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/LibraryGallery.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/LibraryViewBehaviourTests.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/QueueAddToPlaylistTests.swift (new)",
+    "modules/gui/macosx_redesign/Tests/MXRCoreTests/LibraryImportNoticeTests.swift (new)",
+    "modules/gui/macosx_redesign/Tests/NativeLibraryPlaylistOrderRegression.m",
+    "redesign/docs/DECISIONS.md"
+   ],
+   "editsOutsideOwnership": [
+    "redesign/docs/DECISIONS.md: amendments to D032, D039, D042 and D044 (allowed by the DECISIONS rule; re-read just before the edit)",
+    "New test files outside the listed test globs: Tests/MXRCoreTests/LibraryImportNoticeTests.swift and Tests/MXRUISnapshotTests/QueueAddToPlaylistTests.swift (they test my code and the queue-row wiring; no source edits)"
+   ],
+   "decisionsWritten": [
+    "D032 amendment (E-library, 2026-10-17): Player - Light's library uses Dark styles (divider, rows, crumb); the product uses the Light styles of the same name.",
+    "D039 amendment (COMP-08): folder and playlist audio tracks stay disabled; this is missing work, not an engine limit.",
+    "D042 bullet: library rows, the queue and the mini player keep the file name as Figma does; truncation is in the middle.",
+    "D044 amendment: Home's sixth section (Latest Streams); the gallery Home fixture; counts, docked mini player, queue summary and − follow the data; narrow compact panel fold order; LIB-06 and LIBSET-02 dispositions."
+   ],
+   "ownerDecisions": [
+    "D032 amendment (library in Player - Light keeps Light styles): accepted (agent, 2026-10-17)",
+    "D039 amendment: schedule the folder/playlist audio-track matcher, or keep the rows disabled: accepted (agent, 2026-10-17)",
+    "D042 bullet: rows keep file names, middle truncation: accepted (agent, 2026-10-17)",
+    "D044 amendment (sixth section, fixtures, counts, narrow-panel fold order, LIB-06 and LIBSET-02 dispositions): accepted (agent, 2026-10-17)"
+   ],
+   "liveChecks": [
+    {
+     "id": "E-min-window",
+     "steps": "Resize the window to the 480x270 pt minimum with the compact library open on The Wand ▸ S01 and no right panel.",
+     "expect": "The library header shows ← → … ⋯ and sort/view/search inside the panel. The count and Open Full Library are hidden, nothing runs under the video, and View ▸ Go Home opens the full library."
+    },
+    {
+     "id": "E-light-tint",
+     "steps": "Set the Light theme, play a colourful video and open the compact library.",
+     "expect": "The library backdrop follows H-design's material (D053). Rows are readable at fg1/fgA3, and the divider and current crumb use the Light styles."
+    },
+    {
+     "id": "E-mixed-import",
+     "steps": "In the compact library ⋯, choose Add File and pick one .mp4 and one .mp3 together.",
+     "expect": "Videos shows the new video selected and the row '1 song was added to Music ▸ Songs.'. Clicking the row opens Songs with the song selected; ✕ dismisses it."
+    },
+    {
+     "id": "E-arrow-keys",
+     "steps": "Open the full library grid in The Wand ▸ S01, click the second card, then press ↓ ↑ → ←.",
+     "expect": "↓ selects the card directly below, ↑ returns, and ←/→ move to the neighbours."
+    },
+    {
+     "id": "E-mini-hover",
+     "steps": "Open the full library while an episode plays and hover the mini player.",
+     "expect": "⏮ ▶ ⏭ sit slightly above the video centre, as in Figma 975:4333, and the video keeps playing."
+    }
+   ],
+   "evidence": [
+    "../build/evidence/final4/E-library/before/ (checks before this wave: S28, S29, S30, S31, S40, S45, S46*, S33 songs)",
+    "../build/evidence/final4/E-library/after/ (S28_minimum.png, S28_minimum_narrow_pair.png, S40_Library_home, S46_*, S72_light/library-pair.png, S44/S45/S28/S33/S38/S43 checks)",
+    "../build/evidence/final4/E-library/native/playlist-order (native binary: PASS, 13 assertions)",
+    "swift test --filter 'Library|MiniPlayer|FigmaDeviation|Gallery|QueueAddToPlaylist': all about 30 matched suites pass (shared checkout, 02:27). LibraryViewBehaviour, LibraryInteraction, FigmaDeviation, LibraryImportNotice and QueueAddToPlaylist re-run green at 02:32."
+   ],
+   "notesForOthers": "A-window: with a right panel open, the compact library gets 32% of the window (153 pt at 480 pt). That is below LibraryGeometry.compactMinimumWidth (208 pt, the narrowest header that fits), so the panel runs past its column. Please clamp compactWidth to max(LibraryGeometry.compactMinimumWidth, share*width), or hide the compact library when the panel opens on a narrow window. Without a panel, 480 pt already fits (216 pt is at least 208 pt). Integrator: tools/native-tests.py headless-regressions should be re-run (NativeLibraryPlaylistOrderRegression.m gained an engine-listing section). I-build: nothing new to wire, since the test file already exists. J-media-io / C-bridge: if the owner schedules COMP-08, the work is an audio-mode AddSubtitles matcher, ML attach with VLC_ML_FILE_TYPE_SOUNDTRACK (MXRLibraryServices attachSubtitle can take a type argument), and soundtrack slaves in MXRServicesBridge LibrarySubtitleURLs. The test build briefly failed in another agent's Tests/MXRUISnapshotTests/DialogKeyLoopControlTests.swift (MainActor isolation errors); it compiled again a few minutes later."
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "redesign/docs/DECISIONS.md D032 amendment (E-library, 2026-10-17); Sources/MXRUI/Library/LibraryNavigation.swift separator",
+    "description": "Figma Player - Light 2425:13624 also draws the breadcrumb '▶' separators (I2425:13646;6131:13620/13475) with Dark/FG/A4 (#404040) and the '…' slot with Dark/FG/A2. The product draws the separators in Light fgA4 (#9A9A9A, measured 154,154,154 against Figma 64,64,64). This follows the same Dark-style slip principle, but the amendment only names the divider, rows and current crumb. One more clause would cover it. The divider kept at Light/Divider/Dim is well supported: the same Light frame uses Light/Divider/Dim twice and Dark/Divider/Dim only for this one divider."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Library/MXRMiniPlayerView.swift transport .position(...)",
+    "description": "The y of the mini transport is computed as video.height * 104 / videoBlock.width * homeCard.width / homeCard.height. That uses the home card's 316×177.75 ratio as a stand-in for the 16:9 video (375×210.94). The value is right (it works out to h*104/210.94), but the dependency on an unrelated token is hard to read. A token or constant for the video's height would be clearer."
+   },
+   {
+    "severity": "minor",
+    "where": "S28.Library/minimum (216 pt panel)",
+    "description": "At the 480 pt minimum window the header fits as claimed: ← → … ⋯, with sort/view/search on the second row and nothing past 216 pt; the mutation test confirms this. The cost is that rows give only ~40 pt to the label ('Th…p4'), and the current folder name is folded away. It is usable only through hover tooltips. It is documented in D044 (narrow compact panel) and is an edge case, but the owner may want a larger compact share or minimum at that size (A-window's MXRAppView.compactWidth)."
+   },
+   {
+    "severity": "minor",
+    "where": "Tests/MXRUISnapshotTests/LibraryViewBehaviourTests.swift testArrowKeysFollowTheDrawnGridColumns",
+    "description": "E-07 checks that the static columns() matches the column count read from the drawn grid through AX, and that model moveSelection with arrowOffset selects the card drawn below. It does not drive the onKeyPress handler itself, because offscreen SwiftUI focus cannot be driven, so a broken key binding would still pass. The real keys are in liveChecks (E-arrow-keys)."
+   },
+   {
+    "severity": "minor",
+    "where": "S30/S31 Edit/Add Audio Tracks (D039 amendment)",
+    "description": "These rows are still disabled while Figma shows them enabled. The amendment admits this is missing work across J-media-io and C-bridge, not an engine limit. Critic P2 explicitly allowed 'record a DECISIONS entry (out of scope …) or schedule'. So this is acceptable as an owner scheduling decision, not an excuse, but it remains a visible Figma difference until it is scheduled."
+   },
+   {
+    "severity": "minor",
+    "where": "S33.Library/songs (pre-existing, not on the work list)",
+    "description": "The 'My Songs' folder row label renders at fgA1 #969696 where Figma 4767:23606 has fgA3 #6B6B6B. This is unchanged from the before-wave check (../build/evidence/final4/E-library/before/S33_Library_songs/report.txt), so it is not a regression, but it is still open."
+   },
+   {
+    "severity": "minor",
+    "where": "Cross-area: MXRAppView.compactWidth (A-window)",
+    "description": "With a right panel open on a narrow window, the compact library gets 32% (153 pt at 480 pt), which is below LibraryGeometry.compactMinimumWidth (208 pt), so the header overflows. The fixer correctly passed this to A-window in notesForOthers. It is unresolved in E-library's files."
+   }
+  ],
+  "summary": "Independent verification of E-library, round 1: PASS. The build is green. The targeted suites pass: Library*, LibraryViewBehaviour 5/5, LibraryImportNotice 2/2, QueueAddToPlaylist, FigmaDeviation, LibraryInteraction and LibraryModel, 86 tests across 3 targets. `tools/native-tests.py --suite headless-regressions` passes under the lock, including library-playlist-order with 13 assertions. Mutation checks in an isolated copy (../build/evidence/final4/E-library-verify-r1/pkg): with opensFull forced to `compact`, testCompactPanelDrawsInsideTheMinimumColumn fails (controls at 224 > 216.5 pt); with the compact list keyed by offset, testRowStateFollowsItsEntryWhenRowsAboveGoAway fails. So the new regression tests are real. Renders and checks are in ../build/evidence/final4/E-library-verify-r1/checks and renders, and I looked at each one. S40 Home now matches Figma 1106:5633 almost pixel for pixel (Shows/Films/Anime, three playlists, ← enabled) through a gallery-only fixture; product ranking is unchanged (figmaHomeFolderIDs is nil by default). S29 'Mark as Watched' uses the two-tone check. S46 collapsed/queue PASS and hover leaves a 1 px edge, with the fixture name matching Figma and the artist chip covered by D044. S28 narrow folds crumbs to '… ▸ S01' with middle-truncated file names. S28 minimum draws inside 216 pt. Neighbouring S28/S33/S38/S43/S44/S45 checks are identical to the fixer's after-reports, so there are no regressions. Decisions checked against figma_file.json: D042 is correct (Figma rows show raw file names). The D032 amendment is justified: in Player - Light the library divider is the one use of Dark/Divider/Dim, while Light/Divider/Dim is used twice in the same frame, and the rows/crumb Dark/FG/A2 values are unreadable on light. The D039 amendment is honest and is allowed as an owner scheduling decision under critic P2. The compact backdrop uses MXRBackdropSurface(tint: bgB1Transparent), so H-design's material reaches it. The engine is untouched (diff against upstream-base is empty). No new Swift 6 warnings appear in library sources. No new figmaDeviations were added; one, S40, was removed. Ownership was respected: only the DECISIONS amendments and two new test files are outside the owned paths. Remaining issues are minor only: undocumented Light separator colours, the minimum-width row legibility trade-off, the E-07 key-binding test not driving onKeyPress, an indirect mini-transport formula, and the pre-existing S33 'My Songs' tone.",
+  "liveChecks": [
+   {
+    "id": "E-min-window",
+    "steps": "Resize the window to the 480x270 pt minimum with the compact library open on The Wand ▸ S01 and no right panel.",
+    "expect": "The header shows ← → … ⋯ on row 1 and sort/view/search on row 2, all inside the panel. The count and Open Full Library are hidden, nothing runs under the video, and View ▸ Go Home opens the full library."
+   },
+   {
+    "id": "E-min-window-right-panel",
+    "steps": "At the 480 pt minimum window with the compact library open, open the right panel (queue).",
+    "expect": "Records whether the library header overflows into the video or panel (A-window clamp pending): it either stays at least 208 pt wide, or the compact library hides."
+   },
+   {
+    "id": "E-light-tint",
+    "steps": "Set the Light theme, play a colourful video and open the compact library.",
+    "expect": "The backdrop follows H-design's material (D053). Rows are readable at fg1/fgA3, the divider is Light dividerDim, and the current crumb is fg1."
+   },
+   {
+    "id": "E-mixed-import",
+    "steps": "In the compact library ⋯, choose Add File and pick one .mp4 and one .mp3 together.",
+    "expect": "Videos opens with the video selected and the row '1 song was added to Music ▸ Songs.' Clicking the row opens Songs with the song selected; ✕ dismisses it, and leaving Videos drops it."
+   },
+   {
+    "id": "E-arrow-keys",
+    "steps": "Open the full library grid in The Wand ▸ S01, click the second card, then press ↓ ↑ → ←.",
+    "expect": "↓ selects the card directly below in the drawn grid, ↑ returns, and ←/→ move to the neighbours. Repeat in the compact list: ↓ moves one row."
+   },
+   {
+    "id": "E-mini-hover",
+    "steps": "Open the full library while an episode plays and hover the mini player.",
+    "expect": "⏮ ▶ ⏭ sit about 1.5 pt above the video centre, as in Figma 975:4333, and the video keeps playing."
+   },
+   {
+    "id": "E-narrow-crumbs",
+    "steps": "Make the window about 680 pt wide (compact panel about 307 pt) inside The Wand ▸ S01.",
+    "expect": "The breadcrumb reads '… ▸ S01' with no clipped 'Th'/'S0' pieces, and the '…' menu lists Videos and The Wand. Rows truncate in the middle (The_Wan…1E05.mp4)."
+   }
+  ],
+  "ownerDecisions": [
+   "D032 amendment (E-library, 2026-10-17): the library in Player - Light keeps the Light styles for the divider, rows and current crumb where Figma leaked Dark styles. Accepted (agent, 2026-10-17). Verifier suggests adding that the crumb separators (Dark/FG/A4 in Figma) are covered too.",
+   "D039 amendment (COMP-08): folder and playlist Edit/Add Audio Tracks stay disabled. This is missing cross-area work (an audio matcher plus soundtrack slaves), not an engine limit. Owner: schedule it, or keep the rows disabled. Accepted (agent, 2026-10-17).",
+   "D042 bullet: library rows, the queue and the mini player keep the file name as Figma does, with middle truncation. Accepted (agent, 2026-10-17).",
+   "D044 amendment: Home's sixth section (Latest Streams), gallery-only Home fixtures, counts and players following the data, the narrow compact panel fold order (crumbs, then the count, then Open Full Library), and the LIB-06 and LIBSET-02 dispositions. Accepted (agent, 2026-10-17)."
+  ]
+ }
+}

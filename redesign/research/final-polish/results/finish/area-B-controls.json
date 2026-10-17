@@ -1,0 +1,63 @@
+{
+ "area": "B-controls",
+ "reports": [],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "Sources/MXRGalleryCatalog/Entries/PlayerGallery.swift:34 (C.SeekBar/default fixture), cross-area item assigned to B-controls",
+    "description": "C.SeekBar/default still FAILs (flat colour 1.15 %, region at x≈92–114 pt). The fixer did not address it. Evidence: Figma 1908:7387 draws the fill at x=2, w=98 and the head 'Rectangle 10' at x=92, so progress = (92−2)/(1238−4−8) = 0.0734. The Controls frame's own labels say 00:02:10 / 00:25:40 (130/1540 = 0.0844), which puts the head at 2 + 1226×0.0844 = 105.5 pt, exactly where our render draws it. Our geometry is right: seekHeadX is linear and the fill = travel×p + head.width reproduces Figma's 98 pt fill for Figma's own head. The fixture time also equals Figma's labels (videoApp loads 0:02:10 of 0:25:40, and C.CurrentTime/C.Duration PASS). The mismatch is internal to Figma. Honest fix: give the bar-only C.SeekBar/default entry its own fixture time at the position Figma draws (≈113 s of 1540, i.e. 00:01:53). Keep videoApp/product defaults and the time-label entries at 02:10, and keep the existing S01.ControlBar note explaining the label-vs-head inconsistency. Do not change the geometry and do not mask the region."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/MXRAppView.swift:~189 + Sources/MXRDesign/Typography/OSDTypography.swift pictureHeight",
+    "description": "B-08 is done in substance. The render s13.png shows a clear margin that scales with the text, matching key frame 15m27.1s. Two loose ends remain: (1) the OSD scales against CGSize(width: size.width, …), the full window width, not the information rect's width, so when the compact library or a right panel is open the aspect-fit picture height is overestimated for narrow areas; (2) the OSD is anchored to the trailing edge of the information rect, not of the pillarboxed picture. Neither is visible in the default full-width case."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Player/PlayerControls.swift MXRTimeLabel.staticLabel",
+    "description": "The inner staticLabel declares its own accessibilityElement(children: .ignore), label, value and hint, while the outer MXRTimeLabel body still applies .accessibilityValue(label) too, so the value is set twice. Harmless, but VoiceOver output should be confirmed in the live wave (see liveChecks)."
+   }
+  ],
+  "summary": "Independent verification, round 1, of B-controls at HEAD 4c457baa03, plus the fixer's report wf_eade8af3-fix_B-controls.json. The build is green and owned files raise no warnings after a touch-rebuild. Engine diff vs upstream-base-2026-10-14 (src lib include modules/gui/macosx) is empty. gen-tokens --check passes (rc 0).\n\nTargeted tests all pass: SeekProgressRedraw 4, PlayerProgressRegression 4, ConeScrollIsolation 4, OSDLayout 2, PauseButtonContrast 1, ThemeContrast 8, MiniPlayerSeekBinding 1, PlaybackClock 4, Scrubbing 6, VideoClickTiming 2.\n\nPer finding:\nB-01 (blocker) FIXED. SeekProgressNSView now registers withObservationTracking on revision, displaySecond, isRunning and length, re-registers on every change, and moves CALayers; there is no updateNSView dependency. SeekProgressRedrawTests hosts the real MXRSeekBar in an NSHostingView/NSWindow and reads the head layer's frame after each scrub step, after a paused jump and after a Reduce Motion second. These are behavioural tests, not predicates. The dead `let _ =` line is gone.\nB-05 (major) FIXED in code. A CADisplayLink at the half-point rate is gated on bars visible, Reduce Motion, window occlusion (notification), NSApp hidden and view hidden, and each frame only changes layer geometry. The fixer's live CPU numbers (visible 7.2–7.5 % vs Hide UI 5.9 %) cannot be re-measured in this no-live wave; see liveChecks.\nB-04 (major) FIXED. allowsStill is now off only for active essential or colour pixel filters. Subtitles, renderer, resolution, deinterlace and HDR keep the still. PausedStillLayout reproduces flip, rotate (rotate-filter semantics: size kept, CCW angle), croppadd insets, crop ratio, aspect override and zoom, and is tested numerically. D047 amends D038.\nB-02 FIXED. No NSView remains in the cone: it uses a SwiftUI hover plus a local monitor modifier. Image-engine checks: C.VolumeCone/0 PASS; /50, /100 and /200 show only Δ2 gradient colour (FAIL on the flat-colour rule, no placeholder).\nB-03 FIXED. Direction is (natural ? -1 : 1) × (reverse ? -1 : 1), the same rule as MXRNativePreferences:91. It reads the same macosx-redesign-reverse-scroll option and has a unit test.\nB-06 FIXED. No disabled Button: the whole 76×28 box is the target, mxrKeyboardFocusable gives no system ring, and non-seekable streams get a hint.\nB-10 FIXED with D047 (Figma proportional digits). C.CurrentTime/default PASS, structural 0 %; Duration/default and Duration/remaining PASS.\nB-08 FIXED, with minor loose ends (see issues). The s13 render, viewed next to key frame 15m27.1s, has a clear margin and correct two-line hierarchy.\nB-09 FIXED. Light S01.ControlBar crop next to the Player - Light crop: #888888 track, lifted green fill and #262626 body match (cone_cmp.png). The tokens are generated.\nB-11 FIXED. PauseButtonFill keeps standard-contrast fgA3, and the contrast test covers both schemes and both contrast settings.\n\nAlso checked: C.PlayButton play and pause PASS; VolumeTooltip and SeekPreview are REVIEW (antialiasing or shadow only). Waveform is off by default, and VideoClickTiming and NowPlaying are untouched and tested.\n\nCross-area C.SeekBar/default: the geometry is correct and the fixture equals Figma's labels. Figma's drawn head (0.0734 ≈ 113 s) contradicts its own 02:10/25:40 labels (0.0844). It still FAILs because no fixer applied the honest fixture fix, which is to give the bar-only entry Figma's drawn time. Recorded as minor; it is not a product defect.\n\nOwnership: the fixer's edits outside its area (MXRAppView OSD line, DECISIONS D047, AUDIT_FIXES) are declared. No blocker or major remains. Evidence is in <scratch> (C_*/report.txt and side-by-side.png, S01_ControlBar_default, S01_light, cone_cmp.png, s13.png, s13_crop.png).",
+  "liveChecks": [
+   {
+    "id": "B-live-cpu",
+    "steps": "Install the current HEAD build. Open 1080p test media from ../build/media in a 1728×1001 window and play. Run `top -l 30 -stats pid,cpu -pid <pid>` for 30 s in each state: (a) bars visible, pointer still; (b) Hide UI (⌘\\); (c) PiP; (d) a continuous scrub drag; (e) the window fully covered by another app's window; (f) app hidden (⌘H).",
+    "expect": "(a) averages at most (b) + 2 pp. (e) and (f) are at or below (b). The scrub may be higher but drops back within 1 s of release."
+   },
+   {
+    "id": "B-live-scrub",
+    "steps": "Pause playback. Drag the seek head slowly from 20 % to 80 % and back, then press → and ← several times while paused. Enable System Settings › Accessibility › Display › Reduce motion and play for 5 s.",
+    "expect": "The head, fill, elapsed label and preview follow the pointer continuously with no freeze. Paused jumps move the head immediately. Under Reduce Motion the head steps once per second. The paused-seek still shows the frame at the new time, including with a subtitle track selected and with flip, rotate or crop 2.35:1 applied, where it should match the vout's geometry."
+   },
+   {
+    "id": "B-live-cone-scroll",
+    "steps": "With natural scrolling on, swipe two fingers up on the trackpad over the volume cone, then over the video. Repeat with Settings › Reverse scroll direction on, and with a mouse wheel.",
+    "expect": "The same physical gesture changes the volume in the same direction over the cone and over the video in every combination. Scrolling over the cone never also seeks or scrolls anything else."
+   },
+   {
+    "id": "B-live-timelabel",
+    "steps": "Open a live (non-seekable) stream. Look at the elapsed label, Tab to it with Full Keyboard Access, press Space, and query it with VoiceOver (VO-F3).",
+    "expect": "The label is at full FG/A2 (not dimmed) and shows the design focus ring with no system ring. Space does nothing on a live stream and opens the editor on seekable media. VoiceOver reads 'Edit playback time', the value, and 'Not available for this stream', each once."
+   },
+   {
+    "id": "B-live-osd",
+    "steps": "Play 2.39:1 media in a 16:9 window, open the compact library, and press C (crop) and other OSD shortcuts. Repeat with a right panel open.",
+    "expect": "The two-line OSD (action plus 'Pressed C') sits top-right inside the visible video area with a margin proportional to the text. It never overlaps the library or panel, and the text size tracks the picture, not the letterbox."
+   },
+   {
+    "id": "B-live-increase-contrast",
+    "steps": "Turn on Increase Contrast and play in both the light and dark themes.",
+    "expect": "The pause button keeps the FG/A3 surface, and both halves of the two-tone glyph remain clearly visible (≥ 3:1)."
+   }
+  ],
+  "ownerDecisions": [
+   "D041 pause pin: affects whether the bars (and so the seek display link) stay up while paused, so it decides which CPU states the live check measures.",
+   "C-09 / D039 HDR 'Off' trade-off: PausedStillLayout.allowsStill treats HDR overrides as never applied and keeps the still on. If the owner changes D039 so HDR modes are applied, HDR must be added to the still's suppressing filters.",
+   "D033 subtitle font-size slider order: not touched by B-controls; no dependency.",
+   "D047 (proportional time digits; paused still with subtitles on) was accepted by the fixer. It amends BB-12 and D038, so the owner may want to confirm it."
+  ]
+ }
+}

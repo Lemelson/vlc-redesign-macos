@@ -1,0 +1,834 @@
+[
+ {
+  "area": "A-window",
+  "state": "passed",
+  "fixed": [
+   "S67 transport not centred (MAJOR): rowWidths centres the run between two spacers. Play is at 933-986 (Figma 935-985, centre 960). Evidence: ../build/evidence/final5/polish/A-window/before/s67-bars.png and after/s67-bars.png (render top, Figma bottom). Test WindowFinalPolishTests.testTwoRowLayoutCentresTheTransportOnTheWindow and testRowWidthsCentreTheRunBetweenTwoSpacers",
+   "S67 left cluster: header spacing in control rows plus the 2160:8419 title cell put folder/title/heart at 114/190/324 (Figma 115/190/324). Test testHeaderClusterKeepsItsFigmaSpacingInAControlRow",
+   "S67 extra divider before the queue removed from LayoutStore.twoRowExample (outside my ownership, one token). With fullscreen as a bar icon in rows, volume/queue/fullscreen are at 1549/1826/1878 (Figma 1548/1825/1875, video 1550/1828/1878)",
+   "S67 Previous drawn disabled: the gallery fixture figmaCustomize7 (E11 mid-queue, 00:02:10/00:25:40, 50 % volume) gives Previous enabled, as in Figma and the video",
+   "P1 compact library under its minimum next to a panel: PlayerGeometry.compactLibraryWidth clamps it to 208 pt, and it yields to the panel below 648 pt. Gallery entries S28.Window/compact-queue-minimum and compact-queue-narrow; evidence after/S28.Window_compact-queue-*.png. Tests testCompactLibraryNeverDropsBelowItsMinimum... and testNarrowWindowLibraryYieldsToThePanelAndComesBack",
+   "D051 'Continue Watchi…' at 480 pt: the toast now shows VLC 4's 'Continue', whole. Evidence after/S12.Window_continue-minimum.png. Test testNarrowResumeToastUsesTheShortLabelInsteadOfTruncating",
+   "PiP placeholder in Light (#DEDEDE surface, #B1B1B1 bar): now on the dark video base between the bars, and the bars match S01.Window/shipping Light. Evidence after/S01_pip_light.png. Test testLightPiPPlaceholderSitsOnTheDarkVideoBase (the old scheme test was updated to sample the top bar)",
+   "S01.App/default title fixture: uses ShippingGallery.figmaPlayer6 plus a D022 right-group deviation, verdict PASS (check/S01.App_default/report.txt)",
+   "S72 gallery hygiene: D048 head and D049 play deviations added to S72.App/light (S72.Window/light already had them). Both bars now read #ABABAA, the same as Figma",
+   "Fullscreen strip robustness: MXRSystemStripTracker samples the strip frame while fullscreen, with notifications kept as a fast path. Test testStripTrackerFollowsTheStripWithoutNotifications",
+   "Verifier open[1], S01.Window/shipping D022 deviations too wide: the new FigmaDeviation.moved compares the left group shifted by the traffic-light reserve and the fullscreen glyph shifted +36 pt. Only Windows minimise/maximise and the vacated strip are excluded (0.32 %). Test FigmaDeviationTests.testMovedNodeIsComparedWhereTheProductDrawsIt",
+   "Light shipping render with no 10 pt inset: checked against Player - Light. Figma's video reaches x 1919 and runs under the rail, so it already matched; D055 amended with the samples",
+   "Compact library vs picture (live-run note, D055 subtitles): Figma Player and Player - Light both put the picture under the library, centred on the window (cat x 780-1066 in render and Figma). Already matched; D055 amended with the evidence"
+  ],
+  "notFixed": [
+   {
+    "id": "S05 fullscreen-menubar, top bar/traffic lights/tooltip, real-window behaviour (S05/S06/S72 live), S05 bottom reveal",
+    "why": "These need the real window; all are in liveChecks. The offscreen fullscreen-menubar composition is unchanged"
+   },
+   {
+    "id": "S68 Manage Profiles discoverability (not-checked)",
+    "why": "Rename and Delete exist only in the row context menu (Sources/MXRUI/Customization/MXRProfilesView.swift). That file is not mine; it needs a live judgement and the profiles owner"
+   },
+   {
+    "id": "S67 gear icon (plain gear 42:355 in customize frames vs playback-settings 2230:9222)",
+    "why": "The icon belongs to B-controls. D057 records it, and it is left to B-controls/the owner"
+   },
+   {
+    "id": "S72 breadcrumb chevrons and '…' colours, and the library thumbnail/row regions that keep S72.Window/light and S72.App/light at FAIL",
+    "why": "E-library files (its parity item 2). The bars now match exactly (#ABABAA)"
+   },
+   {
+    "id": "Verifier open[2]: bridge resume time for external media has no test",
+    "why": "MXRServicesBridge.m belongs to C-bridge"
+   },
+   {
+    "id": "D055 subtitles partly under the compact library in narrow windows (critic P2)",
+    "why": "Kept. Figma puts the picture under the library, and VLC has no horizontal subtitle margin. D055 is amended with the Figma evidence; it waits for the owner"
+   }
+  ],
+  "decisionsWritten": [
+   "D057 (new) Saved control-bar rows and the compact library beside a panel: two spacers centre what is between them; header controls keep their header spacing in any row, with the title cell 2160:8419 and fullscreen as a bar icon in rows; the library yields to a panel below 648 pt; customize frames' plain gear goes to B-controls",
+   "D051 amended (resume toast bullet): VLC 4 'Continue' short label; truncation only below that",
+   "D042 amended (PiP placeholder): dark video background in both themes, drawn between the pinned bars",
+   "D055 amended (Light canvas): no 10 pt frame in Figma Light, with samples",
+   "D055 amended (Subtitles under overlays): Figma evidence that the picture runs under the compact library"
+  ],
+  "filesChanged": [
+   "modules/gui/macosx_redesign/Sources/MXRUI/MXRAppView.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerBars.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerGeometry.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerMetrics.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerView.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerChrome.swift",
+   "modules/gui/macosx_redesign/Sources/MXRCore/Models/InterfaceModel.swift",
+   "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRAppController.swift",
+   "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/FigmaDeviation.swift",
+   "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/ShippingGallery.swift",
+   "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/AppGallery.swift",
+   "modules/gui/macosx_redesign/Sources/MXRCore/Stores/LayoutStore.swift",
+   "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/WindowFinalPolishTests.swift",
+   "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/FigmaDeviationTests.swift",
+   "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/WindowShippingParityTests.swift",
+   "redesign/docs/DECISIONS.md"
+  ],
+  "notesForOthers": "[\"Integrator: FigmaDeviationTests.testDeviationsCiteAcceptedDecisionsAndOwnNodes currently fails on S71.Onboarding/shortcuts. Its differs rect (845,154,303,452) lies outside the entry, in Sources/MXRGalleryCatalog/Entries/CustomizationGallery.swift, which another agent is editing now; this is not an A-window change. New gallery entries: S28.Window/compact-queue-minimum and S28.Window/compact-queue-narrow. New test file: WindowFinalPolishTests.swift. FigmaDeviation has a new `.moved(node:by:)` kind; any external switch over FigmaDeviation.Kind must handle it (the build is clean).\", \"H-design: LayoutStore.twoRowExample lost its `.divider` before `.queue` (customize-7, 19m27.6). MXRBackdropBase now resolves to #2D2B29, and the S72 bars measure #ABABAA exactly offscreen.\", \"B-controls: Player - customize* frames and key frame 19m27.6 draw the plain gear (42:355) where Player frames draw playback settings (2230:9222). D057 notes it; the icon choice is yours.\", \"E-library: S72 remaining FAIL regions are library rows and thumbnails (x 70,752 and x 144,764) plus the breadcrumb chevron/ellipsis colours (parity S72 item 2).\", \"Profiles owner: S68 rename/delete live only in the row context menu (MXRProfilesView); the parity judge asks whether that is discoverable.\", \"C-bridge: the A-window verifier still flags that the external-media resume time in MXRServicesBridge.m has no bridge smoke test.\"]",
+  "verdict": {
+   "pass": true,
+   "summary": "Independent verification of A-window, round 1. Every work-list item is fixed or honestly covered, and no major remains.\n\nBuild and tests: `swift build` is clean in Swift 6 mode. A fresh rebuild of an isolated copy produced no warnings or errors. WindowFinalPolishTests passes 8/8, FigmaDeviationTests 6/6 (the S71 failure the fixer mentioned is gone) and WindowShippingParityTests 6/6.\n\nRegression proof: in an isolated copy (since deleted) I reverted four fixes: rowWidths centring, the reconcile, the Light PiP .mxrTheme(.dark) and the toast's short layout. The S67 centring, rowWidths, library-yield and PiP-Light tests then fail. The toast test does not fail without its fix, even with the label reverted to 'Continue Watching' and the bug visibly back (minor issue).\n\nWhat I rendered and compared:\n- **S67:** checked against Figma 2160:8301 and key frame 19m27.6. The play centre is 959.5 in both render and Figma (Figma 935–984, render 933–986). The left cluster, right icons and video area match. The only remaining differences are the D048 head and the gear icon, which D057 hands to B-controls.\n- **Narrow windows (S28 at 480 and 800 pt):** at 480 pt the library yields and the queue is whole. At 800 pt the library is 256 pt (above its 208 minimum) and the 400 pt queue sits clear of it.\n- **S12 at 480 pt:** the toast reads 'Continue' (VLC 4 ResumeDialog.qml) and fits.\n- **PiP in Light:** the placeholder is #090909 and both bars are #ABABAA, the same as S01.Window/shipping Light.\n- **S72:** both bars are now #ABABAA, as in Figma. The remaining FAIL is E-library's row and thumbnail regions.\n- **Picture under the compact library:** Figma 187:328 and 2425:13624 both centre the picture under the library, the same as our render (s72-trio.png). So the D055 subtitles bullet is justified, and it stays an owner call.\n- **Light canvas with no 10 pt frame:** confirmed by samples. Figma Light has video at x 1905–1919, while Player 187:328 has #1B1B1B at x 1911.\n\nSnapshot checks: S01.Window/shipping and S01.App/default PASS. The new .moved deviation really compares the shifted left group and fullscreen glyph; it hides nothing (it has a negative test), and the area left out dropped to 0.32 %. Neighbouring entries (S06×3 PASS, S34/S43/S44/S66.App FAIL, S72 FAIL) have the same verdicts as the integration baseline, so nothing regressed. Renders of S01 narrow, S05 bottom-reveal and fullscreen-menubar, S22 queue, S28 compact-queue and S66 customization look right.\n\nStrip tracker: the 10 Hz sampling runs only while fullscreen, notifications remain a fast path, and it is tested offscreen.\n\nRules: the engine diff against upstream-base-2026-10-14 (src, lib, include, modules/gui/macosx) is empty. The Settings deviation gate is untouched. The two edits outside ownership (the LayoutStore divider and a WindowShippingParityTests sample point) are declared and minimal.\n\nDecisions: D057, the D051/D042 amendments and the D055 amendments record real constraints or cite Figma, video and VLC evidence. None excuses a difference that could be made to match.\n\nRemaining minors: the toast regression test does not detect the bug; Hide UI loses a yielded library; the onChange wiring has no test; the App entries still exclude the whole right group; rowTitleCell is a literal metric.\n\nEvidence in ../build/evidence/final5/polish/A-window-verify-r1/: s67-bars-0.png, s67-bars-960.png, s67-full.png, s72-trio.png, pip-ship-light.png, S12.Window_continue-minimum.png, s12-reverted.png, S28.Window_compact-queue-*.png, neighbours.png, check/*/report.txt.",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "Tests/MXRUISnapshotTests/WindowFinalPolishTests.swift testNarrowResumeToastUsesTheShortLabelInsteadOfTruncating",
+     "description": "This regression test still passes without the fix. In an isolated copy I made the button always read MXRPlayerCopy.continueWatching. The render then shows the original bug, 'Continue Watchi…' (evidence s12-reverted.png), and the test still passed. It also passed with only the .short ViewThatFits branch removed, which draws a stretched 'Continue' button. The test counts accent pixels on the label's middle line, and the glyph strokes lower that count enough to stay under the threshold. A test that would catch it: measure the button's accent extent (first to last accent x) against the label's width, or check for an ellipsis or the text width. The fix itself is correct: at 480 pt the button reads 'Continue' (VLC 4 ResumeDialog.qml qsTr(\"Continue\"), verified)."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRCore/Models/InterfaceModel.swift reconcileLibraryAndPanel + toggleUIHidden",
+     "description": "Hide UI loses the library that yielded to a panel. Steps in a 480 pt window: library compact, open the queue (the library yields), press ⌘\\. toggleUIHidden sets rightPanel = nil, so the reconcile clears libraryYieldedToPanel but does not reopen the library, because isUIHidden is true. When the UI returns, the queue reopens. When the queue then closes, the library does not come back. It is an edge case but breaks the D057 promise that the library 'comes back when the panel closes'. A fix: skip the reconcile while isUIHidden, or keep the flag across Hide UI."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRUI/MXRAppView.swift onChange(library/rightPanel/size.width) wiring",
+     "description": "Only the InterfaceModel method is tested. No test proves that the view calls it. S28.Window/compact-queue-minimum calls reconcileLibraryAndPanel(fit:false) itself in configure, so if the onChange wiring were removed the gallery and tests would stay green. Rendering is safe either way, because libraryWidth returns 0 when both cannot fit. The model state (sidebar toggle shown active, the library coming back) rests on the live check A-narrow-library-panel."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRGalleryCatalog/Entries/AppGallery.swift S01.App/default and S72.App/light",
+     "description": "These App entries still leave out the whole right group (247:464 / 2425:13640) under D022. The Window entries now compare the fullscreen glyph shifted with the new .moved kind. Using macTopBar(...) here too would bring the fullscreen glyph back under the check."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRUI/Player/PlayerMetrics.swift rowTitleCell",
+     "description": "rowTitleCell is a literal Theme.Box(node: \"2160:8419\", width 129, height 25, padding 6). It follows the existing node-cited headerIcon pattern in this metrics file, but it is not a generated token."
+    }
+   ]
+  }
+ },
+ {
+  "area": "B-controls",
+  "state": "passed",
+  "fixed": [
+   "(d) Play hover Accent/DIm: the play/pause tile is now MXRPlayPauseTile, with the iconHover tile over the fill (Icon Wrapper 177:99). Play stays Accent/Main under the pointer (about 6 %, spec says about 8 %), and Pause also gets the hover. Test testPlayAndPauseHoverAddTheBarHoverTile. C.PlayButton/play and /pause PASS. Evidence: ../build/evidence/final5/polish/B-controls/after/C_PlayButton_*",
+   "(d)/(b) Literal 0.4 opacity at PlayerControls.swift:33 and :504: replaced by the new generated token Theme.Metric.ControlBar.iconButtonDisabledOpacity = 0.3 (Figma Player-6 I856:2587;848:1877 draws an unavailable icon at 30 %). The plain button style was dimming the label a second time, so I added MXRBarButtonStyle: no system press highlight and no extra dimming. Test testDisabledBarControlUsesFigmasDisabledOpacity; old code gives a ratio of 0.20 and fails. Evidence: after/s72 report and ../build/evidence/final5/polish/B-controls/s72_bar_left_after_vs_figma.png",
+   "(d)/(a)/(b) Volume cone gradient Δ2: colors.json stops now carry 244:214's exact rgb and pos values, and gen-tokens.py emits RGBA(red:green:blue:) for them. Before, the mean red offset against Figma's reference was +1.1/255; now the render equals the paint math within 0.1. C.VolumeCone/200 went from FAIL to REVIEW and /100 dropped from 1.71 % to 1.00 % flat colour. Test testConeGradientDrawsFigmasExactStops. Evidence: ../build/evidence/final5/polish/B-controls/{before,after}/cone{0,50,100,200}/report.txt",
+   "(d)/(a) S13 OSD halo heavier than the video: the root cause was that SwiftUI's .shadow applied to each of the nine outline layers, so the 50 % shadows stacked to near-black. The line is now a compositingGroup before the shadow, giving one 50 % shadow of the outlined text as VLC freetype casts it. Outline width is unchanged: it is VLC's default, 4 % of the em (freetype.c/text_layout.c). Test testOSDShadowIsOneHalfOpaqueLayer; without the fix it finds 0 half-shadow pixels and fails. Evidence: ../build/evidence/final5/polish/B-controls/s13_before_after.png and kf_s13_small.png (the key frame is white text on black, so it cannot show any edge)",
+   "(d)/(b)/(c) Jump OSD matching: the working tree already captured synchronous hotkey jumps exactly (only reports made inside triggerAction's var_SetInteger on main). But it dropped every input-thread report, so plain arrows (the vlc_player_input_NavigationFallback jump on the input thread) showed no OSD. I added a FIFO of pending arrow jumps that is filled only by input-thread on_seek reports, with a 1 s deadline. Seek-bar seeks and chapter keys (main thread) can no longer take a slot. Native test in bridge-smoke.m: an arrow followed at once by a seek-bar seek must show the arrow's own target. Before: FAIL 'the arrow's OSD shows its own target 00:01 / 00:02, not 00:02 / 00:02' (../build/evidence/final5/polish/B-controls/native-fixture-before.log). After: PASS fixture (native-fixture-after.log)",
+   "(a) S01 pressed states: the bar buttons no longer use .plain, so there is no press highlight by construction (D028). The flicker and focus-ring part is a live check",
+   "(a) S72 light entry missing the D048 head deviation: already present in ShippingGallery.swift (S72.Window/light carries .differs I2425:13645;1908:7389 D048). Nothing to change"
+  ],
+  "notFixed": [
+   {
+    "id": "S34 music bar bgA4 #191919 vs Figma #171717",
+    "why": "Kept, recorded in D056. The product already uses Figma's own style 1702:4100 (BG/A3 Transparent #191919 @ 95 %) through MXRBackdropSurface in PlayerBars.swift. Figma's #171717 is that tint over its blurred, darker artwork; the offscreen engine has no window-server blur. Changing the token would be wrong; only the real window can settle it (liveCheck LC-music-bar)."
+   },
+   {
+    "id": "S34 music layout has no gear (LayoutStore.music)",
+    "why": "Kept, recorded in D056: both Player - Music frames have no gear and the full frame wins (as in D048's top stroke); the top bar's sidebar toggle opens the playback sidebar. LayoutStore.swift is not my file; its comment ('Controls music variant') could cite D056."
+   },
+   {
+    "id": "Continue Watching button darkens only on press (PlayerView.swift:152)",
+    "why": "PlayerView.swift is not a B-controls file. Left for its owner (A-window / G-panels)."
+   },
+   {
+    "id": "C.VolumeCone/100 still FAIL at 1.00 % flat colour",
+    "why": "The render now equals 244:214's paint (mean offset under 0.1/255). What remains is Figma's PNG reading about 0.3/255 darker, plus dithering on both sides. Matching it would mean tuning to Figma's rasteriser, so I kept the paint and recorded it in D056."
+   }
+  ],
+  "decisionsWritten": [
+   "D056 — Control bar states Figma does not draw, and the music bar's sources · accepted (agent, 2026-10-17): play/pause hover via iconHover (amends D048), no press highlight and Figma's 30 % disabled opacity, exact cone paint, one OSD shadow, music bar has no gear (full frame wins), music bar tint is style 1702:4100 and its Δ2 is the offscreen backdrop"
+  ],
+  "filesChanged": [
+   "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerControls.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Player/MXROSDView.swift",
+   "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/ControlBarParityTests.swift",
+   "modules/gui/macosx_redesign/module/bridge/MXRServicesBridge.m",
+   "modules/gui/macosx_redesign/module/tests/bridge-smoke.m",
+   "redesign/design/tokens/colors.json",
+   "redesign/design/tokens/metrics.json",
+   "modules/gui/macosx_redesign/tools/gen-tokens.py",
+   "modules/gui/macosx_redesign/Sources/MXRDesign/Generated/Tokens.swift",
+   "redesign/docs/DECISIONS.md"
+  ],
+  "notesForOthers": "[\"Integrator: the bridge change needs the make/install build. VolumeConeGradient in PlayerControls.swift is now internal (for the test).\", \"C-bridge: I kept your synchronous hotkey-seek capture. It dropped input-thread reports, so plain arrow keys (the core's NavigationFallback on the input thread) showed no OSD. I added a pending-arrow FIFO that only input-thread reports fill, and a bridge-smoke check for it.\", \"H-design: new token Theme.Metric.ControlBar.iconButtonDisabledOpacity (0.3, from Player-6 848:1877). The cone stops carry exact rgb values in colors.json, and gen-tokens supports a stop 'rgb' field.\", \"S72.Window/light flat colour dropped from 6.49 % to 0.06 % during this wave; that came from another area's change, not mine.\", \"LayoutStore owner: the music layout comment could cite D056 instead of 'Controls music variant'.\", \"PlayerView owner: the Continue Watching button has a press state only, while video 14m09.8 shows it darkened under the cursor.\"]",
+  "verdict": {
+   "pass": true,
+   "summary": "B-controls verify, round 1: PASS. Code, tests and renders show no blocker or major issue. A few minor points remain.\n\n**Build and tests**\n- `swift build` is clean with 0 warnings. `gen-tokens.py --check` exits 0.\n- Shared tree: ControlBarParityTests (14), PlayerInteraction (11), OSDLayout, OSDTypography, PauseButtonContrast, SeekProgressRedraw and ConeScroll all pass.\n- The one failure in the run is not B-controls': FigmaDeviationTests.testDeviationsCiteAcceptedDecisionsAndOwnNodes, \"S71.Onboarding/shortcuts … outside the entry\", from another area's onboarding entry.\n- Native fixture suite, run under the lock (released afterwards): PASS, including the bridge-smoke check for the new arrow-jump OSD. Log: native-fixture.log.\n\n**Regression proof (done myself)**\n- In an isolated copy I put back the old code for all four fixes: no compositingGroup, `.plain` with 0.4, hex-rounded cone stops, and an Accent/DIm hover fill.\n- All four new tests then fail, as they should (revert-tests.log):\n  - OSD shadow: 0 half-shadow pixels, where more than 20 are expected.\n  - Disabled control: ratio 0.203, where 0.3 is expected.\n  - Cone: mean red offset 0.41 and green −0.21, against a 0.15 tolerance.\n  - Hover: Play reads 171,99,20, where 214,129,38 is expected; the Pause hover check also fails.\n- The copy has been deleted.\n\n**Work list, item by item**\n- **(d) Play hover.** MXRPlayPauseTile puts the iconHover tile over Accent/Main, and Pause gets the same hover. C.PlayButton/play and /pause PASS at 0.000 %.\n- **(d) Literal 0.4.** Both places now use `Theme.Metric.ControlBar.iconButtonDisabledOpacity` = 0.3. That value comes from Figma: I856:2587;848:1877 has opacity 0.30000001 in figma_file.json. MXRBarButtonStyle removes the plain style's extra dimming. Bar icon tiles keep `.contentShape(.rect)`, so hit areas are unchanged.\n- **(d) Volume cone.** The stops in colors.json and Tokens.swift equal 244:214's gradientStops exactly; I checked them against figma_file.json.\n  - Mean offset from Figma's reference is ≤ 0.25/255 per channel, and single Δ2 pixels are dithering.\n  - Verdicts: /0 PASS, /50 and /200 REVIEW, /100 FAIL at 1.00 % flat colour from that dither noise.\n  - D056's note that this cannot be made to match without tuning to Figma's rasteriser holds.\n- **(d)/(a) S13 OSD.** One compositingGroup now casts a single 50 % shadow. The outline width matches VLC: text_layout.c sets the stroker radius to height_px × freetype-outline-thickness 4/100.\n  - Looking at s13_zoom.png, there is a crisp black outline with a soft shadow and no solid halo.\n  - Key frame 15m27.1 is white text on black, so it cannot show the edge. The rest is a live check.\n- **(d)/(b) Jump OSD matching.**\n  - A jump hotkey's target is captured synchronously inside triggerAction's var_SetInteger, on main.\n  - Plain arrows use a FIFO that only input-thread on_seek reports fill. In src/player/input.c the only input-thread producer is NavigationFallback.\n  - Seek-bar seeks and chapter seeks run on main and are ignored by construction. The bridge-smoke test covers an arrow followed at once by a seek-bar seek.\n  - Remaining edges: an arrow the demux handles (DVD menu) or that only turns a 360° viewpoint keeps its slot for up to 1 s. Minor.\n- **(d) S34 music bar.**\n  - The bar does use style 1702:4100 (#191919 @ 0.95), confirmed on node 4767:23748.\n  - The backdrop just above the bar is black in both Figma and the render. Over black, the tint gives #17. The render's #19 means about #20 sits under the tint. That is most likely the NSVisualEffectView `.headerView` material's own colour, which MXRBackdropSurface's own comment says Figma's stack does not have. It is less likely to be missing blur.\n  - So D056's cause (\"no window-server blur offscreen\") is unproven, and the real window may also read #19. Minor, Δ2; the live check settles it.\n- **Music gear.** I confirmed visually that the Player - Music frame draws no gear and video 12m56.6 does. Following the full frame is defensible, and it is listed for the owner.\n- **(c) Open items from the last verifier.** The 0.4 literal is fixed and the count-based matching is fixed; the S34 colour is recorded in D056 with a live check.\n- **S72.Window/light.**\n  - The bar matches apart from the D048 head and the D049 play colour, both documented.\n  - The FAIL is at 70,752, in the playlist/thumbnail region, which is not B-controls'.\n  - New observation: the Light frame's gear uses style 217:218 = Dark/FG/A2 #8F8F8F, another partial-conversion mistake in Figma. The product draws Light FG/A2, and no deviation records it.\n- **Neighbour.** S01.Window/shipping (shipping-window engine) PASS: 0 % structural, 0.002 % flat colour.\n\n**Rules**\n- Engine untouched: `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty.\n- Tokens only in the fixer's changes. No masks or thresholds were added, the Settings gate is unchanged, and the fixer added no FigmaDeviation entries.\n- Edits outside ownership are small and listed: MXRServicesBridge.m, bridge-smoke.m, colors.json, metrics.json, gen-tokens.py and Tokens.swift. The other agent's capture code is kept.\n\nEvidence: ../build/evidence/final5/polish/B-controls-verify-r1/ (tests.log, revert-tests.log, native-fixture.log, check/*, s13_zoom.png, kf_small.png, s72_bar_*_cmp.png, kf_music_bar_right.png, fig_music_bar_right.png).",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "redesign/docs/DECISIONS.md D056 (music bar tint), MXRDesign/Materials/MXRBackdropSurface.swift",
+     "description": "D056 blames the S34 #191919 vs #171717 difference on the offscreen backdrop having no blur. In fact the backdrop just above the bar is black (0) in both Figma and the render. 1702:4100 at 95 % over black gives #17, so the render's #19 means about #20 sits under the tint. That is most likely the NSVisualEffectView .headerView material's own colour, which MXRBackdropSurface's own comment says Figma's stack does not have. The real window may also read #19, which would be a fixable Δ2. LC-music-bar's expected range '#171717–#191919' accepts either result; it should expect #171717."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRUI/Player/PlayerMenus.swift:470, :511 (D-menus file)",
+     "description": "The bar's text menus (speed, HDR, zoom) and the compact overflow '⋯' still use .buttonStyle(.plain), so they keep the system press dimming. The icon buttons no longer have it (D056 / D028 'no press highlight')."
+    },
+    {
+     "severity": "minor",
+     "where": "module/bridge/MXRServicesBridge.m triggerAction / navigationSeekReportedAt",
+     "description": "An arrow press whose NAV the demux handles (DVD menu), or that only turns a 360° viewpoint, adds a pending slot that waits up to 1 s. Another input-thread seek in that second, such as an A-B loop seek, would then show as the arrow's target. This is a narrow edge; the seek-bar and chapter cases are closed."
+    },
+    {
+     "severity": "minor",
+     "where": "S72.Window/light gear (Figma I2425:13645;491:1729, style 217:218)",
+     "description": "Player - Light draws the playback-settings gear with Dark/FG/A2 #8F8F8F, a partial conversion like the play button in D049. The product uses Light FG/A2, and no figmaDeviation or DECISIONS line records it."
+    },
+    {
+     "severity": "minor",
+     "where": "C.VolumeCone/100",
+     "description": "Still FAIL at 1.00 % flat colour. The mean channel offset is ≤ 0.25/255 and the remaining Δ2 pixels are dither. D056 records this honestly, but the check verdict stays FAIL."
+    }
+   ]
+  }
+ },
+ {
+  "area": "C-bridge",
+  "state": "passed",
+  "fixed": [
+   "Critic P2 / B-controls verify open: the jump OSD paired hotkeys with on_seek reports by count within 1 s. It now takes the target reported synchronously inside the hotkey's own key-action call on main. Seeks from other threads and the seek bar's are ignored, and a jump that did not seek shows nothing. Test: bridge-smoke sets a negative jump size, triggers the jump, then does a seek-bar seek and requires that no OSD appears. Mutant log: ../build/evidence/final5/polish/C-bridge/mutant-jump-osd-fixture.log. Pass log: native-fixture.log.",
+   "Critic P2 / C-bridge verify open[1]: the subtitle safe inset now applies only to the primary vout (performCommand uses vlc_player_vout_Hold; the vout callback passes the vout order). Test: effects-runtime muxes the fixture's video twice as MJPEG with ffmpeg, selects both tracks and checks that the secondary vout keeps the user's offset (3) while the main vout gets 63. Mutant log: ../build/evidence/final5/polish/C-bridge/mutant-secondary-vout.log. Pass log: native-media.log.",
+   "Critic P2 / C-bridge verify open[0] / (d): the inset is now re-sent on a resize, a backing-scale change or a screen change, and is measured on the video view (videoHost) instead of the window content view. Change: new SubtitleSafeInsetFeed, which observes NSView.frameDidChange, NSWindow.didChangeBackingProperties and didChangeScreen, filtered to the view's window. Tests: SubtitleSafeInsetFeedTests (3), using an NSWindow that is never shown: a resize re-sends with the letterbox subtracted (80 to 30), a 2x to 1x scale change re-sends, and another window's screen change is ignored. Without the observers these sends never happen.",
+   "(d) The letterbox subtraction is kept (fittedPicture/points), now done inside the feed.",
+   "Critic P2 code hygiene: removed the stale 'plugin rescan' comment from VLCSettingsBackend.swift:7.",
+   "(d) Mock hotkeys: MockShortcuts.defaultActions now uses VLC's macOS engine defaults. They were checked headless against the real engine with a libvlccore probe (../build/evidence/final5/polish/C-bridge/engine-hotkey-defaults.txt). Examples: stop ⌘., prev ⌘←, next ⌘→, record ⇧⌘R, fullscreen ⌘F, mute ⌘⌥↓, snapshot ⌘⌥S, subtitle track S, audio track L. Test: MockShortcutDefaultsTests parses the __APPLE__ block of src/libvlc-module.c and its add_key table, and compares them with every mock engine action. Renders: ../build/evidence/final5/polish/C-bridge/renders/{S09_ContextMenu_default,S64_KeyboardShortcuts_default,S71_Onboarding_shortcuts}/side-by-side.png. S09 now shows ⌘. ⌘← ⌘→ ⇧⌘R ⌘\\ ⌘Q, covered by D026 and D034's right-click-keys amendment."
+  ],
+  "notFixed": [
+   {
+    "id": "(d)/(b) bridge rewrite: CODE-02/C-08 typed DTOs and the B-15/CODE-08 split of MXRServicesBridge.m",
+    "why": "Still not worth doing in this wave. Other agents are editing MXRServicesBridge.m and MXRBridgeKeys right now (uncommitted COMP-08 soundtrack work: MXRLibraryExternalTracks, AttachAudioTrack), so a split or a typed wire would conflict with them. The current wire is covered by the BridgeKeyContract and BridgeWireBehaviour tests and by the native suites. Per critic P2, the orchestrator should schedule it as a single-agent task right after this wave."
+   },
+   {
+    "id": "PER-02 (blocking subtitle-folder syscall on MainActor)",
+    "why": "Not in C-bridge files. The code is in Sources/MXRCore/Settings/SubtitleFolderRules.swift and Sources/MXRUI/Dialogs/DialogInput.swift, both owned by F-settings."
+   },
+   {
+    "id": "A-window open: restore-prompt time for external media (applyRestoreQueryForURL / stateSnapshot), untested",
+    "why": "bridge-smoke runs with --no-media-library, and the media-library suite belongs to E-library; adding an ML-backed restore harness was out of reach this wave. The code is unchanged and correct as read. Listed as live check C-restore-external."
+   },
+   {
+    "id": "D039 disabled Edit/Add Audio Tracks rows (COMP-08)",
+    "why": "Another agent is already implementing it in the shared tree: soundtrack slaves through MXRLibraryExternalTracks/MXRLibraryAddTrackSlaves in MXRServicesBridge.m, and AttachAudioTrack in MXRLibraryServices. I did not duplicate or touch that work."
+   },
+   {
+    "id": "Compact-library subtitles (D055)",
+    "why": "A geometry question for A-window (whether the video sits right of the library). A vertical sub-margin cannot fix it. Unchanged."
+   }
+  ],
+  "decisionsWritten": [],
+  "filesChanged": [
+   "modules/gui/macosx_redesign/module/bridge/MXRServicesBridge.m",
+   "modules/gui/macosx_redesign/module/bridge/MXREffectsServices.h",
+   "modules/gui/macosx_redesign/module/bridge/MXREffectsServices.m",
+   "modules/gui/macosx_redesign/module/bridge/tests/MXREffectsServicesRuntimeTests.m",
+   "modules/gui/macosx_redesign/module/tests/bridge-smoke.m",
+   "modules/gui/macosx_redesign/Sources/MXRVLCBackend/VLCSubtitleSafeInsetFeed.swift (new)",
+   "modules/gui/macosx_redesign/Sources/MXRVLCBackend/VLCSettingsBackend.swift",
+   "modules/gui/macosx_redesign/Sources/MXRMockBackend/MockServices.swift",
+   "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRAppController.swift",
+   "modules/gui/macosx_redesign/Tests/MXRVLCBackendTests/SubtitleSafeInsetFeedTests.swift (new)",
+   "modules/gui/macosx_redesign/Tests/MXRCoreTests/MockShortcutDefaultsTests.swift (new)",
+   "modules/gui/macosx_redesign/Tests/MXRCoreTests/ServiceTests.swift"
+  ],
+  "notesForOthers": "H-design: product bug in MXROnboardingView keycaps (Sources/MXRUI/Customization, your file). The rows take the real engine keys, which on the Mac are VLC's __APPLE__ defaults: seek ⌘⌥← / ⌘⌥→, volume ⌘↑ / ⌘↓, prev/next ⌘← / ⌘→, snapshot ⌘⌥S, record ⇧⌘R. Six compact caps cannot fit the 153 pt keycap area (column 393 − label 220 − gap 20), so SwiftUI compresses each Text to nothing: empty caps for Seek, Volume and Previous/Next, and near-empty caps for Snapshot and Record. The installed app shows the same; it was hidden before only because the mock reported Windows keys. See ../build/evidence/final5/polish/C-bridge/renders/S71_Onboarding_shortcuts/side-by-side.png. Possible fixes: one cap per binding with the Mac glyph string ('⌘⌥←'), as menus show it, or a narrower label width. In both cases add .fixedSize() so a glyph never truncates to empty.\nD-menus: the mock now reports the macOS engine keys, so S09.ContextMenu/default shows ⌘. ⌘← ⌘→ ⇧⌘R ⌘\\ ⌘Q, as your D034 right-click-keys amendment says. The mock's subtitle delay keys are now the engine's (up J, down H). The S64 gallery shows ⌘F/⌘./⌘→/⌘←.\nF-settings: in S64 the ⌘ glyph renders small in the monospaced hotkey field (cosmetic, your view).\nIntegrator:\n- New files: Sources/MXRVLCBackend/VLCSubtitleSafeInsetFeed.swift, Tests/MXRVLCBackendTests/SubtitleSafeInsetFeedTests.swift, Tests/MXRCoreTests/MockShortcutDefaultsTests.swift.\n- The bridge changes (MXRServicesBridge.m, MXREffectsServices.{h,m}) need the make/install build. applySubtitleSafeInsetToVout: now takes order:.\n- The effects-runtime harness calls ffmpeg, which the media gate already requires.\n- At one point the Swift test target failed to compile in Tests/MXRUISnapshotTests/SettingsDialogsPolishTests.swift:104 (Theme.Accent has no member 'default', another area's file); it compiled again a few minutes later.\nOrchestrator: schedule the MXRServicesBridge.m split and the typed DTOs (CODE-02/C-08, B-15/CODE-08) as a single-agent task after the parallel wave.",
+  "verdict": {
+   "pass": true,
+   "summary": "C-bridge round 1: pass. No blocker or major found.\n\n**Checked by reading the code (and the engine source):**\n- **Jump OSD:** The count-based pairing is gone. src/player/input.c:170 and timer.c:320 show that on_seek fires on the caller's thread before input_ControlPush. So a jump triggered from main reports its target while var_SetInteger(\"key-action\") is still running. Seek-bar and position seeks on main are ignored outside that capture. Arrow navigation fallback seeks are still matched on the input thread, as before.\n- **Safe inset, primary vout only:** setSubtitleSafeInset uses vlc_player_vout_Hold (the main vout, or the dummy one, which has no sub-margin and is skipped by the var_Type check). The VOUT_STARTED callback passes the vout order, and only VLC_VOUT_ORDER_PRIMARY gets the inset.\n- **Safe inset feed:** SubtitleSafeInsetFeed measures videoHost instead of the window's content view. It subtracts the fitted-picture letterbox and re-sends on a view frame change, didChangeBackingProperties or didChangeScreen (only for the view's own window). It skips the send when nothing changed, and stop() invalidates it.\n- **Stale comment:** the 'plugin rescan' comment in VLCSettingsBackend.swift is gone.\n- **Mock hotkeys:** the mock now reports exactly the engine's `__APPLE__` defaults. I cross-checked them against the fixer's real-engine probe (engine-hotkey-defaults.txt), and MockShortcutDefaultsTests parses src/libvlc-module.c itself.\n\n**Build and tests:**\n- `swift build` is clean (Swift 6).\n- MXRVLCBackendTests 61/61, including SubtitleSafeInsetFeedTests 3/3.\n- MockShortcutDefaultsTests 2/2 and ShortcutsAndOSDTests 5/5.\n- I re-ran the native fixture suite (bridge-smoke with the new 'jump that did not seek' check) and the media suite ('PASS: subtitle safe inset', including the secondary-vout check) under lock.sh, on the current shared tree. Both pass.\n- The fixer's mutant logs show the old count-based jump code and the all-vouts inset each failing their new checks. The feed test cannot pass without the frame and backing observers.\n\n**Renders:**\n- S09.ContextMenu/default is REVIEW. It now shows ⌘. ⌘← ⌘→ ⇧⌘R ⌘\\ ⌘Q where Figma has S/P/N/R and Ctrl. D026 and D034's right-click-keys amendment cover this with a real constraint: these are VLC's Mac bindings, bare S is the subtitle-track key and ⌘P is Print.\n- S71.Onboarding/shortcuts now shows filled one-binding-per-cap keycaps. The empty-cap bug the fixer handed over appears fixed by H-design's D026 amendment.\n- S64 is REVIEW.\n\n**Other checks:**\n- PER-02 is not in C-bridge files (DialogInput.swift and SubtitleFolderRules.swift).\n- D039's soundtrack work is being done by another agent in MXRServicesBridge.m, which the fixer left alone.\n- The engine diff (`git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx`) is empty. There is no view or token code in C-bridge files.\n- The declared edit outside ownership (MXRAppController) is minimal. The new Swift file is picked up by Makefile.am's find over Sources.\n- No DECISIONS entries were added or amended.\n\nEvidence is in ../build/evidence/final5/polish/C-bridge-verify-r1/: native-fixture.log, native-media.log, and renders/*/side-by-side.png.",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "Sources/MXRVLCBackend/VLCSubtitleSafeInsetFeed.swift / module/bridge/MXRServicesBridge.m SeekFeedbackSeek comment",
+     "description": "The comment says chapter keys 'never count'. In fact a chapter hotkey run through triggerAction does report its on_seek synchronously on main while capture is on. This is harmless only because the captured target is used just when MXRHotkeyFeedback returns AwaitSeek, which chapter actions do not. The comment is slightly inaccurate. Nothing visible goes wrong."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRMockBackend/MockServices.swift (MockSettings .number→.float hunk)",
+     "description": "The uncommitted diff of this C-bridge-owned file has a MockSettings change: fractional step means .float. The C-bridge report does not declare it, so it is probably another area's edit. The integrator should attribute it before committing."
+    },
+    {
+     "severity": "minor",
+     "where": "D055 / compact-library subtitles",
+     "description": "Still not fixed: a cue can sit under the compact library. A bottom sub-margin cannot cure a left overlay, so the fix belongs to A-window's geometry, not to the bridge. The D055 agent decision still awaits the owner, and the difference is still visible."
+    },
+    {
+     "severity": "minor",
+     "where": "Bridge rewrite (CODE-02/C-08, B-15/CODE-08)",
+     "description": "Deferred again because other agents are editing MXRServicesBridge.m concurrently. The current wire is covered by contract and behaviour tests, so this is acceptable. It still needs to be scheduled as a single-agent task."
+    }
+   ]
+  }
+ },
+ {
+  "area": "D-menus",
+  "state": "passed",
+  "fixed": [
+   "(d)/(a) S08 parity minor-diff + critic P2 + verifier open #1: Open Recent submenu drawn 48 pt above its row. Root cause: a hand-written (row-1)*rowHeight offset. Fix: MXRPopupStyle.rowTop/submenuTop is now the one row-geometry source, used by the presenter's rowFrame and by both gallery compositions. Evidence: ../build/evidence/final5/polish/D-menus/S08-before.png (2x, card top 241 pt vs row 292 pt) and S08-after.png (card top 288 pt + 4 pt padding = row top 292 pt); S68 unchanged: S68-check/side-by-side.png and report.txt (REVIEW, the same local 38x12 pt shortcut-column area as before).",
+   "S10 parity note: Subtitle Earlier/Later showed no key. They now show VLC's subdelay-down/subdelay-up bindings (macOS H / J) in the right-click submenu and the native Subtitles menu. Evidence: ../build/evidence/final5/polish/D-menus/S09-S10-subtitle-macos-keys.png",
+   "(d) S09 shortcut column after C-bridge's mock fix: the gallery now shows the installed app's keys (⌘. Stop, ⌘← Previous, ⌘→ Next, ⇧⌘R Record, ⌘\\ Hide UI, ⌘Q, Space), from the src/libvlc-module.c __APPLE__ block (KEY_STOP Command+., KEY_PREV/NEXT Command+Left/Right, KEY_RECORD Command+Shift+r). 'Record ⇧R vs R' is resolved to ⇧⌘R in both. The difference from Figma's bare letters is covered by the amended D034. Evidence: S09-S10-subtitle-macos-keys.png",
+   "(d) Swift 6 'preferredSize referenced from a nonisolated context' warning: already fixed in HEAD (CustomizationGallery.onboardingBackRect is @MainActor). A forced recompile of MXRGalleryCatalog and a full swift build show no warnings.",
+   "F-settings note: the dead 'rescan-plugins' action in AppModel is already gone (performSettingsAction has no such case; only rescan-library remains).",
+   "F-settings note: DialogKeyLoopTests now gives the New Playlist name field the keyboard before sending Tab, so the Tab presses really go through the dialog's key loop (Tests/MXRUISnapshotTests/DialogIsolationTests.swift)."
+  ],
+  "notFixed": [
+   {
+    "id": "S11 native menu bar (not-checked)",
+    "why": "Needs the real window and the menu bar, and a live wave is running. Listed in liveChecks."
+   },
+   {
+    "id": "S10 hover-open timing / diagonal pointer movement into a submenu",
+    "why": "Behaviour of the real presenter on screen; listed in liveChecks."
+   },
+   {
+    "id": "S68 shadow between the two panels (handoff D-12)",
+    "why": "Offscreen rendering draws no native blur or shadow artifact between the child panels; listed in liveChecks."
+   },
+   {
+    "id": "Critic decision items D051 / D055 / D039 / D053",
+    "why": "These belong to A-window and the control/track areas, not to D-menus files. Nothing in D-menus excuses them."
+   }
+  ],
+  "decisionsWritten": [
+   "D034 amended: new 'Right-click menu keys' bullet. Figma's bare S/P/N/R give way to VLC's macOS engine defaults (⌘. / ⌘← / ⌘→ / ⇧⌘R; Space, ⌘Q, ⌘\\ unchanged). Reason: bare S is VLC's macOS subtitle-track key and ⌘P is Print. Subtitle Earlier/Later show H / J. Gallery fixtures show the same keys (D030). Accepted (agent, 2026-10-17)."
+  ],
+  "filesChanged": [
+   "modules/gui/macosx_redesign/Sources/MXRDesign/Popup/MXRPopupStyle.swift",
+   "modules/gui/macosx_redesign/Sources/MXRDesign/Popup/MXRPopupPresenter.swift",
+   "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/MenusGallery.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerMenus.swift",
+   "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/AppSubmenuPlacementTests.swift",
+   "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/DialogIsolationTests.swift",
+   "redesign/docs/DECISIONS.md"
+  ],
+  "notesForOthers": "[\"Integrator: new test file Tests/MXRUISnapshotTests/AppSubmenuPlacementTests.swift (AppSubmenuPlacementTests reads the rendered S08/S68 pixels; SubtitleDelayMenuShortcutTests depends on the mock binding subdelay-down/up, now h/j after C-bridge's MockServices change). MXRPopupStyle.rowTop(_:in:) is now the single row-geometry helper; anything that places something next to a menu row should use it.\"]",
+  "verdict": {
+   "pass": true,
+   "summary": "I verified D-menus independently on the working tree over ddd9d23a9d. The fixer's claims hold.\n\nWork list:\n- (d) S08 placement: fixed at the root. MXRPopupStyle.rowTop(_:in:) and submenuTop(_:in:submenu:) are now the single row-geometry source. The presenter's rowFrame, ContextSubmenuComposition and AppSubmenuComposition all use it. Tokens only. My render r/S08_RecentSubmenu_default.png shows the first history row level with Open Recent (top at 292 pt). S68 still lines up: Movies is level with Profile, and the check is REVIEW with the same 38×12 pt shortcut-column area as before.\n- (d) Swift 6 'preferredSize' warning: gone. onboardingBackRect is @MainActor. I touched the D-menus files and rebuilt: no warnings.\n- (d) S09 shortcut column: the render shows Space, ⌘., ⌘←, ⌘→, ⇧⌘R, ⌘\\ and ⌘Q (check/S09/side-by-side.png). I checked these against the __APPLE__ block of src/libvlc-module.c: KEY_STOP Command+., KEY_PREV/NEXT Command+Left/Right, KEY_RECORD Command+Shift+r, KEY_SUBDELAY_DOWN/UP h/j. 'Record ⇧R vs R' now resolves to ⇧⌘R, as the installed app will show.\n- (a) S10: Subtitle Earlier and Later now show H and J, follow a rebinding, and the native Subtitles menu mirrors them (r/S10_subtitle.png). The submenu's top lines up with the Subtitle row. Bare H and J in the native menu go through MXRKeyRouting.shouldPerformMenuEquivalent, which blocks them while a text field is being edited.\n- (b) Critic P2 (S08): closed. The D051, D055, D039 and D053 critic items are owned by A-window and the control/track areas, and no D-menus file excuses them.\n- (c) Verifier open #1 (S08) and #2 (the warning): closed. F-settings' notes: rescan-plugins is gone; DialogKeyLoopTests now focuses the New Playlist name field before sending Tab.\n\nD034 amendment ('Right-click menu keys'): justified. The rows show the engine's real bindings. Figma's bare S/P/N/R are the Windows defaults, and on the Mac they would clash with VLC's own keys (bare S is the subtitle-track key) or with ⌘P Print. Changing them would mean changing engine defaults or showing keys the product does not have. It is not an excuse for a fixable visual difference.\n\nTests:\n- Shared tree: AppSubmenuPlacementTests, SubtitleDelayMenuShortcutTests, PopupMenuTests, MenuAuditRegressionTests, NativeMenuMirrorTests, MenuExtensionsAndShadowTests, AnchoredPopupPinPolicyTests, DialogKeyLoopTests and FigmaDeviationTests: 40/40 pass. ShortcutDefaultsTests, MockShortcutDefaultsTests, SpaceAfterEndTests, ExtensionMenuObservationTests and AppActionFeedbackTests: 15/15 pass.\n- Revert check in an isolated copy (deleted afterwards), with both fixes undone: the Open Recent test fails (submenu row at 245 pt, parent row at 292 pt), the subtitle-key test fails 3 assertions, and the Profile test still passes. The new tests do catch the bugs.\n- One transient: during the isolated run, FigmaDeviationTests failed on S71.Onboarding/shortcuts ('outside the entry'). That comes from another area's in-progress CustomizationGallery work, and the test passes in the current shared tree.\n\nNeighbour checks:\n- S07: REVIEW, shortcut glyphs only.\n- S29: REVIEW, the 70×16 pt area already covered by D034.\n- S32 sort: PASS.\n- S68 Profiles list: REVIEW, the 11×11 pt corner, as before.\n\nOther checks:\n- Ownership: the only edits outside D-menus files (DialogIsolationTests.swift and one DECISIONS bullet) are declared.\n- The engine is untouched: `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty.\n- No masks or Settings-gate changes in D-menus files.\n\nEvidence is in ../build/evidence/final5/polish/D-menus-verify-r1/ (r/, check/S09/, tests.log, tests-shared.log, revert.log).",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "Sources/MXRGalleryCatalog/GalleryCatalog.swift:403-410 (GalleryPaths.locate, not a D-menus file)",
+     "description": "When no repo marker is found above a start directory, the loop never ends. At '/', deletingLastPathComponent() returns '/../', so `parent.path == dir.path` is never true. A package copy outside the repo hangs FigmaDeviationTests and the snapshot tests forever (seen here: 36 min) instead of throwing the 'set MXR_REPO_ROOT' error. Owner of MXRGalleryCatalog/integrator: compare standardized paths, or stop at '/'."
+    },
+    {
+     "severity": "minor",
+     "where": "Tests/MXRCoreTests/ShortcutDefaultsTests.swift:18,75, MockShortcutDefaultsTests.swift:19",
+     "description": "These tests read src/libvlc-module.c and module/MXRAppOptions.inc through #filePath-relative paths, so they fail in an isolated package copy. They pass in the shared tree. Informational only: isolated runs of these suites need the shared tree."
+    }
+   ]
+  }
+ },
+ {
+  "area": "E-library",
+  "state": "passed",
+  "fixed": [
+   "(d)/(a) S33/S28 navigation-row colour: LibraryEntryView.restingColor(of:card:) puts every navigation row (folder, category, link, album, artist, genre, show, multi-URL stream) at FG/A3. Media rows (FG/A1 unwatched, FG/A3 watched), playlist rows and grid cards stay FG/A1. Measured peak 107 (was 150) on S33 music, songs, my-songs, S28 videos-root/shows/the-wand and S35 network. Light navigation rows use Light FG/A3. Evidence: ../build/evidence/final5/polish/E-library/before/ and after/S33.Library_music, S33.Library_songs, S35.Library_network, light-pair.png; test LibraryNavigationStyleTests.testNavigationRowsRestAtFGA3InDark/InLight (fails with 150 vs 107 without the fix).",
+   "(d)/(a) S28 missing entries: added S28.Library/videos-root (848:1997), S28.Library/shows (4778:25847) and S28.Library/the-wand (4778:25957). The mock exposes MockMediaID.showsFolder and theWandFolder. Figma's repeated '3 items' on videos2/videos3 is a D044 deviation. All three are REVIEW with about 0.007 % structural difference (the '+' glyph's antialiasing). Evidence: after/S28.Library_videos-root, S28.Library_shows, S28.Library_the-wand (side-by-side.png, top.png).",
+   "Found while checking the new entries: at the Videos root Figma draws the rail videos icon in the accent (848:1997), like Music's root, and its folders in base (848:1995). navIconState now does the same. Test testVideosRootLightsItsRailIconLikeMusic.",
+   "(d)/(a)/(c) Breadcrumb '▶' separators, the '...' slot and the header divider (S72 parity items 2 and 4, verifier open item 1): libraryHeaderDarkStyle() draws them with Dark/FG/A4 #404040, Dark/FG/A2 #8F8F8F and Dark/Divider/Dim in Light, as 2425:13624 does. Dark is unchanged and already matched the dark frames. Evidence: before/S72/crop-head-render.png vs after/S72/crop-head-render.png and crop-head-ref.png; test testHeaderSeparatorsAndDividerKeepTheirDarkStylesInLight.",
+   "(d)/(a)/(b) S30 'Edit Audio Tracks', S31 and S29 'Add Audio Tracks', implemented end to end. LibraryAudioTracks matching, AppModel.presentAddAudioTracks and completeAddAudioFile live in LibraryModel.swift. LibraryBackend gains attachAudioTrack (VLC backend and mock). The bridge request attachAudioTrack stores the file as VLC_ML_FILE_TYPE_SOUNDTRACK. MXRLibraryExternalTracks and MXRLibraryAddTrackSlaves make soundtracks SLAVE_TYPE_GENERIC slaves of queued items, and the current-media path adds them as AUDIO_ES. MXRLibrarySelectSoundtrack selects the attached soundtrack, because VLC does not switch to an equal-priority generic slave by itself (es_out.c EsOutSelectMatchPrioritized). S30 and S31 are now PASS (were minor-diff), S29 REVIEW (known Finder wording). Engine test against the real libvlc, media library and vlc_player: ../build/evidence/final5/polish/E-library/native/library-suite.log (2 audio tracks; VLC alone keeps 44100 Hz; after selection the 22050 Hz soundtrack plays; the subtitle is an SPU track). Swift: LibraryAudioTracksTests (5) and LibraryNavigationStyleTests menu tests.",
+   "(d)/(c) Mini player transport y now comes from LibraryGeometry.miniVideoSize (970:3056, the video block's width at 16:9), not the homeCard ratio. naturalHeight uses the same value. S46 collapsed and queue are PASS, hover REVIEW (unchanged 1 pt row offset). Evidence: after/S46.MiniPlayer_*.",
+   "(c) Verifier open item 'My Songs row at fgA1': fixed by the navigation-row change (S33.Library/my-songs REVIEW, antialiasing only).",
+   "(c)/A-window note 'compact library 248 pt inside the 216 pt column': not reproduced. The new LibraryMinimumColumnTests uses the real PlayerGeometry.compactLibraryWidth for the 480 pt window and checks that every accessibility element of S01, Home, Music, Videos, Network, Playlists and Recent stays inside the column. It passes. The with-panel case (critic P1) is already handled by A-window: the library yields when it and the panel can't both fit."
+  ],
+  "notFixed": [
+   {
+    "id": "E-07 arrow keys tested through the model only (critic P2, verifier open item 4)",
+    "why": "The SwiftUI onKeyPress handler needs keyboard focus in a key window, which offscreen hosting can't provide. Under the live-wave rule I can't put a window on screen. Kept as live check E-arrow-keys."
+   },
+   {
+    "id": "S28.Library/minimum: rows give only about 40 pt to the label at 216 pt (verifier open item 3)",
+    "why": "D044 (Narrow compact panel) documents this and nothing clips (LibraryMinimumColumnTests). A bigger compact share at 480 pt is an owner/A-window decision (PlayerGeometry.compactLibraryWidth, MXRPlayerMetrics.compactLibraryShare), not E-library code."
+   },
+   {
+    "id": "Critic P2: S43.App/home and S44.App/grid top bar #191919 vs #1B1B1B",
+    "why": "PlayerBars.swift draws that bar (BG/A3 Transparent material while the full library shows), not MXRLibraryView. It belongs to A-window/H-design. The S43.Library and S44.Library entries are REVIEW."
+   },
+   {
+    "id": "S72.Window/light still FAIL",
+    "why": "The bars are now fine (another area's fix). The largest remaining region is the playing E04 row's thumbnail (#1E1A15 vs #000000), which D051 covers. S72.Window/light is A-window's gallery entry, so the D051 figmaDeviation for that row should be added there. Smaller regions are mock artwork resampling on E11 and the D049 Light accent."
+   },
+   {
+    "id": "Optional token note from J-media-io (LibrarySupport progress height)",
+    "why": "Not changed. Theme.Metric.outputProgressHeight is an output-dialog token; reusing it for library cards would couple unrelated components."
+   }
+  ],
+  "decisionsWritten": [
+   "D032 amendment revised (library header Dark styles matched in Light; rows and current crumb kept Light for contrast)",
+   "D039 'Library audio tracks' paragraph resolved (implemented end to end, explicit soundtrack selection)",
+   "D044 amendment: videos2/videos3 counts follow the data"
+  ],
+  "filesChanged": [
+   "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibraryEntryView.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibraryNavigation.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibrarySupport.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Library/MXRLibraryView.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibraryPopup.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Library/MXRMiniPlayerView.swift",
+   "modules/gui/macosx_redesign/Sources/MXRCore/Models/LibraryModel.swift",
+   "modules/gui/macosx_redesign/Sources/MXRCore/Backends/QueueAndLibraryBackends.swift",
+   "modules/gui/macosx_redesign/Sources/MXRVLCBackend/VLCLibraryBackend.swift",
+   "modules/gui/macosx_redesign/Sources/MXRMockBackend/MockLibrary.swift",
+   "modules/gui/macosx_redesign/Sources/MXRMockBackend/MockBackend.swift",
+   "modules/gui/macosx_redesign/Sources/MXRMockBackend/MockData.swift",
+   "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/LibraryGallery.swift",
+   "modules/gui/macosx_redesign/module/bridge/MXRLibraryServices.h",
+   "modules/gui/macosx_redesign/module/bridge/MXRLibraryServices.m",
+   "modules/gui/macosx_redesign/Tests/NativeLibrarySoundtrackRuntime.m",
+   "modules/gui/macosx_redesign/Tests/MXRCoreTests/LibraryAudioTracksTests.swift",
+   "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/LibraryNavigationStyleTests.swift",
+   "modules/gui/macosx_redesign/module/bridge/MXRServicesBridge.m",
+   "modules/gui/macosx_redesign/Sources/MXRBridgeAPI/MXRBridgeKeys.m",
+   "modules/gui/macosx_redesign/Sources/MXRBridgeAPI/include/MXRBridgeKeys.h",
+   "modules/gui/macosx_redesign/Sources/MXRCore/App/AppModel.swift",
+   "modules/gui/macosx_redesign/tools/native-tests.py",
+   "redesign/docs/DECISIONS.md"
+  ],
+  "notesForOthers": "[\"Integrator: the bridge changes (MXRLibraryServices.m, MXRServicesBridge.m, MXRBridgeKeys) need the make/install build. native-tests.py --suite library now also runs Tests/NativeLibrarySoundtrackRuntime.m (needs ffmpeg).\", \"Integrator: new gallery entries S28.Library/videos-root, S28.Library/shows, S28.Library/the-wand. New test files: Tests/MXRUISnapshotTests/LibraryNavigationStyleTests.swift (two classes) and Tests/MXRCoreTests/LibraryAudioTracksTests.swift.\", \"A-window: S72.Window/light now FAILs mainly on the playing E04 row's thumbnail (D051). Please add a D051 figmaDeviation for that row (around 70,668–786 pt) to the S72 entry. Also, the compact-library overflow you reported (248 pt in 216 pt) does not reproduce: LibraryMinimumColumnTests checks every accessibility element at PlayerGeometry.compactLibraryWidth(480) and passes.\", \"A-window/H-design: the S43.App/S44.App top bar #191919 vs #1B1B1B comes from PlayerBars.swift (BG/A3 Transparent material in full-library mode), not the library view.\", \"C-bridge: LibraryBackend has a new attachAudioTrack(url:toMedia:) with a no-op default. Test doubles that wrap a backend (LibraryPaginationTests) inherit the no-op. AppModel.complete(.addAudioFile) now routes through completeAddAudioFile; with no library targets it behaves exactly as before.\"]",
+  "verdict": {
+   "pass": true,
+   "summary": "I verified E-library round 1 independently. Engine diff against upstream-base-2026-10-14 for src, lib, include and modules/gui/macosx is empty. The Swift build is clean: rebuilding MXRUI and MXRCore in an isolated copy gave no warnings.\n\n**Targeted tests (all pass)**\n- LibraryNavigationStyleTests 6/6\n- LibraryMinimumColumnTests\n- LibraryAudioTracksTests 5/5\n- LibraryViewBehaviour, LibraryInteraction, LibraryContextPlayback, PopupMenu, LibraryAuditRegression, LibraryPagination, MockLibraryContract\n\n**Mutation check.** In an isolated copy I reverted restingColor, libraryHeaderDarkStyle and the Videos-root rail icon. Four tests then failed, as they should:\n- Dark rows read 150 vs 107 on music, songs, videos-root, shows, the-wand and network.\n- Light rows read 60 vs 107.\n- The header separator test failed.\n- The Videos rail icon test failed.\n\n**Native engine test.** I ran `native-tests.py --suite library` under the lock, against the real libvlc, media library and vlc_player. All checks pass:\n- attachAudioTrack stores the file as a SOUNDTRACK.\n- The item carries 2 slaves, and the input has 2 audio tracks and 1 subtitle.\n- VLC alone keeps the 44.1 kHz track; after MXRLibrarySelectSoundtrack the 22.05 kHz soundtrack plays.\n\nLog: ../build/evidence/final5/polish/E-library-verify-r1/library-suite.log\n\n**Renders**, checked by eye next to Figma, outputs under ../build/evidence/final5/polish/E-library-verify-r1/check/:\n- **New entries (REVIEW, antialiasing only).** S28.Library/videos-root, /shows and /the-wand match 848:1997, 4778:25847 and 4778:25957: '+' glyph, FG/A3 rows and the accent rail icon at the root only. The masked count on shows and the-wand (D044, Figma repeats '3 items') is a data constraint, so it is justified.\n- **Rows now FG/A3.** S33 music, songs and my-songs, S35 network, and the undesigned albums, artists and genres all read 107.\n- **Unchanged.** S38 playlists stays FG/A1 (150).\n- **Menus.** S30 and S31 are now PASS with the rows enabled. S29 is REVIEW for the Finder wording only.\n- **Mini player.** S46 collapsed and queue PASS; hover REVIEW, unchanged.\n- **Neighbours, no regressions.** S43, S44, S45 and S40 REVIEW as before; S28.Library/minimum unchanged.\n- **Light.** S72 light header crops: '▶' separators and '...' are both 143 (#8F8F8F) in render and Figma, the current crumb is 46 in both, and the dark hairline is present in both. The compact entries in Light show FG/A3 navigation rows and the dark header hairline.\n\n**Code review.**\n- Edits outside ownership are minimal and listed: MXRServicesBridge.m delegation, MXRBridgeKeys, two lines in AppModel.complete, native-tests.py, DECISIONS.\n- Tokens only; no masks or thresholds were added.\n- The mini transport y is the same value, now derived from LibraryGeometry.miniVideoSize.\n\n**Decisions.**\n- D039 resolution is accurate except the sentence 'Songs take no audio track', which the file menu does not enforce (minor).\n- The D032 revision is justified by contrast: 1.8:1 for Figma's Light row colours. Its cited row colour is slightly off.\n- The D044 count extension is justified.\n\n**Left elsewhere.** S43/S44.App bar #191919 is PlayerBars (A-window/H-design); the S72.Window/light FAIL needs A-window's D051 deviation; E-07 onKeyPress is a live check; the 216 pt label width is D044 and up to the owner.\n\nNo blocker or major remains.",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "Sources/MXRUI/Library/LibraryPopup.swift file menu 'Add Audio Tracks' vs redesign/docs/DECISIONS.md D039 'Library audio tracks' (resolved)",
+     "description": "The resolved D039 text says 'Songs take no audio track'. That holds for folder and playlist menus, which filter out .audio media. The file menu's Add Audio Tracks is enabled for every file, though, so on a song it calls presentAddAudioTracks(media:[song]). LibraryAudioTracks.match pairs any audio file with a single target, so the song gets a soundtrack in the ML, and MXRLibrarySelectSoundtrack selects it at every later playback. Either hide or disable the row for songs, or correct the sentence in D039."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRUI/Library/MXRLibraryView.swift LibraryDivider(header: true); LibraryBreadcrumb separators",
+     "description": "libraryHeaderDarkStyle also applies in the full-window library. In Light (S44 grid light render), the header hairline is Dark/Divider/Dim and the ▶ separators are #404040. The only evidence is the compact panel in Player - Light 2425:13624, and no Figma frame shows the full library in Light. It looks consistent, but the revised D032 amendment speaks only of 'the compact library'. One clause saying it also covers the full window, or limiting the style to compact, would make the decision exact."
+    },
+    {
+     "severity": "minor",
+     "where": "redesign/docs/DECISIONS.md D032 amendment (revised)",
+     "description": "Small factual slip. The amendment says Figma's Light rows use 'Dark/FG/A1 #969696 / Dark/FG/A2'. Sampling ref.png of 2425:13624 gives #8F8F8F (Dark FG/A2) for the unwatched rows and #6B6B6B for watched rows E01–E03. The product's watched rows match the latter exactly. The contrast argument still holds (#8F8F8F on #C2C2C1 is about 1.8:1), so the kept difference is justified. Only the cited value is off."
+    },
+    {
+     "severity": "minor",
+     "where": "S46.MiniPlayer/hover",
+     "description": "Still REVIEW: the seek row is offset by 1 pt, and the transport glyphs sit about 0.7 pt lower than Figma (region at 186,98). The new transport y equals the old one (h·104/210.94), so this is not a regression. It is unchanged from the previous wave and not covered by a decision."
+    },
+    {
+     "severity": "minor",
+     "where": "S72.Window/light (A-window entry)",
+     "description": "Still FAIL offscreen. The remaining regions are the playing E04 row: the thumbnail tint (#1E1A15 vs #000000), the accent label, and the D049 accent. These are D051 states. The E11 artwork resampling is a mock-asset artefact. The header separators, the '...' slot and the divider now match Figma pixel for pixel: separators and '...' are 143, the current crumb is 46, the dark hairline is present. The FAIL needs A-window to add a D051 figmaDeviation. No E-library code change is needed."
+    }
+   ]
+  }
+ },
+ {
+  "area": "F-settings",
+  "state": "passed",
+  "fixed": [
+   "P1 (critic) Light secondary DialogButton tiles invisible: DialogButton.secondaryFill(for:) gives BG/A3 in Dark (Figma 6216:13750, 1994:5586) and BG/A4 in Light; Keyboard Shortcuts Cancel and conflict Cancel use the same. Evidence: before/convert-light.png vs after/convert-light.png, after/mediainfo-light.png (tile #B3 on #D5), after/ks-conflict-light.png; test testSecondaryDialogButtonsStandOutFromTheLightDialogSurface",
+   "MAJOR S25.App Add Subtitles scrim (also S37.App/S48.App compact): the scrim is now a clear, click-catching layer; the bars and the picture keep their brightness. Evidence: before/s25-app-ship.png vs after/s25-app-ship.png, after/settings-light-ship.png; test testDialogHostLeavesTheWindowBehindAtFullBrightness; D035 amended",
+   "S48.App/settings-compact top edge: MXRDialogFrame.available keeps topBarHeight clear at both edges, so the dialog runs from y 40 to 500 in a 540 pt window, centred. Evidence: before/s48-compact-ship.png vs after/s48-compact-ship.png; test testShrunkDialogStaysBelowTheTopBar",
+   "Settings toggles (critic P2, verifier open[0]): 3 pt inset and 3 pt gap per 536:1013 (SettingsDetail.toggleInset/toggleGap), leading-aligned. The toggle REVIEW region is gone on all 14 pages (after/check/*/report.txt); test testToggleKeepsFigmaInsetAndGap",
+   "S54 Default playback speed labels: SettingsSlider.labelAnchor puts each label under its tick. End labels sit at the end ticks when every tick has a label, at the track edges otherwise (3176:16483). '1' is now under the thumb. Evidence: after/speed-compare.png (before / after / Figma); test testScaleLabelsStandUnderTheirTicks",
+   "S56 Replay gain preamp '0' -> '0.0': mock types a number row with a fractional step as float (MockServices.swift, one line); catalog row has step 0.1. Evidence: after/audio-compare.png; test testReplayGainPreampIsAFloatInTheMock",
+   "S59 disabled caching fields: SettingsTextEditor draws a disabled field's value in FG/A4, inside the 30 % row, so it reads as empty like 6543:15649. Evidence: after/network-compare.png; D050 line added",
+   "Narrow Settings 'Always starts at:' wrap: the stacked choice may grow past the half-width column up to its design width, and its title is one line. Evidence: before/narrow.png vs after/narrow.png",
+   "S64 disabled Save #1F1F1F@98% vs #1F1E1D@97%: FigmaDisabledLuminosity now applies W3C Luminosity compositing against the dialog fill (Cs' = (1-ab)Cs + ab·SetLum). The check went from FAIL to REVIEW (after/check/S64.KeyboardShortcuts_default/report.txt). Test testDisabledShortcutsSaveBlendsLikeFigma",
+   "S65 Media Info fourth track row cut: DialogShell(fitsContent:), and Media Info is as tall as its content up to 800 pt. The host gives .mediaInfo a max-height frame; the gallery entry shows the fitted dialog. Evidence: after/mediainfo.png (all 6 rows); test testMediaInfoFitsAllTrackRows",
+   "S27 'Choose Files' tile contrast (verifier open[2]): it uses Figma's Cancel style (BG/A3 on BG/B1, 1994:5586) instead of BG/A5. Evidence: after/s27-unavail.png",
+   "PER-02 blocking subtitle syscall on MainActor: SubtitleImportDraft.save is async. It resolves the playing-file symlink identity on the lookup queue (playingFileIDs), checks the player did not move on, and stays busy while it runs. Callers and tests updated. Test testSavingSubtitlesResolvesFilePathsOffTheMainThread",
+   "Gallery notes for S48.App and S25.App no longer claim a BG/B2 Transparent scrim"
+  ],
+  "notFixed": [
+   {
+    "id": "S63 settings dropdown opens over its field (also S63 'sub filename')",
+    "why": "The placement lives in MXRDesign/Popup/MXRDropdown.swift (.overField), which H-design owns and which shows uncommitted edits by another agent right now. D034 leaves it as an owner question. 'sub filename' content matches; it is a live check."
+   },
+   {
+    "id": "S50 Light selected theme segment / Browse colour vs video 17m44.0",
+    "why": "Those are H-design's tokens (SettingsSegmented/selected-segment style). The scrim half of S50 is fixed here."
+   },
+   {
+    "id": "S54 residual ±1.5 pt on '0.5' and '1.75'",
+    "why": "Figma lays these labels out as 26 pt boxes spread space-between, not exactly at the ticks; the tick-centred rule matches '1', '1.25', '1.5' and the ends. Remaining REVIEW region only."
+   },
+   {
+    "id": "S27 owner question: hide 'From OpenSubtitles' entirely without an API key",
+    "why": "This is already the case in the source menu; the unavailable state only appears when a caller opens Add Subtitles at that source. Owner question, no change needed."
+   },
+   {
+    "id": "Dialog body blur, confirmations, Settings live behaviour",
+    "why": "These need the real window (no live UI in this wave); they are listed in liveChecks."
+   }
+  ],
+  "decisionsWritten": [
+   "D035 amended (agent, 2026-10-17): the layer behind a dialog catches clicks but draws nothing. Evidence: video 06m02.47, 17m40.9 and 17m44.0, and spec-part1 §06; Figma never uses BG/B2 Transparent; a macOS sheet does not dim its window. A shrunk dialog keeps the 40 pt top bar clear at both edges.",
+   "D045 amended (agent, 2026-10-17): in Light, secondary dialog buttons use BG/A4, because Figma's BG/A3 tile is the opaque Light surface itself.",
+   "D050 line added (agent, 2026-10-17): disabled caching fields draw the preset value in FG/A4 inside the 30 % row (they read as empty like 6543:15649)."
+  ],
+  "filesChanged": [
+   "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/DialogSupport.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/MXRDialogHost.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/AddSubtitlesView.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/DialogInput.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/MediaInfoDialogs.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Settings/SettingsControls.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Settings/SettingsMetrics.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Settings/MXRSettingsView.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Settings/MXRKeyboardShortcutsView.swift",
+   "modules/gui/macosx_redesign/Sources/MXRCore/Resources/settings-map.json5",
+   "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/DialogsGallery.swift",
+   "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/SettingsGallery.swift",
+   "modules/gui/macosx_redesign/Sources/MXRMockBackend/MockServices.swift",
+   "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/SettingsDialogsPolishTests.swift",
+   "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/DialogsTests.swift",
+   "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/SubtitleReopenRegressionTests.swift",
+   "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/WindowShippingParityTests.swift",
+   "redesign/docs/DECISIONS.md"
+  ],
+  "notesForOthers": "[\"Integrator: FigmaDeviationTests has one failure that is not mine: S71.Onboarding/shortcuts, deviation rect (845,154,303,452) lies outside the entry.\", \"Integrator: OpenMediaDialogs.swift:58 (J-media-io) briefly failed to compile ('box.radius' optional); it built again a few minutes later.\", \"H-design: Tokens.swift's bgB2Transparent comment says it is 'intended for modal scrims'; nothing uses it any more after the D035 amendment.\", \"H-design: MXRBackdropSurface comments mention 'a dialog scrim'; the base stays dark.\", \"J-media-io: DialogButton's `fill` is now optional; nil means the dialog style (BG/A3 Dark, BG/A4 Light). Pass a fill only for a deliberate exception.\", \"Anyone calling SubtitleImportDraft.save: it is now `async throws`.\"]",
+  "verdict": {
+   "pass": true,
+   "summary": "I checked F-settings independently (round 1). No blocker or major remains. Every item on the work list is fixed at its root cause, and I looked at fresh renders of each one next to Figma or the key frames.\n\n**Build and tests**\n- swift build is clean.\n- These suites pass on the shared tree: SettingsDialogsPolishTests 9/9, DialogsTests, SubtitleReopenRegressionTests, WindowShippingParityTests, DialogScrollEdgeTests, SettingsUITests, SettingsWorkflowTests, SettingsCatalogLintTests, and the DialogIsolation, ModalIsolation and DialogKeyLoop suites.\n- The engine is untouched: the diff of src, lib, include and modules/gui/macosx against upstream-base-2026-10-14 is empty.\n\n**Negative tests (my own isolated copy, F-settings-verify-r1/pkg, log in neg-tests.log)**\n- Reverting the Light secondary fill and the scrim fails testSecondaryDialogButtonsStandOutFromTheLightDialogSurface and testDialogHostLeavesTheWindowBehindAtFullBrightness (3 points).\n- Reverting only the top-bar margin in MXRDialogFrame.available fails testShrunkDialogStaysBelowTheTopBar: the dialog top is at 20, not 39 or more. So that test catches its own fix, not just the scrim.\n- The fixer's log covers the other tests.\n\n**Renders I looked at (F-settings-verify-r1/r2)**\n- **P1 Light buttons:** In Light Convert, Choose… and Cancel now show a visible BG/A4 tile (#B3 on #D5). Stream, Disc, Media Info and Add Subtitles get the same.\n- **S25 scrim:** Compared with key frame 06m02.5, the before render had the bars dimmed nearly black. The after render keeps the top bar and the control bar lit, and a pixel check confirms no dimming.\n- **S48 Light over the player:** the bars are now light grey.\n- **Compact windows:** Settings and Convert at 960×540 run from y 40 to 500, centred, with the header clear of the traffic lights.\n- **S65 Media Info:** fitted height, all 6 track rows visible, Close at the bottom.\n- **S54 speed labels:** match Figma 3062:13083 within about 1.5 pt.\n- **S59 caching fields:** read as empty like 6543:15649.\n- **Narrow Settings:** 'Always starts at:' stays on one line.\n- **S27 Choose Files:** the tile is #1B on the #0E surface (Figma's Cancel style).\n\n**Checks against Figma**\n- S64 default: REVIEW. The only region left is key-cap text; the Save fill no longer appears.\n- S48 general, playback, audio, network and controls: REVIEW, and the toggle region is gone.\n- S25 folder, S36 and S27 results: REVIEW.\n\n**Gate and code**\n- SettingsFigmaDeviations is unchanged and the fixer added no deviations, so the gate was not loosened. The gallery-note edits only fix wording.\n- New values are tokens or SettingsMetrics constants.\n\n**PER-02**\n- The last main-actor file-system call (the symlink identity check in Save) now runs on the shared lookup queue, and the result is dropped if the player has moved on.\n- The other subtitle lookups (folder targets, rule application) were already on that queue.\n\n**Decisions**\n- D035 is well supported for the scrim: the video at 06m02.47 shows identical pixels with the dialog open, spec-part1 §06 says there is no visible scrim, and BG/B2 Transparent has a usage count of 0. Its Light wording is a little generous (see the issue below).\n- D045 (Light secondary buttons on BG/A4): Figma has no Light dialog frame, and BG/A3 equals the Light surface, so a darker step on the same ramp is the smallest choice that keeps the tile visible. Owner sign-off pending.\n- D050 (disabled caching fields): it now visually matches Figma's empty fields.",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "redesign/docs/DECISIONS.md D035 amendment (scrim evidence)",
+     "description": "The amendment says frames 17m40.9 and 17m44.0 keep the top bar 'at its normal value' in both themes. In the Light key frame (17m44.0) the top bar and control bar read mid-grey (about #8x), not the Light bar colour, so the Light half of that evidence is weak. The Dark evidence at 06m02.47 is solid. The owner should confirm the Light case when signing off D035."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRUI/Settings/MXRSettingsView.swift controlFrame (.stackedChoice), S48.Settings/narrow",
+     "description": "Keeping 'Always starts at:' on one line at 480 pt now makes the 'Startup volume' row label wrap onto two lines, and the stacked control extends past the half-width column. It reads fine, but it is a trade-off rather than a match: no Figma narrow frame exists."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRUI/Settings/SettingsControls.swift SettingsSlider.labelAnchor (S54)",
+     "description": "'0.5' and '1.75' are still about 1.5 pt off Figma. The REVIEW region at 742,242 says it matches if moved +1.5 pt. Figma lays these labels out as 26 pt boxes spread space-between, not exactly centred on the ticks. This is cosmetic, but a decision line or space-between anchoring would close it."
+    },
+    {
+     "severity": "minor",
+     "where": "Tests/MXRUISnapshotTests/SettingsDialogsPolishTests.swift testScaleLabelsStandUnderTheirTicks",
+     "description": "This test checks the anchor function, not drawn pixels, and the fixer says it does not fail when the fix is reverted (the old layout did not use the function). It documents the geometry but does not guard the drawn layout."
+    },
+    {
+     "severity": "minor",
+     "where": "Tests/MXRUISnapshotTests/DialogIsolationTests.swift:53-56",
+     "description": "A clean build of the test target warns 'call to main actor-isolated static method location(of:) in a synchronous nonisolated context'. This is test-only and predates this wave, but it is not Swift 6 clean. The product build has no warnings in F-settings files."
+    }
+   ]
+  }
+ },
+ {
+  "area": "G-panels",
+  "state": "passed",
+  "fixed": [
+   "(d)/(a) S18 essential-open, S18 colors-open (Sepia), S19 spatializer-open, S19 stereoWidener-open and S20 Background Opacity: the end ticks are gone. Stepped sliders draw only inner ticks (tickFractions for stops = 1..<stops-1). Ticks now use Figma's 2…W−2 spread and its SCREEN blend. Essential structural 0.167 → 0.037 %, spatializer 0.319 → 0.003 % (PASS). Evidence: ../build/evidence/final5/polish/G-panels/after/S18_Filters_essential-open/side-by-side.png, after/S19_Filters_spatializer-open/, after/S20_appearance-sliders.png; before: ../build/evidence/final5/polish/G-panels/before/S18_Filters_essential-open/side-by-side.png",
+   "(d) Stepped thumbs sit on their tick, as in Figma 804:1299 (Font Size Auto at 212), 804:1315 (Outline at 235), 607:1136 (Size 8.0 at 234) and 673:1702. The S18 Banding thumb was 1.5 pt off and is now within REVIEW. Ticks match: in the render, Figma's Feedback slider has 10 marks (8 inner), the same count the product draws. The parity judge's 'Figma 6' was a miscount, so no decision is needed.",
+   "(d) Centred delay slider (S20 763:1986, Subtitle Track Delay at −4 s): the fill now ends at 204.0 pt, exactly where Figma does (before: 200). The thumb is at 126.5–134.5 against Figma's 127–135 (before: 125.5–133.5). The 0.5 pt left is Figma placing the −4 s value by hand; the uniform thumb model is checked against Figma's minimum, maximum and centre. S20.Sidebar/subtitles structural 0.094 → 0.034 %, flat colour 0.023 → 0 %. Evidence: after/S20_Sidebar_subtitles/side-by-side.png and before/S20_Sidebar_subtitles/",
+   "(a)(d) S18/S19 selected tab underline: it is now 70 pt, at 122–192 for Video and 208–278 for Audio (498:2969/536:1094); before it was 61 pt. The probe matches Figma pixel for pixel (244–383 and 416–555 px at y 97). Evidence: after/S18_Sidebar_video/, after/S19_Sidebar_audio/",
+   "(a)(d) S17 Playback tab: added the full-width hairline at y 51 (5187:24342/24374, stroke #222222). Only the Playback frame has it. Render and ref both have #22 or #21 at x 0–799, y 102 px. Evidence: ../build/evidence/final5/polish/G-panels/after/S17_top-vs-figma.png",
+   "(a)(b)(c) S19 compressor-open and stereoWidener-open no longer FAIL without explanation. figmaDeviations citing D054 now cover only the thumbs whose Figma position disagrees with the label (Compressor rows 536:1545/1604/1622/1654/1670/1686, Widener Delay 612:1236) and the 'FM5' / '%' labels. Results: compressor REVIEW (structural 0.022 %, flat 0); stereoWidener PASS (structural 0.001 %). Evidence: after/S19_Filters_compressor-open/report and side-by-side.png, after/S19_Filters_stereoWidener-open/",
+   "(d) The '+10 s' label against Figma 536:1087's '-10 s' typo is now recorded in a new D054 bullet.",
+   "(c) Verifier open issue 2: the old test pinned our own model; it now asserts Figma's geometry (fill to 184 pt and the thumb at 106.4 ± 1 pt). The new testSliderGeometryMatchesFigmaThumbsFillsAndTicks asserts the Figma node values directly.",
+   "S18 colors-open: the threshold sliders' fixture value is now 50 of 0–255. That is the value Figma 614:1483's thumb at 64 pt represents under the product geometry, and Figma shows no number for it. Structural 0.131 → 0.100 %; what is left is the FG/A3 #6B6B6B against #707070 colour of the disabled thumb, Δ5."
+  ],
+  "notFixed": [
+   {
+    "id": "S17.Sidebar/playback FAIL (9.15 % flat colour)",
+    "why": "The FAIL comes from the D033 row set (Show Waveform and Show Metadata added, video 09m17.5) and D014 (Reverse disabled), which push every row down 52 pt. The parity judge agreed. A figmaDeviation cannot model an inserted row; it would have to exclude most of the panel. The hairline difference the judge flagged is fixed."
+   },
+   {
+    "id": "S17 open Sleep Timer / Audio Visualizer dropdowns (2372:8639) have no gallery entry",
+    "why": "The panel uses the shared MXRDesign dropdown list (D-menus), which C.Dropdown/default-open (2372:8300) already compares. Opening PanelDropdown offscreen needs a child-window popup, so it is added as a live check."
+   },
+   {
+    "id": "Delay thumb 0.5 pt left of Figma 1905:7368",
+    "why": "The fill end matches exactly. The remaining 0.5 pt is one device pixel from Figma's hand-placed −4 s; the thumb model is verified against Figma's min/max/centre."
+   },
+   {
+    "id": "Banding Removal Radius thumb about 2 pt off (essential-open REVIEW)",
+    "why": "The fixture value 14 is Figma's; 0…32 has no integer value on Figma's 8-stop tick 3. Within REVIEW."
+   },
+   {
+    "id": "critic P2 PER-02 (blocking subtitle-folder syscall)",
+    "why": "The code is in Dialogs/DialogInput.swift and SubtitleFolderRules.swift, which are not G-panels files. The critic assigns it to the orchestrator."
+   }
+  ],
+  "decisionsWritten": [
+   "D054 amended (accepted (agent, 2026-10-17)): The Audio tab's delay sliders end in '+10 s'. Figma 536:1087 labels both ends '-10 s' (1905:7357/7360), a typo of the Subtitles tab's '+10 s' (1905:7372)."
+  ],
+  "filesChanged": [
+   "modules/gui/macosx_redesign/Sources/MXRUI/Panels/PanelControls.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Panels/SettingsSidebar.swift",
+   "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/PanelsGallery.swift",
+   "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/FilterCardParityTests.swift",
+   "redesign/docs/DECISIONS.md"
+  ],
+  "notesForOthers": "[\"Integrator: PanelSlider geometry changed for every panel slider. The thumb has a 2 pt travel inset, ticks spread over 2…W−2, stepped thumbs sit on their tick, and the fill runs to the thumb's far edge. Only Panels/* use PanelSlider. In check --all expect S18/S19/S20 panel entries to improve; compressor-open and stereoWidener-open should be REVIEW/PASS through the D054 deviations.\", \"A test file another area owns blocked compiling the shared test target for a few minutes: SettingsDialogsPolishTests.swift:104, 'Theme.Accent has no member default'. It compiled again later. FigmaDeviationTests currently fails only on S71.Onboarding/shortcuts (a deviation rect outside the entry), which is not a G-panels entry.\"]",
+  "verdict": {
+   "pass": true,
+   "summary": "I re-checked every item on the G-panels work list myself. Every claimed fix holds, and a code review, build, tests and renders found no blocker or major issue.\n\n**Build and tests**\n- `swift build` is clean, with no warnings in Panels files.\n- All targeted suites pass: FilterCardParityTests 13, PanelAuditRegression 9, PanelsTests 5, SidePanelContent 3, PanelValuesRegression 4 and FigmaDeviationTests 6/6.\n- **The new tests catch the old behaviour.** In an isolated copy (since deleted) I put back the HEAD PanelControls.swift and SettingsSidebar.swift and dropped only the pure-geometry test so the rest compiles. The render-based tests then fail with 10 assertions: delay fill, underline at 126.5/187.5 against 122/192, missing hairline, an end tick at 4 pt, and an unblended tick colour.\n\n**What I confirmed against Figma**\n- **End ticks:** gone everywhere; tickFractions for `stops` now covers only the inner stops. Essential, Sepia, Spatializer, Stereo Widener and Background Opacity show inner ticks only and the thumbs sit on their ticks.\n- **Tick count and blend:** I confirmed in figma_file.json that all 75 `degrees` frames use SCREEN blending. The Feedback frame 612:1260 has 10 marks, 8 of them inner, so the parity judge's \"Figma 6\" was a miscount and needs no decision.\n- **Tab underline:** pixel probe at y 97 px matches exactly — 244–383 for Video, 416–555 for Audio, 28–210 for Playback, 589–771 for Subtitles.\n- **Playback hairline:** #222 across the full width at y 102 px against Figma's #212121, and only on the Playback tab, which matches Figma.\n- **Delay fill:** ends at 184 pt; the thumb is 0.5 pt left of Figma's.\n\n**Check results (my reruns)**\n- PASS: S19 spatializer-open (0.003 %), stereoWidener-open (0.001 %), S18 card-closed.\n- REVIEW: S19 compressor-open (0.022 %, flat 0), S18 essential-open (0.037 %), colors-open (0.100 %), S20 subtitles (0.034 %, flat 0), and everything else in S14–S24, with no regressions.\n- FAIL: S17.Sidebar/playback stays at 9.155 % flat colour. That comes only from the D033/D014 row shift, which the parity judge accepted.\n\n**The D054 deviations are legitimate.** The raw comparison with deviations ignored shows Figma's compressor thumbs really contradict their own labels (Ratio 4:1 drawn at 31 % where 16 % is correct), so the difference cannot be made to match. The new D054 bullet for the '+10 s' typo is a single line and is justified by 1905:7372.\n\n**Ownership and rules**\n- Only G-panels files changed, plus the minimal D054 bullet. The engine diff against upstream-base-2026-10-14 for src, lib, include and modules/gui/macosx is empty.\n- No thresholds were loosened.\n- The one new literal (`selectedNarrowTabUnderlineInset` 7.5) sits in the existing PanelMetric enum of Figma-sourced metrics, which follows the area's convention.\n\n**Open items not done by the fixer, both minor**\n- The Equalizer Preamp example was not added to D054 and has no figmaDeviation, so that entry still reports REVIEW with an unexplained area.\n- The Light-scheme look of screen-blended ticks is unchecked; it is in the live checks.\n\nEvidence is in ../build/evidence/final5/polish/G-panels-verify-r1/: a folder per entry with report, render, ref and side-by-side, plus appear.png, compact.png and subs-light.png.",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "S19.Filters/equalizer-open (6114:13615); redesign/docs/DECISIONS.md D054",
+     "description": "The Preamp thumb for 12.0 dB is drawn at its value in VLC's −20…20 range, about 80 % along the track, while Figma draws it about 10 pt further right (about 82–84 %). This follows the same D054 rule as the other filter cards ('thumbs sit at their values in VLC's ranges'), but D054 only names Compressor and Stereo Widener. The parity judge asked for the Equalizer example to be added, and the entry has no figmaDeviation, so the check reports REVIEW with an unexplained flat-colour area at 270,104. It needs a one-line D054 example plus a matching figmaDeviation."
+    },
+    {
+     "severity": "minor",
+     "where": "PanelsGallery.swift filterCardDeviations (compressor-open, stereoWidener-open)",
+     "description": "The D054 deviations leave out whole slider rows (536:1545, 536:1604, …; 328×24 pt each), which is 25 % of the compressor canvas. That hides the track, fill and tick geometry of those rows as well as the thumb. The raw comparison (--ignore-deviations) confirms the only real differences are thumb position and fill length, which follow from the values, so the deviations are justified. But those rows' slider geometry is now only checked indirectly, through the same component in other entries."
+    },
+    {
+     "severity": "minor",
+     "where": "PanelControls.swift PanelSlider ticks .blendMode(.screen), Light scheme",
+     "description": "With screen blending in Light, the light BG/Accent Dark tick (#C6AB89) over the light track (#DEDEDE) comes out as about #F8F4F0. The tick is now lighter than the track, where it used to be darker. Figma has no Light frame for this and Dark matches Figma (#4B3217 on the fill). Whether the inverted tick reads well in Light needs a look in the real window."
+    },
+    {
+     "severity": "minor",
+     "where": "S20.Sidebar/subtitles delay thumb; S18 essential-open Banding thumb",
+     "description": "Two leftovers below the REVIEW threshold. The −4 s thumb is 0.5 pt left of Figma 1905:7368, while the fill end matches exactly at 184/204 pt. The Banding Removal Radius thumb is about 2 pt off: Figma's value 14 of 0–32 cannot land on tick 3 of the 8-stop track. Neither is covered by a decision; both are accepted as sub-pixel or fixture-level."
+    }
+   ]
+  }
+ },
+ {
+  "area": "H-design",
+  "state": "passed",
+  "fixed": [
+   "(d) Light bars #A7A7A7 vs Figma #ABABAA. Figma's stack under the bars is a black fill, then the video image (#2D2B29 at the bar edges), then #D5D5D5 @ 0.75 with a 50 pt background blur. The product now uses that video colour as the base under the pinned bars (raw colour 2425:13624 → Theme.Color.videoUnderBars, MXRBackdropBase). In the Light window the bars draw the tint over that base with no material (MXRBackdropSurface(overCanvasBase:), set through the mxrBarsBesidePicture environment value from MXRAppView). Offscreen all bar samples are now (171,171,170); the bar flat-colour FAIL is gone (flat 0.099 %, was 6.14 %). The same path, with no material, runs in the real window. The remaining S72 FAIL is E-library's thumbnail at 70,752. Evidence: ../build/evidence/final5/polish/H-design/after/S72_Window_light/, after/bars_render_vs_figma.png, before/S72_Window_light/",
+   "(d) S63 dropdown placement: standard lists drop below the field (MXRDropdownListPlacement, .below with the anchor gap, above when there is no room). The preset list and DialogMenu (overField: true) stay over the field. The standard field keeps its down chevron while open (17m31.0). Test: DropdownPlacementTests. Evidence: before/figma_dropdowns.png; key frames 17m31.0 and 06m08.5",
+   "(d) S70 mini player preview: Windows controls replaced by Mac chrome (new Theme.MacWindowControls token group measured from the shipping-window traffic lights: 12 pt, 8 pt apart, at 13 pt; cone after them with the left-group gap; fullscreen only). The S70 entries carry a D022 deviation for the preview top bar, so the check shows only the frame-edge alpha strip. Evidence: after/S70_render_over_figma.png, after/S70_Onboarding_{orange,teal,blue}/",
+   "S70 light variant: swatches are each accent's Accent/Main in the theme shown, so the selected one is #E8851A like Next. In Light the preview bars are the Light window's own bars (BG/A3 Transparent over the canvas base, #ABABAA). Evidence: after/S72_Onboarding_light.png",
+   "(d) S71: checked against the engine's __APPLE__ defaults (the C-bridge mock now reports them). With those bindings the old keycaps rendered empty and the '/' disappeared. Fixed: ⇧ glyph instead of 'SHIFT'; one keycap per binding when a row has two bindings; keycaps and rows are fixedSize, so nothing truncates. Gallery notes updated, with a D026 deviation on the keycap columns. Tests: OnboardingShortcutKeycapTests. Evidence: before/S71_Onboarding_shortcuts/side-by-side.png, after/S71_Onboarding_shortcuts/render.png",
+   "S66 item 1: volume group dashed box 4 pt too tight. Now 130×36 around the speaker and cone, per Figma 2115:7291 (metrics.json customization.outline.volumeHorizontal 5 / volumeVertical 4; LayoutDrag outset for .volume). Evidence: after/S66_volume_box_render_over_figma.png",
+   "S72 gallery hygiene: S72.Window/light now records the D048 head, D049 play button and D022 left/right group deviations, as S01 does. Its stale D046 note was rewritten",
+   "D015 doc leftover: the PiP item is marked resolved by D007, amended in D055",
+   "(d) disabled-opacity token: B-controls added it in my metrics.json (controlBar.iconButton.disabledOpacity 0.3, from Figma I856:2587;848:1877) and uses it in PlayerControls. I regenerated Tokens.swift with gen-tokens.py; output is consistent",
+   "S67 extra divider before the queue (LayoutStore.twoRowExample): already removed by another agent and covered by D057; checked in the diff"
+  ],
+  "notFixed": [
+   {
+    "id": "S50 Light Settings: selected segment, ON cell and Browse vs video 17m44.0",
+    "why": "Kept, recorded as a D032 amendment. Figma has no Light Settings frame, and pixel values come from Figma (PHILOSOPHY §1), so the dark Settings structure stays with the Light styles of the same names. The video frame also tints the unselected 'Dark' segment, so it is not a consistent style to copy. The owner can choose the video's look instead; that is a one-line change in SettingsSegmentedControl, which F-settings owns."
+   },
+   {
+    "id": "S50 scrim in Light (MXRDialogHost)",
+    "why": "F-settings owns it. Not touched."
+   },
+   {
+    "id": "S66/S67 gear icon (plain settings vs playback-settings)",
+    "why": "Already covered by D057's last bullet (keep one icon). No change."
+   },
+   {
+    "id": "S67 left-cluster spacing and transport centring",
+    "why": "A-window's layout; covered by D057 (header spacing, two-spacer centring)."
+   },
+   {
+    "id": "P2 Δ2–3: S43/S44 full-library top bar #191919 vs Figma #1B1B1B",
+    "why": "Kept, with a new D053 bullet. Figma's bar 6261:15080 is BG/A3 Transparent over that frame's own photo fill, so it varies from #191A1A to #1C1C1D along the bar. Under a full library the product has no photo, so the same tint reads #191919."
+   },
+   {
+    "id": "P2 Δ2: music control bar and VolumeCone gradient",
+    "why": "B-controls already covers these in D056 (music bar tint, exact gradient rgb in my colors.json, regenerated)."
+   },
+   {
+    "id": "S69/S70/S71 1–2 px frame-edge strip FAIL",
+    "why": "Tooling artefact: the Figma crop's edge pixels have alpha 226–235 from the frame's fractional position. The product's pixels are the same colour at alpha 255. No product change."
+   },
+   {
+    "id": "S66.Customization/default dialog body #0E0E0E vs #181818",
+    "why": "Needs window-server blur over real video. Listed as a live check."
+   },
+   {
+    "id": "Light accents of the non-orange swatches",
+    "why": "Derived (AccentPalette); owner sign-off pending, since no Figma frame exists."
+   }
+  ],
+  "decisionsWritten": [
+   "D053 bullet 1 rewritten: the Light bars use Figma's exact stack (tint over the frame's #2D2B29 video base, no material), so the Δ4 is fixed rather than excused",
+   "D053 new bullet: full-library top bar Δ≤3 is Figma's tint over its own photo fill",
+   "D034: 'Dropdown lists drop below their field' replaces the owner open question; preset list and dialog header pop-ups stay over the field",
+   "D022 amendment: the onboarding preview draws the Mac bar (Theme.MacWindowControls); Light preview bars are the Light window's",
+   "D026 amendment: onboarding ⇧ glyph; VLC's macOS defaults shown; paired bindings drawn as one keycap each",
+   "D049 amendment: onboarding swatches use each accent's Accent/Main in the shown theme; unselected stay at Figma's 50 %",
+   "D032 amendment: Light Settings keep Figma's dark structure with the Light styles (BG/Accent Bright segment, BG/A4 Browse); the video's solid look is offered to the owner",
+   "D015: PiP item marked resolved by D007/D055"
+  ],
+  "filesChanged": [
+   "redesign/design/tokens/colors.json",
+   "redesign/design/tokens/metrics.json",
+   "modules/gui/macosx_redesign/tools/gen-tokens.py",
+   "modules/gui/macosx_redesign/Sources/MXRDesign/Generated/Tokens.swift",
+   "modules/gui/macosx_redesign/Sources/MXRDesign/Materials/MXRBackdropSurface.swift",
+   "modules/gui/macosx_redesign/Sources/MXRDesign/Theme/MacWindowControls.swift",
+   "modules/gui/macosx_redesign/Sources/MXRDesign/Popup/MXRDropdown.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Customization/MXROnboardingPlayerPreview.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Customization/MXROnboardingView.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Customization/LayoutDrag.swift",
+   "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/CustomizationGallery.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerBars.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/MXRAppView.swift",
+   "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/DialogMenu.swift",
+   "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/ShippingGallery.swift",
+   "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/LightBarBackdropTests.swift",
+   "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/DropdownPlacementTests.swift",
+   "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/OnboardingShortcutKeycapTests.swift",
+   "redesign/docs/DECISIONS.md"
+  ],
+  "notesForOthers": "A-window: MXRAppView.bars now sets mxrBarsBesidePicture, true when the canvas style is underBars and no full library is open. PlayerBars reads it and passes overCanvasBase to its two MXRBackdropSurface calls. In that state the Light bars are the tint over Theme.Color.videoUnderBars (#2D2B29) with no material. PlayerView.canvasFill's bands (MXRBackdropBase) now resolve to that colour. I also added the D048/D049/D022 deviations to S72.Window/light in ShippingGallery. G-panels: DialogMenu passes overField: true. Every other mxrDropdownList caller (SettingsChoiceMenu, PanelDropdown in standard style, MXRDropdown) now drops below the field. A custom pop-up that must open over its field needs overField: true. F-settings: D032 now records that Light Settings keep the BG/Accent Bright segment and the BG/A4 Browse. SettingsControls.swift:360 still uses a literal 0.4 (Figma I3176:16574;3176:16554); a metrics token would make it tokens-only. When I ran my suites, SettingsDialogsPolishTests.swift:104 referenced Theme.Accent.default, which does not exist; it was fixed later by its owner. C-bridge: the onboarding keycaps are verified with your Mac-defaults mock; OnboardingShortcutKeycapTests depends on the mock reporting ⌥⌘→ for jump+short. Integrator: new test files DropdownPlacementTests.swift and OnboardingShortcutKeycapTests.swift; new source file Sources/MXRDesign/Theme/MacWindowControls.swift. After editing colors.json or metrics.json, regenerate Tokens.swift with tools/gen-tokens.py.",
+  "verdict": {
+   "pass": true,
+   "summary": "H-design passes round 1. Every work-list item is either fixed or covered by a decision with evidence. No blocker or major remains that code, tests or renders can establish.\n\nBuild and tests:\n- `swift build` is clean.\n- The targeted suites pass: 63 MXRUISnapshot tests plus Core, among them LightBarBackdrop, DropdownPlacement, OnboardingShortcutKeycap, FigmaDeviation, Customization*, Onboarding*, WindowShippingParity, WindowComposition, LayoutStore and MockShortcutDefaults.\n- The fixer's revert log shows that all three new or tightened tests fail with their fix reverted.\n- The engine diff (`git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx`) is empty.\n\nItem by item:\n- **(d) Light bars: fixed.** The S72.Window/light shipping-window render reads (171,171,170) at every bar sample, the same as Figma, and the video under them is (45,43,41) in both. The bar flat-colour FAIL is gone (flat 0.063 %). The only remaining FAIL is E-library's thumbnail at 70,752.\n  - The layer stack is correct: Figma's #2D2B29 video under BG/A3 @ 0.75 gives exactly #ABABAA. The product draws the same tint over a raw-colour token with no NSVisualEffectView, only while the bars are pinned beside the Light picture (`.underBars`, no full library).\n  - D053's bullet no longer excuses a difference.\n- **S63 dropdown: fixed.** `MXRDropdownListPlacement` drops standard lists one anchorGap below the field, and above it when there is no room. Only the preset list and DialogMenu open over the field. This matches video 17m31.0 (the gap there is about 7 pt). Figma's \"open\" variant is only a component-set layout, so the video is the right source.\n- **S70: fixed.** I looked at the render over Figma. The preview now shows traffic lights, then the cone, and only fullscreen on the right. In Light, the selected swatch is #E8851A, the same as Next, and the preview bars are #ABABAA.\n- **S71: fixed.** The render shows Mac engine defaults with the ⇧ glyph, no empty keycaps and the '/' separators.\n- **S66 volume box: fixed.** The crop of render over Figma lines up at 130×36.\n- **Disabled-opacity token:** present, `controlBar.iconButton.disabledOpacity` 0.3. PlayerControls has no literal 0.4 left.\n- **D015 PiP leftover:** fixed.\n- **S72 gallery deviations (D048 and D049):** added.\n- **S50 Light Settings:** recorded as a D032 amendment. Figma has no Light Settings frame, and the 17m44.0 frame is mid-transition, so the record is defensible; the owner may still choose the video's look.\n- **Regressions:** none. S01.Window/shipping is still PASS, C.Dropdown/default-open and S67.Customization/two-row-edit are still REVIEW. S66.App/customization (bar Δ3) and S66.Customization/default (no real blur offscreen) were already listed as FAILs in integration.json. S69, S70 and S71 FAIL only on the documented frame-edge alpha strip at 0,752.\n\nOwnership: the edits outside H-design's files are declared and minimal. The rowTop refactor in MXRPopupStyle and MXRPopupPresenter is not in H-design's report and looks like another area's work.\n\nEvidence: ../build/evidence/final5/polish/H-design-verify-r1/ (check/S72_light/report samples, check/S70_Onboarding_orange/topbar_render_over_figma.png, check/S71_Onboarding_shortcuts/keycaps.png, check/S66A/vol.png, onb-light.png, general-light.png).",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "Sources/MXRUI/Customization/MXROnboardingView.swift onboardingKeycaps(pairedWithAnother:)",
+     "description": "S71 mixes two keycap styles on one screen. Rows with one binding split the modifiers into separate keycaps ('⌘' 'F', '⌥' '⌘' 'S'). Paired rows combine each binding into one keycap ('⌘↑', '⌥⌘←'). The D026 amendment documents this and the result is legible, but it looks inconsistent next to Figma's split style. The owner should confirm."
+    },
+    {
+     "severity": "minor",
+     "where": "Settings accent swatches (F-settings) vs onboarding swatches (H-design, D049 amendment)",
+     "description": "In Light, the onboarding swatches now use Light/Accent/Main (#E8851A). The Settings › General accent swatch row still draws the dark swatch hex #D37918 (sampled at 722,178 in S48.Settings/general-light). The same picker therefore looks different in two places. Either align Settings or extend the D049 bullet."
+    },
+    {
+     "severity": "minor",
+     "where": "redesign/docs/DECISIONS.md D032 amendment (S50)",
+     "description": "The pale BG/Accent Bright selected segment and ON cell, and the BG/A4 Browse, differ from video 17m44.0 (solid accent, white text, near-black Browse). Keeping them is defensible, since Figma has no Light Settings frame and the video frame is mid-transition. It is still an agent decision waiting for the owner, not an unjustified excuse."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRDesign/Theme/MacWindowControls.swift",
+     "description": "The traffic-light colours and geometry are hand-written constants in a Theme file, not generated from tokens JSON. This is acceptable as a Theme token group, but it is not in colors.json or metrics.json and has no Figma node. It stands in for a picture of AppKit chrome."
+    }
+   ]
+  }
+ },
+ {
+  "area": "I-build",
+  "state": "passed",
+  "fixed": [
+   "(d)/(c) verifier open[0] + critic P2: native-tests.py skipped the vlc-cache-gen step without a word. main() now calls parser.error naming the target (make -C $BUILD/bin vlc-cache-gen) before mkdtemp, and run_suite raises SystemExit if no plugins.dat appears. New tests in tools/test-native-runtime-isolation.py: test_missing_cache_gen_fails_every_suite_before_any_command (contracts/audio/media/extensions) and test_cache_gen_that_writes_no_index_fails_before_any_harness. They fail on the HEAD runner (5 failures): ../build/evidence/final5/polish/I-build/mutation-old-runner.txt, native-tests-HEAD-mutation.py. Real-tree runs: ../build/evidence/final5/polish/I-build/native-*.log (audio shutdown 34 ms).",
+   "(d)/(c) verifier open[3] + critic P2: rerunning gen_screens.py would drop the SCREENS.md preamble and the Parity · live column. Both now live in redesign/tools/figma/gen_screens.py: computed column (worst verdict per S-id, owners from the owner field), LIVE notes dict, --parity/--out/--check options. Run against finish/parity.json it matches the old hand-made column on 72/72 rows. SCREENS.md is regenerated from results/resume/parity.json, and `gen_screens.py --check` passes.",
+   "(d) Guard test tools/test-screens-doc.py (3 tests): the committed SCREENS.md must equal the generator output, every row must have 9 cells with a valid verdict, and the column must follow its parity input. It fails on the HEAD SCREENS.md (checked with --check: STALE). Added to make check-macosx-redesign in Makefile.am.",
+   "(d) WORKFLOW.md: SCREENS.md is generated; claim/mark-done steps now say to rerun the generator; DoD checkbox uses gen_screens.py --check. BUILD.md: the vlc-cache-gen step is mandatory and the failure mode is documented.",
+   "(d) HANDOFF.md rewritten (Russian, 2026-10-17). It covers: commits fae8f04dc0 → 3c690eb2a0 → ddd9d23a9d and the running final-close.js wave; results/finish, parity, resume and interrupted; durable evidence in build/evidence/final4 and final5; the lost /private/tmp evidence; the native and live locks and MXR_LOCK_DIR; the parallel live wave final-live2.js with results in final5/live/<group>; the owner-accepted decisions and the pending ones (D042, D044, D046–D057, agent amendments to D007/D028/D032/D034/D039/D044, D030 defaults); how to continue.",
+   "(c) B-controls note: the fixture suite did not compile at HEAD. Re-run on the real tree: PASS (native-fixture.log, fixture.json). C-bridge note: the media suite with effects-runtime passes. E-library note: headless-regressions with the new playlist-order section passes."
+  ],
+  "notFixed": [
+   {
+    "id": "(a) parity.json screens owned by I-build",
+    "why": "resume/parity.json has no screen whose owner mentions I-build, and none of its differences comes from I-build files. Nothing to fix."
+   },
+   {
+    "id": "(c) verifier open[1]: no-op make measured on a changing tree (~54 s wall time)",
+    "why": "A frozen-tree measurement is impossible while 10 agents edit the checkout. The integrator should run make twice on the committed tree under the native lock and compare archive/dylib/.la mtimes; the 54 s is SwiftPM planning plus upstream qml.deps."
+   },
+   {
+    "id": "(c) verifier open[2]: shipping-window light render has no 10 pt frame",
+    "why": "This belongs to A-window, not I-build. D055 now records that Player - Light has no frame."
+   },
+   {
+    "id": "critic P2 other bullets (PlayerControls 0.4 opacity, VLCSettingsBackend.swift:7 'plugin rescan' comment)",
+    "why": "Owned by B-controls/H-design and C-bridge respectively; not I-build files."
+   }
+  ],
+  "decisionsWritten": [],
+  "filesChanged": [
+   "modules/gui/macosx_redesign/tools/native-tests.py",
+   "modules/gui/macosx_redesign/tools/test-native-runtime-isolation.py",
+   "modules/gui/macosx_redesign/tools/test-screens-doc.py",
+   "modules/gui/macosx_redesign/Makefile.am",
+   "redesign/tools/figma/gen_screens.py",
+   "redesign/design/SCREENS.md",
+   "redesign/docs/BUILD.md",
+   "redesign/docs/WORKFLOW.md",
+   "redesign/research/final-polish/HANDOFF.md"
+  ],
+  "notesForOthers": "[\"Everyone: SCREENS.md is now generated. Do not hand-edit it. To change it, edit redesign/tools/figma/gen_screens.py (SCR rows, the LIVE dict for live results, the preamble) or pass a new --parity JSON, then rerun. tools/test-screens-doc.py fails when the file and the generator disagree.\", \"Live wave / triage: put the new live results into the LIVE dict in gen_screens.py and set LIVE_RUN to the run and build. The current notes are from run 1 on the fae8f04dc0 build.\", \"Integrator: native-tests.py now refuses to run without $BUILD/bin/vlc-cache-gen, and stops if that tool writes no plugins.dat. To rebuild it: make -C $BUILD/bin vlc-cache-gen. Makefile.am gained one line in check-macosx-redesign, so automake regenerates on the next make.\"]",
+  "verdict": {
+   "pass": true,
+   "summary": "I-build verify round 1: PASS. The fixer's claims hold. Only minor issues remain, and the HANDOFF ones are documentation gaps.\n\n**Plugin-cache gate (work list d, critic P2, verifier open[0]).**\n- tools/native-tests.py now calls parser.error naming `make -C $BUILD/bin vlc-cache-gen` when the tool is missing, before mkdtemp. run_suite always runs vlc-cache-gen and raises SystemExit when no plugins.dat appears.\n- The new regression tests fail on the HEAD runner: 5 failures out of 6 tests, run via MXR_NATIVE_RUNNER on an isolated copy. Output: ../build/evidence/final5/polish/I-build-verify-r1/mutation-head-runner.txt.\n- I re-ran the extensions, audio and library suites on the real tree under the native lock myself: all PASS (native-*.log in the same folder). The fixer's 10 suite logs each show the cache-gen step running.\n\n**SCREENS.md generator (work list d, verifier open[3]).**\n- gen_screens.py now emits the preamble, the 'Generated, do not edit' marker, Status = implemented UI and the computed 'Parity · live' column. It has --parity, --out and --check options.\n- `--check` reports up to date.\n- The resume/parity.json counts match the preamble: 160 checks, 101 match, 39 minor, 2 major, 1 missing, 17 not checked.\n- With finish/parity.json, all 72 rows match the old hand-made column. The only change is a run/build tag on the 7 LIVE rows.\n- The generator's output does not depend on local-only reference frames (missing frames only add to the problems list). All its inputs are tracked in git.\n- test-screens-doc.py (3 tests) passes and is wired into check-macosx-redesign with a proper tab.\n\n**Other checks.**\n- All 9 tools/test-*.py pass.\n- `swift build` is clean. No Swift, UI or DECISIONS files were changed by I-build, so no renders were needed and no Settings gate is involved.\n- The engine diff against upstream-base-2026-10-14 (src, lib, include, modules/gui/macosx) is empty.\n- WORKFLOW.md and BUILD.md describe the new behaviour correctly.\n- Work list (a): no parity screen names I-build. The other notFixed items belong to other areas or need a frozen tree, which is reasonable.\n- The gen-tokens.py diff and the library-soundtrack line in native-tests.py come from other areas. Both still work: the library suite passes.\n\n**HANDOFF.md.** It covers the commits, the results folders, final4/final5, the lost /private/tmp evidence, both locks (I checked the lock.sh default path), the live wave and how to continue. Gaps:\n- The pending list leaves out this wave's H-design amendments to D022 and D026.\n- The steps do not list the frozen-tree make re-measure or the critic's orchestrator audit-debt items.",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "redesign/research/final-polish/HANDOFF.md, section 'Решения, которые ждут владельца'",
+     "description": "The pending-amendment list names D007, D028, D032, D034, D039 and D044. It leaves out the H-design amendments added this wave to D022 (onboarding step 2 player preview, S70, DECISIONS.md:267) and D026 (onboarding keycaps write Shift as ⇧, S71, :299). The second D032 amendment (Light Settings S50, :362) is covered only because D032 is already on the list. The grep pointer in the file does find them, but the list as written is incomplete."
+    },
+    {
+     "severity": "minor",
+     "where": "redesign/research/final-polish/HANDOFF.md, 'Как продолжить'",
+     "description": "Two open follow-ups are not in the continuation steps: the frozen-tree no-op make re-measure (run make twice on the committed tree under the native lock and compare archive/dylib/.la mtimes), which I-build deferred, and the critic's orchestrator P2 audit debt (PER-02, CODE-06, CODE-02/C-08 DTOs, B-15/CODE-08 bridge split), which needs a decision or a scheduled task."
+    },
+    {
+     "severity": "minor",
+     "where": "modules/gui/macosx_redesign/tools/test-native-runtime-isolation.py: test_missing_cache_gen_fails_every_suite_before_any_command",
+     "description": "The test name says no command runs, but the test only asserts SystemExit and the 'vlc-cache-gen' message. It does not assert that the recorded calls list is empty. Today the guard sits before mkdtemp, so the behaviour is correct. A guard moved later would still pass this test."
+    },
+    {
+     "severity": "minor",
+     "where": "fixer summary, gen_screens.py --parity finish/parity.json",
+     "description": "The fixer said the generator reproduces the old hand-made column 'exactly'. In fact all 72 rows match except the 7 LIVE rows, which now add a ' [run 1, fae8f04dc0]' run/build tag. Verdicts and owners are identical. This only overstates the claim; the output is correct."
+    }
+   ]
+  }
+ },
+ {
+  "area": "J-media-io",
+  "state": "passed",
+  "fixed": [
+   "(a) parity S37 Convert minor-diff: the Format dropdown now matches the Figma dialog dropdown (Add Subtitles 1959:5324), the same as Add Subtitles. The Light Format field no longer looks like a darker pressed block. Disc and Capture dropdowns were changed the same way. Before: ../build/evidence/final5/polish/J-media-io/before/S37_Convert_empty{,_light}.png. After: ../build/evidence/final5/polish/J-media-io/after/S37_Convert_empty{,_light}.png, after/S37_Disc_empty_light.png, after/S37_Capture_empty*.png. Figma reference crop: ../build/evidence/final5/polish/J-media-io/figma_addsubs_header.png",
+   "(c) verifier open[1] / (d) half-point sheet heights: Capture 344.5 to 343, Stream 679.5 to 680, Disc 434 to 432 (432 because the dropdown is now 34 pt instead of the Settings 36 pt). Frames are rounded up to whole points and the content layout does not move. Test: testOpenMediaSheetsAreWholePointsTall",
+   "(c) verifier open[2] / (d) J-03 wiring: the logic moved into the OutputForm controller, which the view only forwards to. Completion is settled once per job before any action, so a later Replace is not undone. New tests in Tests/MXRUISnapshotTests/OpenMediaIOTests.swift: testAFormatChangeRenamesTheDestinationAndAsksBeforeReplacing, testTheSavePanelsNameIsReplacedWithoutAsking, testAFinishedFileIsNotReplacedSilently, testReopeningShowsTheRunningJobWithoutConfirmingItsFile. A mutation run (no completion settle, no rename on format change, no rounding) gave 8 failures: ../build/evidence/final5/polish/J-media-io/mutations.log",
+   "(b) critic P1 / (c) verifier open[0] / (d) Light DialogButton tiles: checked after F-settings' DialogButton.secondaryFill fix (Light BG/A4). Choose… and Cancel are visible in Convert, Stream, Disc and Capture Light: ../build/evidence/final5/polish/J-media-io/after/*_light.png",
+   "(a) S37 Stream running and Disc/Capture renders were checked after the change. The running state is restored from the job, the host shows Studio-Mac.local, and the Format dropdown is disabled while streaming: after/S37_Stream_running.png"
+  ],
+  "notFixed": [
+   {
+    "id": "(a) S36 Network Stream disabled-Save delta #525252 vs #54524F, corner antialiasing",
+    "why": "The parity verdict is match and both come from shared DialogShell/DialogFooter code, not J files. Nothing to fix."
+   },
+   {
+    "id": "(a) Open from Clipboard (not-checked)",
+    "why": "It has no dialog to render. The behaviour needs the real app, so it is in liveChecks."
+   },
+   {
+    "id": "Light segmented control (Disc Type, Send To) still in Settings style",
+    "why": "SettingsSegmentedControl belongs to F-settings, and Figma has no dialog segmented control to match. It is consistent with Settings Light. I left it unchanged."
+   },
+   {
+    "id": "(b) critic P2 PER-02 (subtitle-folder I/O on MainActor)",
+    "why": "That code is in DialogInput.swift and SubtitleFolderRules, which J does not own. Owner assignment is the orchestrator's call."
+   },
+   {
+    "id": "COMP-08 audio-track matcher",
+    "why": "The owner has not scheduled it (D039 amendment by E-library). It spans C-bridge and E-library files."
+   }
+  ],
+  "decisionsWritten": [],
+  "filesChanged": [
+   "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/OpenMediaDialogs.swift",
+   "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/OpenMediaIOTests.swift"
+  ],
+  "notesForOthers": "Integrator: the Convert/Stream form logic is now the OutputForm controller in OpenMediaDialogs.swift (MXRUI), and the view only forwards actions to it. Gallery sizes come from preferredSize: Disc 713×432, Capture 713×343, Stream 713×680. No other file needed changes. F-settings: the DialogButton secondaryFill (Light BG/A4) fix is checked in all four J dialogs. The Light SettingsSegmentedControl (Disc Type, Send To) is still the Settings well, which is consistent with Settings Light, and I left it unchanged.",
+  "verdict": {
+   "pass": true,
+   "summary": "J-media-io passes independent verification (round 1). No blocker or major is left.\n\n**Tree state.** Engine untouched: `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty. The fixer changed only OpenMediaDialogs.swift and its own OpenMediaIOTests.swift. No DECISIONS entries were added or amended, and none were needed. The Settings gate was not touched. Values come from tokens only: no literal colours or sizes in OpenMediaDialogs.swift, and SettingsChoiceMenu is no longer used there. `swift build` is clean.\n\n**Targeted tests pass on the shared tree:** OpenMediaIOTests (9), OutputModelTests (7), DialogsTests (20) and OutputAdapterTests.\n\n**Mutations, run in an isolated copy at ../build/evidence/final5/polish/J-media-io-verify-r1/pkg:**\n- settle made a no-op: 2 failures.\n- No rename on format change: 5 failures.\n- No Stream rounding: 1 failure (679.5).\n- Settle's once-guard removed: no failures. I wrote a scratch test for finish, Convert, Replace. It passes on the real code and fails without the guard. This is the minor test gap listed in issues.\n\n**Work list:**\n- **(a) S37 Convert minor-diff: fixed.** I looked at the renders next to Add Subtitles and its Figma header. The Format, Disc and Camera dropdowns are now the dialog dropdown: #151515 BG/A5 fill, the same as S26's header dropdowns, 34 pt tall, FG/A1 title, FG/A2 chevron. In Light the field is a #F4F4F4 tile, no longer a dark pressed block.\n- **(a) S36 Network Stream: unchanged.** REVIEW, with the same disabled-Save Δ4 and corner antialiasing.\n- **(a) Disc, Capture, Stream (empty and running): consistent.** The running state shows Studio-Mac.local, and the Format field is disabled while streaming.\n- **(b) critic P1 and (d) Light DialogButton: fixed.** Choose… and Cancel tiles are visible in Light in Convert, Stream, Disc and Capture.\n- **(c)/(d) Whole-point sheets: fixed.** Capture 713×343, Disc 713×432, Stream 713×680. The extra fraction (under 1 pt) is space above the footer, which the test checks.\n- **(c)/(d) J-03 wiring: fixed at the root.** The logic is now an @MainActor @Observable OutputForm controller, and the view only forwards actions to it. The tests drive that same object over MockOutput (EEXIST, Replace, Cancel, completion, resume). The onChange wiring is gone.\n\n**Minor issues:**\n- The sheet-size test lacks @MainActor, which gives 5 strict-concurrency warnings when the tests build.\n- The once-guard has no test, as above.\n- Disabled dropdown text has low contrast.\n- The Light segmented control belongs to F-settings.\n\nRenders are in ../build/evidence/final5/polish/J-media-io-verify-r1/r/.",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "Tests/MXRUISnapshotTests/OpenMediaIOTests.swift:131,140-141 testOpenMediaSheetsAreWholePointsTall",
+     "description": "The test is not @MainActor, but it reads the main-actor-isolated MXRDiscView/MXRCaptureView/MXRStreamView.preferredSize. A clean `swift build --build-tests` gives 5 strict-concurrency warnings here, and they become errors in Swift 6 language mode. The fixer's 'no warnings' claim is true only for `swift build`, which does not compile the tests. Fix: mark the test @MainActor."
+    },
+    {
+     "severity": "minor",
+     "where": "OutputForm.settle(_:) / OpenMediaIOTests",
+     "description": "The claim 'Replace is not undone afterwards' is true in the code but no shipped test covers it. In an isolated copy, removing the `settledJobID != job.id` guard (so completion clears the confirmation again on every action) still passes all 9 tests: testAFinishedFileIsNotReplacedSilently goes through a format change, which forgets the finished job first. I added a scratch test in the copy for the direct path (finish, Convert, Replace). It passes on the real code. With the guard removed it fails: the Replace question comes back and no second job starts. A test for that path should be added."
+    },
+    {
+     "severity": "minor",
+     "where": "OpenMediaDialogs.swift DialogChoiceFieldLabel (disabled)",
+     "description": "When disabled, the dropdown ('No disc found', 'No camera found', the Format field while streaming) has FG/A4 text on the BG/A5 fill. That is very low contrast in Dark, but the section hint above repeats the message. This matches the other disabled dialog controls. Cosmetic."
+    },
+    {
+     "severity": "minor",
+     "where": "SettingsSegmentedControl in Open Disc / Stream (F-settings file)",
+     "description": "In Light, the Disc Type and Send To segmented controls still use the Settings well (grey tiles). There is no Figma dialog segmented control to compare against. The fixer correctly left it, since F-settings owns that file."
+    }
+   ]
+  }
+ }
+]

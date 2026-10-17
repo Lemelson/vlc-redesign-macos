@@ -1,0 +1,31 @@
+{
+ "pass": false,
+ "issues": [
+  {
+   "severity": "major",
+   "where": "A-05 runtime: /Applications/VLC Redesign.app (installed 18:50 by another area)",
+   "description": "The real-app part of A-05 is still not done. Nobody has captured S01, S72, the compact library, the queue or Hide UI from the real window, measured CPU at 1080p (bars shown against Hide UI), checked cursor hiding in fullscreen, or tried the PiP window and placeholder in the live app. I could not do it either: when I checked at 19:03 the HID idle time was 0.06 s (the owner was using the Mac), and B-controls held the native lock (taken 19:00). The integrator has to run it under lock.sh and wait-idle.sh. Everything else in A-05 is verified: the Player-6 media fixture and the strict four-region test both pass."
+  },
+  {
+   "severity": "minor",
+   "where": "Sources/MXRGalleryCatalog/Entries/ShippingGallery.swift:22 (S72.Window/light notes)",
+   "description": "The note is stale. It still says 'Known difference (D043): the Light bars are BG/A3 75 % over the window', but D046 (another area) has superseded D043 and gives MXRBackdropSurface a darkAqua base. The S72 bars now render #A8A8A8 against Figma #ABABAA (Δ3), so the bar difference the note describes no longer exists. A-03 is therefore resolved by D046, not by D043. Update the note to point at D046, or remove it."
+  },
+  {
+   "severity": "minor",
+   "where": "MXRAppView.swift overlays(); MXRContinueWatchingToast (another area)",
+   "description": "A-08 placement is correct: the toast is centred in the visible video, right of the compact library. But at 640 pt with the compact library the message truncates to 'You alr…' (S12_Window_continue-narrow.png), which reads as broken. At narrow widths the toast should drop the message and keep only the actions. The copy belongs to the toast owner."
+  },
+  {
+   "severity": "minor",
+   "where": "Sources/MXRUI/Player/PlayerBars.swift:247",
+   "description": "`.help(app.windowTitleFileName ?? \"\")` passes an empty tooltip string for network and other non-file media. Apply .help only when a file name exists."
+  },
+  {
+   "severity": "minor",
+   "where": "Sources/MXRUI/MXRAppView.swift pictureInPicturePlaceholder",
+   "description": "The PiP icon is sized with Theme.Metric.ControlBar.playButton.width, a metric borrowed from an unrelated control instead of an icon-size token. It is not a literal value, but it is a semantic smell."
+  }
+ ],
+ "summary": "The code fixes for 12 of the 13 A-window findings check out; pass is false only because A-05's real-app check still has not been run.\n\n**Build and tests.** swift build is green, and none of the window-area files (MXRAppView, PlayerBars, PlayerGeometry, AppModel, the gallery files, MXRPlugin) produce new warnings. The concurrency warnings that remain are in MXRMenuAccessibility.swift, which is another area's file. Targeted tests all pass:\n- WindowCompositionTests: 12\n- AnchoredPopupPinPolicyTests: 3\n- PlayerProgressRegressionTests: 4\n- GalleryRenderTests testShipping*: 3\n\nLog: <scratch> I looked at next to Figma.** All outputs are in <scratch> **S01 against Player-6.** The control bar matches. The only differences are:\n  - The playhead: at 346,1040 the render is about 1 % further right than Figma. Figma's own 00:02:10 / 00:25:40 implies 8.4 %, so the fixer's explanation holds.\n  - The left of the top bar: the macOS traffic lights shift the cone and the group to the right (decision D022).\n  - The right of the top bar: Figma's Windows-style window buttons are replaced (D022).\n- **A-01.** The divider is followed by the chip ('Videos' or 'S01').\n- **A-04.** The titles read 'The Wand S01E11', 'The Wand S01E04' and 'DON'T BLINK', with no extension. The full file name is in the tooltip and accessibility label.\n- **A-07.** At 480 pt the title is hidden rather than drawn as '…'. At 640 pt the chip shrinks to its icon and the title stays centred.\n- **A-02.** The OSD sits to the left of the queue (S13), and the full library has none.\n- **A-08.** The toast is inside the video, right of the compact library.\n- **A-06.** The PiP placeholder is an fg2 icon plus one caption taken from MXRPlayerCopy, and the whole placeholder is a button.\n\n**Code checks.**\n- **A-01.** The `.filter` is gone.\n- **PlayerRowLayout.** The title-gap fix is correct: the title is placed with `continue` before `x += gap`, so counting its gap in `fixed` had cut the flexible width.\n- **A-13.** canPerform turns off all four panel commands over the full library.\n- **A-12.** The test now opens a real popup through MXRPopupAnchor and checks the bar pin through `anchoredOwner`. That property is observable, and MXRAppView's `onChange` on `Inputs` picks it up.\n- **A-09.** The unused `reserved` parameter is removed.\n- **A-10.** MXRVoutWindow.m (fixed by another area) routes clicks synchronously from an atomic flag kept current by a `video-filter` var callback, and removes the callback before the window goes away.\n- **A-11.** D041 still needs the owner's sign-off.\n- **A-03.** This is now resolved by D046, which supersedes D043. S72's light bars render #A8A8A8 against Figma #ABABAA.\n\nNo masks or thresholds hide differences: the strict test leaves out only the documented D022 areas (traffic lights and window buttons) and the seek bar. I found no engine edits. Edits outside the area are limited to those listed.\n\n**Still open.**\n- **A-05 real-app check (major).** I could not run it: the owner was using the Mac (idle 0.06 s) and B-controls held the native lock.\n- **Minor issues:**\n  - The S72 gallery note still cites the superseded D043.\n  - The resume toast's message truncates to 'You alr…' at 640 pt.\n  - The title passes an empty `.help(\"\")` tooltip for non-file media.\n  - The PiP icon is sized with the play button's width metric instead of an icon-size token."
+}

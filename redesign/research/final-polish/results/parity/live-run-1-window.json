@@ -1,0 +1,185 @@
+{
+ "results": [
+  {
+   "group": "1-window",
+   "build": "/Applications/VLC Redesign.app mtime Oct 16 21:19:19 2026 (epoch 1792174759); unchanged at end",
+   "settingsRestored": true,
+   "summary": "I drove the installed app with synthetic input on a 1728x1117 pt Retina display. Load averages ran from 250 down to 68 during the run. Shots are in <scratch> Both owner complaints pass: C3 (one top bar about 40 pt, traffic lights centred, cone right after them) and C5 (the settings sidebar overlays the video, which stays exactly where it was). Also passing: the window layout, queue and Hide UI, CPU, cursor auto-hide, and PiP (opened from the Video menu). Two checks fail. (1) In fullscreen, pointing at the top edge shows only the macOS menu bar and a blank system title strip; the app's own top bar never comes back. (2) The Light theme reads lighter than expected (bars about #BBB9B9 against #ABABAA, compact library tinted #D3B7B4 to #E1CDC9 by the video against #C2C2C1). In Light the video is also rescaled to the full window width when the compact library opens, which Dark does not do. The resume-toast check is NOT-RUN: with the 60 s test files no 'Continue Watching' prompt appeared. The app quit cleanly in about 1 s. Theme, window frame and vlcrc are back to their original values, and the lock is released.",
+   "checks": [
+    {
+     "id": "C3",
+     "area": "A-window",
+     "result": "PASS",
+     "expected": "Single 40 pt top bar, traffic lights vertically centred in it, VLC cone right after them.",
+     "observed": "One top bar. The video starts at y=82 px (41 pt; at most 1 pt over 40). The red traffic light spans y 24-53 px, centred at about 19.5 pt. The cone sits right after the traffic lights, then the ⋯ button, the sidebar toggle, the divider, the 'Videos' chip, the centred title and the fullscreen button. There is no second title bar.",
+     "evidence": "shots/A05-S01-paused.png (column and row scans with ui col/row)"
+    },
+    {
+     "id": "C5",
+     "area": "A-window",
+     "result": "PASS",
+     "expected": "Sidebar overlays the video; the video is not shrunk or moved.",
+     "observed": "Opened the gear sidebar during playback. The panel floats over the right of the video. The video's left edge stays at x=129 px, the same as without the sidebar, and its size does not change.",
+     "evidence": "shots/C5-sidebar.png vs shots/A05-S01-paused.png"
+    },
+    {
+     "id": "A-05-S01",
+     "area": "A-window",
+     "result": "PASS",
+     "expected": "Capture matches S01.Window/shipping and Player-6 apart from the D022 differences; one 40 pt top bar with centred traffic lights.",
+     "observed": "The layout matches Player-6: top bar, framed video with a 10 pt side inset, control bar about 54 pt (Figma about 55). Differences are D022 only (traffic lights on the left, no Windows-style buttons on the right). Prev/next are dimmed because only one item is queued. I could not test at 1920x1080 because the display is 1728x1117 pt; the window was 1728x1001. The test media is 60 s long, so I paused at 00:00:33 rather than 02:10.",
+     "evidence": "shots/A05-S01-paused.png, shots/01-initial.png, compared with redesign/design/figma/renders/Player-6.png"
+    },
+    {
+     "id": "A-05-S72",
+     "area": "A-window",
+     "result": "FAIL",
+     "expected": "In Light, the bars over the video read about #ABABAA and the compact library about #C2C2C1 (D046); the layout matches S72.",
+     "observed": "In Light the top bar measures #BCBBB8 / #BBB7BC and the control bar #BBB7BB, about 16 levels lighter than expected. The compact library takes on the colour of the video behind it: #D3B7B4 to #E1CDC9 over red and #CEDDCA over green, against #C2C2C1. When the library opens in Light, the video is also rescaled: colour-bar width goes from 308 to 331 px, it fills the full window width with no frame or pillarbox, and the subtitle is cut off by the control bar. In Dark the same library leaves the video geometry unchanged (bars 308 px). In S72 the video starts at the library's right edge instead. The owner's library has no 'The Wand S01' folder, so the Home view was used.",
+     "evidence": "shots/S72-library.png (pixels at 1500,40 / 2400,1990 / 300,1500 / 700,1500), shots/library-dark.png, redesign/design/figma/renders/Player - Light.png",
+     "suspectedCause": "A-window / theme: the Light bar material and compact-library backdrop are too translucent or not using the D046 dark base. A Light-only video-host layout path aspect-fills the video when the compact library is shown (MXRUI player composition, PlayerView / MXRVideoHost layout)."
+    },
+    {
+     "id": "A-05-queue-hideui",
+     "area": "A-window",
+     "result": "PASS",
+     "expected": "The queue sits over the right of the video with the OSD to its left; Hide UI leaves no bars, only the thin 10 pt frame (S06).",
+     "observed": "The queue panel floats over the right of the video, and the seek OSD ('00:48 / 01:00 Pressed ←') sits just to its left. View > Hide UI (⌘\\) removes both bars and the queue, leaving a #242424 frame of exactly 20 px (10 pt) around the video, as in 'Player - hide UI'. Minor: after Hide UI is turned off, the queue that was open before stays closed. The OSD showed 00:48 while the bar showed 00:38, so the OSD text was one seek behind.",
+     "evidence": "shots/A05-queue.png, shots/A05-queue-osd.png, shots/A05-hideui2.png, shots/A05-hideui2-move.png, shots/unhidden2.png"
+    },
+    {
+     "id": "A-05-cpu",
+     "area": "A-window",
+     "result": "PASS",
+     "expected": "CPU with the bars shown is not much higher than with Hide UI on; no constant redraw while idle.",
+     "observed": "I used about 30 s windows instead of 60 s because the media is 60 s long. top -pid 43599: playing with bars shown, a steady 7.1-8.0% (cpu-bars.txt, load 106 to 81). Playing with Hide UI on, 4.9-6.1% (cpu-hideui3.txt, load about 85). Paused with bars shown, 0.7-1.5% (cpu-paused-bars.txt). The bars add about 2 percentage points while playing, and there is no idle redraw while paused.",
+     "evidence": "live/1-window/cpu-bars.txt, cpu-hideui3.txt, cpu-paused-bars.txt"
+    },
+    {
+     "id": "A-05-cursor",
+     "area": "A-window",
+     "result": "PASS",
+     "expected": "In fullscreen the cursor and bars hide after the delay; moving the mouse brings the cursor back, and each bar returns only near its edge (D023).",
+     "observed": "In fullscreen with the mouse still, both bars and the cursor were gone at 5 s. After a small move the cursor returned and the bars stayed hidden. Near the bottom edge only the control bar returned. The top-edge part fails; see the fullscreen bar reveal check.",
+     "evidence": "shots/fs2-0.png, shots/fs2-5s.png, shots/fs2-moved.png, shots/fs2-bottom.png"
+    },
+    {
+     "id": "critic:fullscreen bar reveal",
+     "area": "A-window",
+     "result": "FAIL",
+     "expected": "In fullscreen, pointer near the top edge shows only the top bar and pointer near the bottom edge only the control bar; the video does not jump; no frame.",
+     "observed": "Bottom edge: correct. Only the control bar appears, the video does not move (top stays at y=103 display px) and there is no frame. Top edge: the macOS menu bar slides down with a blank native title strip that holds only the system traffic lights (minimise greyed). The app's own top bar (cone, ⋯, sidebar toggle, chip, title, exit-fullscreen) never appears, even with the pointer resting inside that strip at y=30 and y=50 for 1-2.5 s.",
+     "evidence": "shots/fs2-top.png, shots/fs3-top-2.5s.png, shots/fs3-top-y30.png, shots/fs3-top-y50.png, shots/fs2-bottom.png",
+     "suspectedCause": "A-window: modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerChrome.swift (nearTop zone) and the pointer monitor in MXRUI/MXRAppView.swift around line 113. At the top edge the pointer is over the system menu bar or the separate fullscreen titlebar window (window id 144031, 1728x40 at y=-7 to 33), so the main window never sees it near the top and nearTop stays false. The native fullscreen title strip is also not hidden or replaced by the app's bar."
+    },
+    {
+     "id": "A-05-pip",
+     "area": "A-window",
+     "result": "PASS",
+     "expected": "The video moves into the native PiP window and the main window shows the fg2 PiP icon with its caption; clicking the placeholder or closing PiP brings the video back.",
+     "observed": "The default top bar has no PiP button; PiP is a customisable control-bar item. I started it from Video > Picture in Picture instead. The video moved into the native PiP window, and the main window showed the PiP glyph with 'This video is playing in Picture in Picture' (D042). Clicking the placeholder brought the video back. Closing the PiP window with its X also brought it back, and playback paused, which is the usual AVKit behaviour.",
+     "evidence": "shots/pip-on-screen.png, shots/pip-after-placeholder.png, shots/pip2-hover.png, shots/pip2-closed.png"
+    },
+    {
+     "id": "A-08-live",
+     "area": "A-window",
+     "result": "NOT-RUN",
+     "expected": "At 640 pt with the compact library open, the resume toast is centred in the visible video with Continue Watching and close, nothing truncated; at full width it also shows 'You already watched till <time>'.",
+     "observed": "I could not trigger the resume prompt. At 640x480 with the compact library open, I reopened S01E01 after leaving it at about 31 s and again at about 11 s, and S01E02 after playing it partly. No 'Continue Watching' toast appeared in captures every 0.6-0.7 s. S01E01 restarted from 0. vlcrc has restore-playback-pos at its default (1 = ask). The likely reason is that the 60 s test media fall below the engine's threshold for saving a resume point. A longer partially watched file is needed. Side observations at 640 pt: the title truncates to 'Test Sh...S01E01' and the folder chip shrinks to its icon (per D042). Subtitles render under the compact library and are cut off ('...one, first cue.').",
+     "evidence": "shots/A08-640.png, shots/A08-640-t1..t6.png, shots/A08-e01-reopen-t1..t4.png"
+    }
+   ],
+   "extraFindings": [
+    {
+     "severity": "major",
+     "area": "A-window",
+     "description": "In the Light theme, opening the compact library rescales the video to fill the whole window width behind the library (aspect-fill; the subtitle is clipped by the control bar). The Dark theme keeps the same video geometry. The video therefore jumps or zooms when the library is toggled in Light.",
+     "evidence": "shots/S72-library.png vs shots/library-dark.png (colour-bar width 331 vs 308 px; right pillarbox gone)"
+    },
+    {
+     "severity": "minor",
+     "area": "A-window",
+     "description": "After entering fullscreen with the top-bar button, a 'Fullscreen' tooltip stays on screen at the top right after the bars auto-hide, and remains while the pointer moves elsewhere.",
+     "evidence": "shots/fs2-0.png, shots/fs2-5s.png, shots/fs2-moved.png"
+    },
+    {
+     "severity": "minor",
+     "area": "F-playback",
+     "description": "After the media reaches the end (time 00:00:59, play icon shown), Space does not restart playback: two presses did nothing. Clicking the Play button or Playback > Play does restart it.",
+     "evidence": "shots/unhidden2.png, shots/space-after-eos.png, shots/click-play-after-eos.png"
+    },
+    {
+     "severity": "minor",
+     "area": "A-window",
+     "description": "When the media ends in fullscreen, the window drops out of fullscreen on its own. This may follow the engine's vout close and may be intended, but it is unexpected for a single-item queue.",
+     "evidence": "shots/fs-6s.png"
+    },
+    {
+     "severity": "minor",
+     "area": "A-window",
+     "description": "Turning Hide UI off does not reopen the queue panel that was open before Hide UI.",
+     "evidence": "shots/A05-queue.png then shots/unhidden2.png"
+    },
+    {
+     "severity": "minor",
+     "area": "E-subtitles",
+     "description": "Subtitles are drawn across the full video and get hidden under overlays: under the compact library at 640 pt ('...one, first cue.') and under the fullscreen control bar when it is revealed ('Italic narration.' cut off). They are not moved into the visible video area.",
+     "evidence": "shots/A08-640-t2.png, shots/fs2-bottom.png"
+    },
+    {
+     "severity": "minor",
+     "area": "A-window",
+     "description": "The S01 check calls for 1920x1080, but the display is 1728x1117 pt, so the full-size window was 1728x1001. All geometry was measured at that size.",
+     "evidence": "ui windows output: 143438 0 40 1728 1001"
+    },
+    {
+     "severity": "minor",
+     "area": "A-window",
+     "description": "PiP has no button in the default top bar. It is a customisable control-bar item, and Video > Picture in Picture is the default way to open it. The check's 'click PiP in the top bar' step does not match the default layout.",
+     "evidence": "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerBars.swift:288 (.pictureInPicture customizable item)"
+    }
+   ]
+  },
+  {
+   "group": "2-controls",
+   "checks": [],
+   "summary": "agent failed"
+  },
+  {
+   "group": "3-menus-keys",
+   "checks": [],
+   "summary": "agent failed"
+  },
+  {
+   "group": "4-panels",
+   "checks": [],
+   "summary": "agent failed"
+  },
+  {
+   "group": "5-library",
+   "checks": [],
+   "summary": "agent failed"
+  },
+  {
+   "group": "6-settings-dialogs",
+   "checks": [],
+   "summary": "agent failed"
+  },
+  {
+   "group": "7-design",
+   "checks": [],
+   "summary": "agent failed"
+  },
+  {
+   "group": "8-bridge-build",
+   "checks": [],
+   "summary": "agent failed"
+  },
+  {
+   "group": "9-media-io",
+   "checks": [],
+   "summary": "agent failed"
+  }
+ ],
+ "triage": null
+}

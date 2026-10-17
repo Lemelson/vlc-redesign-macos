@@ -1,0 +1,108 @@
+{
+ "area": "H-design",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "I fixed the cross-area LibrarySheets regression and the D046 wording. Everything else that was open for H-design needs the live app.\n\nThe library sheets (rename playlist, rename stream, delete, remove, info and failure) are native `.sheet`s. They used `MXRBackdropSurface`, and since D046 that surface sits on a darkAqua base, so in Light the sheet body measured #A7A7A7. They now use `MXRDialogSurface`, the same surface DialogSupport uses: the opaque BG/A3 in Light and the translucent BG/A3 Transparent in Dark. Measured after the fix: Light body #D5D5D5 (exactly BG/A3, opaque), Dark body #191919. I looked at both renders. The Light sheet matches the existing light dialogs such as S39, including the unfilled Cancel/Close button there.\n\nThere is a new test, `LibrarySheetSurfaceTests`, with 2 tests. It hosts the real `LibrarySheetView` in a window with the system window background, captures it with its live material, and samples the sheet body. I checked that it catches the bug: with the old line put back it fails with \"#A7A7A7 is not BG/A3 #D5D5D5\".\n\nI also fixed the claim the verifier flagged, that every backdrop surface sits over the video or a scrim. The `MXRBackdropSurface` doc comment and the D046 bullet in DECISIONS.md now say that surfaces not over the video or a scrim must use `MXRDialogSurface`.\n\nI audited every other `MXRBackdropSurface` use. All of them are over the video or the dialog scrim (MXRProfilesView is shown in MXRDialogHost), and MXRMediaSourcesView uses the opaque bgB1, so nothing else is affected.\n\nChecks: `swift build` is green. ThemeContrastTests, CustomizationInteractionTests, PauseButtonContrastTests and LibrarySheetSurfaceTests ran 22 tests with 0 failures. `gen-tokens.py --check` exits 0.\n\nWhat remains for H-design is live only: H-02, H-03 and H-07, plus the sheet in the installed app. They are listed in liveChecks.",
+   "fixed": [
+    "Cross-area: LibrarySheetView light surface was mid grey #A7A7A7 (darkAqua base in a native .sheet) -> now MXRDialogSurface (opaque BG/A3 #D5D5D5 in Light, translucent in Dark)",
+    "Verifier minor: D046 claimed every MXRBackdropSurface sits over video/scrim -> doc comment in MXRBackdropSurface.swift and DECISIONS.md D046 corrected to name the dialog surface for non-overlay surfaces"
+   ],
+   "notFixed": [
+    {
+     "id": "H-02 (live part)",
+     "why": "Live only: the light bars over real video need a screencapture of the installed app. The offscreen shipping-window render gives #A8A8A8 against Figma #ABABAA."
+    },
+    {
+     "id": "H-03 (live part)",
+     "why": "Live only: Next then Esc on an isolated profile, then check ml.db. The logic is covered by testOnboardingNextAddsTheFolderImmediatelyAndOnce."
+    },
+    {
+     "id": "H-07 (live part)",
+     "why": "Live only: a real drag of a palette tile using the declared UTType. The Info.plist hook adds the entry idempotently."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibrarySheets.swift",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Materials/MXRBackdropSurface.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/LibrarySheetSurfaceTests.swift",
+    "redesign/docs/DECISIONS.md"
+   ],
+   "editsOutsideOwnership": [
+    "Sources/MXRUI/Library/LibrarySheets.swift (E-library), line 61: MXRBackdropSurface -> MXRDialogSurface, the assigned cross-area item",
+    "redesign/docs/DECISIONS.md, D046 'Backdrop base is dark' bullet: added three lines saying that dialog bodies and the library's native sheets use MXRDialogSurface (opaque BG/A3 in Light)",
+    "Tests/MXRUISnapshotTests/LibrarySheetSurfaceTests.swift: new test file"
+   ],
+   "evidence": [
+    "Light render after the fix: <scratch> (body pixel 213,213,213 = BG/A3)",
+    "Dark render after the fix: <scratch> (body 25,25,25)",
+    "Red check: with the old MXRBackdropSurface line restored temporarily, testLightLibrarySheetIsTheOpaqueLightDialogSurface fails with 'Light sheet body #A7A7A7 is not BG/A3 #D5D5D5'. The line was restored to MXRDialogSurface right after.",
+    "swift test --filter ThemeContrastTests|CustomizationInteractionTests|PauseButtonContrastTests|LibrarySheetSurfaceTests: 22 tests, 0 failures. swift build green. gen-tokens.py --check exit 0."
+   ],
+   "liveChecks": [
+    {
+     "id": "LS-light",
+     "steps": "Set System Settings > Appearance to Light. Open VLC Redesign > Library. Right-click a playlist > Rename. Screenshot the sheet. Repeat with Rename on a network stream.",
+     "expect": "The sheet body is a light opaque surface of about #D5D5D5 with a #DEDEDE-ish header. It is not mid grey #A7A7A7, and no artwork shows through. In Dark the sheet stays dark (#1B1B1B-ish)."
+    },
+    {
+     "id": "H-02",
+     "steps": "Light appearance. Play ../build/media test video, show the bars, and sample the top bar with screencapture.",
+     "expect": "The bar fill is about #ABABAA over dark video (offscreen render #A8A8A8)."
+    },
+    {
+     "id": "H-03",
+     "steps": "Use an isolated profile (fresh ~/Library prefs and ml.db copy). In first-launch onboarding, pick a folder, click Next, then press Esc. Quit and inspect ml.db Folder table.",
+     "expect": "The folder is present once and onboarding is marked complete."
+    },
+    {
+     "id": "H-07",
+     "steps": "Open Customize mode. Drag a palette tile onto the control bar.",
+     "expect": "The drag uses the declared UTType: the tile is accepted, with no 'unknown type' console warning, and Info.plist has exactly one UTExportedTypeDeclarations entry."
+    }
+   ],
+   "ownerDecisions": [
+    "D046 itself (darkAqua base for chrome over video, superseding D043) is still the current implementation. The owner may want to confirm it. Dialog and sheet surfaces are now explicitly carved out as opaque in Light."
+   ],
+   "notesForOthers": "E-library: LibrarySheets.swift line 61 now uses MXRDialogSurface (internal, from MXRUI/Dialogs/DialogSupport.swift) instead of MXRBackdropSurface. Please keep it. Rule for everyone: a surface that is not over the video or a dialog scrim (native sheets, dialog bodies) must not use MXRBackdropSurface directly, because its darkAqua base turns Light surfaces #A7A7A7. Use MXRDialogSurface. To render the sheet: MXR_TEST_RENDER_DIR=<dir> swift test --filter LibrarySheetSurfaceTests."
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "live app (H-02, H-03, H-07, library sheet)",
+    "description": "The live parts of H-02 (light bars over real video), H-03 (Next then Esc on an isolated profile, then ml.db) and H-07 (palette drag with the declared UTType) are still unverified. The library sheet has also not been checked in the installed app. Code, tests and offscreen renders all support the fixes, and every item is listed in liveChecks."
+   }
+  ],
+  "summary": "Round 2 verdict for H-design: pass. The cross-area LibrarySheets item is fixed, and the r1 minor issue (D046 wording) is fixed too. I found no regression in the 13 confirmed findings.\n\n**Cross-area item: LibrarySheets**\n- The diff in `Sources/MXRUI/Library/LibrarySheets.swift:61` is the single-line swap `MXRBackdropSurface` -> `MXRDialogSurface`.\n- `MXRDialogSurface` is defined in `DialogSupport.swift:171-178`. It uses `tint.opaqueCounterpart` in Light, which is the same path as the other dialogs.\n- I rendered the sheet myself through `LibrarySheetSurfaceTests` with `MXR_TEST_RENDER_DIR`, into `<scratch>` and `library-sheet-NSAppearanceNameDarkAqua.png`.\n  - Light: the body is an opaque light grey (BG/A3), the header is lighter, and the old mid grey #A7A7A7 is gone.\n  - Dark: the body is dark and translucent, and the header is darker.\n- I compared it with the r1 render of the light S39 dialog (`s39-light-shipping-window.png`). The surface and the unfilled Cancel/Close button look the same, so the sheet matches the existing light dialogs.\n- The new test hosts the real `LibrarySheetView` in a window with its live material and samples a pixel from the drawn body. It tests what is drawn, not a predicate. I did not repeat the fixer's red check.\n\n**Rest of the area**\n- I audited the other `MXRBackdropSurface` call sites. All of them are chrome over the video or a dialog scrim: the bars, the compact library, the panels, Customize, and Profiles inside the dialog host. No other native sheet uses it.\n- The doc comment in `MXRBackdropSurface` and the D046 bullet in `DECISIONS.md` now name `MXRDialogSurface` for surfaces that are not over the video or a scrim.\n\n**Build and tests**\n- `swift build` first failed in `GalleryCatalog.swift`, which another area was editing (`FigmaDeviation` missing). It was green on the retry.\n- `swift test --filter ThemeContrastTests|CustomizationInteractionTests|PauseButtonContrastTests|LibrarySheetSurfaceTests` ran 22 tests with 0 failures.\n- `gen-tokens.py --check` exits 0.\n\n**Regression spot checks**\n- No `readableSecondary` or `keyboardFocus` tokens are left.\n- Customize and Profiles use `.mxrContextMenu`.\n- The only `scaleEffect` left is the onboarding player-preview thumbnail, which takes its scale from a token. Onboarding itself does not use it.\n- `UTExportedTypeDeclarations` is present in `tools/app-bundle-hook.sh` and matches the `UTType(exportedAs:)` in `LayoutDrag.swift`.\n- `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty.\n\n**Ownership**\nEdits outside the area are limited to the assigned LibrarySheets line, three lines in `DECISIONS.md` and the new test file. All three are declared.\n\nOnly the live checks remain.",
+  "liveChecks": [
+   {
+    "id": "LS-light",
+    "steps": "Set System Settings > Appearance to Light. Open VLC Redesign > Library. Right-click a playlist > Rename, then screenshot the sheet. Do the same with Rename on a network stream, and with a rename that fails (failure sheet). Repeat everything in Dark.",
+    "expect": "Light: the sheet body is opaque at about #D5D5D5 with a lighter header of about #DEDEDE. It is not mid grey #A7A7A7, and no artwork shows through. Dark: the body is dark, about #191919-#1B1B1B."
+   },
+   {
+    "id": "H-02",
+    "steps": "Light appearance. Play a test video from ../build/media, show the bars, and sample the top bar and control bar fill with screencapture.",
+    "expect": "The bar fill is about #ABABAA over dark video (the offscreen render gives #A8A8A8). The compact library panel is about #C2C2C1."
+   },
+   {
+    "id": "H-03",
+    "steps": "Use an isolated profile (fresh preferences and a copy of ml.db). In the first-launch onboarding, pick a media folder, click Next, then press Esc. Quit and inspect the Folder table in ml.db.",
+    "expect": "The folder is present exactly once, and onboarding is marked complete."
+   },
+   {
+    "id": "H-07",
+    "steps": "Open Customize mode, drag a palette tile onto the control bar, and watch the Console. Then check Info.plist in the installed bundle.",
+    "expect": "The tile is accepted, and there is no unknown-UTType warning. Info.plist has exactly one UTExportedTypeDeclarations entry, for org.videolan.vlc-redesign.player-layout-item."
+   }
+  ],
+  "ownerDecisions": [
+   "D046: chrome over the video uses a darkAqua material base in both schemes (supersedes D043). Dialog bodies and library sheets are carved out to use the opaque BG/A3 in Light. The owner may want to confirm this.",
+   "D045: opaque light dialogs. The library sheets now follow the same light dialog surface, so they depend on this decision too.",
+   "D041 pause pin, the C-09 HDR 'Off' trade-off (D039) and the D033 subtitle slider order are unchanged by this round."
+  ]
+ }
+}

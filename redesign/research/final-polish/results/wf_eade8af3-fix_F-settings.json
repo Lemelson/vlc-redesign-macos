@@ -1,0 +1,69 @@
+{
+ "status": "partial",
+ "summary": "I picked up the previous F-settings fixer's work from WIP commit 951f073be2 and checked each finding against the code, not against its notes. 11 of the 13 findings are fixed in code. F-06 is half done: the missing ⓘ is added, but the Settings visual check is still not D035-aware. F-12 is fixed in code but only checked offscreen. One more caveat: F-01 is covered only by unit tests that go through the real performKeyEquivalent path, not checked in the app. I did not run anything live. wait-idle.sh 900 exited 1 (\"Mac in use (idle 0s) after 900s\"), so I did not take the lock, build, install or launch the app. I needed no new code edits this session. The tree builds now; an earlier failure in PlayerControls.swift belonged to another area and cleared by itself. Targeted suites pass except 2 tests in MXRVLCBackendTests, which another area's change to VLCServiceBackends.swift broke (details in notesForOthers).",
+ "fixed": [
+  "F-01: MXRKeyboardShortcutsView.swift. keyDown and performKeyEquivalent now share one handle(_:): key repeats are ignored, plain Esc cancels, plain Delete/Forward Delete clear the binding (capture nil), ⌘Q is passed on. ModalCaptureTests now uses window.performKeyEquivalent and passes (Esc, Delete, key repeat, ⌘Q, a normal combo). Not checked in the app: the Mac was in use.",
+  "F-02: settings-map.json5 adds displayOffset 1, automaticValue -1, placeholder 'Auto', min 1 / max 100, new help text and mock 0 (shows '1'). SettingsCatalog gains displayOffset and automaticValue; SettingsModel converts both ways and adds setAutomatic. In SettingsControls, an empty field writes -1 and 'Auto' is drawn in fgA4. SettingsUnitsAuditRegressionTests.testDefaultTrackRowsShowOneBasedTracksAndAutoForMinusOne passes. Render: scratchpad/final/F-settings/playback/side-by-side.png",
+  "F-03: SettingsExtensionsView.swift has no reason texts and no dead Find/Add/Remove buttons; an operation this build cannot do is not shown. Remove is disabled only while nothing is selected. A script that can be neither enabled nor run shows no control. The D035/D039 conflict is written up for the owner in DECISIONS D045 (proposed). Render: F-settings/extensions-unavailable.png",
+  "F-04: the 'Find more extensions' catalog is now ExtensionCatalogPanel inside .mxrPopup(surface: .contextMenu), with no arrowed NSPopover.",
+  "F-05: SubtitleFolderRules.swift keeps only the cancellation checks around the directory read, deletes isAutodetected, and reads the legacy 'files' map once into fileSelections without writing it again. DialogInput.swift replaces the actor with a private serial DispatchQueue plus a continuation and a cancellation handler. SubtitleLookupCancellationTests and SubtitlePersistenceRegressionTests pass.",
+  "F-06 (partial): 'When playback finishes' now has its ⓘ ('What happens after the last item in the queue.'), matching Figma; visible in playback/side-by-side.png. The extensions-unavailable gallery notes are updated.",
+  "F-07: MediaInfoDialogs.swift shows Location as a ~-abbreviated path with a 'Show in Finder' button for files, and as decoded text for other sources.",
+  "F-08: in MXRDialogHost.swift the content behind the scrim gets .accessibilityHidden plus mxrKeyboardFocusSuspended, so it leaves VoiceOver and the Tab order. I did not use .disabled, which would dim the chrome under the scrim. DialogIsolationTests passes.",
+  "F-09: in MXRProfilesView the row menu is a design .mxrContextMenu. Delete… now asks first ('Delete Profile “X”?' / 'Its settings and player layout are removed.'), and confirming also calls the new LayoutStore.removeLayouts(profileID:). ProfileDeletionTests passes.",
+  "F-11: a device hot-plug now sends SettingsEvent.devicesChanged instead of .reloaded. AppModel ignores it, so profiles.json is no longer rewritten. SettingsModel.deviceChoices is a pure read; loadDeviceChoices(for:) runs from MXRSettingsView .task(id:) for the device kinds on screen. SettingsBackendEventTests.testDeviceHotPlugIsADeviceEventNotASettingsReload and DeviceDiscoveryTests pass.",
+  "F-12: MXRDialogSurface (DialogSupport.swift) uses the opaque form of the tint in Light only, for Settings, Keyboard Shortcuts, Add Subtitles and the shared DialogShell. Recorded as a D032 addendum in D045. Shipping-window render F-settings/app-settings-light-final.png shows a clean opaque light pane with no cone showing through. Not confirmed in the real window (Mac in use).",
+  "F-13: AppModel+Preferences windowTitle drops the extension or uses the parsed title, and windowTitleFileName keeps the full name (D042). SettingsWorkflowTests passes.",
+  "F-14: the four apply:{live:'playlist'} entries are removed and the SettingsCatalog comment says the bridge applies playlist order options live by option name."
+ ],
+ "notFixed": [
+  {
+   "id": "F-06 (gate)",
+   "why": "Making mxr-snapshot check D035-aware needs per-entry compare regions in GalleryEntry and the comparison tool (MXRGalleryCatalog/GalleryCatalog.swift and the snapshot tool). Both belong to another area. S48.Settings/playback still FAILs (6.83%), mostly from the D035-removed 'Pause when another app uses audio' row shifting the rows below it and the D030 default 'Ask' against Figma's 'Always'. The 'D035-aware' rule this needs still has to be chosen and built."
+  },
+  {
+   "id": "live verification (F-01, F-12, F-03, F-08)",
+   "why": "wait-idle.sh 900 exited 1 ('Mac in use (idle 0s) after 900s'), so the live part was skipped as the rules require. I did not take the lock and did not build, install or launch the app."
+  }
+ ],
+ "filesChanged": [
+  "modules/gui/macosx_redesign/Sources/MXRUI/Settings/MXRKeyboardShortcutsView.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Settings/MXRSettingsView.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Settings/SettingsControls.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Settings/SettingsExtensionsView.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/DialogInput.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/DialogSupport.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/MXRDialogHost.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/MediaInfoDialogs.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/AddSubtitlesView.swift",
+  "modules/gui/macosx_redesign/Sources/MXRVLCBackend/VLCSettingsBackend.swift",
+  "modules/gui/macosx_redesign/Sources/MXRCore/Settings/SettingsCatalog.swift",
+  "modules/gui/macosx_redesign/Sources/MXRCore/Settings/SubtitleFolderRules.swift",
+  "modules/gui/macosx_redesign/Sources/MXRCore/Models/SettingsModel.swift",
+  "modules/gui/macosx_redesign/Sources/MXRCore/Values/SettingsValues.swift",
+  "modules/gui/macosx_redesign/Sources/MXRCore/App/AppModel+Preferences.swift",
+  "modules/gui/macosx_redesign/Sources/MXRCore/Resources/settings-map.json5",
+  "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/SettingsGallery.swift",
+  "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/ModalCaptureTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/DialogIsolationTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/ProfileDeletionTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRCoreTests/SettingsAuditRegressionTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRCoreTests/DeviceDiscoveryTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRVLCBackendTests/SettingsBackendEventTests.swift"
+ ],
+ "editsOutsideOwnership": [
+  "modules/gui/macosx_redesign/Sources/MXRDesign/Focus/MXRKeyboardFocus.swift (mxrKeyboardFocusSuspended environment value, F-08)",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Customization/MXRProfilesView.swift (design context menu and delete confirmation, F-09)",
+  "modules/gui/macosx_redesign/Sources/MXRCore/Stores/LayoutStore.swift (removeLayouts(profileID:), F-09)",
+  "modules/gui/macosx_redesign/Sources/MXRCore/App/AppModel.swift (settings listener ignores .devicesChanged, F-11)",
+  "redesign/docs/DECISIONS.md (D045, proposed, owner sign-off on D035 vs D039)"
+ ],
+ "evidence": [
+  "<scratch>",
+  "<scratch>",
+  "<scratch>",
+  "Pass: swift test --filter for SettingsUnitsAuditRegressionTests, DeviceDiscoveryTests, SubtitlePersistenceRegressionTests, SubtitleLookupCancellationTests, ModalCaptureTests, DialogIsolationTests, ProfileDeletionTests, SettingsWorkflowTests, ModalIsolationTests, DeviceDiscoveryAdapterTests and SettingsBackendEventTests.testDeviceHotPlug…",
+  "Fail, not caused by this area: MXRVLCBackendTests SettingsAuditRegressionTests.testProfileEngineHotkeysInvalidateWarmDispatchCache and SettingsBackendEventTests.testShortcutsIgnoreUnrelatedSettingsAndReadOnlyBindingOptions"
+ ],
+ "notesForOthers": "Owner of VLCServiceBackends.swift (keyboard shortcuts backend, change C-07): VLCShortcutsBackend now reloads only on the coalesced MXRBridgeService.shortcuts topic. Two tests still emit per-option settings:key-* events and now fail: Tests/MXRVLCBackendTests/SettingsAuditRegressionTests.swift:13-15 and SettingsBackendEventTests.swift:52. Update those tests to emit .shortcuts, or restore the per-option listener. Comparison-tool owner: F-06 needs per-entry compare regions so that S48 Settings checks ignore rows removed under D035. D045 in DECISIONS.md is proposed and needs the owner to choose D035 over D039 for extensions. Live checks still to do once the Mac is idle: Settings > Controls > record a shortcut > Esc keeps the old binding and Delete shows None; Theme Light gives an opaque light Settings pane."
+}

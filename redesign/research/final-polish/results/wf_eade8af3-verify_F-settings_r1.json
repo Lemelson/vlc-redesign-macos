@@ -1,0 +1,41 @@
+{
+ "pass": false,
+ "issues": [
+  {
+   "severity": "major",
+   "where": "modules/gui/macosx_redesign/Sources/MXRCore/App/AppModel+Preferences.swift:44-50 (F-13 fix, D042) + Tests/MXRCoreTests/SettingsWorkflowTests.swift:180-183 + settings-map.json5:76-77",
+   "description": "The F-13 fix broke the 'Show the file name in the title bar' toggle. With the toggle ON, a local file that has a parsed or metadata title that differs from its file name now shows that media title (`if !parsed.isEmpty && parsed != fileName { return parsed }`). OFF already shows the media title (player.windowTitle = media.displayTitle), so the toggle now only matters for untagged files, and there it only removes the extension. Its help text still says 'Shows the file name instead of the media title.', which is no longer true. SettingsWorkflowTests now asserts this: 'Metadata Movie' with the toggle ON and with it OFF. This breaks the 'nothing that does nothing' bar. It also contradicts D042's own 'the top bar never shows a file extension': with OFF and an untagged file, VLC's item name ('My Movie.mp4') is shown with its extension. D042 was written and marked 'accepted' by an agent in WIP 951f073be2, not by the owner. The finding only asked to drop the extension when ON. Fix: ON → the decoded file name without its extension (optionally with underscores turned into spaces; see the next issue). OFF → the media title. Strip the extension in both cases when the title is just the file name. Update the test so ON and OFF give different results for tagged media."
+  },
+  {
+   "severity": "minor",
+   "where": "AppModel+Preferences.swift windowTitle (F-13)",
+   "description": "The finding's title also named underscores. Figma shows 'The Wand S01E04' for The_Wand_S01E04.mp4, but the file-name path only removes the extension. An untagged 'The_Wand_S01E04.mp4' still shows 'The_Wand_S01E04'. Not addressed, and not mentioned in the report."
+  },
+  {
+   "severity": "minor",
+   "where": "Sources/MXRUI/Dialogs/MXRDialogHost.swift:22-27 (F-08)",
+   "description": "Isolation behind the scrim is partial. .accessibilityHidden hides the content from VoiceOver, and mxrKeyboardFocusSuspended takes only the custom mxrKeyboardFocusable chrome (seek, volume) out of the Tab order. Native SwiftUI Buttons, and text fields such as the library, queue and sidebar search fields (TextField in MXRLibraryView, QueuePanel, SettingsSidebar, PanelControls), are not covered by either, so they stay in the AppKit key-view loop. Tab can still move focus out of a dialog to a field under the scrim and type into it. The finding asked for `.disabled`, or something equivalent for keyboard focus. DialogIsolationTests checks only the VoiceOver tree."
+  },
+  {
+   "severity": "minor",
+   "where": "S48 Settings Figma gate (F-06 remainder; MXRGalleryCatalog / mxr-snapshot, outside this area)",
+   "description": "Still not D035-aware, as the fixer said. My checks: playback FAIL 8.41%, general FAIL 11.78%, interface FAIL 11.15%, extensions FAIL 3.38%, audio FAIL 1.17%, controls FAIL 1.15%, KeyboardShortcuts/default FAIL. In the side-by-sides, playback and general differ only by the D035 row removals and the D030 'Ask' default. Extensions also lacks Figma's 'Advanced Options' bar under 'Load add-ons on startup' and adds an ⓘ that Figma does not have; nobody reported or decided either. The gate still cannot catch regressions."
+  },
+  {
+   "severity": "minor",
+   "where": "Sources/MXRUI/Settings/SettingsControls.swift:181-192 (F-02)",
+   "description": "The 'Auto' placeholder is accessibilityHidden and the TextField has an empty title. When the track row is automatic, VoiceOver reads an empty value instead of 'Auto'. Add .accessibilityValue(text.isEmpty ? placeholder : text)."
+  },
+  {
+   "severity": "minor",
+   "where": "Live verification (F-01, F-03, F-08, F-12)",
+   "description": "Not checked in the real app in this round either. wait-idle.sh 900 exited 1 ('Mac in use (idle 0s) after 900s'), so per the rules I took no lock and did not build, install or launch. F-01 is checked by code tracing plus ModalCaptureTests, which goes through window.performKeyEquivalent. F-12 is checked offscreen with --engine shipping-window."
+  },
+  {
+   "severity": "minor",
+   "where": "redesign/docs/DECISIONS.md D045",
+   "description": "D045 (D035 over D039 for extensions; opaque light dialogs; track-number offset) is 'proposed' and still needs the owner's sign-off. The implementation follows D035, which matches the carry finding's direction."
+  }
+ ],
+ "summary": "I verified the F-settings fixes from WIP 951f073be2 against the code, targeted tests, offscreen renders and Figma. I did not check anything in the real app: wait-idle.sh 900 exited 1 (Mac in use), so I took no lock and did not build, install or launch.\n\nBuild: swift build is clean, with no Swift 6 warnings in the touched area files. Targeted suites all pass, including the two MXRVLCBackendTests failures the fixer reported, since another area has updated those tests to emit .shortcuts: ModalCaptureTests 3, DialogIsolationTests 2, ProfileDeletionTests 1, SubtitleLookupCancellationTests 3, SettingsAuditRegressionTests and SettingsBackendEventTests (backend) 5, ModalIsolationTests 6, SettingsUnitsAudit 3, DeviceDiscovery 5, SubtitlePersistence 4, SettingsWorkflow 18.\n\nConfirmed in code or renders:\n- F-01: keyDown and performKeyEquivalent share one handle(): Esc cancels, Delete and Forward Delete clear, repeats are swallowed, ⌘Q is passed on. The test drives window.performKeyEquivalent, and the dialog's close keys are removed while recording.\n- F-02: offset and Auto work in both directions, and the playback render shows '1' from the mock 0, which the fix allowed.\n- F-03 and F-04: no dead buttons or reason texts, Remove is disabled only with no selection, and the catalog uses .mxrPopup with no NSPopover. I looked at the extensions and extensions-unavailable renders.\n- F-05: serial DispatchQueue plus continuation, isAutodetected deleted, legacy map read once and not written.\n- F-06: the ⓘ on 'When playback finishes' is visible in the playback side-by-side. The gate part is still open, as reported.\n- F-07: Location shows a ~ path with a Show in Finder button.\n- F-09: design context menu, delete confirmation, removeLayouts.\n- F-11: devicesChanged is ignored by AppModel, deviceChoices is a pure read, and loading runs from .task(id:).\n- F-12: the shipping-window S48.App/settings-light render shows a clean opaque light pane with no cone showing through.\n- F-14: the four apply:{live:'playlist'} entries are removed.\n\nTokens only, no engine edits, and no masks or threshold changes. The edits outside ownership are listed.\n\nBlocking: the F-13 fix is a regression. With 'Show the file name in the title bar' ON, tagged media now show the media title, the same as OFF. The toggle has become nearly a no-op, its help text is wrong, and the updated test asserts this behaviour. D042 is self-accepted by an agent, not the owner.\n\nSmaller open points:\n- Underscores are still shown in file-name titles, unlike Figma.\n- F-08 isolation covers VoiceOver and the custom chrome only. Native text fields and buttons behind the scrim stay in the Tab loop.\n- The D035-aware Settings gate is still missing, and the extensions page has an unreported missing 'Advanced Options' bar.\n- 'Auto' is not read out by VoiceOver.\n- D045 still needs owner sign-off.\n\nOutputs are in <scratch> S48.Settings_* and S64/S25 check folders, ext-unavail.png, app-settings-light.png, playback-light.png."
+}

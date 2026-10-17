@@ -1,0 +1,132 @@
+{
+ "summary": "The final-polish wave is close. All 10 areas passed verification, with no blocker or major left that code, tests or offscreen renders can show. Full Swift runner 431/431, the native suites, install, signature and engine-untouched checks are all green. Nothing is committed yet: the work tree holds about 40 modified and 6 untracked files, including FigmaDeviation.swift, SettingsFigmaDeviations.swift and several new test files.\n\nOf the 125 confirmed findings, every id is either fixed in code, sent to the live wave, waiting on an owner decision, or deliberately deferred (B-15, plan only). The real open product work is narrow:\n- **F-settings Figma parity.** general-advanced and performance are missing rows with no D035 entry. interface has a different section title and an extra ⓘ. recording shows ~/Movies, 'Default (Medium)' and extra ⓘ icons. These six categories are parked as expected failures, so the Settings gate cannot catch regressions in them.\n- **Minor real defects.** F-08: the Tab guard decides by geometry, and its test is vacuous. J: the Stop state is overwritten by 'finishing', and AAC output keeps the subtitle track. C-15: the restart note never clears. E: compact library rows show raw underscore file names, and the S46 mini-player FAILs with no note.\n- **Flaky native audio suite.** 2 of 11 runs failed at engine shutdown.\n\nThe biggest gap is runtime acceptance, and the live list does not cover it. The owner's own complaints C1, C2, C4 and C7 from final-polish.js are not in it. Several VIDEO_BREAKDOWN MUST flows are missing too: launch to Home, drag a library row into the queue, Add Subtitles mapping persisting to External Tracks, ⌘B bookmark, independent top/bottom bar reveal in fullscreen, Advanced Options and click-to-open ⓘ. So are all 13 Settings categories in the real window, the H-05 accessibility settings, and startup/RSS. The live list itself has 3–4x duplicate entries for A-window and C-bridge and needs deduping.\n\nDocs are stale:\n- SCREENS.md was last touched on 2026-10-14. It still points at the historical CODEX_STATUS.md and the codex/native-redesign branch, its capability text predates C-05 Lua dialogs, and it marks all 72 screens 'implemented UI' with no visual-acceptance state, while check --all reports 43 FAIL.\n- HANDOFF.md still describes the 19:40 stop state.\n- Several decisions were marked 'accepted' by agents without owner sign-off: D042, D044, D046 and D047.\n\nCodex debt still in the code: an untyped dictionary wire (CODE-02/C-08), AppKit in Core (CODE-06), the dead rescanPlugins path, oversized bridge and catalog files (B-15/CODE-08), and a token declared in a view file (J-12).",
+ "missing": [
+  {
+   "priority": "P0",
+   "item": "Commit the wave. Everything since 4c457baa03 is uncommitted: about 40 modified files plus 6 untracked ones (FigmaDeviation.swift, SettingsFigmaDeviations.swift, AppActionFeedbackTests, ContinueWatchingToastTests, FigmaDeviationTests, LibrarySheetSurfaceTests, workflows/final-finish.js). Then rewrite HANDOFF.md for the post-finish state; it still says I-build has no report and A/C/F majors are open.",
+   "owner": "integrator",
+   "evidence": "git status in .; HANDOFF.md table 'Состояние областей' dated 19:40"
+  },
+  {
+   "priority": "P0",
+   "item": "Live-acceptance wave on an idle Mac. No real-window check has ever been run on this build: A-05, B-05 CPU, E-06, H-02/H-03/H-07, D-01/D-02, F-08 and G-03/G-04/G-10 are all pending. Run it from one deduplicated list (see addLiveChecks); the current list repeats A-window entries 4x and C-bridge entries 2x.",
+   "owner": "integrator",
+   "evidence": "liveChecks array; HANDOFF 'почти никакие проверки в настоящем окне не выполнялись'"
+  },
+  {
+   "priority": "P0",
+   "item": "Put the owner's own complaints C1–C7 from final-polish.js into the live list. C1 (no focus box on volume/seek), C2 (track popover anchored bottom-right; picking a row keeps it open), C4 (consistent open/close motion; Esc and click-outside close without pausing) and C7 (single volume indicator, no VLC core OSD) are in no area's live checks. C3, C5 and C6 are covered only indirectly.",
+   "owner": "A-window, B-controls, D-menus, G-panels",
+   "evidence": "redesign/research/final-polish/workflows/final-polish.js:161"
+  },
+  {
+   "priority": "P1",
+   "item": "F-settings Figma parity. general-advanced and performance are missing rows ('Show minor warnings', 'Additional command line options', and the performance rows) with no D035 entry. interface titles its section 'Menu Bar and Notifications' where Figma has 'Notifications and System Tray', and has an extra ⓘ on 'Remember window size and position'. recording shows ~/Movies, 'Default (Medium)' and ⓘ on Include video and Include subtitles. For each, either fix it or record a decision. While these six categories stay non-strict expected failures (audio, extensions, general-advanced, interface, performance, recording), the gate cannot catch regressions in them.",
+   "owner": "F-settings (deviation entries: A-window SettingsFigmaDeviations.swift)",
+   "evidence": "A-window verdict and F-settings verify r2; FigmaDeviationTests openSettingsDifferences"
+  },
+  {
+   "priority": "P1",
+   "item": "F-08: dialog keyboard isolation is still leaky. DialogKeyLoopGuard decides by geometry, so a field lying under the dialog's rectangle still gets Tab focus (6 of 6 in the probe). DialogKeyLoopTests never runs the guard path: it sends through window.sendEvent, and the monitor ran 0 times. Fix: make background text fields refuse first responder while mxrKeyboardFocusSuspended is set, and add a test with a positive control.",
+   "owner": "F-settings (test file: D-menus)",
+   "evidence": "F-settings verify r2, VerifyKeyLoopProbeTests in scratchpad/final2/F-settings-verify-r2/pkg; I-build verdict minor on DialogKeyLoopTests"
+  },
+  {
+   "priority": "P1",
+   "item": "Native audio suite is intermittent. audio-preferences failed 'engine shuts down cleanly' in 2 of 11 runs, against an 8 s deadline. Add a timestamp or sample when the deadline is missed and find the silent step after 'removing keystore memory'. It may be a real quit-latency issue (C-13/PERF-04).",
+   "owner": "C-bridge, I-build",
+   "evidence": "integration remainingProblems; module/bridge/tests/MXRAudioPreferenceServicesRuntimeTests.m:237"
+  },
+  {
+   "priority": "P1",
+   "item": "J-media-io minors that are real behaviour bugs. (1) After Stop, outputStopping overwrites 'stopping' with 'finishing', so the hint flips and the Stop button re-enables. (2) The AAC/audio-only profiles keep the subtitle track (mov_text seen), which contradicts the 'only the sound' hint; add scodec=none. (3) No test covers the overwrite-decision logic in OutputMediaForm (confirmedDestination).",
+   "owner": "J-media-io",
+   "evidence": "J-media-io verify r1 open[0], [1], [5]; module/bridge/MXRMediaServices.m:609-614, :202-205"
+  },
+  {
+   "priority": "P1",
+   "item": "Compact library rows show the raw file name 'The_Wand_S01E…' while the top bar shows a clean title (A-04/F-13 rule). The S46.MiniPlayer collapsed, hover and queue entries FAIL with no note: the artist chip and the 'The_Wand' fixture name. Either apply the same display-name rule or add notes and decisions.",
+   "owner": "E-library",
+   "evidence": "A-window notesForOthers; integration check-all-2.log"
+  },
+  {
+   "priority": "P1",
+   "item": "Owner sign-off package. Pending: D041 pause pin, D045, C-09 HDR Off (D039), the D033 Auto font-size stop, and the D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies). Also needs sign-off: D042, D044, D046 and D047, which agents wrote and marked 'accepted' in this wave. F-settings verify itself says D042 still needs the owner's confirmation. Present all of them in one list.",
+   "owner": "owner (prepared by integrator)",
+   "evidence": "redesign/docs/DECISIONS.md:512,524,562,587,607,640"
+  },
+  {
+   "priority": "P1",
+   "item": "SCREENS.md is stale (last commit 2026-10-14). It cites the historical CODEX_STATUS.md and the 'codex/native-redesign' branch. Its capability text says S62 Lua activation is unavailable, but C-05 Lua dialogs and View ▸ Extensions now exist. All 72 rows are 'implemented UI', with no column for visual acceptance (check --all: PASS 15 / REVIEW 49 / FAIL 43) or live acceptance. Update it from the parity judges' output.",
+   "owner": "integrator (docs)",
+   "evidence": "redesign/design/SCREENS.md lines 12-24; git log -- design/SCREENS.md"
+  },
+  {
+   "priority": "P1",
+   "item": "Unverified claims to re-measure live: the B-controls CPU numbers written into AUDIT_FIXES (7.2–7.5 % visible vs 5.9 % Hide UI), C-13 Cmd-Q latency, J-06 Audio CD on hardware, C-02 sidecar file names containing ( ) or ', the C-03 auxiliary vout, and C-15 userDataDirectory against the real engine.",
+   "owner": "B-controls, C-bridge, J-media-io, F-settings",
+   "evidence": "AUDIT_FIXES_2026-10-15.md tail section; verifier notes"
+  },
+  {
+   "priority": "P2",
+   "item": "C.SeekBar/default: give the bar-only entry its own fixture time, about 00:01:53, at the position Figma draws, so its known FAIL becomes a pass. Keep product defaults and the label entries at 02:10. No geometry change and no mask.",
+   "owner": "B-controls",
+   "evidence": "B-controls verify r1 open[0]"
+  },
+  {
+   "priority": "P2",
+   "item": "C-15 restart note: it stays after the value is set back. Compare against the value at launch instead.",
+   "owner": "F-settings",
+   "evidence": "SettingsModel.swift:181-184"
+  },
+  {
+   "priority": "P2",
+   "item": "B-08 loose ends: the OSD scales from the full window width, not the information rect, and anchors to the information rect rather than the pillarboxed picture. MXRTimeLabel sets its accessibility value twice.",
+   "owner": "B-controls",
+   "evidence": "MXRAppView.swift:~189, OSDTypography.swift, PlayerControls.swift"
+  },
+  {
+   "priority": "P2",
+   "item": "Remaining Codex debt and dead code. (1) The dead rescanPlugins path: AppModel.swift:462 → VLCSettingsBackend.swift:54 → MXRBridgeCommandRescanPlugins, with no bridge handler. (2) The untyped dictionary wire payloads (CODE-02/C-08). (3) AppKit conveniences and optical-volume enumeration in Core/UI (CODE-06). (4) The oversized MXRServicesBridge.m and GalleryCatalog.swift (B-15/CODE-08), to be split after the parallel wave. (5) The J-12 token lives in a view file, and a spacing token is used as a size.",
+   "owner": "C-bridge, I-build, J-media-io",
+   "evidence": "grep rescanPlugins; AUDIT_FIXES CODE-02/06/08 'Ч/Н'"
+  },
+  {
+   "priority": "P2",
+   "item": "Audit ids still partial and not explicitly decided. COMP-08: external audio-track editing in ML is not implemented. COMP-11: the timeline thumbnail software decoder. LIB-06: unknown historical dates. PER-02: one blocking syscall. LIBSET-02: initial fallback cost. Either record a DECISIONS entry (out of scope or engine limit) or schedule each one.",
+   "owner": "E-library, C-bridge",
+   "evidence": "AUDIT_FIXES_2026-10-15.md status table (Ч/Н rows not covered by findings/*.json)"
+  },
+  {
+   "priority": "P2",
+   "item": "Test-quality gaps. Nothing drives E-07, E-10 or E-11 at view level. There is no test for the queue row's Add to Playlist menu wiring. The native playlist-complete check is stubbed. The window contract checks per file, not per window. Extension menu entries come from a cached snapshot, so a submenu can be stale.",
+   "owner": "E-library, G-panels, I-build, D-menus",
+   "evidence": "verifier open lists"
+  },
+  {
+   "priority": "P2",
+   "item": "Edge cases: the resume toast overflows below about 400 pt of video width; a mixed audio and video import gives no feedback for the audio files; S37.Stream/running shows the host name, so the render is not deterministic.",
+   "owner": "A-window, E-library, J-media-io",
+   "evidence": "verifier open lists"
+  }
+ ],
+ "addLiveChecks": [
+  "C1 (A-window/B-controls): click the volume cone and the seek bar, then press Tab and arrow keys. Expect no system focus box at any point, and only the design ring under Full Keyboard Access.",
+  "C2 (G-panels): click the audio button, then the subtitles button. Expect the track popover anchored bottom-right above the bar with the right tab preselected, and the bar icon orange (subtitles as a filled caption box). Picking a row moves the orange ✓ and does not close the popover.",
+  "C4 (D-menus/G-panels): open and close the popover, queue, settings sidebar, ⋯ menu and a dialog, using Esc and a click outside each time, while playing. Expect the same open/close motion everywhere, and playback never pauses.",
+  "C7 (B-controls): change the volume with the scroll wheel, the arrow keys and the media keys. Expect only the cone tooltip as feedback, and no VLC core volume OSD.",
+  "MUST launch-to-Home (E-library): quit with nothing left to resume, then launch the app. Expect the full-window library on Home, not the cone screen. With a partially watched file, expect the resume toast centred above the bar, and the seek bar shows the tinted 0→saved span plus a marker.",
+  "MUST drag library→queue (E-library/G-panels): drag a row from the compact and the full library into the open queue, at the end and at a placeholder. Expect it to be added or inserted at the drop point.",
+  "MUST Add Subtitles mapping (G-panels/C-bridge): open Add Subtitles on a folder, map the files, press Save, then reopen another episode in that folder. Expect the tracks under External Tracks in the popover, still mapped after a relaunch.",
+  "MUST fullscreen bar reveal (A-window): in fullscreen, move the pointer near the top edge, then near the bottom edge. Expect only the matching bar to appear, the video not to jump, and no frame in fullscreen.",
+  "MUST ⌘B bookmark + chapters (G-panels): press ⌘B while playing. Expect a bookmark with no dialog and an OSD 'Pressed ⌘B'. Clicking a bookmark or chapter row seeks to it.",
+  "Settings in the real window (F-settings): open all 13 categories in Dark and Light at 1280×800 and screencapture each one. Compare with the Figma Settings renders. Advanced Options expands below with the chevron pointing down, and ⓘ opens on click with no hover delay.",
+  "H-05 accessibility (H-design): turn on Reduce Transparency, Differentiate Without Color and Increase Contrast one at a time. Check the bars, popups, the native menu bar, the AppKit menus and dialogs. Expect opaque surfaces, non-colour state cues and higher contrast, with no unreadable text.",
+  "Accent change (H-design): pick a different accent in Settings or onboarding. Expect every former orange to change, including the seek fill, active icons, the ✓ marks, the dialog primary button and chapter numbers.",
+  "Startup and memory (C-bridge/I-build): cold-launch to the first frame of a test episode, measured with os_signpost or a stopwatch. Measure RSS after 30 min of 1080p playback and after browsing Network and the library.",
+  "COMP-18 (C-bridge): drag an .srt onto the window in fullscreen, and open a file whose subtitle is auto-detected. Expect the subtitle to be added and selected, with no duplicate.",
+  "SET-04 (J-media-io): start a Stream job with 'keep' on and two items queued. Expect the receiver to get the second item with no reconnect.",
+  "Music layout (B-controls/E-library): play a song with 'Show Waveform on Seekbar' on. Expect the waveform bars (played part orange), the −15/+15 buttons beside play, and the audio now-playing view.",
+  "Open Network Stream and Network category (J-media-io/E-library): open an http URL through the dialog and browse SMB/UPnP shares. Expect no Enqueue action and no all-in-one Open dialog."
+ ]
+}

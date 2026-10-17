@@ -1,0 +1,150 @@
+{
+ "codexAssessment": "Mixed. Some of the native lifetime and wiring work is solid. Several \"И\" (fixed) items are superficial or wrong, and two of them regress Figma parity that wave 1 had reached.\n\nCorrect:\n- PER-01. The expansion worker is registered under @synchronized and checked against _stopped before dispatch. NewParse and Submit run under the same lock. finishShutdown waits on the group, then drains _queue, then deletes the preparser. The ordering holds up when traced.\n- PERF-03. Discovery is lazy per category through the discover command. One caveat: the trigger is a side effect inside the getter sources(in:).\n- LIB-05. Music sorts come from the resolved breadcrumb category.\n- NAT-02. ⌥⌘F is recorded in D040. It is not exposed in the menu bar.\n- Native cache invalidation is sound: every ML event goes through contentDirty, which sets _queryDirty.\n\nSuperficial or incomplete:\n- LIB-01/COMP-02. The revision hash plus captured positions fixes the search and sort case. But positions are indexes into vlc_ml_list_playlist_media(NULL), and that call omits missing media. Codex also dropped the old i_nb_media bound check. So a playlist holding an item on an unmounted drive still removes the wrong entry.\n- A11Y-03. ←/→ were mapped to the same ±1 as ↑/↓, so in grids ↑/↓ still do not move by row.\n- COMP-08. One tooltip now says \"has not been implemented\". The playlist menu still has the old wording.\n- LIBSET-02. Repeated pages are cached. But Home now ships the whole history (i_nbResults=0, with the 20/8 caps removed natively) on every refresh, and a playlist date sort lists the entire library.\n- LIB-03. Import works, but the files land only in the Videos/Music roots, as unparsed external media classified by a file-extension list, with no feedback in the folder where Add File was clicked.\n\nWrong, or a regression:\n- COMP-14 compact half. The compact Home filter keeps only Continue Watching and Listen Again. Figma 1106:5633 and VIDEO_BREAKDOWN (\"compact and full window … Frequently Visited Folders\") both show all sections. It can also leave the panel blank. mxr-snapshot only reported REVIEW, so the regression slipped past.\n- LIB-06. Playlists are now always re-sorted, by title or by media-library insertion date. The default Oldest First no longer shows the user's own playlist order. No native test covers this path.\n- NAT-05. readableSecondary #8F8F8F replaces Figma FG/A3 #6B6B6B on every library count line and in the mini-player queue. It is an invented token with no DECISIONS entry.\n\nLeft open by Codex and still open: LIBSET-04 (light compact panel #EBEBEB vs Figma #C2C2C1), the LIBSET-06 decision record, listsMedia and the dead positions-based removal API.\n\nI did not do live verification in /Applications/VLC Redesign.app. Codex had not rebuilt it, and I did not hold the app lock or run the idle-wait gate. Runtime claims (removal with missing media, Home payload cost) come from reading the code and the upstream ML semantics.\n\nRenders: <scratch>",
+ "confirmed": [
+  {
+   "id": "E-01",
+   "severity": "major",
+   "title": "Compact Home hard-filters to Continue Watching + Listen Again, contradicting Figma 1106:5633",
+   "evidence": "MXRLibraryView.swift:218 filters compact homeSections to .continueWatching/.listenAgain. Figma S40 (sidebar.png node 1106:5633, side-by-side in E-library-review/S40_Library_home) shows five sections in the compact panel: Continue Watching, Listen Again, Frequently Visited Folders, Frequently Visited Playlists, Frequently Listened Artists. All three extra titles also exist in figma_file.json. The 13m47 key frame shows only the top of the panel. Codex based this on audit COMP-14 ('compact Home shows all sections instead of two'), which read the cropped video frame and ignored Figma. Side effect: line 128 checks homeSections.isEmpty, so a history with only folders, playlists or streams gives a blank compact panel with no empty state.",
+   "files": [
+    "Sources/MXRUI/Library/MXRLibraryView.swift"
+   ],
+   "fix": "In home (line ~218), ForEach(library.homeSections) for both modes. Keep the compact per-section prefix(3) at line 236. Optionally add a DECISIONS note that Figma 1106:5633 overrides COMP-14. Add a gallery/unit assertion that compact Home includes .frequentFolders when the mock has folder history."
+  },
+  {
+   "id": "E-02",
+   "severity": "major",
+   "title": "Playlists open under the default sort (oldestFirst → INSERTIONDATE), which ranks by media-library index date, not playlist order",
+   "evidence": "LibraryModel.swift:41 defaultSorts[.playlists] = .oldestFirst. MXRLibraryServices.m:698 maps it to VLC_ML_SORTING_INSERTIONDATE. Lines 767-786 then re-sort the playlist's items with dateRanks taken from a full vlc_ml_list_media(INSERTIONDATE) query, which reflects when each file was indexed, not when it was added to the playlist. So a newly opened playlist never shows its stored order. The query also returns every media in the library each time.",
+   "files": [
+    "module/bridge/MXRLibraryServices.m",
+    "Sources/MXRCore/Models/LibraryModel.swift"
+   ],
+   "fix": "In mediaAt 'playlist' (MXRLibraryServices.m:754-788): when i_sort is INSERTIONDATE, keep storage (position) order for ascending and reverse it for b_desc. Keep NaturalCompare(title) for the title sorts. Delete the dateRanks vlc_ml_list_media query and the importDates tie-break for playlists. Add a native test in Tests/Native*Library*.m: playlist [B,A] where A was indexed first shows [B,A] under the default sort and [A,B] under Newest First."
+  },
+  {
+   "id": "E-03",
+   "severity": "major",
+   "title": "Playlist removal positions come from present-media listing; vlc_ml_playlist_remove uses storage positions",
+   "evidence": "MXRLibraryServices.m:1178 (remove) and :755 (occurrence numbering) both use vlc_ml_list_playlist_media(_ml,NULL,id). In medialibrary.cpp:2564 this becomes playlist->media(nullptr), and with no params medialibrary excludes is_present=0 media (QueryParameters.includeMissing defaults off). vlc_ml_playlist_remove (medialibrary.cpp:765-775) takes a storage position. If a missing (unmounted) item comes before the target, the entry after the intended one is removed. The revision hash is computed over the same filtered list, so it cannot detect this. vlc_ml_playlist_t has i_nb_media and i_nb_present_media (include/vlc_media_library.h:283/288) to check for it. The positions-only overload (QueueAndLibraryBackends.swift:94, VLCLibraryBackend.swift:92, LibraryModel.swift:341) sends no revision, so natively it always fails validation.",
+   "files": [
+    "module/bridge/MXRLibraryServices.m",
+    "Sources/MXRCore/Backends/QueueAndLibraryBackends.swift",
+    "Sources/MXRCore/Models/LibraryModel.swift",
+    "Sources/MXRVLCBackend/VLCLibraryBackend.swift",
+    "Sources/MXRMockBackend/MockLibrary.swift"
+   ],
+   "fix": "In removeFromPlaylist (MXRLibraryServices.m ~1176): vlc_ml_get_playlist(id) and require i_nb_media == i_nb_present_media == current.count before validating and removing. Otherwise fail with 'Some items in this playlist are on a disconnected drive. Reconnect it to remove items.' In mediaAt 'playlist', set playlistOccurrence only when the counts match, so the existing `media.playlistOccurrence != nil` guard (LibraryPopup.swift:119) hides Remove from Playlist. Delete removeFromPlaylist(id:positions:) from the protocol, VLC backend and mock (fold it into the occurrences variant), and delete LibraryModel.removeFromCurrentPlaylist(positions:)."
+  },
+  {
+   "id": "E-05",
+   "severity": "major",
+   "title": "homeSections loads the whole history (i_nbResults=0) and is rebuilt on every ML change",
+   "evidence": "MXRLibraryServices.m:999 sets p.i_nbResults=0 for global, video and audio history. Diff 5ac081046e..a215064366 removed the native caps: continuing <20, folders/playlists/artists >=8 and the 200-item history limit. The caps moved to MXRLibraryView.swift:241 (.prefix(20/8), literal values). Every contentDirty or _queryDirty event clears _homeCache (line 995), so Home rebuilds and bridges every history item, and runs the N+1 vlc_ml_list_playlist_media per playlist at line 1028, during indexing and playback progress.",
+   "files": [
+    "module/bridge/MXRLibraryServices.m",
+    "Sources/MXRUI/Library/MXRLibraryView.swift"
+   ],
+   "fix": "Restore native caps in homeSections. Bound history to about 200 for ranking. Truncate the continuing/audio entries to the section cap and folders/playlists/artists to 8. Expose the caps as constants shared with Swift via LibraryGeometry, and drop the literal 20/8 from MXRLibraryView.swift:241. Serve the 'Show all' homeSection destination through the paged page: path with its own uncapped query in the same order. Replace the per-playlist N+1 with one pass over the played set, or cap the number of playlists scanned."
+  },
+  {
+   "id": "E-04",
+   "severity": "minor",
+   "title": "Undocumented readableSecondary (#8F8F8F) replaces Figma FG/A3 on library count and mini-player queue text",
+   "evidence": "MXRLibraryView.swift:87 (countText) and MXRMiniPlayerView.swift:197/223 use Theme.Color.readableSecondary. The token was added by Codex for NAT-05 and sets the light value to #595959. mxr-snapshot S28 and S38 report 'render #8F8F8F vs Figma #6B6B6B, Δ 36'. The video frame 20m14.8 also shows a dim '15 items'. The add row (MXRLibraryView.swift:263), subtitles (LibraryEntryView.swift:82) and empty-state hints still use fgA3, which is inconsistent. DECISIONS has no entry. Accessibility is already handled natively: ThemeColor.swift:33 maps fgA3 to fgA1 under Increase Contrast. Also used in QueuePanel.swift (G-panels).",
+   "files": [
+    "Sources/MXRUI/Library/MXRLibraryView.swift",
+    "Sources/MXRUI/Library/MXRMiniPlayerView.swift"
+   ],
+   "fix": "Revert the library and mini-player uses to Theme.Color.fgA3 to match Figma (spec-part2 §E '110 items (FG/A3)') and rely on the Increase Contrast mapping. Coordinate with H-design/G-panels on removing the token or recording a D-entry. If the owner keeps it, record the decision and apply it consistently to every enabled secondary label."
+  },
+  {
+   "id": "E-06",
+   "severity": "minor",
+   "title": "LIBSET-04 light compact panel/rail much lighter than Figma Player - Light (unfixed)",
+   "evidence": "MXRLibraryView.swift:38 draws MXRBackdropSurface(tint: bgB1Transparent). Light bgB1Transparent is #E7E7E7@0.8 (colors.json:478). Over Figma's dark video frame this gives about #C2C2C1, but over the gallery's light backdrop or the aqua .hudWindow material (MXRBackdropSurface.swift:41,75) it gives about #EBEBEB. Codex marked it H (not done). Not yet verified in the real window.",
+   "files": [
+    "Sources/MXRUI/Library/MXRLibraryView.swift",
+    "Sources/MXRUI/Library/LibraryNavigation.swift",
+    "Sources/MXRDesign/Materials/MXRBackdropSurface.swift"
+   ],
+   "fix": "Check first in the installed app (light scheme, compact library over playing video, screencapture), comparing against Player - Light 2425:13624: panel #C2C2C1, rail #ABABAA. If it is lighter, the panel's material must not add its own light wash. Pass a material and appearance that only blur the video (for example force .darkAqua appearance on the effect view for this surface, or a material without a light base) under the Figma tint. Change this at the call site through the existing material parameter, not with a new tint value."
+  },
+  {
+   "id": "E-07",
+   "severity": "minor",
+   "title": "Arrow keys: ←/→ duplicate ↑/↓; grids move by one item instead of one row",
+   "evidence": "MXRLibraryView.swift:148-151 sends up/left to move(-1) and down/right to move(+1). grid() and fullList() compute `count` columns but do not expose it.",
+   "files": [
+    "Sources/MXRUI/Library/MXRLibraryView.swift"
+   ],
+   "fix": "Store the current column count (from grid()/fullList(); 1 for the compact list) in @State or compute it from the width. ↑/↓ call move(∓columns), ←/→ call move(∓1). LibraryModel.moveSelection(by:) already clamps."
+  },
+  {
+   "id": "E-08",
+   "severity": "minor",
+   "title": "Imported files: extension-based audio/video guess, N+1 vlc_ml_get_media, no feedback for Add File",
+   "evidence": "MXRLibraryServices.m:797-814 importedMediaMatching does vlc_ml_get_media per stored id on every Videos/Music root query and classifies 'unknown' items with a hard-coded extension list. resolveMedia:1109 uses vlc_ml_new_external_media (no parse). LibraryPopup.swift:82 offers Add File in a folder's ⋯ menu, but the file goes to the category root, not that folder, and nothing tells the user.",
+   "files": [
+    "module/bridge/MXRLibraryServices.m",
+    "Sources/MXRUI/Library/LibraryPopup.swift"
+   ],
+   "fix": "After the import completes, navigate to (or select in) the Videos/Music root where the file appears. Drop Add File from the folder menu, or label it 'Add Files to Library…'. Cache imported dictionaries with the page cache and invalidate them on import. Optionally classify by preparsing (vlc_ml media type after parse) instead of the extension list."
+  },
+  {
+   "id": "E-09",
+   "severity": "minor",
+   "title": "Audio-track tooltip exposes implementation and differs between folder and playlist menus",
+   "evidence": "LibraryPopup.swift:87 'Library audio-track editing has not been implemented.' vs :138 'VLC can add external audio tracks only to the playing file.'",
+   "files": [
+    "Sources/MXRUI/Library/LibraryPopup.swift"
+   ],
+   "fix": "Use one user-facing string for both, consistent with the file menu at :116: 'Play a file first to attach an external audio track.'"
+  },
+  {
+   "id": "E-10",
+   "severity": "minor",
+   "title": "Remove from Playlist ignores multi-selection",
+   "evidence": "LibraryPopup.swift:120-123 passes [entry]. Mark as Watched (:100-102) uses app.library.selection.",
+   "files": [
+    "Sources/MXRUI/Library/LibraryPopup.swift"
+   ],
+   "fix": "If app.library.selection contains entry.id, pass app.library.entries.filter { selection.contains($0.id) && $0.media?.playlistOccurrence != nil }, otherwise [entry]. The removal title should reflect the count."
+  },
+  {
+   "id": "E-11",
+   "severity": "minor",
+   "title": "Library rows use offset identity (ForEach enumerated id: \\.offset)",
+   "evidence": "MXRLibraryView.swift:182, 190, 200. Row @State (hover, open popup) stays with the index after removal or insertion, while .id(entry.id) is applied only for scrollTo. Note: the revision inside the occurrence id is defensible. It keeps a positional id from silently pointing at different media after the playlist changes, so keep it.",
+   "files": [
+    "Sources/MXRUI/Library/MXRLibraryView.swift"
+   ],
+   "fix": "ForEach(Array(library.entries.enumerated()), id: \\.element.id), still passing index as rowIndex. Check first that entry ids are unique for merged lists (history plus imported is already deduplicated by id)."
+  },
+  {
+   "id": "E-12",
+   "severity": "minor",
+   "title": "Full Home fixture progress too long; sort-dot rule conflicts between Figma and video without a decision",
+   "evidence": "S43 FAIL at 582,326: mock progress 0.35/0.62/0.18 (MockData.swift:161) plus DON'T BLINK 0.381 (:193) draw 18–60% bars, while Figma 6261:15093 and S40 show bars of a few %. Sort dot: Figma S28 shows the orange dot on the sort icon under Unwatched First at The Wand ▸ S01, but key frame 20m14.8 (same folder, full window) shows no dot. LibraryModel.hasCustomSort (line 45) marks only changes from the category default.",
+   "files": [
+    "Sources/MXRMockBackend/MockData.swift",
+    "Sources/MXRCore/Models/LibraryModel.swift",
+    "redesign/docs/DECISIONS.md"
+   ],
+   "fix": "Set the fixture progress values to the Figma bar lengths: measure them in Player-5.png and sidebar.png (fixture data only, D030). Record the sort-dot rule as a DECISIONS entry citing both sources: the current 'differs from the category default' rule matches the video. Do not change hasCustomSort without that decision."
+  },
+  {
+   "id": "E-13",
+   "severity": "minor",
+   "title": "Leftovers: dead listsMedia, ⌥⌘F missing from menu bar, mini-player video artist chip",
+   "evidence": "LibraryValues.swift:73 listsMedia has no references in Sources/Tests. ⌥⌘F exists only as a hidden Button (MXRLibraryView.swift:49-54); MXRNativeMenus.swift has no Find/Search item. Mini player shows the artist chip only if player.media.artist is set (MXRMiniPlayerView.swift:72). The S46 collapsed fixture video has no artist, so Figma 970:3090's second chip is missing (S46 FAIL).",
+   "files": [
+    "Sources/MXRCore/Values/LibraryValues.swift",
+    "Sources/MXRPlugin/MXRNativeMenus.swift",
+    "Sources/MXRGalleryCatalog/Entries/LibraryGallery.swift",
+    "Sources/MXRMockBackend/MockData.swift"
+   ],
+   "fix": "Delete listsMedia. Add Edit ▸ Find ▸ 'Search Library' ⌥⌘F to MXRNativeMenus routed to the same action, and remove the hidden button so there is one registration (D040). For the S46 fixture, give the playing video an artist like Figma's (fixture only), or record a decision that videos without artist metadata show no chip."
+  }
+ ]
+}

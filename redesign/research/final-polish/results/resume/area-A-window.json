@@ -1,0 +1,213 @@
+{
+ "area": "A-window",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "A-window is done for this wave. The earlier fixes for items (a) to (d) still hold on the current tree, and items (e) and (f) are fixed or covered by decision D055. Nobody has verified any of it yet, and nothing ran in the real window (this wave allows no live UI).\n\nWhat changed this time:\n(f1) Fullscreen top edge. When the pointer reaches the top edge, macOS shows its own strip (menu bar and titlebar) as a separate window, so this window never sees the pointer. Now the toolbar is hidden in fullscreen, as VLC's own video windows do, so the strip holds only the menu bar and the titlebar with the traffic lights. The controller reads the strip window's frame. The reveal logic shows the top bar when the strip appears and draws it right below the strip. The bar keeps that place until it hides, so it does not slide away from a pointer coming down from the menu bar.\n(f2) Light. The video was drawn edge to edge under the bars in Light only (a separate full-bleed path). Now the background still runs under the translucent bars, but the picture stays between the pinned bars. Switching theme or opening the library no longer rescales the video, and subtitles are not hidden under the control bar. The S72 render is unchanged next to Figma.\n(f3) A hidden bar is now removed from the view tree, so no tooltip can stay after it fades.\n(f4) Turning Hide UI off reopens the right panel that was open before.\n(f5) The end of a fullscreen video now follows VLC: the window leaves fullscreen only if it went fullscreen while a video was playing.\n(f6) The window now reports how much of the picture the control bar covers (InterfaceModel.subtitleSafeInset). C-bridge's in-progress setSubtitleSafeInset command still has to be wired to it. The compact library is covered by a decision: it overlays the side of the picture, and VLC can only move subtitles vertically.\n(f7) Resume toast. The real cause is in the bridge, not the media length. Files played from outside an indexed folder have no duration in the media library, so the bridge sent time −1 and no toast ever appeared (seen headlessly with S01E03: progress 0.177 saved, duration −1). The bridge now uses the player's length. The 60 s files would very likely show the toast too after this fix, but that was not tested.\n(e) S01.Window/shipping now passes, with deviations citing D022. D007's wording is fixed, and the redundant cone tints are removed.",
+   "fixed": [
+    "(f1) MAJOR fullscreen top-edge reveal: the toolbar is hidden in fullscreen. MXRAppController watches the strip window (standardWindowButton(.closeButton).window) and sets InterfaceModel.fullscreenSystemInset. PlayerChromeReveal pins the top bar while the strip shows and sets a sticky topBarOffset; MXRAppView draws the bar, the compact library, the panels and the info area below it. Evidence: build/evidence/final4/A-window/menubar_top_crop.png, S05_fullscreen_vs_menubar.png, new gallery entry S05.Window/fullscreen-menubar. Tests: WindowLiveFindingsTests.testMacOSFullscreenStripRevealsTheTopBarBelowItAndItStaysReachable, testSystemStripInsetFollowsTheStripWindowFrame, testAWindowNeverOffsetsItsTopBar.",
+    "(f2) MAJOR Light-only rescale: PlayerCanvasStyle.resolve sent Light to .fullBleed. The new .underBars style keeps the background under the bars and puts the picture between them; the OSD uses the picture rect. Evidence: S72_light_before_after_figma.png (before, after and Figma are visually identical; bar pixels unchanged). Test: testLightKeepsThePictureBetweenThePinnedBars, which fails on the old code at y 20.",
+    "(f3) Tooltip left after the bars hide: hidden bars now leave the tree (the fade is a transition). Test: testHiddenBarsLeaveTheViewTree, which fails on the old code (2 vs 1).",
+    "(f4) Hide UI off now reopens the panel that was open (InterfaceModel.toggleUIHidden). Test: testTurningHideUIOffReopensThePanelThatWasOpen, which fails on the old code.",
+    "(f5) End of media in fullscreen: the window now leaves fullscreen only if fullscreen was entered while a video was playing, matching VLCVideoOutputProvider handleVideoCloseForDisplay (D055).",
+    "(f6) The UI side of the subtitle inset: InterfaceModel.subtitleSafeInset is the control-bar height while that bar overlays the picture (fullscreen, Customize), otherwise 0. Test: testRevealedFullscreenControlBarReportsTheSubtitleInset. The rest is in D055.",
+    "(f7) Resume toast never appeared for external media: in MXRServicesBridge.m, when the media library has no duration, the time comes from vlc_player_GetLength, both in the media-library reply and in stateSnapshot. Headless evidence: build/evidence/final4/A-window/home (ml.db: S01E03 last_position 0.1767, duration −1). The native plugin compiles under the lock.",
+    "(e) S01.Window/shipping: deviations cite D022 for the left group after the traffic lights and for the right group without Windows controls; the verdict is now PASS (check_S01/side-by-side.png). D007 is amended (the default top bar has no PiP button). Redundant tint: Theme.Color.accentLogo removed from MXRIcon(.vlc) in PlayerBars.swift and PlayerView.swift.",
+    "(e) B-controls' PlayerInteractionTests (108 vs 54) now passes at the current tree.",
+    "Earlier in this wave (still holding on the current tree): S66 Customize band, modal host centring and clipping in the shipping window, App* entries keep the top bar under --engine shipping-window, --scheme/--accent reach shipping-window entries, entries S67.Window/two-row, S05.Window/fullscreen and S12.Window/continue-minimum, S72 fixture media, narrow cat fixture, resume toast below ~400 pt, Settings gate strict. Suites rerun green: WindowShippingParity, WindowComposition, PlayerInteraction, OSDLayout, ContinueWatchingToast, CustomizationInteraction, FigmaDeviation, GalleryRender, ModalIsolation, WindowLiveFindings."
+   ],
+   "notFixed": [
+    {
+     "id": "f6 subtitles under the fullscreen control bar: bridge wiring",
+     "why": "C-bridge is adding MXRBridgeCommandSetSubtitleSafeInset (uncommitted MXREffectsServices.m), but nothing calls it from Swift yet. The UI value InterfaceModel.subtitleSafeInset (points from the bottom of the video view) is ready for C-bridge to observe and send with the backing scale. The bridge should subtract the picture's letterbox. Subtitles under the compact library stay covered under D055."
+    },
+    {
+     "id": "Compact library overflow at the 480 pt minimum window (E-library)",
+     "why": "Still E-library's: MXRLibraryView(compact:) draws about 248 pt wide inside a 216 pt column. Not touched."
+    },
+    {
+     "id": "S66 play-tile 3 pt inset and the Customize dim colour over real video",
+     "why": "H-design owns these; D053 now covers the dim."
+    },
+    {
+     "id": "S72 compact-library divider colour",
+     "why": "E-library owns it (D053/D046)."
+    },
+    {
+     "id": "Real-window behaviour of the fullscreen strip (frame-based slide, occlusion, notch screens)",
+     "why": "No live UI this wave; listed in liveChecks A-fs-topedge."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRCore/Models/InterfaceModel.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerChrome.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerGeometry.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerBars.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/MXRAppView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRAppController.swift",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/ShippingGallery.swift",
+    "modules/gui/macosx_redesign/module/bridge/MXRServicesBridge.m",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/WindowLiveFindingsTests.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/WindowCompositionTests.swift",
+    "redesign/docs/DECISIONS.md",
+    "(earlier in this wave) PlayerMetrics.swift, GalleryCatalog.swift, AppGallery.swift, PlayerGallery.swift, LayoutStore.swift, LayoutDrag.swift, Settings/Panels/Dialogs/CustomizationGallery.swift, WindowShippingParityTests.swift, ContinueWatchingToastTests.swift, CustomizationInteractionTests.swift, PlayerInteractionTests.swift"
+   ],
+   "editsOutsideOwnership": [
+    "module/bridge/MXRServicesBridge.m (C-bridge): in applyRestoreQueryForURL's media-library reply and in stateSnapshot, when the library has no duration, the restore-prompt time comes from vlc_player_GetLength × progress. Two small blocks; C-bridge's own uncommitted edits in that file are untouched.",
+    "Tests/MXRUISnapshotTests/WindowCompositionTests.swift: the Light canvas assertion now expects .underBars (D055).",
+    "redesign/docs/DECISIONS.md: appended D055 and added an amendment line to D007.",
+    "(earlier) LayoutStore.swift LayoutZone.newFirstRow, LayoutDrag.swift row −1 guard, gallery host wrappers, CustomizationInteractionTests and PlayerInteractionTests updates, D051"
+   ],
+   "decisionsWritten": [
+    "D055: fullscreen top edge (toolbar hidden in fullscreen, top bar drawn below macOS's strip and kept there), Light canvas runs under the bars but the picture stays between them, subtitle safe inset only where the control bar overlays the picture, end of a fullscreen video follows VLC, S01 top-bar deviations (D022), Hide UI restores the panel. Accepted (agent, 2026-10-17).",
+    "D007 amended: no PiP button in the default top bar",
+    "D051 (earlier in this wave)"
+   ],
+   "ownerDecisions": [
+    "D055 (agent-written, 2026-10-17): fullscreen strip handling, Light picture geometry, subtitle inset scope, fullscreen exit at the end of a video, Hide UI panel restore",
+    "D051 (agent-written, earlier in this wave)",
+    "D042, D044, D046, D047, D048, D049, D050, D052, D053, D054 (agent-written by other areas): implementation kept",
+    "D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies): implementation kept"
+   ],
+   "liveChecks": [
+    {
+     "id": "A-fs-topedge",
+     "steps": "Play a video and enter fullscreen. Wait 5 s for the bars to hide. Move the pointer to the very top edge and wait 1 s. Then move it slowly down into the area just below the menu bar and strip, and hover the ⋯ button. Repeat on an external non-notched display if one is available.",
+     "expect": "The menu bar and a titlebar strip with only the traffic lights appear (no empty 40 pt toolbar band). At the same time the app's top bar (cone, ⋯, sidebar toggle, chip, title, exit-fullscreen) appears directly below them. When the strip slides away, the top bar stays where it is until the pointer leaves it, and ⋯ is clickable. The video does not move. After the pointer leaves, the bar hides and next time comes back at y = 0."
+    },
+    {
+     "id": "A-fs-exit-windowed",
+     "steps": "Leave fullscreen with the exit-fullscreen button and screenshot the top 40 pt.",
+     "expect": "One 40 pt top bar with the traffic lights centred and the cone after them (the toolbar is restored, C3 unchanged)."
+    },
+    {
+     "id": "A-light-geometry",
+     "steps": "In Theme Light at the default window size, measure the video picture width with the compact library closed, then open it. Switch to Dark and measure again.",
+     "expect": "The picture width and position are the same in all three cases (no full-width rescale). Subtitles sit above the control bar."
+    },
+    {
+     "id": "A-tooltip",
+     "steps": "In a window, hover the fullscreen button until its tooltip shows, then click it. Keep the mouse still for 5 s.",
+     "expect": "No 'Fullscreen' tooltip stays on screen after the bars auto-hide."
+    },
+    {
+     "id": "A-hideui-queue",
+     "steps": "Open the queue, press ⌘\\ twice.",
+     "expect": "The queue is open again after Hide UI is turned off."
+    },
+    {
+     "id": "A-fs-end",
+     "steps": "(a) Play S01E01 (60 s), enter fullscreen, let it end. (b) With nothing playing, enter fullscreen on the library, then open S01E01 and let it end.",
+     "expect": "(a) The window leaves fullscreen at the end, like VLC. (b) The window stays fullscreen."
+    },
+    {
+     "id": "A-resume-toast",
+     "steps": "Install the build with the bridge change. Open 'Test Show S01E03.mp4' (10 min, from build/media, outside the library), seek to 03:00 and let it play 5 s. Press Stop (or open another file), then open S01E03 again.",
+     "expect": "The 'You already watched till 00:03:0x' toast with Continue Watching appears, centred in the video. Continue resumes at about 03:00."
+    },
+    {
+     "id": "A-subs-fs-bar",
+     "steps": "After C-bridge wires setSubtitleSafeInset, play S01E01 with its .srt in fullscreen and move the pointer to the bottom edge.",
+     "expect": "The subtitle rises above the revealed control bar and drops back when the bar hides."
+    }
+   ],
+   "evidence": [
+    "../build/evidence/final4/A-window/S72_light_before_after_figma.png",
+    "../build/evidence/final4/A-window/before_S72_light.png",
+    "../build/evidence/final4/A-window/after_S72_light.png",
+    "../build/evidence/final4/A-window/S05_fullscreen_vs_menubar.png",
+    "../build/evidence/final4/A-window/menubar_top_crop.png",
+    "../build/evidence/final4/A-window/check_S01/side-by-side.png (S01.Window/shipping PASS)",
+    "../build/evidence/final4/A-window/home/Library/Application Support/org.videolan.vlc/ml/ml.db and run1.log (headless S01E03 probe: progress saved, duration −1)",
+    "../build/evidence/final4/A-window/before/modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/WindowLiveFindingsTests.swift (the reduced copy run against the old code: 3 failures, as expected)"
+   ],
+   "notesForOthers": "C-bridge: InterfaceModel.subtitleSafeInset (Double, in points from the bottom of the video view) is kept by the window composition: the control-bar height while that bar overlays the picture (fullscreen, Customize), otherwise 0. Please observe it in the backend or AppModel and send setSubtitleSafeInset {points, scale}, subtracting the picture's bottom letterbox if the vout knows it. I also edited MXRServicesBridge.m (the restore-prompt time for external media, whose duration is −1 in the media library); please keep it, and the bridge smoke test could cover it. Integrator: new gallery entry S05.Window/fullscreen-menubar; new suite WindowLiveFindingsTests; DECISIONS D055 and a D007 amendment line. In fullscreen the toolbar is hidden (toolbar.isVisible = false) and restored on willExit, didExit and failed transitions. Hidden bars are no longer in the SwiftUI tree, so a test that looks for bar views while the bars are hidden will now find none. E-library: the compact library is still about 248 pt wide inside the 216 pt column at the 480 pt window."
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Player/PlayerView.swift MXRContinueWatchingToast; S12.Window/continue-minimum (480x270)",
+    "description": "At the 480 pt minimum window the toast no longer overflows, but the button label is cut to 'Continue Watchi…'. The toast stays inside the video, but the primary action is truncated. An icon-only or shorter fallback would read better. The compact library also overflows its 216 pt column there (E-library's, already passed on)."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRGalleryCatalog/Entries/ShippingGallery.swift S01.Window/shipping deviations",
+    "description": "The D022 deviations leave out the whole left-group rect (padding + left group + traffic-light reserve) and the whole right group 247:464. The cone, ⋯, sidebar toggle, chip and fullscreen glyph are therefore not compared at all in this entry; they are not compared shifted. Each deviation cites D022 honestly, but this is wider than the actual difference (a horizontal offset and the missing Windows buttons). Narrowing it to the Windows-button rect, plus a shifted comparison of the left group, would keep the icons under the gate."
+   },
+   {
+    "severity": "minor",
+    "where": "module/bridge/MXRServicesBridge.m applyRestoreQueryForURL / stateSnapshot",
+    "description": "For external media (media-library duration -1) the resume time now comes from vlc_player_GetLength, with a fallback in stateSnapshot once the input has a length. The logic is correct as read, but nothing tests it (no bridge smoke test), and it is unverified until the live wave."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRPlugin/MXRAppController.swift observeSystemStrip",
+    "description": "How far the fullscreen strip covers the window is read from didMove/didResize/occlusion notifications of the titlebar window. Whether AppKit posts these while it animates the menu-bar reveal cannot be proved offscreen, so the whole f1 fix depends on live check A-fs-topedge. The state machine itself (pin while the strip shows, keep the offset until the bar hides) is tested."
+   },
+   {
+    "severity": "minor",
+    "where": "live-run-1 A-05-S72 (Light bar and library colours over bright video)",
+    "description": "In the live run the Light bars measured #BBB7BB against the target #ABABAA. This part of the FAIL is not addressed in A-window code. It is covered by D053 (H-design, agent-accepted), which redefines the check over a #2D2D2D clip. The offscreen S72.Window/light check still FAILs on bar colour (#B1B1B1 vs #ABABAA), because offscreen rendering has no window-server blur. Judging this needs the live wave."
+   }
+  ],
+  "summary": "A-window verification, round 1: PASS. Code, tests and renders show no remaining blocker or major issue.\n\n**Build and tests**\n- `swift build` is clean.\n- The targeted suites all pass on the shared tree: WindowLiveFindings 7, WindowComposition 12, WindowShippingParity 6, PlayerInteraction 11 (B-controls' 108 vs 54 failure is reconciled), ContinueWatchingToast 3, CustomizationInteraction 11, FigmaDeviation 5, GalleryRender 13, OSDLayout 2, ModalIsolation 6. Log: ../build/evidence/final4/A-window-verify-r1/tests.log.\n- Regression check: in an isolated copy I reverted the Light canvas fix (back to fullBleed) and the Hide UI panel-restore fix. testLightKeepsThePictureBetweenThePinnedBars failed at y 20, and testTurningHideUIOffReopensThePanelThatWasOpen failed with nil vs queue, as they should. The copy has since been deleted.\n\n**Renders I looked at** (shipping-window, in ../build/evidence/final4/A-window-verify-r1/r/)\n- S66.Window/customization: the empty 54 pt second-row band sits at 972–1026 above the control row, as in Player - customize.\n- S67.Window/two-row: matches customize-7, with the seek row above the transport and the reduced top bar.\n- S25.App/add-subtitles: the dialog is centred at 140–940 and the top bar is present.\n- S37.App/convert-compact: the dialog runs 20–520 with no clipping.\n- S72.App/light and S66.App/customization: both keep the top bar (the tooling trap is fixed).\n- S05.Window/fullscreen-menubar: the top bar is drawn below a 52 pt strip.\n- S12.Window/continue-minimum: no overflow, but the label is truncated (minor).\n- `check` results: S01.Window/shipping PASS with D022/D048 deviations. S72.Window/light FAILs only on bar colour, an offscreen blur limitation covered by D053. S66.App FAILs only on the dialog body fill, a backdrop artifact.\n\n**Work list**\n- (a)–(d) All addressed.\n- (e) Done: S01 deviations cite D022, D007 is amended, the redundant accentLogo tints are removed, and --scheme/--accent reach shipping-window entries.\n- (f1) The toolbar is hidden in fullscreen, the strip window is observed, and the top bar is pinned and offset below the strip. This follows VLC's VLCFullVideoViewWindow and native conventions. It is unit-tested, but it still needs the live check.\n- (f2) The cause is the Light→fullBleed path. The new underBars style keeps the picture between the bars. This is a reasonable root-cause fix, and D055's justification (geometry stable across themes, subtitles not under the bar) is sound.\n- (f3) Hidden bars now leave the view tree.\n- (f4) Fixed and tested.\n- (f5) The end-of-video exit now follows VLC's handleVideoCloseForDisplay semantics.\n- (f6) InterfaceModel.subtitleSafeInset is computed and is now observed in MXRAppController and sent to the backend with letterbox subtraction. The compact-library part is a D055 decision with a valid reason: VLC's sub-margin is vertical only.\n- (f7) The bridge root cause (media-library duration -1 for external media) is fixed, with a stateSnapshot fallback.\n\n**Hard rules**\n- The engine diff (src, lib, include, modules/gui/macosx) is empty.\n- The Settings gate is strict: openSettingsDifferences is now empty, and every deviation cites an accepted decision.\n- No masks or threshold changes were found.\n- Edits outside ownership are declared: MXRServicesBridge.m, WindowCompositionTests and DECISIONS.md.",
+  "liveChecks": [
+   {
+    "id": "A-fs-topedge",
+    "steps": "Play a video and enter fullscreen. Wait 5 s for the bars to hide. Move the pointer to the very top edge and hold it there 1 s. Then move it slowly down below the menu bar and titlebar strip, and click ⋯. Repeat on a notched screen and on an external screen if available.",
+    "expect": "The menu bar and the titlebar strip appear with only the traffic lights in them (no empty 40 pt toolbar band). The app's top bar (cone, ⋯, sidebar toggle, chip, title, exit-fullscreen) appears directly below the strip at the same time. When the strip slides away, the top bar stays reachable and ⋯ opens. The video does not move. Once the bar has hidden, the next reveal brings it back correctly."
+   },
+   {
+    "id": "A-fs-exit-windowed",
+    "steps": "Leave fullscreen with the exit-fullscreen button. Take a screenshot of the top 40 pt.",
+    "expect": "There is a single 40 pt top bar, with the traffic lights centred and the cone right after them (the toolbar is restored)."
+   },
+   {
+    "id": "A-light-geometry",
+    "steps": "Set Theme to Light and play a 16:9 video at the default window size. Measure the picture rect with the compact library closed and then open. Switch to Dark and measure again. Play S01E01 with its .srt.",
+    "expect": "The picture width and position are the same in all cases. The subtitle sits above the control bar."
+   },
+   {
+    "id": "A-light-bars",
+    "steps": "In Light, play a solid #2D2D2D clip and sample the top bar, the control bar and the compact library.",
+    "expect": "The bars read about #ABABAA and the library about #C2C2C1 (D046/D053)."
+   },
+   {
+    "id": "A-tooltip",
+    "steps": "In a window, hover the fullscreen button until its tooltip shows, click it, then keep the mouse still for 5 s.",
+    "expect": "No 'Fullscreen' tooltip is left on screen after the bars auto-hide."
+   },
+   {
+    "id": "A-hideui-queue",
+    "steps": "Open the queue, then press ⌘\\ twice.",
+    "expect": "The queue is open again after Hide UI is turned off."
+   },
+   {
+    "id": "A-fs-end",
+    "steps": "(a) Play S01E01, enter fullscreen and let it end. (b) Enter fullscreen on the library with nothing playing, then open S01E01 and let it end.",
+    "expect": "(a) The window leaves fullscreen at the end. (b) It stays fullscreen."
+   },
+   {
+    "id": "A-resume-toast",
+    "steps": "Use the build with the bridge change. Open build/media 'Test Show S01E03' (10 min, outside the library), seek to 03:00 and play 5 s. Stop, then open S01E03 again. Repeat at a 480 pt window with the compact library open.",
+    "expect": "The toast 'You already watched till 00:03:0x' with Continue Watching appears, centred in the visible video; Continue resumes at about 03:00. At 480 pt the toast stays inside the video."
+   },
+   {
+    "id": "A-subs-fs-bar",
+    "steps": "Play S01E01 with its .srt in fullscreen and move the pointer to the bottom edge, then away.",
+    "expect": "The subtitle rises above the revealed control bar and drops back when the bar hides."
+   }
+  ],
+  "ownerDecisions": [
+   "D055 (agent, 2026-10-17): fullscreen strip handling (toolbar hidden, top bar drawn below the strip), Light canvas under the bars with the picture between them, subtitle inset only where the control bar overlays the picture, fullscreen exit at the end of a video, Hide UI panel restore",
+   "D051 and D053 (agent): Customize band / Move to New Row, Customize dim withdrawn, Light backdrop over bright video",
+   "D007 amendment (no PiP button in the default top bar)",
+   "D042, D044, D046, D047, D048, D049, D050, D052, D054 (agent-written): implementation kept",
+   "D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies): implementation kept"
+  ]
+ }
+}

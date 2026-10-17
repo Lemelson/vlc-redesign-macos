@@ -1,0 +1,181 @@
+{
+ "area": "F-settings",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "F-settings is finished. First I checked the predecessor's committed edits. They build, and its tests pass: SettingsRestartAndInfoTests, DialogKeyLoopGuardTests, SettingsUITests and FigmaDeviationTests (openSettingsDifferences is empty, so the gate stays strict). Nothing it reverted to prove its tests was left reverted in the repo.\n\nThen I finished the open items:\n- **F-08:** fixed at the root. While a dialog is up, every control behind it refuses first responder, so it leaves the key-view loop. A new test fails without the fix (5 failed assertions).\n- **Additional command line options:** the code is now compiled into the native plugin. A new runtime test runs it against the real engine (native-tests.py --suite audio: PASS). Obsolete options are now detected by VLC's own obsolete flag.\n- **userDataDirectory probe:** a headless run of the built engine resolves it to ~/Library/Application Support/<bundle id>, and the videos folder to ~/Movies.\n- **Cone tint:** removed the redundant tint.\n- **Media Info:** a body that scrolls now ends at a divider above the footer. A new test fails without the fix.\n- **Add Subtitles:** 'Choose Files' in the unavailable and empty states now has a visible tile.\n\nI re-rendered all 14 Settings pages against Figma: all are REVIEW, none FAIL. S25.App and the compact modal host now render the same in the shipping window as in the hosting render.",
+   "fixed": [
+    "F-08 (critic P1, verifier minors 1 and 2): DialogKeyLoopGuard.GuardView now sets refusesFirstResponder on every NSControl behind the dialog and restores it when the last guard of the window goes. A dialog that replaces another hands its suspended controls over. A Tab re-checks for fields created behind the dialog after it opened. The membership-based keepFocusInside stays as the fallback. File: Sources/MXRUI/Dialogs/MXRDialogHost.swift. New test DialogKeyLoopGuardTests.testControlsBehindTheDialogLeaveTheKeyLoopUntilItCloses uses AppKit's own Tab with no guard correction and covers the about-replaces-newPlaylist case. It fails without the fix (5 assertions). testTab... now re-enables the field behind on purpose, so it tests the fallback.",
+    "(f) Removed tint: Theme.Color.accentLogo from MXRIcon(.vlc) in MediaInfoDialogs.swift (About view). IconLogoRoleTests pass.",
+    "S65 Media Info: value columns share one grid (predecessor, checked visually in S65_before.png). The cut-off track row now ends at a DialogDivider above the footer: DialogShell measures content and viewport heights and draws the divider only when the body overflows. Evidence: ../build/evidence/final4/F-settings/S65_after.png and crop_s65_after.png. New test Tests/MXRUISnapshotTests/DialogScrollEdgeTests.swift: the playing case overflows and gets a divider; the not-playing case fits and gets none. It fails without the fix (24 is not greater than 25). 'Show in Finder' is a styled DialogButton.",
+    "S27 Add Subtitles: 'Choose Files' had no tile in the unavailable state. DialogButton gained `fill` (default BG/A3), and Add Subtitles uses BG/A5, like its other controls on the BG/B1 surface. Evidence: S27_AddSubtitles_unavailable_before.png and S27_AddSubtitles_unavailable_after.png (crop_s27_after.png).",
+    "S49 Additional command line options: the native path (MXRAudioPreferenceServices.m, MXRIntf.m, MXRAppOptions.inc) now compiles in make libmacosx_redesign_plugin.la (native-make.log). Obsolete detection now uses VLC's obsolete flag: container_of(item, struct vlc_param, item)->obsolete. The old check (psz_text == NULL) was a proxy. New checks in MXRAudioPreferenceServicesRuntimeTests.m cover shell splitting, int/float/--name/--no-name, obsolete rt-priority, unknown, positional and valueless names, and that vlcrc is not written. native-tests.py --suite audio: PASS (native-audio.log).",
+    "C-15 userDataDirectory headless probe against the built engine (../build/evidence/final4/F-settings/probe-userdata.c and probe-userdata.txt). VLC_USERDATA_DIR resolves to ~/Library/Application Support/org.videolan.vlc for a bare binary; src/darwin/dirs.m uses the main bundle id inside the app. VLC_VIDEOS_DIR resolves to ~/Movies.",
+    "C-15 restart note against the value at launch (predecessor): SettingsRestartAndInfoTests passes.",
+    "S49/S51/S55/S56/S60/S61 Settings rows (predecessor, checked): mxr-snapshot check gives REVIEW on all 14 S48.Settings pages, none FAIL. I looked at the general-advanced, video, audio and performance side-by-sides next to Figma. Saturation (one tick) and Gamma ticks match Figma. Target level is enabled. ⓘ marks match on Speaker setup, Replay gain preamp, the video rows, Remember window, Reset all shortcuts, Reverse scroll and Shadow. Evidence: ../build/evidence/final4/F-settings/check/<page>/.",
+    "S25.App dialog position and compact modal host (both major): re-rendered with --engine shipping-window and hosting. The two now render the same. Add Subtitles: the title is at y 160 in 1080, so the dialog runs 140 to 940, as in the 06m02.5 frame, with the top bar visible. S48.App/settings-compact: the dialog runs 20 to 520 with the header whole. The shift came from the gallery capture, fixed by A-window in GalleryCatalog. No change needed in my files. Evidence: S25_App_add-subtitles_ship_before.png, S25_App_add-subtitles_host.png, S48_App_settings-compact_ship_before.png, S48_App_settings-compact_host.png."
+   ],
+   "notFixed": [
+    {
+     "id": "S64 Keyboard Shortcuts FAIL",
+     "why": "This is only the Save fill: #1F1F1F at 98 % vs Figma #1F1E1D at 97 %, a Δ of 2 (token rounding), plus 1 px corner antialiasing. The layout is 1:1, and the parity judge called it a match."
+    },
+    {
+     "id": "S56 Replay gain preamp shows '0' in the gallery (Figma '0.0')",
+     "why": "This happens only in the fixture. The real engine registers audio-replay-gain-preamp with add_float, and SettingsControls then shows '0.0'. The mock backend decodes the map's 0.0 as an integer, and MXRMockBackend is not my file."
+    },
+    {
+     "id": "S63 dropdown placement",
+     "why": "This is D034, an open question for the owner. It is not judged."
+    },
+    {
+     "id": "S25.App scrim strength and blur behind the dialog body",
+     "why": "The offscreen renderer draws no native blur, so this is a live check."
+    },
+    {
+     "id": "Dead rescan-plugins action in AppModel (areas.json notesForOthers)",
+     "why": "AppModel.swift is not my file, and another agent has it modified right now. The Rescan plugins row itself is cut under D050."
+    },
+    {
+     "id": "DialogKeyLoopTests in DialogIsolationTests.swift (D-menus file) still sends Tab via window.sendEvent",
+     "why": "I left another area's test alone. The guard path it misses is now covered by the new test in my DialogKeyLoopGuardTests."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/MXRDialogHost.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/DialogSupport.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/MediaInfoDialogs.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/AddSubtitlesView.swift",
+    "modules/gui/macosx_redesign/module/bridge/MXRAudioPreferenceServices.m",
+    "modules/gui/macosx_redesign/module/bridge/tests/MXRAudioPreferenceServicesRuntimeTests.m",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/DialogKeyLoopGuardTests.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/DialogScrollEdgeTests.swift",
+    "redesign/docs/DECISIONS.md"
+   ],
+   "editsOutsideOwnership": [
+    "modules/gui/macosx_redesign/module/bridge/tests/MXRAudioPreferenceServicesRuntimeTests.m: added one block before the helper is created. It tests MXRApplyCommandLineOptions (in my MXRAudioPreferenceServices.m) against the real engine and cleans up the variables it creates.",
+    "redesign/docs/DECISIONS.md D050: I appended verification lines (native suite, ~/Movies probe) to two existing bullets."
+   ],
+   "decisionsWritten": [
+    "D050 amended: verification evidence for Additional command line options (native-tests.py --suite audio) and for ~/Movies (headless engine probe)."
+   ],
+   "ownerDecisions": [
+    "D050 (agent-accepted, owner sign-off pending): Show minor warnings cut, ~/Movies default, Performance Developer section always shown, Menu Bar and Notifications wording, Remove disabled until something is selected, ⓘ follows the catalog, Fullscreen controls sensitivity kept.",
+    "D030 product defaults (Continue 'Ask', Play locally OFF, ~/Movies) are still pending.",
+    "S27: the OpenSubtitles unavailable state is shown, because no API key is configured. This follows D014 'OpenSubtitles requires a configured API key'. The parity judge asked the owner to confirm it under D035.",
+    "D034: where Settings dropdowns open (over the field vs below it) is still open."
+   ],
+   "liveChecks": [
+    {
+     "id": "F-08-live",
+     "steps": "In the installed app, click the library search field, then press ⌘, to open Settings. Press Tab and Shift-Tab about 20 times, then type letters. Close Settings with Esc and click the search field again.",
+     "expect": "While Settings is open, focus never leaves the dialog, and the search field behind the scrim never gets a caret or text. After closing, the search field takes focus and accepts typing."
+    },
+    {
+     "id": "S25-scrim-blur",
+     "steps": "Play a bright 1080p video in a 1920×1080 window and open Add Subtitles (also Settings) in Dark.",
+     "expect": "The dialog sits at about 140 to 940 pt with the top bar visible. The artwork behind the dialog body is blurred (native blur plus the BG/B1 tint), not sharp. The scrim darkens the video moderately (BG/B2 Transparent, D035)."
+    },
+    {
+     "id": "compact-modal",
+     "steps": "Resize the window to 960×540, then open Settings and Convert.",
+     "expect": "The full header band (title and ✕) is visible with panelInset above it, and the body scrolls."
+    },
+    {
+     "id": "extra-args",
+     "steps": "Settings > General > Advanced Options > Additional command line options: enter `--sub-margin 40`. Quit, relaunch, and play S01E01 with its .srt.",
+     "expect": "The subtitles sit 40 px higher. The log shows 'additional option --sub-margin applied'. An unknown option only logs a warning."
+    },
+    {
+     "id": "extensions-folder",
+     "steps": "Run tools/install-app.sh first. Then open Settings > Extensions and click Open for the extensions folder.",
+     "expect": "Finder opens ~/Library/Application Support/<app bundle id>/lua/extensions (or its parent), with no 'unsupported' message."
+    },
+    {
+     "id": "media-info-divider",
+     "steps": "While a video plays, choose Media Info (Properties & Metadata) in a window small enough that the track rows do not fit.",
+     "expect": "The body scrolls, and a hairline divider sits above the Close footer. With enough room there is no divider."
+    }
+   ],
+   "evidence": [
+    "../build/evidence/final4/F-settings/check/<page>/side-by-side.png (14 Settings pages, all REVIEW) and check/S64/",
+    "../build/evidence/final4/F-settings/S65_before.png, S65_after.png, crop_s65_after.png",
+    "../build/evidence/final4/F-settings/S27_AddSubtitles_unavailable_before.png, S27_AddSubtitles_unavailable_after.png",
+    "../build/evidence/final4/F-settings/S25_App_add-subtitles_ship_before.png vs S25_App_add-subtitles_host.png; S48_App_settings-compact_ship_before.png vs S48_App_settings-compact_host.png",
+    "../build/evidence/final4/F-settings/native-make.log, native-audio.log (PASS: audio)",
+    "../build/evidence/final4/F-settings/probe-userdata.c, probe-userdata.txt"
+   ],
+   "notesForOthers": "Integrator: the native plugin was rebuilt under the lock at about 02:24 local time with everyone's current tree, and the lock is released. Nothing was installed.\n\nD-menus: DialogIsolationTests.DialogKeyLoopTests still sends Tab via window.sendEvent, which bypasses the guard's monitor. Since F-08, the controls behind a dialog refuse first responder, so that test is now meaningful only if it focuses the dialog's field first.\n\nWhoever owns AppModel.swift: the 'rescan-plugins' action is dead and can go.\n\nMXRMockBackend owner: float mocks such as 0.0 decode as integers, so the gallery shows '0' for Replay gain preamp. The product shows '0.0'."
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Settings/SettingsControls.swift:96-128 (SettingsToggle)",
+    "description": "Every Settings toggle is about 1.5 pt off Figma. Figma 536:1013 puts the label cell at x 3 and the knob at x 39, so there is a 3 pt edge inset and a 3 pt gap between them. The product uses HStack(spacing: 0) with padding gap2 and centres the 59 pt content inside the 68 pt track, so there is no gap and the cells sit about 4.5 pt from the edges. This is the top REVIEW region on all 14 Settings pages ('local difference at 966,y 20×12 pt, matches if moved -2, +0.5 pt'). It is not a regression from this wave and no decision covers it. The fix is small and token-only: spacing and padding of 3 pt. Evidence: F-settings-verify-r1/check/toggle_save.png and toggle_off.png."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRMockBackend (not F-settings) / S48.Settings/audio fixture",
+    "description": "In the gallery, Replay gain preamp shows '0' where Figma has '0.0', because the mock decodes 0.0 as an integer. The product path formats floats as %.1f (SettingsControls.swift:236), so only the fixture is affected. This needs the MXRMockBackend owner."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Dialogs/AddSubtitlesView.swift (S27 unavailable)",
+    "description": "The 'Choose Files' tile now exists (BG/A5 on BG/B1), but its contrast is very low, about as faint as the footer Cancel tile. There is no Figma frame for this state, so this is cosmetic only."
+   }
+  ],
+  "summary": "I verified F-settings independently (round 1). No blocker or major remains. One clear minor is worth fixing: the toggle gap.\n\n**Build and tests**\n- swift build is clean, with no Swift 6 warnings in the area's files.\n- These suites pass: DialogKeyLoopGuardTests (3), DialogScrollEdgeTests, DialogKeyLoopTests, DialogIsolationTests, ModalIsolationTests, SettingsRestartAndInfoTests, SettingsWorkflowTests, SettingsCatalogLintTests, SettingsUITests, FigmaDeviationTests and IconLogoRoleTests.\n\n**The new regression tests fail without the fix.** I checked this in an isolated copy at F-settings-verify-r1/pkg, with results in neg-tests.log.\n- I turned GuardView.suspendBackground into a no-op. testControlsBehindTheDialogLeaveTheKeyLoopUntilItCloses then fails 5 assertions, including AppKit's own Tab reaching the field behind the dialog.\n- I removed the DialogShell overflow divider. DialogScrollEdgeTests then fails (\"24 is not greater than 25\").\n\n**F-08**\n- Every NSControl behind the dialog refuses first responder while the dialog is up, and gets it back when the last dialog closes.\n- When one dialog replaces another, it takes over the suspended controls.\n- \"Inside the dialog\" is now decided by z-order membership, not by geometry.\n- SwiftUI-only focusables behind the dialog rely on mxrKeyboardFocusSuspended, so this goes to a live check.\n\n**C-15**\n- The restart note compares the current value with the value recorded at launch.\n- The ⓘ text now comes only from the catalog. Generated module and filter rows still pass VLC's longText themselves.\n\n**Additional command line options**\n- The option is registered in MXRAppOptions.inc, applied in MXROpenIntf before anything plays, and mirrors cmdline.c: string, int and float values, --no booleans, and obsolete names detected by vlc_param->obsolete.\n- The fixer's evidence shows `native-tests.py --suite audio` PASS.\n- The userDataDirectory probe resolves to ~/Library/Application Support/<bundle id> and the videos folder to ~/Movies.\n\n**Settings pages against Figma.** I re-rendered all 14 pages and looked at general-advanced, interface, video, audio, performance and recording side by side with Figma. All 14 are REVIEW, none FAIL, and openSettingsDifferences is empty, so the gate stays strict.\n- general-advanced: the Additional command line options row is present.\n- video: the ⓘ marks are on the requested rows.\n- audio: Target level is enabled, and Speaker setup and Replay gain preamp have their ⓘ.\n- performance: the Developer section is shown under Advanced Options, with \"Clock synchronisation\" and \"Default\".\n- recording: the encoding preset reads \"Medium\" and the extra ⓘ marks are gone.\n- interface: Remember window has no ⓘ.\n\n**Decisions.** The D050 cuts are justified by real engine facts:\n- `verbose` is change_volatile and is only read when the console logger opens.\n- rt-priority and encoder are add_obsolete_* options.\n- Process priority exists only on _WIN32 and OS/2.\n- macosx-icon-change is the stock macOS interface's seasonal icon.\n\nThe renamed section, the ~/Movies default and the disabled Remove button are documented and remain owner decisions.\n\n**Dialogs**\n- Media Info: the value columns share one grid, a hairline (Δ about 9 luminance) sits above the footer when the body overflows, and Show in Finder is styled.\n- About: the cone tint was removed and the cone still renders Accent/Logo.\n\n**Rules**\n- The engine diff against upstream-base-2026-10-14 (src, lib, include, modules/gui/macosx) is empty.\n- The new view code uses tokens only. rowHeight 46 is catalog data with its Figma node.\n- No masks or loosened thresholds.\n\n**Remaining minors**\n- The toggle has no 3 pt label/knob gap from Figma 536:1013. It is pre-existing and in an F-settings file.\n- The gallery shows '0' for Replay gain preamp. This is a mock-backend issue.\n- The S27 unavailable-state 'Choose Files' tile is faint.\n\nEvidence is under ../build/evidence/final4/F-settings-verify-r1/: check/<page>/, r/, neg-tests.log and the toggle_*.png crops.",
+  "liveChecks": [
+   {
+    "id": "F-08-live",
+    "steps": "In the installed app, focus the library search field, then press ⌘, to open Settings. Press Tab and Shift-Tab 20 times each, with Full Keyboard Access both off and on, then type letters. Press Esc and click the search field.",
+    "expect": "Focus and the focus ring never leave the dialog: no SwiftUI button or field behind the scrim gets focus or text. After closing, the search field takes focus and accepts typing."
+   },
+   {
+    "id": "F-08-replace",
+    "steps": "Open Settings, then Controls > Edit Keyboard Shortcuts, then Cancel. Tab around in each dialog, then close everything.",
+    "expect": "Background fields stay out of the key loop through the replacement and become focusable again after the last dialog closes."
+   },
+   {
+    "id": "S25-scrim-blur",
+    "steps": "Play a bright 1080p video in a 1920×1080 window and open Add Subtitles and Settings, in Dark and in Light.",
+    "expect": "The dialog spans about y 140 to 940 and the top bar stays visible. In Dark the artwork behind the dialog body is blurred (native blur plus the BG/B1 tint) and the scrim darkens the video moderately. In Light the dialog is opaque (D045)."
+   },
+   {
+    "id": "compact-modal",
+    "steps": "Resize the window to 960×540 and open Settings and Convert.",
+    "expect": "The whole header (title and ✕) is visible with panelInset above it, and the body scrolls."
+   },
+   {
+    "id": "extra-args",
+    "steps": "Settings > General > Advanced Options > Additional command line options: enter `--sub-margin 40 --bogus-opt`. Quit, relaunch, and play S01E01 with its .srt.",
+    "expect": "The subtitles sit visibly higher. The log shows 'additional option --sub-margin applied' and a warning for --bogus-opt. Nothing breaks."
+   },
+   {
+    "id": "restart-note",
+    "steps": "Change Additional command line options (or another restart row), then set it back to its original value.",
+    "expect": "The 'Takes effect after restarting VLC' note appears after the change and disappears when the value is back to its launch value."
+   },
+   {
+    "id": "media-info-divider",
+    "steps": "While a video plays, open Media Info in a window small enough that the track rows do not fit.",
+    "expect": "The body scrolls with a hairline above the Close footer. With enough room there is no hairline."
+   },
+   {
+    "id": "confirmations",
+    "steps": "Trigger Reset all shortcuts, delete a subtitle preset, and Convert to an existing file.",
+    "expect": "Each shows a native confirmation in the current appearance with a destructive button. Esc cancels without closing the dialog underneath, and focus returns to that dialog."
+   }
+  ],
+  "ownerDecisions": [
+   "D050 (agent-accepted): Show minor warnings cut (verbose is volatile), Give VLC real-time priority, Encoder, Process priority, Rescan plugins, Allow the app icon to change and the embedded file browser cut; Menu Bar and Notifications wording; Remove disabled until something is selected; ⓘ follows the catalog; Fullscreen controls sensitivity kept; ~/Movies for recordings",
+   "D030 product defaults: Continue 'Ask', Play locally OFF, ~/Movies",
+   "S27 OpenSubtitles unavailable state (D014: no API key configured)",
+   "D034 Settings dropdown placement (open question)",
+   "D042, D044, D046, D047, D048, D049, D051, D052 still awaiting the owner"
+  ]
+ }
+}

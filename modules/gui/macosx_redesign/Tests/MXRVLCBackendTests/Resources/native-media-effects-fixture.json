@@ -1,0 +1,515 @@
+{
+  "audioTest" : {
+    "available" : true,
+    "decodedAudio" : 48,
+    "playedAudioBuffers" : 48,
+    "state" : "completed",
+    "volume" : 0.25
+  },
+  "capabilities" : {
+    "addons" : false,
+    "conversion" : true,
+    "dialogs" : true,
+    "extensionDialogs" : false,
+    "extensionInstall" : false,
+    "extensionRemove" : false,
+    "extensions" : true,
+    "extensionSearchCatalog" : false,
+    "globalHotkeys" : false,
+    "hasLocalBrowsing" : true,
+    "hasMediaSources" : true,
+    "hasNetworkDiscovery" : true,
+    "library" : false,
+    "mediaSources" : true,
+    "output" : true,
+    "player" : true,
+    "pluginDetails" : true,
+    "queue" : true,
+    "recording" : true,
+    "renderers" : true,
+    "settings" : true,
+    "shortcuts" : true,
+    "stereoTest" : true,
+    "streaming" : true,
+    "supportsPictureInPicture" : false,
+    "supportsReversePlayback" : false,
+    "supportsSubtitleTimeline" : true,
+    "supportsWaveform" : true,
+    "thumbnails" : true
+  },
+  "dialogs" : {
+    "dialogs" : [
+
+    ],
+    "requests" : [
+
+    ]
+  },
+  "extensions" : {
+    "available" : false,
+    "items" : [
+
+    ],
+    "modules" : [
+
+    ]
+  },
+  "library" : {
+    "isIndexing" : false,
+    "mediaCount" : 0
+  },
+  "mediaSources" : {
+    "categories" : {
+      "devices" : [
+        {
+          "category" : "devices",
+          "id" : "mxr.local.volumes",
+          "name" : "Mounted Volumes",
+          "title" : "Mounted Volumes"
+        }
+      ],
+      "internet" : [
+        {
+          "category" : "internet",
+          "id" : "podcast",
+          "name" : "Podcasts",
+          "title" : "Podcasts"
+        },
+        {
+          "category" : "internet",
+          "id" : "radio",
+          "name" : "Radio Browser",
+          "title" : "Radio Browser"
+        }
+      ],
+      "localNetwork" : [
+        {
+          "category" : "localNetwork",
+          "id" : "Bonjour",
+          "name" : "Bonjour Network Discovery",
+          "title" : "Bonjour Network Discovery"
+        },
+        {
+          "category" : "localNetwork",
+          "id" : "upnp",
+          "name" : "Universal Plug'n'Play",
+          "title" : "Universal Plug'n'Play"
+        },
+        {
+          "category" : "localNetwork",
+          "id" : "sap",
+          "name" : "Network streams (SAP)",
+          "title" : "Network streams (SAP)"
+        }
+      ],
+      "myComputer" : [
+        {
+          "category" : "myComputer",
+          "id" : "mxr.local.folders",
+          "name" : "My Folders",
+          "title" : "My Folders"
+        }
+      ]
+    },
+    "event" : {
+      "category" : "myComputer",
+      "type" : "sourcesChanged"
+    },
+    "sources" : {
+      "devices" : [
+        {
+          "category" : "devices",
+          "id" : "mxr.local.volumes",
+          "name" : "Mounted Volumes",
+          "title" : "Mounted Volumes"
+        }
+      ],
+      "internet" : [
+        {
+          "category" : "internet",
+          "id" : "podcast",
+          "name" : "Podcasts",
+          "title" : "Podcasts"
+        },
+        {
+          "category" : "internet",
+          "id" : "radio",
+          "name" : "Radio Browser",
+          "title" : "Radio Browser"
+        }
+      ],
+      "localNetwork" : [
+        {
+          "category" : "localNetwork",
+          "id" : "Bonjour",
+          "name" : "Bonjour Network Discovery",
+          "title" : "Bonjour Network Discovery"
+        },
+        {
+          "category" : "localNetwork",
+          "id" : "upnp",
+          "name" : "Universal Plug'n'Play",
+          "title" : "Universal Plug'n'Play"
+        },
+        {
+          "category" : "localNetwork",
+          "id" : "sap",
+          "name" : "Network streams (SAP)",
+          "title" : "Network streams (SAP)"
+        }
+      ],
+      "myComputer" : [
+        {
+          "category" : "myComputer",
+          "id" : "mxr.local.folders",
+          "name" : "My Folders",
+          "title" : "My Folders"
+        }
+      ]
+    }
+  },
+  "output" : {
+    "available" : 1,
+    "jobs" : [
+
+    ],
+    "profiles" : [
+      {
+        "fileExtension" : "ts",
+        "id" : "copy",
+        "title" : "Keep original codecs (MPEG-TS)"
+      },
+      {
+        "fileExtension" : "mp4",
+        "id" : "h264",
+        "title" : "H.264 video + AAC audio"
+      },
+      {
+        "fileExtension" : "mp3",
+        "id" : "audio",
+        "title" : "MP3 audio"
+      }
+    ]
+  },
+  "player" : {
+    "abLoop" : {
+      "a" : -1,
+      "b" : -1,
+      "state" : 0
+    },
+    "audioDelay" : 0,
+    "audioDevices" : [
+
+    ],
+    "audioEffects" : {
+      "compressor" : {
+        "attack" : 25,
+        "isEnabled" : false,
+        "kneeRadius" : 5,
+        "makeupGain" : 7,
+        "ratio" : 4,
+        "release" : 100,
+        "rmsPeak" : 0.20000000298023224,
+        "threshold" : -11
+      },
+      "equalizer" : {
+        "bands" : [
+          9,
+          4.7999999999999998,
+          -5.5999999999999996,
+          -8,
+          -3.2000000000000002,
+          4,
+          8.8000000000000007,
+          11.199999999999999,
+          11.199999999999999,
+          11.199999999999999
+        ],
+        "isEnabled" : true,
+        "preamp" : 5,
+        "twoPass" : false
+      },
+      "pitch" : 0,
+      "spatializer" : {
+        "damp" : 0.5,
+        "dry" : 0.5,
+        "isEnabled" : false,
+        "roomSize" : 0.85000002384185791,
+        "wet" : 0.40000000596046448,
+        "width" : 1
+      },
+      "stereoMode" : 1,
+      "stereoWidener" : {
+        "crossfeed" : 0.30000001192092896,
+        "delay" : 20,
+        "dryMix" : 0.80000001192092896,
+        "feedback" : 0.30000001192092896,
+        "isEnabled" : false
+      }
+    },
+    "audioTracks" : [
+      {
+        "codec" : "MPEG AAC Audio",
+        "id" : "audio\/1",
+        "name" : "Track 1",
+        "selected" : true
+      }
+    ],
+    "audioVisualization" : "disabled",
+    "bufferingProgress" : 1,
+    "canChangeRate" : true,
+    "canPause" : true,
+    "canRecord" : 1,
+    "canSeek" : true,
+    "chapters" : [
+
+    ],
+    "isFullscreen" : false,
+    "isMuted" : 0,
+    "isRecording" : false,
+    "media" : {
+      "album" : "Bridge Album",
+      "artist" : "Bridge Artist",
+      "duration" : 10000000,
+      "id" : "file:\/\/\/private\/tmp\/mxr-bridge-audio.m4a",
+      "isFavorite" : false,
+      "kind" : "audio",
+      "title" : "Native Song",
+      "url" : "file:\/\/\/private\/tmp\/mxr-bridge-audio.m4a"
+    },
+    "programs" : [
+      {
+        "id" : 0,
+        "name" : "0",
+        "selected" : true
+      }
+    ],
+    "rate" : 1,
+    "selectedChapterIndex" : 0,
+    "selectedTitleIndex" : 0,
+    "state" : 2,
+    "statistics" : {
+      "decodedAudioBlocks" : 113,
+      "decodedVideoBlocks" : 0,
+      "demuxBitrate" : 16.878860473632812,
+      "displayedPictures" : 0,
+      "inputBitrate" : 20.984432220458984,
+      "lostAudioBuffers" : 0,
+      "lostPictures" : 0,
+      "playedAudioBuffers" : 113
+    },
+    "subtitleDelay" : 0,
+    "subtitleDurationFactor" : 1,
+    "subtitleFPS" : 0,
+    "subtitleStyle" : {
+      "background" : true,
+      "backgroundColor" : {
+        "blue" : 0,
+        "green" : 0,
+        "red" : 0
+      },
+      "backgroundOpacity" : 0.50196078431372548,
+      "bold" : false,
+      "fontFamily" : "Helvetica Neue",
+      "offset" : 0,
+      "outline" : 4,
+      "outlineColor" : {
+        "blue" : 0,
+        "green" : 0,
+        "red" : 0
+      },
+      "pixelSize" : 18,
+      "position" : "bottom",
+      "relativeSize" : 20,
+      "shadow" : false,
+      "shadowColor" : {
+        "blue" : 0,
+        "green" : 0,
+        "red" : 0
+      },
+      "shadowDistance" : "small",
+      "sizeMode" : "relative",
+      "textColor" : {
+        "blue" : 255,
+        "green" : 255,
+        "red" : 255
+      },
+      "textOpacity" : 1,
+      "useEmbeddedStyles" : true
+    },
+    "subtitleTextScale" : 80,
+    "subtitleTracks" : [
+
+    ],
+    "teletext" : {
+      "available" : false,
+      "enabled" : false,
+      "page" : 0,
+      "transparent" : false
+    },
+    "titles" : [
+
+    ],
+    "trackDefaults" : {
+      "audioTrack" : 2
+    },
+    "videoEffects" : {
+      "colors" : {
+        "cartoon" : true,
+        "colorExtraction" : false,
+        "colorThreshold" : false,
+        "extractionColor" : {
+          "blue" : 0,
+          "green" : 0,
+          "red" : 255
+        },
+        "gradient" : false,
+        "gradientColor" : false,
+        "negate" : false,
+        "posterize" : false,
+        "posterizeLevel" : 6,
+        "sepia" : false,
+        "sepiaIntensity" : 120,
+        "thresholdColor" : {
+          "blue" : 0,
+          "green" : 0,
+          "red" : 255
+        },
+        "thresholdSaturation" : 20,
+        "thresholdSimilarity" : 15
+      },
+      "cropInsets" : {
+        "bottom" : 0,
+        "left" : 0,
+        "right" : 0,
+        "top" : 0
+      },
+      "deinterlace" : "automatic",
+      "essential" : {
+        "bandingRemovalRadius" : 0,
+        "brightness" : 1,
+        "contrast" : 1,
+        "filmGrainVariance" : 0,
+        "gamma" : 1,
+        "hue" : -30,
+        "isEnabled" : true,
+        "saturation" : 1,
+        "sharpenSigma" : 0
+      },
+      "flip" : "none",
+      "hdr" : "auto",
+      "rotation" : 0,
+      "zoom" : "fitWindow"
+    },
+    "videoTracks" : [
+
+    ],
+    "volume" : 2.5
+  },
+  "queue" : {
+    "currentIndex" : 0,
+    "hasNext" : false,
+    "hasPrevious" : false,
+    "items" : [
+      {
+        "id" : "4",
+        "media" : {
+          "album" : "Bridge Album",
+          "artist" : "Bridge Artist",
+          "duration" : 10000000,
+          "id" : "file:\/\/\/private\/tmp\/mxr-bridge-audio.m4a",
+          "isFavorite" : false,
+          "kind" : "audio",
+          "title" : "Native Song",
+          "url" : "file:\/\/\/private\/tmp\/mxr-bridge-audio.m4a"
+        }
+      }
+    ],
+    "mediaStoppedAction" : 1,
+    "order" : 0,
+    "pauseAtEnd" : false,
+    "repeatMode" : 0
+  },
+  "renderers" : {
+    "available" : true,
+    "discovering" : false,
+    "items" : [
+
+    ],
+    "selectedID" : null
+  },
+  "settings" : {
+    "options" : [
+      {
+        "choices" : [
+
+        ],
+        "defaultValue" : 1,
+        "longText" : "You can completely disable the audio output. The audio decoding stage will not take place, thus saving some processing power.",
+        "max" : 9223372036854775807,
+        "min" : -9223372036854775808,
+        "module" : "core",
+        "name" : "audio",
+        "text" : "Enable audio",
+        "type" : "bool"
+      },
+      {
+        "choices" : [
+
+        ],
+        "defaultValue" : "",
+        "longText" : "Language of the audio track you want to use (comma separated, two or three letter ISO-639 country code; you may use 'none' to avoid a fallback to another language).",
+        "module" : "core",
+        "name" : "audio-language",
+        "text" : "Audio language",
+        "type" : "string"
+      },
+      {
+        "choices" : [
+
+        ],
+        "defaultValue" : 1,
+        "longText" : "This defines the playback speed (nominal speed is 1.0).",
+        "max" : 3.4028234663852886e+38,
+        "min" : -3.4028234663852886e+38,
+        "module" : "core",
+        "name" : "rate",
+        "text" : "Playback speed",
+        "type" : "float"
+      },
+      {
+        "choices" : [
+
+        ],
+        "defaultValue" : 1000,
+        "longText" : "Caching value for network resources, in milliseconds.",
+        "max" : 60000,
+        "min" : 0,
+        "module" : "core",
+        "name" : "network-caching",
+        "text" : "Network caching (ms)",
+        "type" : "integer"
+      }
+    ],
+    "values" : {
+      "audio" : 1,
+      "audio-language" : "",
+      "network-caching" : 2345,
+      "rate" : 1
+    }
+  },
+  "shortcuts" : {
+    "actions" : [
+      {
+        "global" : [
+
+        ],
+        "hotkeys" : [
+          "Ctrl+Space"
+        ],
+        "id" : "play-pause",
+        "name" : "play-pause"
+      }
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+.build/
+.swiftpm/
+*.xcodeproj
+xcuserdata/
+__pycache__/
+# The upstream install-* pattern also matches this supported source helper.
+!tools/install-app.sh

@@ -1,0 +1,119 @@
+{
+ "codexAssessment": "Codex's work in B-controls is mixed. Two of its changes cause real regressions, and its tests do not catch them, because the \"regression\" tests only check one-line predicates (allowsRawPausedStill, seekHeadX, animatesSeek) and never check the drawing.\n\nCorrect and minimal:\n- VideoClickTiming (PLAYER-11). Delay is 0 when double-click is off; the fullscreen path still checks the preference.\n- MXRNowPlayingClockGate (PERF-05). Dedups linear playback; republishes on a rate change or a drift over 0.5 s.\n- Waveform clip at the head's leading edge (PLAYER-10).\n- OSD moved top-right with its own scaling tokens, recorded in D027 (PLAYER-03/V02/V03).\n- Seek and volume Slider accessibilityRepresentation (A11Y-01).\n- Thumbnail backend changes: a typed-key refactor plus a comment on hw_dec. They change no behaviour.\n- The restorePrompt -1 filter and showWaveform=false were already correct before Codex.\n\nWrong or regressed:\n- NativeSeekProgress (PERF-01). It moved the per-frame redraw into AppKit but relies on `let _ = clock.revision` in the parent body to trigger updateNSView. SwiftUI skips updateNSView when the representable's stored values are unchanged; I proved this with a standalone probe (5 revision bumps gave 0 updates). So the playhead no longer follows the pointer while scrubbing, a paused seek does not move it, and under Reduce Motion it freezes during playback. Wave 1's TimelineView version did not have this problem.\n- ConeScrollHandler (PLAYER-09). It is an NSViewRepresentable inside MXRVolumeCone, so every image-engine gallery entry for the cone now shows SwiftUI's yellow unsupported-view placeholder. C.VolumeCone/0…200 now FAIL at about 24–25 %, which breaks visual verification of S04. It also ignores natural-scrolling direction and the user's scroll preferences, unlike the existing video scroll path.\n\nSuperficial or partial:\n- PausedSeekStill (CTL-01). Codex suppresses the raw still for any non-default VideoEffects (including HDR, deinterlace, resolution and renderer) or any selected subtitle track. On the unpatched engine the user then sees the old pre-seek frame under a new time, which is more wrong than a correct frame without subtitles. Codex honestly marked this Ч.\n- Focus ring (A11Y-06). Changed from the Figma accent ring to a neutral grey #969696, although an opaque accent already passes 3:1 on the dark bar (about 5.4:1).\n- Time labels (A11Y-05). Now plain Buttons. The elapsed label renders dimmed as \"disabled\" on live streams, and the Buttons take the system focus ring under Full Keyboard Access instead of the design ring.\n- CPU (PERF-01/R2/NAT-04) is still not measured. The installed /Applications/VLC Redesign.app is from Oct 15 04:32, before Codex's commit. I did not run the live session: other agents' edits were in flight, so a build now would mix their work. Real-window, CPU and AX acceptance are therefore still open.\n\nKept intact from wave 1: ScrubSession, PlaybackClock, the preview LRU and cancel logic, play/pause states (PASS), the seek preview and volume tooltip (REVIEW, antialiasing only), the resume toast and marker, and BB-10 hover hold.\n\nReview outputs are in <scratch> (probe/probe.swift, check folders, s13.png, s12.png, cb_light.png, live_crop.png).",
+ "confirmed": [
+  {
+   "id": "B-01",
+   "severity": "blocker",
+   "title": "Seek fill/playhead freeze while scrubbing, after paused seeks and under Reduce Motion (NativeSeekProgress never gets updateNSView on revision bumps)",
+   "evidence": "I rebuilt and ran the reviewer's probe (B-controls-triage/probe): 'initial updates 1 / after 5 revision bumps 1 / after animating change 2'. The pattern matches SeekProgressView.body (PlayerControls.swift ~507-516): `let _ = ... clock.revision` re-runs body, but NativeSeekProgress's stored inputs (clock ref, width, head, samples, resume, animating, rate) do not change, so updateNSView/configure is skipped. SeekProgressNSView sets needsDisplay only in configure() or in its Task loop, and the loop runs only while `animating`. PlaybackClock.beginScrub → setScrubTime → updateRunning sets isRunning=false, so animating turns false at the first pointer event. That one configure() draws the head there, and every later scrub(to:) only bumps revision and gets no redraw. The same applies to paused jumps, a typed time while paused (revision only), and Reduce Motion (animating is always false, and displaySecond is read but never passed). Wave 1 (5ac081046e) read clock.revision inside a SwiftUI drawing body, so it redrew; this is a Codex regression of D028/BB-03.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerControls.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/NativeSeekProgress.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/PlayerProgressRegressionTests.swift"
+   ],
+   "fix": "Make SeekProgressNSView observe the clock itself: in configure()/viewDidMoveToWindow, register withObservationTracking({ _ = clock.revision; _ = clock.displaySecond; _ = clock.isRunning }, onChange: { Task { @MainActor in self.needsDisplay = true; self.reobserve() } }). Then remove the dead `let _ =` line in SeekProgressView. A quicker alternative is a stored `let tick: Int` on NativeSeekProgress equal to that expression, so SwiftUI sees changed inputs. Prefer two CALayers (fill, head) whose frames are set from that callback and from the animation tick, instead of a full CG draw(_:) (ARCHITECTURE §3). Add an NSHostingView test: MXRSeekBar with a paused mock clock; beginScrub/scrub(to:) to 0.2, 0.5 and 0.8; spin the runloop; assert the last drawn head x (expose it internally for tests) follows. Add cases for Reduce Motion while running and for a paused jump(by:)."
+  },
+  {
+   "id": "B-04",
+   "severity": "major",
+   "title": "D038 guard hides the D031 paused-seek still for any subtitle track or any non-default VideoEffects field, leaving the stale pre-seek frame",
+   "evidence": "PausedSeekStill.swift:21-27 renders the still only if PlayerGeometry.allowsRawPausedStill (PlayerGeometry.swift:91-93) returns `effects == .default && !hasSubtitles`. VideoEffects (MXRCore/Values/Effects.swift:232-248) also includes hdr, resolution, deinterlace, rendererID, essential and colors, so choosing a renderer, an adaptive resolution or a deinterlace mode disables the mitigation. Selecting any subtitle track disables it even when no cue is on screen. On the stock engine (D031) the vout then keeps showing the frame from before the seek, while the label and head show the new time, which is worse than the right frame without its subtitle. D038 (Codex, accepted 2026-10-15) states this trade-off as intended. It conflicts with D031's intent ('a seek shows the exact-time thumbnail as a still'), so the decision itself needs revising, not just the code.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PausedSeekStill.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerGeometry.swift",
+    "redesign/docs/DECISIONS.md"
+   ],
+   "fix": "Narrow allowsRawPausedStill to the fields that change pixels in ways a still cannot reproduce (colors / essential colour filters and hdr tone mapping), comparing only those fields and not the whole struct. Ignore rendererID, resolution and deinterlace. Apply the geometric fields (aspectRatio, crop, cropInsets, zoom, flip, rotation) to the still in SwiftUI so it letterboxes like the vout. Keep the still when a subtitle track is selected; overlaying the active cue is optional polish. Record a D038 amendment, with this reasoning, in DECISIONS.md. Investigating a processed bridge-side frame is a separate follow-up and must not block this."
+  },
+  {
+   "id": "B-05",
+   "severity": "major",
+   "title": "PERF-01/R2/NAT-04 CPU still unmeasured; the new redraw loop is not occlusion-aware and the installed app predates the Codex commit",
+   "evidence": "/Applications/VLC Redesign.app/Contents/MacOS/VLC is dated Oct 15 04:32, while a215064366 is dated 2026-10-16 17:18. AUDIT_FIXES_2026-10-15.md lines 23, 242 and 250 admit that CPU is not measured. NativeSeekProgress.startIfVisible checks only `animating && window != nil`. animatesSeek uses barsVisible/hidden/pip/reduceMotion but never NSWindow.occlusionState or NSApp.isHidden, so a main-actor Task.sleep loop (not vsync-aligned) keeps repainting the whole seek view by CG up to 60 Hz on an occluded or hidden window.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/NativeSeekProgress.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerGeometry.swift"
+   ],
+   "fix": "With the B-01 fix, gate the loop on window.occlusionState.contains(.visible) (observe NSWindow.didChangeOcclusionStateNotification) and on NSApplication.didHide/didUnhide. Drive frames with a CADisplayLink from the view (NSView.displayLink(target:selector:), macOS 14+) instead of Task.sleep, using the existing half-point interval as preferredFrameRateRange. Use CALayer frame updates instead of draw(_:). Then, under the lock, install once and measure with one protocol: 1080p test media, a 1728×1001 window, 30 s each of `top -l 30 -stats pid,cpu -pid <pid>` for bars visible, Hide UI, PiP, an active scrub and an occluded window. Target: bars visible ≤ Hide UI + 2 percentage points. Record the numbers in AUDIT_FIXES."
+  },
+  {
+   "id": "B-02",
+   "severity": "minor",
+   "title": "ConeScrollHandler NSViewRepresentable makes every image-engine C.VolumeCone/* check FAIL with the yellow placeholder",
+   "evidence": "Existing reports: B-controls-review/C_VolumeCone_100/report.txt with the image host gives flat colour 25.335 %, 'render #FFCC00 vs Figma transparent'. side-by-side.png shows the yellow/red unsupported-NSView placeholder. The same entry with the hosting engine (cone_h) gives mean |Δ| 1.66 and structural 0.203 %, so the cone itself matches. The cause is `.background { ConeScrollHandler(...) }` in MXRVolumeCone (PlayerControls.swift ~183). The installed app is unaffected; the S04 verification set is lost. I could not re-run it now because the shared build is broken by another area (AppGallery.swift: MockLibrary has no member 'select').",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/ConeScrollHandler.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerControls.swift",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/PlayerGallery.swift"
+   ],
+   "fix": "Preferably delete ConeScrollHandler/ConeScrollNSView. Each cone instance installs its own NSEvent local monitor, which is extra complexity. Publish the cone's frame in window coordinates through an anchor preference into InterfaceModel (e.g. interface.volumeConeRect). In MXRAppController's host.onScroll, and in the window-level scroll path for wheel events over the control bar, route events inside that rect to adjustVolume through the same MXRVideoScrollAccumulator. This also fixes B-03. Keep ConeScrollAvailability as the predicate. If the NSView must stay, set renderEngine .hostingView on the C.VolumeCone/* gallery entries so they verify again."
+  },
+  {
+   "id": "B-03",
+   "severity": "minor",
+   "title": "Cone wheel ignores natural scrolling and the reverse-scroll preference, so the same gesture changes volume in opposite directions over the cone and over the video",
+   "evidence": "ConeScrollNSView passes the raw event.scrollingDeltaY (with precise/10) to ConeScrollInput.handle. The video path (MXRAppController.swift:305-317 → MXRNativePreferences.swift:91) applies `direction = (natural ? -1 : 1) * (preferences.reverseScroll ? -1 : 1)` and honours verticalScroll mode/none. On a trackpad with natural scrolling, swiping up makes the video path louder and the cone quieter.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/ConeScrollHandler.swift",
+    "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRNativePreferences.swift"
+   ],
+   "fix": "Solved by the B-02 routing through MXRVideoScrollAccumulator. If the handler stays, multiply the delta by (event.isDirectionInvertedFromDevice ? -1 : 1) * (reverseScroll ? -1 : 1), matching MXRNativePreferences.swift:91. Add a ConeScrollInput unit test for natural=true."
+  },
+  {
+   "id": "B-06",
+   "severity": "minor",
+   "title": "Codex's Button rewrite of MXRTimeLabel dims the elapsed time on non-seekable media and lets the system focus ring appear",
+   "evidence": "Diff 5ac081046e→a215064366 replaced the label's onTapGesture with `Button{}.buttonStyle(.plain).disabled(kind == .current && !app.player.canSeek)` (PlayerControls.swift ~105-112). A disabled plain button draws its label at reduced opacity: in B-controls-review/live_crop.png, '00:12:34' is visibly dimmer than fgA2. The Button has neither .focusEffectDisabled() nor .mxrKeyboardFocusable, so Full Keyboard Access draws the system ring, against D028 ('No focus rings on chrome controls'). Correction to the evidence: the click area covers only the glyphs, but wave 1's onTapGesture was the same, so that part is not a regression.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerControls.swift"
+   ],
+   "fix": "Remove `.disabled(...)`. beginEditing() already guards canSeek, so add .accessibilityHint(\"Not available for this stream\") when !canSeek. Replace .buttonStyle(.plain) on the label with a no-system-ring path: put .mxrKeyboardFocusable(cornerRadius: box.radius ?? Theme.Radius.lg) on the outer label frame, or at least add .focusEffectDisabled(). Make the Button label fill the 76×28 box (.frame(width: box.width, height: box.height).contentShape(.rect)) so the whole hover chip is clickable."
+  },
+  {
+   "id": "B-08",
+   "severity": "minor",
+   "title": "Shortcut OSD sits flush against the right edge of the video area and scales from the container height, not the picture",
+   "evidence": "B-controls-review/s13.png: 'Crop: 2.35:1' ends at about x=1897 while the video area ends at about 1910, so the text has almost no margin. MXROSDView applies no padding of its own. MXRAppView.swift:189 places MXRPlayerOSD at .topTrailing of informationRect and passes `size.height - top - bottom` as videoHeight, so D027's '5 % of video height' uses the container, not the letterboxed picture. Key frame 15m27.1s shows the OSD with a clear inset from the picture edge.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/MXROSDView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Typography/OSDTypography.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/MXRAppView.swift"
+   ],
+   "fix": "In MXRPlayerOSD, pad by a token-derived margin that scales with the title size: add Theme.OSD.margin(for:) = styles.title.size (or a Spacing token as the minimum, e.g. Theme.Spacing.panelInset). Compute videoHeight from the displayed picture rect (aspect-fit of the video size inside informationRect) when the video size is known. The MXRAppView change (line 189) belongs to the window area owner; coordinate it as a one-line edit."
+  },
+  {
+   "id": "B-09",
+   "severity": "minor",
+   "title": "Light theme volume cone keeps the dark track and darkened fill; Figma Player - Light uses a #888888 track and a white-20 % lifted gradient",
+   "evidence": "Figma 2425:13624 → volume instance I2425:13645;491:1733: track 'Rectangle 6' is SOLID #888888 (0.5349), outline 'Rectangle 7' is #262626, and the fill is the same 4-stop gradient (#95D318 / #B2A918@0.579 / #D37918@0.792 / #FF3737) plus a SOLID white overlay at 20 %. Our light S01.ControlBar render (cb_light_crop.png) has track (9,9,9) and fill (123,163,19), while Figma's fig_light_right.png samples about (136,136,136) and (176,211,70). colors.json gradients.volumeCone and Theme volumeConeTrack (0x090909) have no light values. This predates Codex.",
+   "files": [
+    "redesign/design/tokens/colors.json",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Generated/Tokens.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerControls.swift"
+   ],
+   "fix": "Add light values to tokens: volumeConeTrack light #888888, and a volumeCone overlay light = white @0.20 (dark keeps its current overlay). Regenerate Tokens.swift through the token tool, not by hand. Resolve both by colorScheme in VolumeConeTrackShape/VolumeConeGradient. Add a light-scheme C.VolumeCone/100 gallery entry checked against the Player - Light crop. colors.json is a shared token file: make it a minimal edit and list it under editsOutsideOwnership."
+  },
+  {
+   "id": "B-10",
+   "severity": "minor",
+   "title": "Time labels use tabular digits and are 4 pt wider than Figma, with no DECISIONS entry",
+   "evidence": "Figma 1904:7237 '00:02:10' is Inter Regular 15 with no OpenType feature flags (proportional digits). B-controls-review/C_CurrentTime_default/report.txt: structural 11.678 %, region 1 'matches if moved +1.5 pt'; the text is 64 pt wide in the render vs 60 pt in Figma. `.monospacedDigit()` dates from wave 1 (BB-12). spec-part1.md:80 estimates 'tabular figures, 64px wide' from the video, so the two sources disagree and no decision records the choice.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerControls.swift",
+    "redesign/docs/DECISIONS.md"
+   ],
+   "fix": "Pick one and record it. (a) Follow Figma, the visual truth: drop .monospacedDigit() and keep the fixed 76×28 box with centred alignment, accepting the small glyph shift inside the box. (b) Keep tabular digits and add a DECISIONS entry citing spec-part1 §0.2 (video, 64 px) and BB-12 jitter, then mark C.CurrentTime/C.Duration as accepted deviations. Recommendation: (a), with .frame(width: box.width, alignment: .center), because Figma is the stated visual truth."
+  },
+  {
+   "id": "B-11",
+   "severity": "minor",
+   "title": "Increase Contrast remaps the pause-button surface fgA3; in light mode the dark half of the two-tone pause glyph almost disappears",
+   "evidence": "ThemeColor.swift:82-83 globally remaps fgA3→fgA1 under Increase Contrast. MXRPlayPauseButton uses fgA3 as a surface (PlayerControls.swift:63) with an fgB1/bgB1 glyph. Correction to the evidence: in dark mode the change is #6B6B6B→#969696 (not near-white), and the glyph contrast actually improves. In light mode it is #6B6B6B→#3C3C3C, so the fgB1 #161616 half sits on #3C3C3C at about 1.6:1, worse than standard contrast.",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerControls.swift",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Theme/ThemeColor.swift"
+   ],
+   "fix": "Limit the remap to text: either add a non-remapped surface token for the pause fill (e.g. Theme.Color.pauseButtonFill resolving to the fgA3 hex, generated from tokens), or apply the fgA3→fgA1 lift only at foreground call sites. ThemeColor.swift is outside this area; prefer the dedicated token in PlayerControls. Add a contrast test: under increased contrast, the glyph halves vs the pause fill are ≥ 3:1 in both schemes."
+  }
+ ]
+}

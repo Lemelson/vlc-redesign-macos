@@ -1,0 +1,66 @@
+{
+ "status": "done",
+ "summary": "The previous fixer had changed nothing in this area: the WIP commit has none of its work and its digest lists no edits. The build was green at the start. I worked through all 12 confirmed findings.\n\nJ-01 (blocker) is fixed at the root without an engine patch. Every transcode chain now sets `no-forward-pcr`, which keeps transcode's PCR synchroniser (the code that asserts) out of the chain. H.264 now uses `venc=x264{keyint=60}`: VideoToolbox ignored `vb` (a 2.9 Mbit/s source came out at 14 Mbit/s) and sent SPS/PPS only once, so a viewer joining an HTTP stream later never decoded a picture. Results:\n- 0 aborts in 15 runs of the bridge's H.264 profile, plus 10 CLI runs of the same chain on Test Show S01E01.mp4. Before the change it aborted 3 of 3.\n- The converted file is about 2.66 Mbit/s with H.264 and AAC, and its duration is correct.\n- The HTTP stream decodes cleanly in ffmpeg.\n- D036 is amended.\n\nIn the real app (lock held 19:25 to 19:38, Mac idle):\n- Convert to H.264 worked end to end. The output was valid (ffprobe: h264, aac and mov_text, 60.03 s, 2.66 Mbit/s), no partial file was left, and the app did not crash.\n- Converting again to the same file showed the native \"already exists, replace?\" alert.\n- Choosing Replace and then Stop showed \"Stopped. Nothing was saved.\" The old file was byte-identical afterwards (same md5).\n- An in-app H.264 HTTP stream was read by ffmpeg (76 frames decoded after joining 4 s in), and Stop closed the server.\n- The installed app was built before `keyint=60` was added. That change was checked only with the CLI and the native media suite.\n\nNative suites: `native-tests.py --suite contracts` passes, and `--suite media` passes 3 times. The media suite now:\n- runs the H.264 profile 5 times on a 25 fps A/V clip;\n- checks every output (H.264 five times, MP3, AAC, WAV) with ffprobe, including stream types and durations;\n- checks the EEXIST guard, the stop flow (stopping, then cancelled) and that no partial file is left.\n\nSwift: `swift build` is clean. The new suites (OutputAdapterTests, OutputModelTests, OpenMediaIOTests) and the existing DialogsTests and DeviceDiscoveryTests pass.",
+ "fixed": [
+  "J-01: default H.264 profile no longer aborts. MXRMediaServices.m transcode map uses no-forward-pcr on all profiles and venc=x264{keyint=60} for H.264, so the bitrate is honoured and late HTTP viewers can decode. D036 amended; contract test pins the chain; media runtime test converts the A+V clip to H.264 5 times and validates each output with ffprobe; native-tests.py source changed to 25 fps. Evidence: scratchpad/final/J-media-io/sweep/ (base-*.log asserts, nofwd/x264 OK), live/out/converted.mp4, live/run2-s.png, live/run7-s.png",
+  "J-05: OutputJobState gains `stopping` and an `isActive` helper, used by both isRunning checks. VLCOutputBackend.job keeps an unknown state visible as failed with an explanation instead of dropping the job. The main button is disabled while stopping. Tests: OutputAdapterTests decodes every state string the bridge writes; the media runtime test checks Stop, then 'stopping', then 'cancelled'.",
+  "J-03: OpenMediaDialogs keeps confirmedDestination, set only by the save panel and cleared on completion. overwrite is sent only when destination == confirmedDestination. The bridge's EEXIST becomes OutputError.destinationExists, and the form shows a native 'already exists. Do you want to replace it?' alert. Verified live (live/replace-s.png) and in OutputModelTests.",
+  "J-04: the overlay is removed. Job status lives in the Save As section: its hint says Converting… / Finishing… / Stopping… / Saved / Stopped, and its row becomes a token-styled progress bar with a percentage while running, plus Show in Finder when completed. Stream status goes in the Send To hint and shows the http://<host>.local URL to open. The unavailable message goes in the footer error. No overlap: renders at J-media-io/after/S37.Convert_running*.png and S37.Stream_running.png, and live screenshots.",
+  "J-02: verified that the stream-only #duplicate{dst=display} and the auxiliary-vout flag (another area, already in WIP 951f073be2) are in place, and that the contract test covers 'conversion never duplicates'. I made no further change. It was not exercised live with sout-display turned on.",
+  "J-06: Audio CD now opens through its raw device. OpticalDiscs.discs() detects cddafs volumes as .cdda and resolves /dev/rdiskN with statfs (like upstream getBSDNodeFromMountPath). The dialog builds cdda:///dev/rdiskN for cdda and keeps dvd:// and bluray:// on the volume path. Tests in OpenMediaIOTests. Not checked on real disc hardware.",
+  "J-07: disc enumeration runs in Task.detached off the main actor. It skips volumes that are not local or not ejectable/removable before probing any folder, and rescans on NSWorkspace didMount/didUnmount while the dialog is open. SettingsAvailability's OpticalDiscs.mounted() now reuses it.",
+  "J-08: the dialog title is 'Open Capture Device', matching the menu and command. The DialogInput error now reads 'Choose a camera.'",
+  "J-09: added MockOutput (bridge profiles, one job at a time, Stop gives 'stopping', finish/update/add, EEXIST simulation) and MockRenderers, both wired into MockBackend.backends. The Convert/Stream galleries now show the enabled state; new entries are S37.Convert/running and S37.Stream/running. Added OutputModelTests (start, stop, replace, stream address, rediscovery).",
+  "J-10: in the bridge, renderers are keyed by type plus sout target, so the id is stable across rediscovery. Rediscovery keeps the selected renderer's reference, and a stale removal of an older item is ignored. 'discovering' clears 5 s after the first answers, guarded by a generation counter.",
+  "J-11: conversions write to a hidden `.<name>.<uuid>.vlc-partial` beside the destination with access=file{no-overwrite}. The partial is renamed over the destination only on a natural end with size > 0 (renamex_np, RENAME_EXCL unless overwrite was confirmed), and unlinked on stop, failure or start failure, and at shutdown. Contract and runtime tests cover it. Live: after Stop, the original file kept the same md5.",
+  "J-12: the literal is replaced by the Theme.Metric.DialogForms.pathFieldWidth token, declared as a DialogForms extension in OpenMediaDialogs.swift.",
+  "Extra: the Stream format menu now names the codec rather than the container ('Video — H.264'). The Stream hint no longer promises 'smaller' output. A Stream dialog that picks up a running job restores its address fields."
+ ],
+ "notFixed": [
+  {
+   "id": "J-10 (UI part)",
+   "why": "PlayerMenus.swift and EffectsSidebars.swift still use different wording ('Discovering…'/'Discover Renderers' vs 'Discovering Destinations…'/'Refresh Destinations'). The underlying bug, a permanent 'discovering' state and the lost selection, is fixed in the bridge. The wording belongs to other areas' files and is cosmetic, so I left it."
+  },
+  {
+   "id": "J-01 (engine)",
+   "why": "The pcr_sync.c indexing bug is in upstream VLC. The interface now avoids it with no-forward-pcr. No quarantined engine patch was written; that is optional under D031 and only noted in D036."
+  }
+ ],
+ "filesChanged": [
+  "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/OpenMediaDialogs.swift",
+  "modules/gui/macosx_redesign/Sources/MXRVLCBackend/VLCOutputBackend.swift",
+  "modules/gui/macosx_redesign/Sources/MXRCore/Models/OutputModel.swift",
+  "modules/gui/macosx_redesign/module/bridge/MXRMediaServices.m",
+  "modules/gui/macosx_redesign/module/bridge/tests/MXRMediaServicesTests.m",
+  "modules/gui/macosx_redesign/module/bridge/tests/MXRMediaServicesRuntimeTests.m",
+  "modules/gui/macosx_redesign/tools/native-tests.py",
+  "modules/gui/macosx_redesign/Sources/MXRMockBackend/MockOutput.swift",
+  "modules/gui/macosx_redesign/Sources/MXRMockBackend/MockBackend.swift",
+  "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/DialogsGallery.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/DialogInput.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Settings/SettingsAvailability.swift",
+  "redesign/docs/DECISIONS.md",
+  "modules/gui/macosx_redesign/Tests/MXRVLCBackendTests/OutputAdapterTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRCoreTests/OutputModelTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/OpenMediaIOTests.swift"
+ ],
+ "editsOutsideOwnership": [
+  "module/bridge/MXRMediaServices.m: output and renderer parts only (transcode map, partial-file publishing in definition/startOutput/outputState/shutdown/finishShutdown, MXROutputJob properties, renderer identity, discovery timeout, two new ivars). The extensions hunks of another agent were left untouched.",
+  "module/bridge/tests/MXRMediaServicesTests.m: output contract assertions (partial path, no-forward-pcr, x264).",
+  "module/bridge/tests/MXRMediaServicesRuntimeTests.m: conversion section only (ffprobe validation, 5x H.264, EEXIST, stop flow). The extension section is unchanged.",
+  "tools/native-tests.py: media fixture changed from rate=10 to rate=25 (one line plus a comment).",
+  "Sources/MXRMockBackend/MockBackend.swift: added output and renderers mocks to the backends.",
+  "Sources/MXRGalleryCatalog/Entries/DialogsGallery.swift: added S37.Convert/running and S37.Stream/running entries.",
+  "Sources/MXRUI/Dialogs/DialogInput.swift: capture error text changed to 'Choose a camera.'",
+  "Sources/MXRUI/Settings/SettingsAvailability.swift: OpticalDiscs.mounted() now delegates to discs().",
+  "redesign/docs/DECISIONS.md: D036 amendment (J-01)."
+ ],
+ "evidence": [
+  "Engine sweep (CLI, same chain and options as the app): <scratch> base-1..3: rc=134, pcr_sync.c:268 assertion, no moov. nofwd-1..4 and x264-*: rc=0. x264 output is 2.66 Mbit/s (VideoToolbox gave 14.2 Mbit/s). With keyint=60, an HTTP join at 4 s decodes 194 of 240 frames.",
+  "native-tests.py --suite media passes 3 times: 15 H.264 A+V conversions checked with ffprobe, plus MP3/AAC/WAV, EEXIST, and stop with stopping, then cancelled, and no partial left. --suite contracts passes.",
+  "Gallery renders: <scratch> (S37.Convert_empty, S37.Convert_running, S37.Convert_running@2x, S37.Convert_running_light, S37.Stream_empty, S37.Stream_running, S37.Capture_empty, S37.Disc_empty). Before: .../J-media-io/before/.",
+  "Real app (/Applications/VLC Redesign.app installed with install-app.sh under the lock, Mac idle): <scratch> run2-s.png: progress at 33%. run7-s.png: Saved + Show in Finder. out/converted.mp4 is valid (h264, aac, mov_text, 60.03 s). replace-s.png: native replace alert. stopped-s.png: 'Stopped. Nothing was saved.', md5 unchanged. streaming-s.png: HTTP stream with the .local URL; http.ts decoded by ffmpeg. st2-s.png: stream stopped; the server is closed (curl 000).",
+  "swift test --filter OutputAdapterTests|OutputModelTests|OpenMediaIOTests|DialogsTests|DeviceDiscoveryTests: all pass."
+ ],
+ "notesForOthers": "Owners of the following:\n- **Bridge (MXRMediaServices.m).** Conversions now write `.<name>.<uuid8>.vlc-partial` next to the destination and rename it on a natural end. The job record no longer contains `partialPath`. Renderer ids are now `renderer:<type>:<sout>` instead of a pointer.\n- **Real-app verification.** The installed app predates `keyint=60` in the H.264 chain, so the next install picks it up. The integrator should reinstall and run `native-tests.py --suite media`, which now needs ffprobe on PATH; ffmpeg was already required.\n- **Renderer wording.** PlayerMenus and EffectsSidebars still label renderer discovery differently. 'discovering' now clears after 5 s, so the disabled 'Discovering…' item is only transient.\n- **Live testing tip.** The Mac uses a Russian keyboard layout, so System Events `keystroke` of a path types garbage. Set the go-to sheet's text field through accessibility instead (`set value of text field 1 of sheet 1 of window \"Open\"`)."
+}

@@ -1,0 +1,161 @@
+{
+ "codexAssessment": "The H-design area is mostly where Codex chose not to act. In a215064366 the only changes here are 2 colour tokens, 2 OSD text styles, a contrast switch in ThemeColor.value, the colour of the keyboard focus ring, and a 1-line generator filter. Customization, onboarding, materials/backdrop, icons, LayoutStore and the design galleries were not touched. Some of that restraint was right:\n- LIBSET-10 (onboarding Back/Next colours) is correctly marked О. My S70/S71 check shows Back/Next match Figma. The only S71 FAIL region is the live ⌘L keycap (D034 binding), and S69/S70 differ only by a 1 pt preview offset.\n- PLAYER-04 (removing the forced PiP from the bar) matches Figma: the top bar's right side holds only fullscreen, and PiP is a Customize tile.\n- LIBSET-04 (light material) was honestly left as Н rather than guessed.\n\nWhat Codex did change is mostly superficial or quietly off-design:\n- NAT-05 (\"И\"): enabled secondary text in the queue, bookmarks, mini-player and library count was moved from Figma FG/A3 #6B6B6B (the comment still cites style 217:229) to a new \"App/Readable Secondary\" token. In dark it equals FG/A2 #8F8F8F; the light value #595959 is new. This changes the default look against Figma with no DECISIONS entry. It covers 7 call sites while about 74 other fgA3 texts keep #6B6B6B, so the hierarchy is now inconsistent. The new contrast test just checks the newly chosen value against 4.5 and passes by construction.\n- A11Y-06: the focus ring token `keyboardFocus` is the same value as fgA1 in both themes, labelled as an \"App/…\" pseudo-Figma style in colors.json.\n- A11Y-02 (\"Ч\"): Increase Contrast only remaps fgA3/readableSecondary to fgA1, and only on the SwiftUI resolve path (nsColor and color(accent:) ignore it). Differentiate Without Color and Reduce Transparency are still not referenced anywhere.\n- CODE-09: only additions. The OSD styles were added to typography.json with invented Figma-style metadata (usageCount 0, made-up \"Dark/FG/A1\" colour counts).\n\nNo wave-1 regression found in owned files. The Figma-style focus behaviour (no system ring on click), tokens-only views and generator sync are intact.\n\nThe real remaining work is what Codex skipped:\n- the light-theme chrome and volume colours are visibly wrong;\n- LIBSET-09 has a concrete code root cause;\n- the Customize edit-mode composition still differs from Figma (spacer boxes, cone and sidebar treatment, play tile, disabled previous);\n- the drag UTType is undeclared.\n\nLive real-window checks were not run. Changing the theme or onboarding state in the installed app would rewrite the owner's prefs, and a clean-profile run needs an isolated HOME. All verdicts come from the code plus mxr-snapshot check against the Figma renders. Renders are in <scratch>",
+ "confirmed": [
+  {
+   "id": "H-01",
+   "severity": "major",
+   "title": "Light theme volume cone keeps the dark track (#090909) and a black @0.2 overlay",
+   "files": [
+    "redesign/design/tokens/colors.json",
+    "modules/gui/macosx_redesign/tools/gen-tokens.py",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Generated/Tokens.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerControls.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Customization/MXROnboardingPlayerPreview.swift"
+   ],
+   "evidence": "figma_file.json Player-Light: I2425:13645;491:1733;244:226 track is a solid #888888 (0.5349); 244:229 fill is the gradient plus a SOLID #FFFFFF at opacity 0.20; 244:228 body is #262626 (the same as dark). Tokens.swift:373-377 are scheme-independent: volumeConeOverlay #000@0.2 and volumeConeTrack #090909. colors.json gradients.volumeCone has only dark values. PlayerControls.swift:156 (track) and :240 (overlay) use them in both schemes, as does MXROnboardingPlayerPreview.swift:115. My shipping-window render of S72.Window/light (scratchpad/final/H-design-triage/s72/side-by-side.png) shows a near-black cone where Figma has a grey one.",
+   "fix": "In colors.json gradients.volumeCone, add light: {track '#888888' (node 244:226, style 2425:13976), overlay '#FFFFFF @ 0.20' (244:229)}; body stays #262626. In gen-tokens.py, emit volumeConeTrack and volumeConeOverlay as scheme-aware ThemeColor tokens, not RGBA. Do not reuse bgA5, which D032 set to #F4F4F4 for text fields. In PlayerControls.swift, resolve the track fill at :156 and the CG overlay at :240 through the current scheme (the overlay is drawn in CG, so pass it in with colorScheme or nsColor). In MXROnboardingPlayerPreview, resolve the light theme preview the same way. Re-check S72.Window/light."
+  },
+  {
+   "id": "H-03",
+   "severity": "major",
+   "title": "Closing onboarding with Esc or Cmd-W marks it done without adding the chosen media folder (LIBSET-09 root cause)",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Customization/MXROnboardingView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/MXRDialogHost.swift"
+   ],
+   "evidence": "MXRDialogHost.swift:60-68: the Esc (.cancelAction) and Cmd-W buttons call close(). close() calls app.completeOnboarding() when the sheet is onboarding, and that persists the onboarding option = true (AppModel.swift:186-189). MXROnboardingView.swift:250 only stores pendingFolder on Next. :256 calls app.library.addFolder only on Finish. So Next followed by Esc on step 2 or 3 completes onboarding with no folder. AUDIT_FIXES lists LIBSET-09 as Н, not traced.",
+   "fix": "Remove @State pendingFolder. In the .welcome branch at MXROnboardingView.swift:248-252, call app.library.addFolder(url) right after MXROnboardingFolder.url(for:) validates it. Back does not undo it, and adding the same folder twice is harmless. Finish only calls completeOnboarding(). Decide and document Esc on the welcome step itself (skip without a folder is acceptable). Verify once on an isolated profile (separate HOME/VLC userdata) that ml.db lists the folder after Next then Esc."
+  },
+  {
+   "id": "H-04",
+   "severity": "major",
+   "title": "Codex readableSecondary replaces Figma FG/A3 at 7 of about 81 secondary-text sites with no DECISIONS entry",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Panels/QueuePanel.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Library/MXRMiniPlayerView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Library/MXRLibraryView.swift",
+    "redesign/design/tokens/colors.json",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Theme/ThemeColor.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/ThemeContrastTests.swift"
+   ],
+   "evidence": "grep shows readableSecondary used only at QueuePanel.swift:72,120,159,289, MXRMiniPlayerView.swift:197,223 and MXRLibraryView.swift:87. QueuePanel:289 itself cites 'fill 217:229' (Dark/FG/A3 #6B6B6B). colors.json readableSecondary is dark #8F8F8F (equal to fgA2) and light #595959, with figmaStyle 'App/Readable Secondary'. DECISIONS.md has no entry (D037-D041 do not mention it). The dark default therefore diverges from Figma on these rows, and secondary text has two greys.",
+   "fix": "Revert the 7 sites to Theme.Color.fgA3 and delete the readableSecondary token from colors.json and Tokens.swift. Also update ThemeColor.swift:33 and the tests. Increase Contrast already maps fgA3 to fgA1. If light-theme AA is wanted, change the light fgA3 value itself in colors.json and record it as a D032 amendment (as D032 did for fg1/fg2/fgA4). That applies it to every fgA3 site consistently while dark stays the Figma #6B6B6B."
+  },
+  {
+   "id": "H-02",
+   "severity": "major",
+   "title": "Light theme translucent chrome is too light: the aqua material base replaces the dark content under the tint",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Materials/MXRBackdropSurface.swift"
+   ],
+   "evidence": "MXRBackdropSurface.swift:78 sets view.appearance to .aqua in light mode with the .hudWindow material. My S72.Window/light shipping-window check returns FAIL, with 24.9% of the area a different flat colour: panel #D5D5D5 vs Figma #C2C2C1, rail #C3C3C3 vs #ABABAA. The render equals the tint value (#D5D5D5), so the base under the 0.75 tint is light rather than the dark video. Figma's #ABABAA is bgA3Transparent over dark content. This is an offscreen composition, so the real NSVisualEffectView value still has to be confirmed with screencapture -l.",
+   "fix": "Remove the colorScheme-dependent appearance at :78. Force a dark, blur-only base in both schemes: NSAppearance(.darkAqua) with .underWindowBackground, or .hudWindow if that measures closer. Keep the Figma tint unchanged on top. Do not tune the tint. Measure the top bar, rail and panel in the installed app over dark video, aiming for about #ABABAA (bars) and #C1C1C0 (panel)."
+  },
+  {
+   "id": "H-06",
+   "severity": "major",
+   "title": "Customize edit mode outlines differ from Figma 'Player - customize'",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Customization/LayoutDrag.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerBars.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerControls.swift"
+   ],
+   "evidence": "Image-engine render of S66.App/customization (H-design-triage/s66/i1.png, i2.png) next to Figma (topR.png, ftop2.png): (a) the spacers get full-width dashed boxes and Figma has none; (b) the title box hugs the text, while Figma pads it; (c) the cone logo is outlined, Figma does not outline it; (d) the sidebar toggle is dimmed. Bottom bar (blL.png vs blR.png): (e) play has no dashed outline, Figma has one; (f) previous is drawn disabled, Figma shows it normal. The cause is LayoutDrag.swift:128-140, which outlines every item unconditionally. In addition, the --engine shipping-window render of S66 has no top bar at all (s66/rsmall.png), while Figma shows it during Customize. Check in the real window whether the top bar auto-hides during customization; it must stay visible.",
+   "fix": "In MXRLayoutDraggableModifier, skip the outline for .spacer (keep the drop target), and skip both outline and draggable for .logo. Inflate the outline to the Figma tile box: the title is padded about 8 pt per 2115:7285, using a Theme.Metric value, not a literal. Give playPause the same dashed tile outline. While interface.isCustomizing, render controls in their enabled default state (fgA2, never disabled or dim) in PlayerControls. Make the top bar always visible while customizing. Re-check S66 and S67 with the image and shipping-window engines."
+  },
+  {
+   "id": "H-05",
+   "severity": "major",
+   "title": "No Differentiate Without Color or Reduce Transparency handling; Increase Contrast ignored on the AppKit and NSColor paths",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Theme/ThemeColor.swift",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Icons/MXRIcon.swift",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Materials/MXRBackdropSurface.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerControls.swift"
+   ],
+   "evidence": "grep for accessibilityDifferentiateWithoutColor or accessibilityReduceTransparency under Sources finds 0 hits. ThemeColor.nsColor(accent:) at :47-51 resolves with dark/accent only, with no contrast. ThemeColor.value applies contrast only through resolve(in:) and a value(contrast:) argument. Toggles without a filled Figma variant (repeat, shuffle, pip, hdr, zoom) show their on state only by accent recolour.",
+   "fix": "(1) In ThemeColor.nsColor, include NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast or appearance high-contrast in the dynamic provider. (2) In MXRIcon, when @Environment(\\.accessibilityDifferentiateWithoutColor) is on and an icon falls back to baseAsAccent, draw a bgA2/iconHover tile behind it. Mark the selected accent swatch with a check glyph. (3) In MXRBackdropSurface, under @Environment(\\.accessibilityReduceTransparency) or increased contrast, drop the material and fill the opaque base token (bgA3 or bgB1) instead of the translucent tint."
+  },
+  {
+   "id": "H-07",
+   "severity": "major",
+   "title": "Exported drag UTType for layout items is not declared in the app Info.plist",
+   "files": [
+    "modules/gui/macosx_redesign/tools/app-bundle-hook.sh",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Customization/LayoutDrag.swift"
+   ],
+   "evidence": "LayoutDrag.swift:48 declares UTType(exportedAs: \"org.videolan.vlc-redesign.player-layout-item\"). Installed /Applications/VLC Redesign.app Info.plist UTExportedTypeDeclarations contains only org.videolan.vlc. grep of tools/ finds no declaration.",
+   "fix": "In app-bundle-hook.sh's plist step, add a UTExportedTypeDeclarations dict: UTTypeIdentifier org.videolan.vlc-redesign.player-layout-item, UTTypeConformsTo [public.data], UTTypeDescription 'VLC player layout item'. Use PlistBuddy Add and make it idempotent. Then drag a palette tile into the control bar of the installed app under lock and idle."
+  },
+  {
+   "id": "H-09",
+   "severity": "minor",
+   "title": "Focus ring #969696 (dark) is about 1.1:1 on the accent play button and is drawn inside the fill",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Focus/MXRKeyboardFocus.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/ThemeContrastTests.swift"
+   ],
+   "evidence": "MXRKeyboardFocus.swift:31-32 uses strokeBorder (inset, over the control's own fill). Used at PlayerControls.swift:185 and :419 (seek, accent fill). #969696 vs #D37918 is about 1.06:1. testFocusIndicatorHasThreeToOneContrast (:39-42) checks only opaque bg surfaces.",
+   "fix": "Draw the ring outset by Theme.Stroke.iconActive plus a 1-2 pt gap (stroke on an inset(by: -gap) shape) so it always sits on the bar surface. Extend the test to the composited bar colours in both schemes."
+  },
+  {
+   "id": "H-08",
+   "severity": "minor",
+   "title": "Token hygiene: keyboardFocus duplicates fgA1; readableSecondary and OSD styles carry fake Figma metadata",
+   "files": [
+    "redesign/design/tokens/colors.json",
+    "redesign/design/tokens/typography.json",
+    "modules/gui/macosx_redesign/tools/gen-tokens.py",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Focus/MXRKeyboardFocus.swift"
+   ],
+   "evidence": "colors.json keyboardFocus is #969696/#3C3C3C, identical to fgA1 dark/light. gen-tokens.py:244 special-cases the 'App/' prefix. typography.json osdTitle and osdKey (about :560-587) have usageCount 0 and empty exampleNodes. They cite D027 for role but no Figma source.",
+   "fix": "Use Theme.Color.fgA1 in MXRKeyboardFocus, delete keyboardFocus, and drop the App/ hack. Put any remaining app colour in rawColors with lightHex (the D032 pattern). Mark the OSD styles 'derived' (base style plus D027) without extraction fields, or derive them in OSDTypography from the base styles."
+  },
+  {
+   "id": "H-13",
+   "severity": "minor",
+   "title": "CODE-09: hand-written CustomizationMetrics duplicates Figma boxes while generated metrics stay unused",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Customization/CustomizationMetrics.swift",
+    "modules/gui/macosx_redesign/tools/gen-tokens.py",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Generated/Tokens.swift"
+   ],
+   "evidence": "CustomizationMetrics.swift (65 lines) holds literal panel 1048x655, header, body and onboarding CGRects. Tokens.swift:715,717 onboardingWidth 1090 and miniplayerWidth 391 are not referenced outside Generated.",
+   "fix": "Move the S66-S71 boxes into metrics.json and emit them through gen-tokens.py. Replace CustomizationMetrics with references to the generated values. Delete generated metrics that are still unused, or record that they are kept as the Figma dictionary in DECISIONS."
+  },
+  {
+   "id": "H-12",
+   "severity": "minor",
+   "title": "Accent swatch accessibility semantics differ between onboarding and Settings",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Customization/MXROnboardingView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Settings/MXRSettingsView.swift"
+   ],
+   "evidence": "MXROnboardingView.swift:143-144 and :175-176 use the label '<X> accent' or '<X> theme' plus accessibilityValue('Selected' or an empty string). MXRSettingsView.swift:462-463 uses label 'Orange' plus the .isSelected trait.",
+   "fix": "Use label '<Color> accent' and .accessibilityAddTraits(selected ? .isSelected : []) in both places, with no empty accessibilityValue. Apply the same to the onboarding theme tiles."
+  },
+  {
+   "id": "H-10",
+   "severity": "minor",
+   "title": "Customize item menu and profiles rows still use native .contextMenu (D034 wave-2 list)",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Customization/LayoutDrag.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Customization/MXRProfilesView.swift"
+   ],
+   "evidence": "LayoutDrag.swift:147 and MXRProfilesView.swift:79 use .contextMenu. DECISIONS.md:283 (D025) allows native NSMenu only for the menu bar, and :373-374 (D034) lists the profiles view and layout palette as still to adopt.",
+   "fix": "Replace both with .mxrContextMenu(style: .contextMenu) (MXRDesign/Popup/MXRPopupModifiers.swift:35) with the same actions. Keep the accessibilityActions."
+  },
+  {
+   "id": "H-11",
+   "severity": "minor",
+   "title": "Onboarding is still an absolute 1090x759 canvas scaled with scaleEffect (acknowledged debt in D035, SD-28)",
+   "files": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Customization/MXROnboardingView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Customization/CustomizationMetrics.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/MXRDialogHost.swift"
+   ],
+   "evidence": "MXRDialogHost.swift:86-92 applies scaleEffect only for onboarding. DECISIONS.md:398 says 'onboarding is the exception until it is rebuilt, SD-28', so this is accepted temporary debt rather than a contradiction.",
+   "fix": "Rebuild it as a VStack/HStack layout with the same Figma gaps, with the footer pinned at the Figma insets and the content scrolling when short. Then remove the scaleEffect branch and the D035 exception sentence. Re-check S69-S71 at full size."
+  }
+ ]
+}

@@ -1,0 +1,1024 @@
+[
+ {
+  "group": "Player window: dark, light, Hide UI, fullscreen, windowed thin frame, top bar, traffic lights, cone, PiP placeholder",
+  "screens": [
+   {
+    "screen": "S01 Player window, dark default (Figma 247:445 Player-6) — gallery S01.Window/shipping, --engine shipping-window",
+    "verdict": "minor-diff",
+    "owner": "B-controls",
+    "differences": "Everything visible matches Player-6 at 2x: cone, ⋯, sidebar toggle, divider, 'Videos' chip, centred 'VLC Media Player' title, the framed video, prev/play/next, the 00:02:10 and 00:25:40 labels, the volume cone at 50 % and the four right icons. Two differences remain. (1) The seek head and fill are drawn about 13.5 pt further right than in Figma: the render's head is at x≈359.5 pt, Figma's at 346. Figma 1908:7387 draws the fill 98 pt wide with the head at x 92. That is about 7.5 % progress (≈1:56), while the label it shows reads 02:10 of 25:40, which is 8.4 %. The product formula is correct (PlayerGeometry.seekHeadX = gap2 + (w−head)·progress), so the Figma frame contradicts itself. No decision and no figmaDeviation covers this: no player entry has figmaDeviations. HANDOFF already lists it as the 'old FAIL C.SeekBar/default'. Fix: record it as a documented deviation that cites a new decision, or change the Player-6 fixture time. Do not move the head. (2) The top bar has macOS traffic lights on the left, the cone moved right by the zoom-button reserve, and only the fullscreen button on the right. Figma has no traffic lights, has the cone at x 12, and draws Windows min/max/close. This is covered by D007 and D022. Note that D007's wording says to keep a PiP button top-right, but Player-6 has none, and the video poll frame 04m00.7 shows min/PiP/max/fullscreen/close. The product has no PiP button in the top bar (PiP is only a customizable control-bar item). D015 still lists the PiP button as open.",
+    "evidence": "check FAIL, caused only by those two regions: parity-1/S01_Window_shipping-shipping-window/{render,ref,side-by-side}.png. Crops: parity-1/c-s01-topleft.png, c-s01-topright.png, c-s01-barleft.png (head offset), c-s01-barright.png (identical). The S01.App/default hosting entry uses a different fixture ('The Wand S01E04' title), so its FAIL at 900,14 is fixture text, not a product difference: parity-1/c-app-title.png."
+   },
+   {
+    "screen": "S01 control bar components — C.PlayButton play/pause, C.CurrentTime, C.Duration, C.SeekBar, S01.ControlBar/default",
+    "verdict": "minor-diff",
+    "owner": "B-controls",
+    "differences": "Play and pause, the current time and the duration all PASS. C.SeekBar/default FAILs on the same 13.5 pt head offset described for S01, which is still undocumented. S01.ControlBar/default with the image engine draws the seek bar as a #FFCC00 yellow placeholder, because the image renderer cannot draw the AppKit layer view (D047 'Seek progress is layer geometry'). With the hosting engine it renders correctly, and the only remaining difference is the translucent bar (#191919@95 % over transparent instead of Figma's #212121), which is the D008 material over nothing. Suggestion: give S01.ControlBar/default renderEngine .hostingView, so a default `check --all` does not report a false 32 % FAIL.",
+    "evidence": "parity-1/c/C_SeekBar_default, c/C_PlayButton_*, parity-1/S01_ControlBar_default-image (yellow placeholder), parity-1/S01_ControlBar_default-hosting"
+   },
+   {
+    "screen": "S04 cone / volume cone (244:184, 0–200 %) + volume tooltip 2245:9805",
+    "verdict": "match",
+    "owner": "B-controls",
+    "differences": "Cone 0 PASS, cone 50 REVIEW. Cones 100, 150 and 200 'FAIL' only on gradient pixels with Δ2 (#8D8A13 vs #8B8A12), which cannot be seen. The tooltip is REVIEW at a −0.5 pt sub-pixel offset. The top-bar logo cone matches Player-6 in shape and colour.",
+    "evidence": "parity-1/c/C_VolumeCone_{0,50,100,150,200}, c/C_VolumeTooltip_default"
+   },
+   {
+    "screen": "S06 Hide UI (3328:11554 Player - hide UI) — S06.Window/hidden-ui shipping-window, S06.App/hidden, S06.Player/hidden-ui",
+    "verdict": "match",
+    "owner": "A-window",
+    "differences": "The verdict is PASS: 0 strict pixels and only Δ2 flat-colour specks. The traffic lights hide as D022 requires. The thin dark frame and the rounded video match the Figma render and video frame 05m29.",
+    "evidence": "parity-1/S06_Window_hidden-ui-shipping-window/side-by-side.png; parity-1/S06_App_hidden-hosting"
+   },
+   {
+    "screen": "S05 windowed thin frame (bars auto-hidden) — S05.Window/thin-frame, video 03m53.6",
+    "verdict": "match",
+    "owner": "A-window",
+    "differences": "No Figma frame exists, so I compared with key frame 03m53.6. Both show a dark frame of about 9–10 pt around the rounded video, with no bars. It is pixel-identical to the Hide UI render, which PASSes Figma (max Δ14, inside the video placeholder only). The cursor hiding and the fade can only be judged live.",
+    "evidence": "parity-1/r/S05_Window_thin-frame.png, parity-1/thin-corner.png, key frame 03-top-bar__bars-hidden-thin-frame__03m53.6s.jpg"
+   },
+   {
+    "screen": "S05 hover reveal in the window — S05.Window/top-reveal, S05.Window/bottom-reveal (video 03m51.0 / 03m53.0)",
+    "verdict": "match",
+    "owner": "A-window",
+    "differences": "The bars reveal independently, as D023 requires. With only the top bar shown, the traffic lights come back with it (D022). The video keeps its frame, as in 03m51.0. The bottom-only reveal hides the traffic lights. Timing (0.13 s fade, 0.5 s hide-after) needs a live check.",
+    "evidence": "parity-1/sheet1.png rows 1–2, parity-1/r/S05_Window_top-reveal.png, S05_Window_bottom-reveal.png"
+   },
+   {
+    "screen": "S05 fullscreen — S05.Player/fullscreen, fullscreen-hidden, fullscreen-top, fullscreen-bottom",
+    "verdict": "minor-diff",
+    "owner": "A-window",
+    "differences": "No Figma frame exists. The offscreen hosting renders show the video edge to edge with the bars over it. The top bar puts the cone at x 12 with no traffic-light reserve, which matches D022 and Player-6's cone position (crop parity-1/fs-top.png). The hidden variant shows only the video. One coverage gap: no shipping-window gallery entry exists for fullscreen, so the real NSWindow fullscreen composition (menu-bar reveal, safe area, notch displays) has never been rendered. Everything beyond the static layout needs the live wave.",
+    "evidence": "parity-1/r/S05_Player_fullscreen*.png, parity-1/fs-top.png, sheet1.png rows 3–4"
+   },
+   {
+    "screen": "S72 Player - Light with compact library (2425:13624) — S72.Window/light shipping-window, S72.App/light",
+    "verdict": "minor-diff",
+    "owner": "A-window",
+    "differences": "The bar colour matches Figma's #ABABAA (#A8A8A8 rendered) under D046, which supersedes D043. The light foregrounds and the light accent #E8851A follow D032 and the Light tokens, because Figma's frame mixes Dark styles (INDEX). The sort-button dot follows D044. The remaining differences are not covered by a decision: (1) The fixture differs from Figma. It plays E11 (title 'The Wand S01E11', duration 00:23:06, Next enabled, E11 row orange with a play overlay), while Figma plays 'The Wand S01E04' with 00:25:40, Next disabled, the playback gear disabled and lower volume. S01.Window/shipping got a Figma-matching media fixture (figmaPlayer6); S72 has none. Fix in ShippingGallery: add a Player-Light media fixture with E04 current at 02:10 of 25:40, Next disabled, and Figma's volume. (2) The compact library's divider under '15 items' is #ACACAC in the render and #212121 in Figma (a dark line at y 144, 338 pt wide), owned by E-library. It is probably another Dark style leaking into Figma's Light frame, but no decision says so; either document it in D032/D046 or adopt it. (3) Figma greys rows E05–E15 and draws the last breadcrumb segment 'S01' dimmed. The render greys the watched E01–E04 and draws 'S01' at full fg. The render follows video 11m57 (watched rows dimmed, playing row orange), so this is acceptable, but it should be written down as a known difference.",
+    "evidence": "parity-1/S72_Window_light-shipping-window/side-by-side.png, parity-1/c-l-top.png, c-l-lib1.png, c-l-barleft.png, c-l-barright.png; key frame 08-library__compact-library-plus-queue-native__11m57.0s.jpg"
+   },
+   {
+    "screen": "Top bar + traffic lights (S01/D007/D022) in the real window",
+    "verdict": "not-checked",
+    "owner": "A-window",
+    "differences": "The offscreen frame measures the traffic lights from an off-screen NSWindow (ShippingWindowControls.measured), and the cone gap derived from that measurement matches. Still to check in the installed app: whether the lights are vertically centred in the 40 pt bar, whether they hide and reveal with the top bar (in Hide UI and auto-hide), the cone gap at a real window size, double-click behaviour following the system titlebar preference, dragging the window from the bar, and that the fullscreen button sits at Figma's right inset.",
+    "evidence": "Live check needed: open media in /Applications/VLC Redesign.app, screenshot the top 40 pt at 2x and compare with Figma 247:445 crop x0–640 y0–40; press ⌘\\ and confirm the traffic lights disappear; set auto-hide to 'always', move the pointer to the top edge, and confirm the lights return with the bar."
+   },
+   {
+    "screen": "PiP placeholder (D042) — S01.Window/pip",
+    "verdict": "match",
+    "owner": "A-window",
+    "differences": "Matches D042: the video area is #090909 with the PiP glyph and one fg2 caption, 'This video is playing in Picture in Picture', centred, and the bars stay normal. Figma and the video have no frame for it, so D042 is the reference. The light scheme could not be judged: `--scheme light` has no effect on shipping-window entries (theme is set only through the entry's `light:` flag, and S01_pip_light is pixel-identical to dark). No light variant exists for the PiP, thin-frame, Hide UI or fullscreen entries. Suggestion: owner H-design, or A-window for ShippingGallery. Either make the CLI's --scheme set app.appearance for shipping-window entries, or add light variants.",
+    "evidence": "parity-1/r/S01_Window_pip.png, parity-1/pip-center.png, parity-1/r/S01_pip_light.png (identical to dark)"
+   },
+   {
+    "screen": "S01 narrow window (S01.Window/narrow, 480 pt)",
+    "verdict": "match",
+    "owner": "A-window",
+    "differences": "The title is left out and the folder chip is kept, per D042 (narrow windows). The control bar collapses into an overflow button. One check is owed: the cat video placeholder is not drawn at this size, and only the #2D2B29 surface shows. Confirm this is the gallery placeholder at 1/4 scale and not a vout sizing problem.",
+    "evidence": "parity-1/r/S01_Window_narrow.png"
+   },
+   {
+    "screen": "Real-window behaviour of the player group (S01/S05/S06 live)",
+    "verdict": "not-checked",
+    "owner": "A-window",
+    "differences": "Cannot be judged offscreen. Live checks needed: real vout over the framed video (no seams at the rounded corners); Hide UI with ⌘\\ on and off; cursor hiding in fullscreen when the bars are hidden (D023); the fullscreen enter and exit animation and the bars over the video in real fullscreen; PiP entering and returning by clicking the placeholder; Light theme in the installed app, with the bars reading about #ABABAA over a real video (D046).",
+    "evidence": "See the HANDOFF A-05 open item; to be run in the live-acceptance wave."
+   }
+  ],
+  "summary": "I compared the player-window screens with Figma and the video key frames. The dark default window (S01) and Hide UI (S06) match Figma except for one undocumented seek-head offset, the documented macOS traffic lights (D007/D022), and the light screen (S72), which needs a closer fixture and a note on the divider. HEAD is 4c457baa03 plus the uncommitted working tree. I made no source edits; all outputs are in <scratch> S06 Hide UI passes in the shipping window (0 strict pixels).\n- S05 windowed thin frame and the top and bottom hover reveals match key frames 03m51 and 03m53.\n- Play/pause buttons, time labels and volume cones pass; cones 100–200 % differ only by Δ2 in the gradient.\n- The PiP placeholder follows D042.\n- The narrow window drops the title per D042.\n\n**Differences, all minor**\n1. **Seek head offset (B-controls).** The head is drawn 13.5 pt right of Figma in S01.Window/shipping and C.SeekBar/default.\n   - Figma's frame contradicts itself: it draws the head at about 7.5 % progress while its label says 02:10 of 25:40 (8.4 %).\n   - The product math is correct, but no decision or figmaDeviation records this, though the integration summary calls the playhead position documented. It should be documented, not fixed by moving the head.\n2. **S72 light fixture (A-window).** It plays E11 instead of Figma's E04: different title, 23:06 duration, Next enabled and different volume. S01 has a Figma-matching fixture (figmaPlayer6); S72 has none.\n3. **Light library divider (E-library).** It is #ACACAC in the render and #212121 in Figma, probably a Dark style leaking into Figma's Light frame. No decision covers it.\n4. **Light row dimming and breadcrumb.** The render follows video frame 11m57 rather than Figma, which is reasonable, but it should be written down.\n5. **PiP button in the top bar.** D007's wording keeps a PiP button top-right, but Player-6 has none, and the product shows only fullscreen there. D015 still lists this as open.\n6. **Gallery tooling.**\n   - `--scheme light` has no effect on shipping-window entries, so there are no light renders of PiP, thin frame, Hide UI or fullscreen.\n   - S01.ControlBar/default with the image engine draws a yellow placeholder; it should use the hosting engine.\n   - No shipping-window entry exists for fullscreen.\n\n**Not checked (needs the real window)**\nTraffic-light centring and hiding, the cone gap at real window sizes, cursor hiding in fullscreen, the fullscreen transition, PiP round-trip, and Light bars over real video.\n\nOwner decisions affected: none in this group. The pause pin (D041) is consistent with the paused Player-6 and the 04m10.9 frame."
+ },
+ {
+  "group": "Control bar and seek bar: every control, hover/pressed states, scrubbing preview, waveform and subtitle-timeline modes, OSD, volume tooltip, resume toast, compact widths",
+  "screens": [
+   {
+    "screen": "S01 control bar, dark (Figma 491:1779, gallery S01.ControlBar/default)",
+    "verdict": "minor-diff",
+    "owner": "B-controls",
+    "differences": "1) The playhead sits about 13.5 pt to the right of Figma's: render fill ends at x=105 pt and the head runs 105–112.5; Figma's fill ends at 91.5 and its head runs 92–100. The fixture uses the real clock ratio 130/1540 = 0.0844, while Figma draws its head at about 0.079 with the same 00:02:10 / 00:25:40 labels. This is only a gallery `notes` string. It is not a DECISIONS entry or a `figmaDeviation`, so `check` still FAILs. 2) Component 491:1779 has a 1 pt INSIDE top stroke (#212121, rows 0–1 at 2×). In dark the product draws it only in Light or Customize (Codex audit PLAYER-05: Player-6 247:445 has no line). Player-6 and the component disagree, and the choice is not in DECISIONS.md and not a `figmaDeviation`. Everything else matches the pixels: prev/play/next, time labels, track, cone, icon order and spacing, and the bar fill #181818 @ 95 %.",
+    "evidence": "parity-2/check/S01.ControlBar_default/{render,ref,diff-heatmap}.png and parity-2/stack1.png (rows 2–3). Pixel rows: render fill 4–210 px, head 211–225; ref fill 4–183, head 184–199. Ref rows 0–1 are (33,33,33,255), render rows are (25,25,25,242). figma_file.json 491:1779 has individualStrokeWeights.top=1."
+   },
+   {
+    "screen": "S01 shipping window, dark and light (Figma 247:445 Player-6, gallery S01.Window/shipping --engine shipping-window)",
+    "verdict": "minor-diff",
+    "owner": "B-controls",
+    "differences": "In the bar, the only large difference is the playhead position (same cause as above: the fixture clock ratio, documented only as a gallery note). Player-6 has no line above the bar, and the product matches that. The other FAIL regions are in the top bar (traffic lights and title area: D022/D042, owned by A-window). The --scheme light render is identical to dark, because Player-6 exists only in dark. The light bar is judged under Player - Light below.",
+    "evidence": "parity-2/check/shipping-dark and shipping-light/{render,ref,diff-heatmap}.png; parity-2/stack3.png. Rows above the bar: render and ref are both (44,42,40) → (27,27,27), so there is no hairline in either."
+   },
+   {
+    "screen": "S01 play/pause button (Figma 848:1711 / 848:1713)",
+    "verdict": "match",
+    "owner": "B-controls",
+    "differences": "No visible difference. C.PlayButton/play and /pause PASS with 0 % structural difference.",
+    "evidence": "integration/check-all-2.log; parity-2/stack1.png"
+   },
+   {
+    "screen": "S01 bar icon hover state (Figma Icon Wrapper 177:99)",
+    "verdict": "minor-diff",
+    "owner": "B-controls",
+    "differences": "In Figma 177:99 the hover state is a white 6 % tile with radius 4, and the glyph stays FG/A2 #8F8F8F. MXRPlayerIconButton (PlayerControls.swift:43) also changes the glyph tint to Theme.Color.fg1 on hover. The brighter glyph is not in Figma or the video, and no decision records it (VIDEO_BREAKDOWN line 138 lists bar-icon hover as OPEN). The tile itself matches: the iconHover token is #FFFFFF @ 0.06 with radius 4. No gallery entry renders the hover state, so this is judged from code and the Figma pixels.",
+    "evidence": "parity-2/ref_iconwrapper.png: the hover glyph pixels are (143,143,143,255), the same as default. PlayerControls.swift:43–46."
+   },
+   {
+    "screen": "S01 pressed states of bar controls",
+    "verdict": "not-checked",
+    "owner": "B-controls",
+    "differences": "Neither Figma nor the video defines a pressed state. The buttons use .buttonStyle(.plain) with no pressed feedback. Live: press and hold each bar button and check that nothing flickers, that no system highlight or focus ring appears (D028), and that the hover tile stays.",
+    "evidence": "PlayerControls.swift:30–33"
+   },
+   {
+    "screen": "S02 time labels (Figma 1904:7238 Current Time incl. hover 1904:7239, 1905:7312 Duration)",
+    "verdict": "minor-diff",
+    "owner": "B-controls",
+    "differences": "The default and remaining-time labels match: C.CurrentTime/default, C.Duration/default and C.Duration/remaining all PASS, with proportional digits per D047. The hover state matches by code: bgB2 #090909, radius 6, as in 1904:7239. One difference outside Figma: on a live stream (S01.Player/live-stream) the duration shows \"00:00:00\" and the seek head sits at 0, under an elapsed time of 00:12:34. That reads as a zero-length file rather than a live stream. Figma and the video have no live design, and DECISIONS has no entry for the zero-length label.",
+    "evidence": "parity-2/live_bar.png; parity-2/r/S01.Player_live-stream.png; PlayerControls.swift:107–111 (formats app.clock.length even when it is zero)"
+   },
+   {
+    "screen": "S03 seek bar (Figma 1908:7387, gallery C.SeekBar/default)",
+    "verdict": "minor-diff",
+    "owner": "B-controls",
+    "differences": "The track, the fill colour (#371F06), the head colour, the head size (24 pt high, rounded) and the head-against-fill join all match pixel for pixel. Only the head position differs: x≈105.5 pt in the render, 92 in Figma, which is the fixture clock ratio again. The integrator calls this documented, but it is only a gallery note. It needs a DECISIONS line or a figmaDeviation (differsAt the head) so that check stops FAILing. The corner regions are a crop artefact (the reference includes the bar background).",
+    "evidence": "parity-2/check/C.SeekBar_default/*; pixel dump at y=6/28/50 around x=180–232"
+   },
+   {
+    "screen": "S03 seek thumbnail preview / scrubbing (Figma 2151:9673, video 03m29.3)",
+    "verdict": "minor-diff",
+    "owner": "B-controls",
+    "differences": "The card matches Figma (REVIEW, 1 px offsets in the thumbnail and label). Placement differs: PlayerControls.swift:441 offsets the card by seekThumbnail.height + gap10. The 10 pt gap is the frame's internal auto-layout gap (image to label), so the card bottom ends 10 pt above the seek track, which overlaps the control bar by about 3 pt (track inset 13 pt). In video frame 03m29.3 (seek bar 28 pt ≈ 106 px gives a scale of about 3.8×) the card ends about 18 pt above the track, fully above the bar. The card is also clamped to the seek bar's width, not the video area's. Live check: hover the seek bar near both ends and in the middle. Expect the card centred on the pointer, clear of the bar's top edge, never clipped, and following the pointer every frame while dragging (D028).",
+    "evidence": "parity-2/check/C.SeekPreview_default/*, parity-2/stack2.png, parity-2/kf_preview.png; metrics.json seekThumbnail.gap=10 is an internal gap"
+   },
+   {
+    "screen": "S04 volume cone 0–200 % (Figma 244:183–244:240), dark and light",
+    "verdict": "match",
+    "owner": "B-controls",
+    "differences": "The shape, track, outline and fill extent match at every step. The FAILs on 60–200 % come from a gradient Δ of 2/255 (#8D8A13 vs #8B8A12), which is not visible. The light cone in Player - Light samples (185,198,70) in both images, so the track #888888 matches (D046).",
+    "evidence": "parity-2/check/C.VolumeCone_100/*, parity-2/stack2.png, parity-2/check/S72-light (x=3320 sample)"
+   },
+   {
+    "screen": "S04 volume tooltip (Figma 2245:9805)",
+    "verdict": "match",
+    "owner": "B-controls",
+    "differences": "The card, radius and \"100 %\" text match (REVIEW, 0.5 pt text offset). Placement cannot be compared: the video never shows the tooltip, and the code puts it 8 pt above the cone, centred. Live check: hover and drag the cone. Expect the tooltip centred over the cone, clear of the top edge, the value updating every step, the tooltip as the only volume indicator (D027), and wheel direction following natural scrolling (D047).",
+    "evidence": "parity-2/check/C.VolumeTooltip_default/*; PlayerControls.swift:216–220"
+   },
+   {
+    "screen": "S05 fullscreen and hover reveal of the control bar (gallery S05.Window/bottom-reveal, S05.Player/fullscreen*, video 03m53.0)",
+    "verdict": "match",
+    "owner": "A-window",
+    "differences": "Bottom-only reveal over the framed video matches the 03m53.0 composition. The video's interim layout (gear and fullscreen inside the bar) is superseded by the final bar. Live check of the reveal and hide timing, cursor hiding in fullscreen, and the D041 pause pin (owner decision pending).",
+    "evidence": "parity-2/cmp_s05.png"
+   },
+   {
+    "screen": "S12 continue-watching toast and resume marker (hidden Figma 1919:9580, video 14m09.8)",
+    "verdict": "match",
+    "owner": "B-controls",
+    "differences": "Toast layout, text weights (time in SemiBold), the orange Continue Watching button, the X tile and the centring in the video area (D042) match the video. The resume span and marker on the seek bar match the video's dim span and darker marker. The prev and pause states differ only because of fixture state. At narrow widths (S12.Window/continue-narrow, about 340 pt video area) the toast drops the \"You already watched till …\" text and keeps only the button and X; the time survives only in the accessibility hint. This is reasonable, but neither the design nor a decision covers it.",
+    "evidence": "parity-2/cmp_s12.png, parity-2/cmp_s12z.png, parity-2/r/S12.ContinueWatching_default.png, parity-2/r/S12.Window_continue-narrow.png"
+   },
+   {
+    "screen": "S13 shortcut OSD (no Figma; video 15m27.1)",
+    "verdict": "minor-diff",
+    "owner": "B-controls",
+    "differences": "Two left-aligned lines at the top right of the video, action larger than \"Pressed C\": matches D027/D047. The video's OSD uses VLC's classic sans (Open Sans-like glyphs, e.g. the 'C' and 'p') with a crisp dark edge shadow. The product uses Inter with the soft menuShadow. D027 covers the own typography as provisional, but the shadow is much weaker than the video's. Live check: trigger Crop (C) over a bright white frame. The text must stay readable, sit at the right margin (half the title size), and scale with the aspect-fit picture.",
+    "evidence": "parity-2/cmp_s13.png, parity-2/osdz.png; MXROSDView.swift:24–30"
+   },
+   {
+    "screen": "S21 subtitle timeline mode (Figma 3744:12369, gallery S21.Timeline/default and S21.App/subtitle-timeline, video 07m04.2 and 06m58.2)",
+    "verdict": "minor-diff",
+    "owner": "B-controls",
+    "differences": "The product matches the video: the played fill runs right up to the playhead, the cue blocks lighten inside the played part, there are orange ‹ − and + › nudges, and the slot labels end in \"*\" (D033). Figma 3744:12369 differs from both: its fill stops at 681 pt with an 18 pt black gap before the head at 699 pt. The product puts the head about 1 pt from Figma's position, so the FAIL is that gap, not the head. Video and product agree, so nothing needs changing in the product. A figmaDeviation or a DECISIONS line should record it so check stops FAILing.",
+    "evidence": "parity-2/check/S21.Timeline_default/*, parity-2/cmp_s21.png, parity-2/cmp_s21z.png; pixel rows at y=6/28/50, x 1340–1420"
+   },
+   {
+    "screen": "S34 music control bar and waveform mode (Figma 4778:26181, Player - Music 4767:23726, video 12m56.6)",
+    "verdict": "minor-diff",
+    "owner": "B-controls",
+    "differences": "The ±15 skip buttons, the waveform bar style, the played-orange/unplayed-grey split, the cone and the icon order match. Differences: (a) the playhead is one waveform step right of Figma (fixture clock ratio); (b) the waveform sample pattern drifts from Figma's towards the right end (fixture data); (c) S34.App/music shows the solid bar, because the waveform is off by default (D028), while Figma and the video show the waveform; this is documented, not a defect; (d) Player - Music has no gear and the product follows it, while component 4778:26181 and the video show a gear. The Figma frame wins.",
+    "evidence": "parity-2/check/S34.ControlBar_music/*, parity-2/stack1.png rows 5–6, parity-2/cmp_s34.png, parity-2/cmp_s34z.png"
+   },
+   {
+    "screen": "Light control bar (Figma Player - Light 2425:13624, gallery S72.Window/light)",
+    "verdict": "minor-diff",
+    "owner": "H-design",
+    "differences": "The bar tint reads #A8A8A8 against Figma's #ABABAA (D046), and the seek fill (216,186,154) and track (222,222,222) match exactly. The play button is #E8851A (the Light/Accent token) where the Figma frame uses #D37918. Figma INDEX notes that this frame mixes Light and Dark styles, but no decision covers the play-button accent specifically. Figma's dimmed next and gear buttons are fixture-state differences.",
+    "evidence": "parity-2/light_bar.png, parity-2/check/S72-light/*; colors.json light/accentMain #E8851A"
+   },
+   {
+    "screen": "Compact widths (S01.ControlBar/compact, S01.Player/compact, S01.Window/narrow, S10.Overflow/compact-bar)",
+    "verdict": "match",
+    "owner": "B-controls",
+    "differences": "There is no Figma or video reference. At 480 pt the bar keeps play, seek, speaker and cone, queue and the ⋯ overflow. Prev and next live in the overflow as Previous Item and Next Item; the subtitle, audio and gear functions are reachable through the submenus. Spacing and sizes are tokenised and nothing clips. The top-bar title truncation in S01.Player/compact (\"The Wa…S01E04\") is owned by A-window (D042). Live check: resize the real window down to its minimum. Expect controls to drop into the overflow in a stable order, no jitter at the threshold, and every item still reachable.",
+    "evidence": "parity-2/cmp_compact.png, parity-2/r/S10.Overflow_compact-bar.png"
+   }
+  ],
+  "summary": "Read-only parity judgement for the control bar and seek bar group, on claude/final at 4c457baa03 plus the area agents' uncommitted edits. I reran check for every entry with a Figma node, rendered the 15 entries without one, and compared the crops by eye against the Figma renders and the video key frames. Nothing in the group is a major difference. The controls match pixel for pixel: play/pause, time labels, seek track, fill and head, the volume cone at 0–200 % (dark and light), the volume tooltip, the seek preview card, the resume toast and marker, the subtitle-timeline styling and the music waveform bar. The remaining FAIL verdicts come from these sources:\n(1) The playhead sits about 13.5 pt right of Figma's because the fixture uses the real 130/1540 ratio. This is recorded only as a gallery note, not as a DECISIONS line or figmaDeviation. It affects C.SeekBar/default, S01.ControlBar/default, S01.Window/shipping and S34.ControlBar/music.\n(2) S21.Timeline differs because Figma leaves an 18 pt gap between fill and head. The video has no gap and the product follows the video, but this is not recorded.\n(3) Component 491:1779 has a 1 pt top stroke that Player-6 does not, and the product follows Player-6 (audit PLAYER-05). This is not in DECISIONS.\nReal differences to fix (all minor, owner B-controls unless noted):\n(a) Bar icons brighten to FG/1 on hover, but Figma 177:99 keeps FG/A2 and only adds the 6 % white tile (PlayerControls.swift:43).\n(b) The seek preview is offset by the frame's internal 10 pt gap. It overlaps the control bar by about 3 pt, while the video shows it about 18 pt above the track, clear of the bar (PlayerControls.swift:441).\n(c) A live stream shows a duration of \\\"00:00:00\\\" with the head at 0.\n(d) The OSD shadow is much weaker than the video's crisp dark edge. D027 covers the font itself.\n(e) H-design: the light play button uses the Light/Accent token #E8851A, while the Player - Light frame uses #D37918.\nDocumented and therefore not counted: the waveform is off by default (D028), which is why the music app shows a solid bar; proportional digits (D047); the light bar tint (D046); and the narrow resume toast, which keeps only the button and close.\nOwner decisions are untouched. The D041 pause pin affects only bar visibility while paused.\nLive checks to run on an idle Mac:\n- Seek preview position and follow-on-drag, and the paused-seek still (D031/D047).\n- Tooltip position and wheel direction.\n- Pressed states: neither Figma nor the video defines one, and the product has none.\n- OSD readability over a bright frame.\n- Bar reveal and hide timing, and cursor hiding in fullscreen.\n- Compact overflow behaviour while resizing.\nAll outputs are under <scratch> check/<entry>/ holds render, ref and diff-heatmap images; r/ holds the renders; stack1-3.png, cmp_*.png, light_bar.png, live_bar.png and kf_*.png are the side-by-side images."
+ },
+ {
+  "group": "Popups and menus: ⋯ menu, right-click menu and submenus, dropdowns, track popover, speed/HDR/zoom menus, menu bar",
+  "screens": [
+   {
+    "screen": "S07 ⋯ app menu (6062:13354 menu, 2107:5935 option) — S07.AppMenu/default",
+    "verdict": "match",
+    "differences": "Rows, icons, two-tone accents, separator, chevrons and 48 pt geometry line up with Figma. The only pixel differences are in the shortcut column. Figma shows Windows keys (Ctrl + O, Ctrl + F, Ctrl + C, Ctrl + R, Ctrl + P, Shift + F1). The product shows Mac glyphs (⌘O, ⇧⌘O, ⌘N, ⌘D, ⌘R, ⇧⌘S, ⌘,), and About VLC has no shortcut. D026 and D034 cover this: Mac keys, and Stream, About and Keyboard Shortcuts have no default. Figma has no light version; the light render reads as expected under D046 (dark backdrop base with a light tint).",
+    "evidence": "<scratch> (REVIEW; every diff region is in the shortcut column); light: .../parity-3/r/light_S07_AppMenu_default.png; key frame 15-customize-onboarding__app-menu-final-with-profile__19m29.4s.jpg",
+    "owner": "D-menus"
+   },
+   {
+    "screen": "S08 Open Recent submenu (no Figma frame)",
+    "verdict": "not-checked",
+    "differences": "There is no gallery entry and no Figma frame, so it could not be rendered offscreen. In the real window, hover ⋯ > Open Recent and check: it is the same design card as the Profile submenu (D025/D034), opens on hover to the right with its top aligned to the row, lists recent media (the global history) plus a Clear item, and Esc or a click outside closes the whole chain. Adding an S08 gallery entry in MenusGallery.swift would make this checkable offscreen.",
+    "evidence": "swift run mxr-snapshot list has no S08-only entry",
+    "owner": "D-menus"
+   },
+   {
+    "screen": "S09 right-click menu (6065:13616) — S09.ContextMenu/default",
+    "verdict": "match",
+    "differences": "The list, icons, dividers and chevrons match. Shortcut glyphs differ: Figma has 'Ctrl + \\\\' and 'Ctrl + Q', the product has ⌘\\ and ⌘Q (D026/D034). Record shows ⇧R where Figma shows R; D026 keeps VLC's macOS engine hotkey. The right-click card has the shared menu blur and shadow, while Figma draws it flat; D034 records this on purpose.",
+    "evidence": ".../parity-3/check/S09_ContextMenu_default/side-by-side.png (REVIEW; the diffs are only shortcut glyphs); key frame 05-menus__right-click-menu-cleaned__05m23.0s.jpg",
+    "owner": "D-menus"
+   },
+   {
+    "screen": "S10 right-click submenus Playback/Video/Audio/Subtitle/Playlist + compact-bar overflow (not designed in Figma)",
+    "verdict": "match",
+    "differences": "Figma has no frame for these. They use the design text-menu card (D025/D034 textMenu: no icon slot, trailing check, BG/A2 selected row), and the hover-opened submenu sits next to the highlighted parent row. The content mirrors VLC menus: Speed, Sleep Timer, Renderer, Aspect, Crop, Zoom, Deinterlace, Snapshot, tracks, Audio Device, Add Subtitle File…, queue items. Previous Item is correctly disabled with no previous item. Nothing in them contradicts the design system. Hover-open timing and moving the pointer diagonally into a submenu can only be checked live.",
+    "evidence": ".../parity-3/sub1.png, .../parity-3/sub2.png, .../parity-3/r/S10_Overflow_compact-bar.png",
+    "owner": "D-menus"
+   },
+   {
+    "screen": "S10/S18 bar HDR menu (2372:8733 HDR Options) — S10.BarMenu/hdr",
+    "verdict": "minor-diff",
+    "differences": "The Figma list is the same (Auto ✓, Off, HDR10, HDR10+, Dolby Vision, HLG), but in the product only Auto is enabled and a disabled 'Manual modes unavailable' caption sits below a separator. D034 and D039 document this. Figma's HDR Options component also draws the field above the list; the bar menu correctly has no field. 'Off' is part of owner decision C-09 (D039) and is unchanged.",
+    "evidence": ".../parity-3/bar.png (first card) next to redesign/design/figma/renders/HDR Options.png",
+    "owner": "C-bridge"
+   },
+   {
+    "screen": "S10/S17 bar speed menu (no Figma frame) — S10.BarMenu/speed",
+    "verdict": "match",
+    "differences": "Text-menu card from 0.25× to 4×, with 1× checked on a BG/A2 row. Labels use the system decimal separator (here '0,25×', because the region is RU; Double.formatted()). That is native Mac behaviour, not a bug, but Figma and the video use a dot. The light render is fine; the magenta tint in my contact sheet comes from the translucent card over the sheet's magenta background.",
+    "evidence": ".../parity-3/bar.png (2nd and 5th cards); Sources/MXRUI/Player/PlayerMenus.swift:93",
+    "owner": "D-menus"
+   },
+   {
+    "screen": "S10/S18 bar zoom menu (no Figma frame) — S10.BarMenu/zoom",
+    "verdict": "match",
+    "differences": "Fit to Window, 1:4, 1:2, 1:1 ✓, 2:1 in the text-menu card. These are VLC zoom presets; there is no Figma frame to compare against.",
+    "evidence": ".../parity-3/bar.png (3rd card)",
+    "owner": "D-menus"
+   },
+   {
+    "screen": "S11 native macOS menu bar (no Figma frame)",
+    "verdict": "not-checked",
+    "differences": "In code, MXRNativeMenus.swift builds App (Services, Profile), File (Open Recent), Edit (Find), View (Extensions), Playback, Audio, Video, Window and Help, matching D034. Check live: the menu bar shows those menus; shortcuts appear as ⌘ glyphs that match the ⋯ and right-click cards; the Video menu has no Full Screen row (it is in View with ⌘F); no window-tabbing items; menu items wait behind a modal dialog while media keys still work.",
+    "evidence": "Sources/MXRPlugin/MXRNativeMenus.swift:61-141",
+    "owner": "D-menus"
+   },
+   {
+    "screen": "S14 track popover Subtitles tab (491:2243) — S14.Tracks/subtitles",
+    "verdict": "minor-diff",
+    "differences": "1) The product draws a 1 px PanelDivider between Embedded Tracks and External Tracks. Figma 491:2243 has none (no Vector child, only a 1 pt gap); the Audio tab (496:2652) does have one. Video frame 06m21.7 does show a divider, so the product follows the video and the Audio tab, but no decision records it. 2) Figma's Embedded block is 138.5 pt tall where the product uses 138, so the External header, pencil and + are 1 pt higher and the .srt row 2 pt higher than in Figma (the 'matches if moved +1/+2 pt' regions). Both are sub-perceptual, but they are not 1:1. Suggest either recording the divider (video wins over Figma here) or dropping it on this tab only.",
+    "evidence": ".../parity-3/check/S14_Tracks_subtitles/side-by-side.png; pixel probe x=200,y=494-505: the render has a #222222 line at y 499-500 px, the ref has none; mxr-snapshot node 491:2243 children; key frame 04-track-popover__subtitles-tab-external-tracks-native__06m21.7s.jpg",
+    "owner": "G-panels"
+   },
+   {
+    "screen": "S15 track popover Audio tab (496:2523) — S15.Tracks/audio",
+    "verdict": "minor-diff",
+    "differences": "Layout, check and refresh icon match. The divider is 1 pt higher than Figma's (Figma at y=251, after a 138 pt section starting at 112 plus 1 pt; the render puts it at 249.5–250), and the Output Device header, refresh icon and device rows are 1–2 pt higher. This is the same 0.5–1 pt rounding as S14 in TrackPopover.swift's section height and divider placement.",
+    "evidence": ".../parity-3/check/S15_Tracks_audio/side-by-side.png; pixel probe: render divider y 499-500 px vs ref 501-502 px",
+    "owner": "G-panels"
+   },
+   {
+    "screen": "S16 track popover Video tab (498:2702) — S16.Tracks/video",
+    "verdict": "match",
+    "differences": "Only the 'Track 1' row label sits 1 pt off vertically (REVIEW, 'matches if moved 0,+1'). Rows sit on a 0.5 pt grid in Figma; nothing visible.",
+    "evidence": ".../parity-3/check/S16_Tracks_video/side-by-side.png",
+    "owner": "G-panels"
+   },
+   {
+    "screen": "S14 track popover compact/minimum widths (no Figma frame)",
+    "verdict": "match",
+    "differences": "At 307 pt the tabs collapse to icons only, and at the minimum height the list collapses while Show Preferences stays. These are D019 adaptations; Figma has no frame for them. A light render exists; Figma has no light popover.",
+    "evidence": ".../parity-3/light.png",
+    "owner": "G-panels"
+   },
+   {
+    "screen": "S63 settings dropdown (2372:8300 Dropdown) — C.Dropdown/default-open",
+    "verdict": "match",
+    "differences": "The component render matches Figma apart from corner antialiasing (REVIEW: 12×10 pt corner boxes 'match if moved ±2'). In the shipping placement, settings dropdowns open over their field like a macOS pop-up button. Figma Dropdown/sub filename and video 17m31.0 show the list below a field that stays visible. D034 lists this as an open question for the owner, so it is not judged as a difference here.",
+    "evidence": ".../parity-3/check/C_Dropdown_default-open/side-by-side.png; redesign/design/figma/renders/Dropdown.png",
+    "owner": "F-settings"
+   },
+   {
+    "screen": "S63 'sub filename' dropdown (6456:13892)",
+    "verdict": "not-checked",
+    "differences": "There is no gallery entry. The product offers the same five choices (settings-map.json5:407: Off / Any title / Contains title / Title with extra characters / Exact title match), so the content matches. Placement follows the D034 open question above. Check live: Settings > Subtitles > subtitle autodetect fuzziness dropdown, with the BG/A2 row and orange ✓ on the current item.",
+    "evidence": "Sources/MXRCore/Resources/settings-map.json5:407; redesign/design/figma/renders/sub filename.png",
+    "owner": "F-settings"
+   },
+   {
+    "screen": "S18 sidebar HDR dropdown (498:2965 / 2372:8733)",
+    "verdict": "minor-diff",
+    "differences": "The sidebar HDR field is an ordinary 'Auto' dropdown that offers only Auto. Figma HDR Options lists 6 modes. D033 and D039 document this. C-09 (HDR 'Off') is still an owner decision.",
+    "evidence": "DECISIONS.md D033 (HDR bullet), D039; S18.Sidebar/video is judged in the panels group",
+    "owner": "C-bridge"
+   },
+   {
+    "screen": "S29 file context menu (2404:13340) — S29.LibraryMenu/file",
+    "verdict": "minor-diff",
+    "differences": "1) 'Mark as Watched' draws no icon. Figma uses the two-tone check-selected glyph (ICONS.md: check two-tone state=selected 4004:12348, used in 'file context menu'). LibraryPopup.swift:102 passes .check, which is the empty unchecked variant, so the 24 pt slot is blank. This is a real, undocumented difference. 2) 'Add to Playlist' shows a submenu chevron that Figma does not draw (it is a real submenu; a reasonable addition, but not documented). 3) 'Show in File Explorer' is shown as 'Show in Finder', a correct Mac adaptation.",
+    "evidence": ".../parity-3/check/S29_LibraryMenu_file/side-by-side.png (region 2 at 20,68 pt = the missing icon; region 3 at 232,310 = the chevron); .../parity-3/lib-menus.png",
+    "owner": "D-menus"
+   },
+   {
+    "screen": "S30 folder context menu (2139:8935) — S30.LibraryMenu/folder",
+    "verdict": "minor-diff",
+    "differences": "'Edit Audio Tracks' is disabled (FG/A3 with a tooltip 'Play a file first to attach an external audio track.'). Figma shows it enabled. This is a capability limit (VLC attaches external audio only to the current input; D039 spirit), but no decision names this row.",
+    "evidence": ".../parity-3/check/S30_LibraryMenu_folder/side-by-side.png; Sources/MXRUI/Library/LibraryPopup.swift:89",
+    "owner": "E-library"
+   },
+   {
+    "screen": "S31 playlist context menu (2459:9389) — S31.LibraryMenu/playlist",
+    "verdict": "minor-diff",
+    "differences": "'Add Audio Tracks' is disabled for the same capability reason as S30 (LibraryPopup.swift:144). Figma shows it enabled. Everything else matches.",
+    "evidence": ".../parity-3/check/S31_LibraryMenu_playlist/side-by-side.png",
+    "owner": "E-library"
+   },
+   {
+    "screen": "S32 sort menu (856:2215) + view options (858:3290)",
+    "verdict": "match",
+    "differences": "Both PASS (only antialiasing remains).",
+    "evidence": ".../parity-3/check/S32_LibraryMenu_sort, .../S32_LibraryMenu_view",
+    "owner": "E-library"
+   },
+   {
+    "screen": "Generic context menu hover (2107:5903) — C.Menu/context-hover",
+    "verdict": "match",
+    "differences": "PASS.",
+    "evidence": ".../parity-3/check/C_Menu_context-hover/side-by-side.png",
+    "owner": "H-design"
+   },
+   {
+    "screen": "S68 Profile submenu from ⋯ (6648:20666) — S68.ProfileSubmenu/movies",
+    "verdict": "match",
+    "differences": "The submenu position, Movies ✓ on BG/A2, divider and '+ New' match. The parent menu differs only by the D026/D034 shortcut glyphs. I see no leftover shadow artifact (handoff D-12) in the offscreen render; the live shadow between the two panels still needs a live look.",
+    "evidence": ".../parity-3/check/S68_ProfileSubmenu_movies/side-by-side.png; key frame 15-customize-onboarding__profile-submenu__19m35.4s.jpg",
+    "owner": "D-menus"
+   },
+   {
+    "screen": "S68 profiles list card (6648:20514) — S68.Profiles/movies",
+    "verdict": "match",
+    "differences": "REVIEW only at an 11×11 pt corner (antialiasing or shadow edge); the content matches.",
+    "evidence": ".../parity-3/lib-menus.png (last pair)",
+    "owner": "D-menus"
+   }
+  ],
+  "summary": "I judged the Popups and menus group read-only on claude/final (HEAD 4c457baa03 plus the uncommitted edits). I ran mxr-snapshot check on all 14 entries that have a Figma node and looked at every side-by-side. Entries without Figma (bar speed/HDR/zoom menus, right-click submenus, compact overflow, compact track popover, light scheme) were rendered and inspected by eye. No entry FAILs: 3 PASS (C.Menu/context-hover, S32 sort, S32 view) and the rest REVIEW.\n\nAlmost every pixel difference is documented: Mac shortcut glyphs instead of Figma's Ctrl/Shift text (D026/D034), blur and shadow on the right-click card (D034), HDR offering only Auto with 'Manual modes unavailable' (D033/D034/D039), and dropdowns opening over their field (a D034 open question for the owner).\n\nReal, undocumented differences:\n1. **E-library/D-menus, S29:** 'Mark as Watched' has no icon. LibraryPopup.swift:102 uses .check, which is the empty unchecked variant; Figma uses the two-tone check-selected glyph 4004:12348. 'Add to Playlist' also has a chevron Figma does not draw.\n2. **G-panels, S14:** TrackPopover.swift draws a divider between Embedded and External on the Subtitles tab. Figma 491:2243 has none, though video frame 06m21.7 does. Rows are also 1–2 pt higher than Figma on the Subtitles and Audio tabs because the section height (138 vs 138.5) and divider placement are rounded.\n3. **E-library, S30/S31:** Edit/Add Audio Tracks are disabled when nothing is playing. This is a valid engine-capability limit, but no decision names it.\n\nNot checked offscreen: S08 Open Recent (no gallery entry), S11 native menu bar (the code matches D034's structure), and the S63 'sub filename' dropdown (no entry; the choices match settings-map). These need the live wave: hover-open, Esc, VoiceOver and the submenu shadow.\n\nThe speed labels show '0,25×' because the Mac's region is set to RU; that is native locale formatting.\n\nOwner decisions that touch this group are left as they are: C-09 HDR 'Off' (D039) and the D034 dropdown placement question.\n\nOutputs are in <scratch> (check/<entry>/, r/, bar.png, sub1.png, sub2.png, light.png, lib-menus.png, check.log)."
+ },
+ {
+  "group": "Side panels: Subtitles, Audio, Video, Playback tabs, queue, subtitle timeline, effects/filters, presets, metadata overlay",
+  "summary": "I judged the side-panel group (S14–S24, the metadata overlay, presets and filter cards) on claude/final at HEAD 4c457baa03 plus the uncommitted edits. I compared each panel with its Figma render and the video key frames, side by side. Outputs are in <scratch> (check/<entry>/ for the Figma checks, win/ for the full-window renders).\n\n**One real major gap: the expanded filter cards (S18 and S19).** The shared expand component (Sources/MXRUI/Panels/PanelControls.swift, the `PanelExpand` struct) keeps the dark \"Expand Settings\" bar when the card is open. It only changes the label to \"Collapse Settings\" and the chevron to up, and puts the rows underneath with nothing around them. Figma (Video - Essential, Audio - Compressor Settings) and the video (08m49) show something else when a card is open: one lighter card that holds the \"Collapse Settings\" header with a down chevron and all the sliders. In Figma's Essential card each slider has only a label above it; in the Compressor card the value sits as text on the right. Instead, our rows are a label plus a value field, with the slider below. Video's Essential/Crop/Colors and Audio's EQ/Compressor/Spatializer/Stereo Widener all look like this. No gallery entry shows an open card next to its Figma frame, so the Figma checks never catch it. Owner: G-panels.\n\n**Minor differences, no decision covers them (all G-panels):**\n- **Preset list (S20.Presets/open):** the current \"Default Preset\" row puts its text in the column of the other names (the ⋯ column) instead of 16 pt from the left like Figma 2372:8838. The design-system dropdown (C.Dropdown/preset-open) already does this correctly. The card background is #171717 (homeCard) instead of #191919 (bgA4).\n- **Subtitles tab, Subtitle Speed:** the slider runs 0–60, so at 1.000 fps the thumb sits about 4 pt right of the start with a sliver of fill. In the shipping window, with the product's own default value, the field shows \"0.000 fps\", while Figma and the video show 1.000 fps.\n- **Subtitle timeline (S21):** the elapsed fill runs right up to the playhead; Figma leaves a 17 pt gap. The video at 07m04 agrees with our version. This is only written in a gallery note, not in DECISIONS.md, and it is the whole S21 Figma FAIL.\n- **Subtitles track popover (S14):** it draws a divider between Embedded and External tracks that Figma's Subtitles tab doesn't have. The video at 06m21.7 has it, as does Figma's Audio tab, so it is defensible.\n\n**Everything else matches or is covered by a decision.**\n- The Playback tab FAIL is entirely the D033 row list (Show Waveform and Show Metadata instead of Show Statistics) plus D014 (Reverse turned off, with an ⓘ). It matches video frame 09m17.5.\n- \"New Custom Preset\" follows D033 and the video.\n- HDR offering only \"Auto\" is D033/D039.\n- The queue's computed total (\"1h 34m\" vs Figma's \"2h 3m\") is explained in the gallery notes.\n- The Audio tab's \"+10 s\" fixes Figma's \"-10 s\" typo.\n- Video, Audio (both with cards closed), Bookmarks, Chapters, the Video and Audio track tabs and the generic dropdown are within 0–2 pt.\n- The three full-window renders (shipping-window engine) put the popover and side panel where the video does.\n- The metadata overlay (S17) has no Figma frame (left open in the spec, §07). It is built from design tokens.\n\n**Waiting on the owner:** the Relative font-size slider puts Auto at stop 0, while Figma's thumb is at stop 3 (D033). The Appearance render follows the current implementation.\n\n**Infrastructure (I did not edit anything outside my folder):**\n1. **The disk is almost full.** The data volume had 318 MB free; I deleted my own 341 MB scratch build and it now has about 720 MB. Other agents' `swift build` runs will start failing with \"no space left on device\" (ENOSPC). The biggest scratch folders are F-settings-verify-r2 and integration, about 650 MB each.\n2. **Tool bug in `mxr-snapshot`.** `GalleryPaths.locate()` in Sources/MXRGalleryCatalog/GalleryCatalog.swift loops forever, using full CPU, when it runs from a package copy outside the repo and `MXR_REPO_ROOT` is not set: going up from \"/\" never gives back \"/\". Setting `MXR_REPO_ROOT` avoids it.\n\nBecause of the disk shortage I could not finish rendering the open cards from a temporary package copy. The filter-card verdict rests on the code above, on the engine-options gallery entry (it uses the same component, open) and on Figma and the video.",
+  "screens": [
+   {
+    "screen": "S14 Track popover: Subtitles tab (S14.Tracks/subtitles, 491:2243; S14.Window/subtitle-tracks)",
+    "verdict": "minor-diff",
+    "differences": "Figma's Subtitles tab has no divider between Embedded Tracks and External Tracks, but our render draws one. The video at 06m21.7 and Figma's Audio tab both have it, so it is defensible, but no decision records it. Rows sit about 1 pt higher than Figma and the External row about 2 pt higher. The full window (shipping-window engine) puts the popover where the video does (x≈1500, y≈482–1005). Live check: open the popover from the bar's subtitles icon in the real window and check placement, hover and the + / pencil actions (D033).",
+    "evidence": "check/S14_Tracks_subtitles/side-by-side.png (REVIEW 1.16 %), win/S14_Window_subtitle-tracks.png, key frame 04-track-popover__subtitles-tab-external-tracks-native__06m21.7s.jpg",
+    "owner": "G-panels"
+   },
+   {
+    "screen": "S15 Track popover: Audio tab (S15.Tracks/audio, 496:2523)",
+    "verdict": "match",
+    "differences": "Within 1–2 pt: the Output Device rows sit about 2 pt higher. The divider, refresh icon, checkmarks and Show Preferences all match.",
+    "evidence": "check/S15_Tracks_audio/side-by-side.png (REVIEW 1.21 %)",
+    "owner": "G-panels"
+   },
+   {
+    "screen": "S16 Track popover: Video tab (S16.Tracks/video, 498:2702)",
+    "verdict": "match",
+    "differences": "Identical apart from a 1 pt vertical offset of the rows.",
+    "evidence": "check/S16_Tracks_video/side-by-side.png (REVIEW 0.43 %)",
+    "owner": "G-panels"
+   },
+   {
+    "screen": "S17 Settings sidebar: Playback tab (S17.Sidebar/playback, 5187:24308)",
+    "verdict": "match",
+    "differences": "The Figma FAIL (9.15 % solid colour) comes only from the rows moving down because of the documented row list. D033: Show Waveform on Seekbar and Show Metadata replace Figma's Show Statistics, matching video 09m17.5. D014: Reverse is shown OFF and disabled, with an ⓘ tooltip. Dropdowns, Speed field, ticked slider and labels sit at the same x positions and widths as Figma. Not checked: the open Sleep Timer and Audio Visualizer dropdowns (2372:8639), which have no gallery entry with that Figma node.",
+    "evidence": "check/S17_Sidebar_playback/side-by-side.png, key frame 07-sidebar__playback-tab-full-toggles__09m17.5s.jpg, win/S21_App_subtitle-timeline.png",
+    "owner": "G-panels"
+   },
+   {
+    "screen": "S17 Show Metadata overlay (S17.Metadata/overlay; not designed)",
+    "verdict": "match",
+    "differences": "No Figma frame exists (the spec leaves it open, §07). D033 says it is a caption card at the bottom left with file, codecs, bitrate and frames. The render follows that with side-panel surface tokens and caption type. Live check: turn on Show Metadata during real playback and check that bitrate and frame counts update and the card avoids the control bar.",
+    "evidence": "win/S17_Metadata_overlay.png, win/S21_App_subtitle-timeline.png",
+    "owner": "G-panels"
+   },
+   {
+    "screen": "S18 Settings sidebar: Video tab, cards closed (S18.Sidebar/video, 498:2965)",
+    "verdict": "match",
+    "differences": "Within 1 pt: Flip segments, Rotate field ('0 deg', field only per D033), Zoom/HDR/Resolution/Aspect/Crop/Render dropdowns, Filters → Essential with 'Expand Settings ›' and the preset footer all match. HDR offering only Auto is D033/D039; the 'Off' choice is an owner decision (C-09).",
+    "evidence": "check/S18_Sidebar_video/side-by-side.png (REVIEW 0.57 %)",
+    "owner": "G-panels"
+   },
+   {
+    "screen": "S18 Video filter cards open: Essential / Crop / Colors (536:1855, 543:990, 614:1430)",
+    "verdict": "major-diff",
+    "differences": "When a card is open, PanelExpand (Sources/MXRUI/Panels/PanelControls.swift) keeps the dark bgB2 header bar, only changing it to 'Collapse Settings' with an UP chevron, and places the rows below with nothing around them. Figma shows one lighter rounded card that holds both the 'Collapse Settings' header (DOWN chevron) and the sliders, inset inside the card. In Figma's Essential card each slider has only a label above it. Our cards (EffectsSidebars.swift, videoCard and slider()) use a label plus a value field above each slider, and Essential adds an 'Enable Adjustments' toggle. No gallery entry shows these Figma nodes open, so the Figma checks never flag it. The same structure shows in the S18.Filters/engineOptions render (Geometry, Overlay, Advanced), which uses the same component, open.",
+    "evidence": "Figma renders 'Video - Essential.png' vs win/S18_Filters_engineOptions.png; code PanelControls.swift lines 687–713, EffectsSidebars.swift lines 57–90 and 114–120",
+    "owner": "G-panels"
+   },
+   {
+    "screen": "S19 Settings sidebar: Audio tab, cards closed (S19.Sidebar/audio, 536:1087)",
+    "verdict": "match",
+    "differences": "Within 1–2 pt. The slider label reads '+10 s' where Figma has '-10 s', which is a typo in Figma; ours is the correct value. Not checked: the open EQ presets dropdown with curve icons (2372:8487), which has no gallery entry with that Figma node; the code passes equalizerIcon(...) for each preset.",
+    "evidence": "check/S19_Sidebar_audio/side-by-side.png (REVIEW 0.61 %), key frame 07-sidebar__audio-eq-presets-preview-icons__08m55.0s.jpg",
+    "owner": "G-panels"
+   },
+   {
+    "screen": "S19 Audio filter cards open: Equalizer / Compressor / Spatializer / Stereo Widener (6114:13610, 536:1513, 536:1703, 612:1223)",
+    "verdict": "major-diff",
+    "differences": "Same component and same problem as the S18 cards. Figma (Compressor Settings) and video 08m49 show the open card as one lighter container holding the 'Collapse Settings' header (down chevron) and the rows. Figma's rows have the value as text on the right; the video's EQ rows use value fields. Ours keeps the dark header bar with an up chevron and puts the rows outside any container. Figma's 'FM5 / Peak' label is a Figma typo; our 'RMS / Peak' is correct.",
+    "evidence": "Figma 'Audio - Compressor Settings.png', key frame 07-sidebar__audio-equalizer-expanded__08m49.0s.jpg, code EffectsSidebars.swift (filterCard, equalizer) and PanelControls.swift (PanelExpand)",
+    "owner": "G-panels"
+   },
+   {
+    "screen": "S20 Settings sidebar: Subtitles tab (S20.Sidebar/subtitles, 763:1986; S20.Window/subtitle-settings; Appearance entries)",
+    "verdict": "minor-diff",
+    "differences": "(1) Subtitle Speed slider: the range is 0…60 (SettingsSidebar.swift:392), so at 1.000 fps the thumb sits about 4 pt right of the start with a sliver of accent fill. Figma has the thumb at the start. (2) In the shipping window, with the product's own defaults, the field reads '0.000 fps' and the thumb sits at 0. Figma and video 07m47.9 show '1.000 fps'. The gallery entry sets the value to 1 for the Figma check. (3) The Embedded Sub Format toggle sits about 2 pt higher. Appearance in Relative mode puts the Font Size thumb on Auto at stop 0, an owner decision (D033); Pixels mode matches 07m52.9.",
+    "evidence": "check/S20_Sidebar_subtitles/side-by-side.png (REVIEW 1.07 %), win/S20_Window_subtitle-settings.png, win/S20_Sidebar_subtitles-appearance*.png, key frame 07-sidebar__subtitles-sync-sliders-appearance__07m47.9s.jpg",
+    "owner": "G-panels"
+   },
+   {
+    "screen": "S20 Preset list (S20.Presets/open, 2372:8838; C.Dropdown/preset-open, 2372:8834)",
+    "verdict": "minor-diff",
+    "differences": "'New Custom Preset' instead of Figma's 'New Preset' follows D033 and video 07m58.9, so it is not a difference. In the product list (MXRSidebarPresetList), the current built-in 'Default Preset' row indents its text to the name column (x≈50 pt), but Figma starts it 16 pt from the left. The design-system dropdown C.Dropdown/preset-open renders this correctly. The card fill is #171717 (homeCard) where Figma uses #191919 (bgA4); this is the S20.Presets FAIL (2.98 % flat colour).",
+    "evidence": "check/S20_Presets_open/side-by-side.png (FAIL), check/C_Dropdown_preset-open/side-by-side.png (REVIEW), key frame 07-sidebar__subtitles-presets-list__07m58.9s.jpg",
+    "owner": "G-panels"
+   },
+   {
+    "screen": "S21 Subtitle timeline on the seek bar (S21.Timeline/default, 3744:12369; S21.App/subtitle-timeline)",
+    "verdict": "minor-diff",
+    "differences": "The elapsed fill runs up to the playhead; Figma ends it 17 pt before the playhead, with a gap. This is the whole FAIL (#371F06 vs #090909 at x≈680 pt). Video 07m04.2 agrees with our version. Only the gallery note records it, not DECISIONS.md, so it should be recorded there. Cue blocks, the ‹ − / + › nudge buttons and the '*' time slots match within 1 pt. Live check: drag the timeline, the glide-back, ‹ / › paging and clicking a '*' slot (D033).",
+    "evidence": "crops tl0.png, tl1.png, tl2.png and check/S21_Timeline_default/, key frame 07-sidebar__subtitle-timeline-native__07m04.2s.jpg",
+    "owner": "G-panels"
+   },
+   {
+    "screen": "S22 Right panel: Queue tab (S22.Queue/default, 463:831; S22.Window/queue; compact and minimum variants)",
+    "verdict": "match",
+    "differences": "Within 2 pt. The header total reads '1h 34m', not Figma's '2h 3m', because the model adds up the rows (Figma's own sum is 1h35m59s), as the gallery notes explain. In the shipping window the current item is orange with a ▷ marker, as in video 20m21. Live check: dragging rows and the drop placeholder, dragging from the library, keyboard focus ring (D033).",
+    "evidence": "check/S22_Queue_default/side-by-side.png (REVIEW 0.33 %), win/S22_Window_queue.png, win/compact.png",
+    "owner": "G-panels"
+   },
+   {
+    "screen": "S23 Right panel: Bookmarks tab (S23.Queue/bookmarks, 6320:13784)",
+    "verdict": "match",
+    "differences": "Identical apart from the '−' button, which is drawn disabled because no bookmark is selected (behaviour; Figma shows the enabled style).",
+    "evidence": "check/S23_Queue_bookmarks/side-by-side.png (REVIEW 0.28 %)",
+    "owner": "G-panels"
+   },
+   {
+    "screen": "S24 Right panel: Chapters tab (S24.Queue/chapters, 6321:14045)",
+    "verdict": "match",
+    "differences": "Within 1 pt.",
+    "evidence": "check/S24_Queue_chapters/side-by-side.png (REVIEW 0.36 %)",
+    "owner": "G-panels"
+   },
+   {
+    "screen": "Panel dropdown, open (C.Dropdown/default-open, 2372:8300)",
+    "verdict": "match",
+    "differences": "Within 1 pt, same checkmark and selected-row fill.",
+    "evidence": "check/C_Dropdown_default-open/side-by-side.png (REVIEW 1.00 %)",
+    "owner": "H-design"
+   },
+   {
+    "screen": "Panel behaviour in the real window (all S14–S24)",
+    "verdict": "not-checked",
+    "differences": "Needs the live-acceptance wave. Check: panel open and close motion and Esc (D024); popovers and side panels over the video in fullscreen; VoiceOver labels on toggles, sliders and 'Expand settings'; keyboard focus ring on queue and bookmark rows; the Light theme in the real window (Figma has no light side-panel frames).",
+    "evidence": "—",
+    "owner": "G-panels"
+   }
+  ]
+ },
+ {
+  "group": "Library: Home, folders and breadcrumb, Music (songs/albums/artists/genres), playlists, search, mini player, empty and loading states, light theme",
+  "screens": [
+   {
+    "screen": "S28 Compact library: Videos folder (breadcrumb, count, sort/view/search) — S28.Library/folder vs 848:1995",
+    "verdict": "match",
+    "differences": "Layout, rail, breadcrumb, 15-item count, thumbnails, watched rows (dimmed, orange progress), divider and toolbar icons line up with Figma (REVIEW, structural 0.13 %; the breadcrumb sits about 1.5 pt off). The orange dot on Figma's sort button is not drawn. D044 covers this: the dot means the user changed the sort, and the 20m14.8 frame shows none. Figma's 'S01E13mp4' is a typo in the source.",
+    "evidence": "parity-5/S28.Library_folder-dark-hosting/{side-by-side,report}.png/.txt. The image engine draws yellow placeholders for the toolbar buttons (FAIL), so the hosting engine is the valid one."
+   },
+   {
+    "screen": "S28 narrow compact panel (S28.Library/narrow, not designed)",
+    "verdict": "minor-diff",
+    "owner": "E-library",
+    "differences": "At the narrow panel width (about 307 pt) the two visible breadcrumbs are clipped to 'Th' and 'S0' with no readable ellipsis: '... ▸ T| ▸ S('. They should collapse into the '...' menu or be dropped, like the D042 narrow-title rule, not rendered as unreadable pieces. LibraryBreadcrumb in Sources/MXRUI/Library/LibraryNavigation.swift always keeps 2 crumbs in compact mode and has no width-based collapse.",
+    "evidence": "parity-5/narrow3-top.png (3× zoom), parity-5/r/S28.Library_narrow-dark-hosting.png"
+   },
+   {
+    "screen": "S28 empty Videos state (S28.Library/empty-videos, not designed)",
+    "verdict": "match",
+    "differences": "Not designed in Figma. Shows the play-folder glyph, 'No video folders yet', a fg2 explanation and an accent 'Add Folder…' button, using tokens and consistent with the S43 empty Home. Nothing to compare against.",
+    "evidence": "parity-5/r/S28.Library_empty-videos-dark-hosting.png"
+   },
+   {
+    "screen": "S28 row hover (S28.Library/hover)",
+    "verdict": "match",
+    "differences": "The hovered row shows its title in fg1 with a trailing '⋯' (opens the S29 file menu). There is no Figma frame for it; it matches the behaviour in the video.",
+    "evidence": "parity-5/r/S28.Library_hover-dark-hosting.png"
+   },
+   {
+    "screen": "S33 Music root (S33.Library/music vs 858:5001)",
+    "verdict": "match",
+    "differences": "Add/Songs/Albums/Artists/Genres rows, icons, the accent music rail icon and the '4 items' count all match (REVIEW: only a 42×12 pt anti-aliasing area).",
+    "evidence": "parity-5/S33.Library_music-dark-hosting/side-by-side.png; key frame 09-music__music-root-songs-albums-artists-genres__12m12.4s.jpg"
+   },
+   {
+    "screen": "S33 Songs (S33.Library/songs vs 4767:23606)",
+    "verdict": "match",
+    "differences": "'Music ▸ Songs' breadcrumb, '1 item', Add and the My Songs folder row match. Text is at most about 1 pt off.",
+    "evidence": "parity-5/S33.Library_songs-dark-hosting/side-by-side.png"
+   },
+   {
+    "screen": "S33 My Songs folder (S33.Library/my-songs vs 4778:24990)",
+    "verdict": "match",
+    "differences": "'... ▸ Songs ▸ My Songs', 3 items, artwork tiles (black disc and green note) and 'title - artist' rows match. The breadcrumb is about 1.5 pt off.",
+    "evidence": "parity-5/S33.Library_my-songs-dark-hosting/side-by-side.png"
+   },
+   {
+    "screen": "S33 Albums / Artists / Genres (not designed)",
+    "verdict": "match",
+    "differences": "No Figma frames. They reuse the S33 row grammar ('Music ▸ Albums/Artists/Genres', album/artist/genre glyph rows) consistently.",
+    "evidence": "parity-5/r/S33.Library_{albums,artists,genres}-dark-hosting.png (compact-montage.png)"
+   },
+   {
+    "screen": "S38 Playlists category (S38.Library/playlists vs 858:5374)",
+    "verdict": "match",
+    "differences": "Create playlist / Cool Songs / Anime to Watch, the accent playlists rail icon and '2 items' match (REVIEW: an 18×18 pt glyph anti-aliasing area).",
+    "evidence": "parity-5/S38.Library_playlists-dark-hosting/side-by-side.png"
+   },
+   {
+    "screen": "S40 Compact Home (S40.Library/home vs 1106:5633)",
+    "verdict": "minor-diff",
+    "owner": "E-library",
+    "differences": "(1) Fixture content differs from Figma. Frequently Visited Folders are S01 / Kaze no Tabi / My Songs instead of Shows / Films / Anime, and Frequently Visited Playlists has 1 row (Cool Songs) instead of 3 (Fav Episodes, Coolest Songs, Anime Playlist). The MockData history yields fewer playlists, so the section heights differ from Figma. (2) There is an extra 6th section, 'Latest Streams'. Figma shows 5, but spec-part2 line 163 ('Home with the latest files, playlists and streams') supports it, so it is not a defect, though D044 names only the 5 Figma sections. (3) The back arrow is disabled at Home because the fixture has no history; Figma and the 13m47 frame show it enabled after navigation. That is correct behaviour.",
+    "evidence": "parity-5/S40.Library_home-dark-hosting/side-by-side.png; key frame 11-playlists-home__home-compact-panel__13m47.2s.jpg"
+   },
+   {
+    "screen": "S41 Compact Recent (not designed)",
+    "verdict": "match",
+    "differences": "No Figma frame. History list with the accent Recent rail icon, the now-playing row in accent with a play glyph, and watched rows dimmed. Consistent with the S28 grammar.",
+    "evidence": "parity-5/r/S41.Library_recent-dark-hosting.png"
+   },
+   {
+    "screen": "S42 Library icon rail (Home, categories, Recent, pins, +)",
+    "verdict": "match",
+    "differences": "Checked inside every compact and full entry. Icon order, the accent selected icon and the '+' all match Figma sidebar.png. Pins (13m41 frame) are not exercised by these fixtures; check them live.",
+    "evidence": "all compact side-by-sides above"
+   },
+   {
+    "screen": "S43 Full-window Home (S43.Library/home vs 6261:15093; S43.App/home vs 6261:15078; S43.Window/launch shipping)",
+    "verdict": "match",
+    "differences": "The content (sidebar, Continue Watching cards with progress, Listen Again, Frequently Visited Folders tiles, 110 items, sort/grid/search/⋯) matches Figma and the 13m57.3 frame (REVIEW, structural 0.06 %). The shipping-window composition (S43.Window/launch) shows the top bar with traffic lights instead of Windows controls (traffic-light decision, SCREENS note / D021+). The back arrow is disabled at a fresh Home (no history), which is correct. Note: forcing --engine shipping-window on the scene entries S43.App/home, S44.App/grid and S72.App/light drops the top bar entirely (content starts at y=0). That is a composition artefact of using a non-shipping scene with that engine: the real shipping entries (S43.Window/launch, S72.Window/light) draw the bar. These FAILs are tool misuse, not product defects. Optionally, the H-design/I-build tooling could refuse the shipping-window engine for non-window entries.",
+    "evidence": "parity-5/S43.Library_home-dark-hosting/side-by-side.png, parity-5/r/S43.Window_launch-dark-shipping-window.png, parity-5/S43.App_home-dark-shipping-window-stack.png, parity-5/int-S43-tl.png"
+   },
+   {
+    "screen": "S43 empty library (S43.Library/empty, not designed)",
+    "verdict": "match",
+    "differences": "Not designed. Home glyph, 'Your library is empty', fg2 hint and accent 'Add Folder…' button, all from tokens.",
+    "evidence": "parity-5/r/S43.Library_empty-dark-hosting.png"
+   },
+   {
+    "screen": "S44 Full-window folder grid (S44.Library/grid vs 970:4043; key frame 20m14.8)",
+    "verdict": "match",
+    "differences": "5-column grid, unwatched-first order (E05…E15, then watched E01–E04 dimmed with full orange progress), 'Videos ▸ Shows ▸ The Wand ▸ S01' with the bold current crumb, and 15 items all match Figma and the video (REVIEW: one 30×14 pt text area off by 2 pt). No sort dot, as in the video (D044).",
+    "evidence": "parity-5/S44.Library_grid-dark-hosting/side-by-side.png; key frame 11-playlists-home__folder-grid-unwatched-first__20m14.8s.jpg"
+   },
+   {
+    "screen": "S44 narrow grid (S44.Library/narrow, not designed)",
+    "verdict": "not-checked",
+    "differences": "Rendered but not reviewed in detail. No Figma frame exists.",
+    "evidence": "parity-5/r/S44.Library_narrow-dark-hosting.png"
+   },
+   {
+    "screen": "S45 Full-window list view (S45.Library/list vs 970:3323)",
+    "verdict": "match",
+    "differences": "4-column list, accent playing row (E05) with a play glyph, dimmed watched rows, '+' in the header, and the mini player in the corner all match (REVIEW). Figma's '110 items' is a template value; ours shows the correct 15. Figma's sort dot: D044. The mini-player title (E05 vs Figma E04) and the missing artist chip (D044) belong to S46.",
+    "evidence": "parity-5/S45.Library_list-dark-hosting/side-by-side.png; key frame 08-library__full-window-list-mini-player__11m48.3s.jpg"
+   },
+   {
+    "screen": "S46 Mini player collapsed / hover / queue (S46.MiniPlayer/* vs 970:3090, 975:4333, 970:3092)",
+    "verdict": "minor-diff",
+    "owner": "E-library",
+    "differences": "Geometry, video frame, progress bar, title, folder chip, queue toggle, close/pop-out and prev/play/next positions all match. The FAIL verdicts come from: (a) the missing second chip (artist glyph + 'S01'), covered by D044 (no artist chip for media without an artist); (b) the title 'The_Wand_S01E11.mp4' vs Figma's 'The Wand_S01E11.mp4' (a Figma typo); (c) the Previous button and the queue '−' are drawn disabled because the fixture is at the first item with no selection, while Figma draws them enabled (correct state behaviour); (d) the queue summary '4 items - 1h 34m' vs Figma '2h 3m'. Ours is the true sum of 23:06+24:18+25:00+22:35, so Figma's figure is a placeholder; (e) the queue entry is 689.69 pt tall, which gives a 1379 vs 1380 px size mismatch. That is a fractional entry size (gallery fixture, E-library) that blocks pixel comparison and should be rounded to 690. No real visual defect besides (e).",
+    "evidence": "parity-5/S46.MiniPlayer_{collapsed,hover,queue}-dark-hosting/side-by-side.png; key frames 08-library__full-window-list-mini-player__11m48.3s.jpg, 08-library__mini-player-queue-expanded__11m54.3s.jpg"
+   },
+   {
+    "screen": "S46 Mini player in the window, corner snapping, video re-parenting (S46.App/mini-player, S46.MiniPlayer/short-window)",
+    "verdict": "not-checked",
+    "differences": "Offscreen, the mini player's video area is an empty dark surface because the vout cannot be captured offscreen. LIVE: open the full library while an episode plays and check that the video keeps playing inside the mini player, that hover shows the controls, that dragging snaps to the 4 corners, that the queue expands upward (11m54.3), and that clicking pop-out returns the video to the player.",
+    "evidence": "parity-5/r/S46.App_mini-player-dark-hosting.png (full-montage.png bottom-left)"
+   },
+   {
+    "screen": "S46 music mini player with artist (S46.MiniPlayer/music-artist)",
+    "verdict": "match",
+    "differences": "With an artist, the second chip (artist glyph + 'juxtopposed') is shown, which matches Figma's chip layout (D044).",
+    "evidence": "parity-5/r/S46.MiniPlayer_music-artist-dark-hosting.png"
+   },
+   {
+    "screen": "S47 Library search results (S47.Library/search, not designed)",
+    "verdict": "match",
+    "differences": "Not designed. The breadcrumb becomes 'Home ▸ Results for “untangle”' in the bold current style, the search field shows the query with a clear button, the count is '1 item', and the result tile uses the grid grammar. Consistent in dark and light.",
+    "evidence": "parity-5/r/S47.Library_search-{dark,light}-hosting.png"
+   },
+   {
+    "screen": "S72 Light theme with compact library (S72.Window/light shipping vs 2425:13624)",
+    "verdict": "minor-diff",
+    "owner": "E-library",
+    "differences": "Bars, the panel and the video layout match. The bar colour is #A8A8A8 vs Figma #ABABAA (D046 supersedes D043). Remaining differences: (1) Figma's library rows and the current crumb 'S01' use the Dark FG/A2 pale text, which is unreadable on light; ours uses Light fg1/fg2. This is covered by D032 and figma/INDEX.md ('Player - Light mixes Light and Dark styles'). (2) Fixture: the playing item is E11 (window title 'The Wand S01E11', duration 23:06, E11 row in accent) while Figma plays E04 (title S01E04, 25:40) with no accent row. That is fixture data only. (3) Sort dot: D044. Traffic lights instead of Windows controls: the macOS adaptation decision.",
+    "evidence": "parity-5/S72.Window_light-dark-shipping-window-stack.png, report.txt"
+   },
+   {
+    "screen": "S72 Light theme across the library (compact folder, songs, home, full home/grid, mini player, search in light)",
+    "verdict": "match",
+    "differences": "Light surfaces and fg tokens are applied consistently in all library entries rendered in light (D032). There are no Figma light frames for these beyond Player - Light, so there is nothing more to compare. S72.App/light run with --engine shipping-window loses its top bar (the same scene-entry artefact as S43.App/home); its hosting render and S72.Window/light are the valid ones.",
+    "evidence": "parity-5/light-montage.png, parity-5/r/*-light-hosting.png"
+   }
+  ],
+  "summary": "I compared the Library group with Figma and the video key frames, on claude/final at HEAD 4c457baa03 with the other areas' uncommitted edits. Covered: S28, S33, S38, S40–S47, S72, plus the empty, loading, narrow and search states. I looked at every render next to the Figma crop.\n\nRun these comparisons with the hosting engine. The image engine draws yellow placeholders for the library toolbar buttons, which makes S33, S38 and S45 FAIL for no real reason. With hosting, every compact view (folder, Music root, Songs, My Songs, Playlists, Home) and every full-window view (Home, grid, list) comes out REVIEW: matching, with text offsets of 1–2 pt.\n\nMost remaining Figma differences are documented decisions:\n- D044: the sort-button dot only marks a sort the user changed, and the mini player has no artist chip when the media has no artist.\n- D032 / INDEX.md: Figma's light frame uses unreadable dark-theme text for library rows; ours uses the light colors.\n- D046: light bar color #A8A8A8 instead of #ABABAA.\n- macOS traffic lights instead of Windows window buttons.\n\nA few more FAILs are Figma placeholders or correct state handling, not defects:\n- Figma's queue total '2h 3m' is wrong; ours, '1h 34m', is the real sum.\n- Figma's '110 items' in the list view is a template number; ours shows the real 15.\n- The Previous and '−' buttons are disabled when there is nothing before or nothing selected.\n- The Home back arrow is disabled because there is no history yet.\n\nReal differences found (all E-library, none blocking):\n1. **Narrow panel breadcrumb (S28.Library/narrow).** At about 307 pt the two crumbs are clipped to unreadable pieces ('... ▸ T| ▸ S('). They should collapse into the '...' menu instead. The cause is `LibraryBreadcrumb` in `Sources/MXRUI/Library/LibraryNavigation.swift`, which always keeps 2 crumbs in compact mode with no width-based fallback.\n2. **Compact Home fixture data (S40).** The folders shown are S01 / Kaze no Tabi / My Songs instead of Shows / Films / Anime, and there is only 1 playlist instead of 3, so the sections are shorter than in Figma. There is also an extra 'Latest Streams' section. The spec (spec-part2 line 163) supports it, but D044 lists only Figma's 5 sections, so D044 should mention it.\n3. **Mini-player queue entry size (S46.MiniPlayer/queue).** It is 689.69 pt tall, so pixel comparison fails on size (1379 vs 1380 px). It should be rounded to 690.\n4. **Light-window fixture (S72.Window/light).** It plays episode E11 while Figma plays E04, so the window title, duration and highlighted row differ. Fixture data only.\n\nTool artefact, not a product defect: running `--engine shipping-window` on the S43.App/home, S44.App/grid and S72.App/light entries drops the whole top bar. The real window entries (S43.Window/launch, S72.Window/light) draw it correctly with traffic lights. The integrator's hosting renders of S43.App/home also have the bar. The snapshot tool could refuse that engine for entries that are not window compositions (I-build / H-design).\n\nNot checked (needs the real window):\n- **S46 mini player in the window.** Offscreen, the video area is empty because video output cannot be captured. Check that video keeps playing inside the mini player, that hover shows the controls, that it snaps to the 4 corners, that the queue expands upward (11m54.3 key frame), and that pop-out returns the video to the player.\n- **Pinned items in the S42 rail.**\n- **S44 narrow grid.** Rendered but not reviewed in detail.\n\nEverything is in <scratch> Comparison folders are named `<entry>-<scheme>-<engine>/`, standalone renders are in `r/`, and the side-by-side images are `compact-montage.png`, `light-montage.png`, `full-montage.png`, `narrow3-top.png` and `*-stack.png`."
+ },
+ {
+  "group": "Settings: every section in dark and light, keyboard shortcuts editor, extensions, profiles",
+  "screens": [
+   {
+    "screen": "S48 Settings window chrome (search, category nav, title bar, close, Advanced Options bar)",
+    "verdict": "match",
+    "differences": "Chrome, sidebar groups and icons, the selected row, title, close X and the Advanced Options bar line up with Figma on every page. The only deltas are a few pixels of antialiasing (the tool reports REVIEW areas that 'match if moved -2, +0.5 pt' on ON toggles). In the shipping-window render the dialog is centred over the scrim with the bars underneath, per D035. The native blur under the dialog is not evaluated offscreen.",
+    "evidence": "parity-6/S48_Settings_general/side-by-side.png; extra/S48_App_settings-sw.png, extra/app.png",
+    "owner": "F-settings"
+   },
+   {
+    "screen": "S49 Settings: General (999:5047)",
+    "verdict": "match",
+    "differences": "REVIEW 0.04 % structural. Interface language and Check for updates are left out (D035). 'Show confirmation and error dialogs' defaults ON (D035).",
+    "evidence": "parity-6/S48_Settings_general/{side-by-side,report.txt}",
+    "owner": "F-settings"
+   },
+   {
+    "screen": "S49 Settings: General advanced (3046:9282)",
+    "verdict": "major-diff",
+    "differences": "Figma's Advanced Options opens with 'Show minor warnings' (toggle) and 'Additional command line options' (text field). Both rows are missing from the product. They were deleted in polish wave 1 (5ac081046e removed macosx-redesign-minor-warnings and macosx-redesign-extra-args from settings-map.json5), but neither DECISIONS.md D035 nor the gallery's figmaDeviations list them, so the check FAILs (3.05 % flat colour, every row below is shifted by two). Fix: restore the rows, or record the omission in D035 and add the cuts to SettingsFigmaDeviations.swift 'general-advanced'. The Developer Options section (developer mode) has no Figma frame.",
+    "evidence": "parity-6/S48_Settings_general-advanced/side-by-side.png (left = render, right = Figma); git show 5ac081046e -- .../settings-map.json5; figma-label-gaps.txt",
+    "owner": "F-settings"
+   },
+   {
+    "screen": "S50 Settings in Light theme (all 13 categories, *-light entries)",
+    "verdict": "minor-diff",
+    "differences": "Figma has no light Settings frame. The renders use the Figma Light tokens (Light/BG/Accent Bright #D8BA9A for the selected segment and the ON track, a grey Browse button, opaque surfaces per D045 (pending)) and read coherently on every page. The video's light frame (17m44.0) instead shows a solid accent 'Light' segment with white text and a near-black Browse button. Figma tokens win (PHILOSOPHY), but this is a visible difference from the video. Light text contrast follows D032. Nothing is broken: no unreadable text, clipped rows or dark leftovers on any of the 13 pages.",
+    "evidence": "parity-6/light/general.png, m0.png, m1.png, m2.png vs key-frames/14-settings__general-light-theme__17m44.0s.jpg",
+    "owner": "H-design"
+   },
+   {
+    "screen": "S51 Settings: Interface (3046:10057) + advanced (3062:11379)",
+    "verdict": "major-diff",
+    "differences": "Default page: the Skin, Play video inside main window, Show window decorations and playlist-tree rows are left out (D035). The section 'Notifications and System Tray' is renamed 'Menu Bar and Notifications', and its rows are renamed to Mac terms ('Show VLC in the menu bar', 'Start hidden in the menu bar', 'Show a notification when the track changes', 'Notification duration'). That is sensible Mac wording but is not recorded in any decision, and it is why the check FAILs (Δ185 at 242,604). The ⓘ on 'Remember window size and position' is not in Figma, and the slider scale label reads '10 s' where Figma has '10s'. Advanced: Figma's 'Allow the app icon to change' (VLC's macOS dock-icon option) and 'Show the file browser inside the open dialog' are missing with no decision, and 'Fullscreen controls sensitivity' is added. There is no gallery entry for 3062:11379, so the advanced page was checked by labels only.",
+    "evidence": "parity-6/S48_Settings_interface/{side-by-side,report.txt}; parity-6/figma-label-gaps.txt; settings-map.json5:92-120",
+    "owner": "F-settings"
+   },
+   {
+    "screen": "S52 Settings: Privacy (3062:11911)",
+    "verdict": "match",
+    "differences": "REVIEW. The Last.fm rows are left out (D035). The rest differs by a 1–2 pt baseline shift on the Network section.",
+    "evidence": "parity-6/S48_Settings_privacy/side-by-side.png",
+    "owner": "F-settings"
+   },
+   {
+    "screen": "S53 Settings: Controls (6536:14482)",
+    "verdict": "match",
+    "differences": "REVIEW. Remotes / Web remote are left out (D035). There are extra ⓘ icons on 'Reset all shortcuts' and 'Reverse scroll direction' that Figma does not have, and the skip fields read '3  s' with a separate unit label where Figma has '3 s'. Both are cosmetic.",
+    "evidence": "parity-6/S48_Settings_controls/side-by-side.png",
+    "owner": "F-settings"
+   },
+   {
+    "screen": "S54 Settings: Playback (3062:12552) + advanced (3072:13408)",
+    "verdict": "match",
+    "differences": "REVIEW. Pause on interruption ('Pause when another app uses audio') is left out (D035). Track fields count from 1 (D045, pending). The fixture shows Shuffle and Stop-after-each-item ON, which are the map's mock values (copied from Figma), not VLC's defaults. That is a fixture state, not the product. There is no gallery entry for the advanced frame 3072:13408, so it was checked by labels only (no unexplained gaps).",
+    "evidence": "parity-6/S48_Settings_playback/side-by-side.png; figma-label-gaps.txt",
+    "owner": "F-settings"
+   },
+   {
+    "screen": "S55 Settings: Video (3073:14187) + advanced (3073:15375)",
+    "verdict": "minor-diff",
+    "differences": "Figma shows ⓘ on 'Start videos in fullscreen', 'Stop the screensaver during playback', 'Play video as desktop wallpaper', 'Method' and 'Aspect ratio'. The render has none on those rows: the map has no info text for them. The slider tick pattern also differs: Figma's Saturation shows a single tick and its Gamma ticks start later, while the render draws evenly spaced ticks on all five. The advanced frame has no gallery entry; its labels are all present.",
+    "evidence": "parity-6/S48_Settings_video/side-by-side.png",
+    "owner": "F-settings"
+   },
+   {
+    "screen": "S56 Settings: Audio (3073:15879) + advanced/inline EQ (3180:17398, EQ.png, Values-1.png)",
+    "verdict": "minor-diff",
+    "differences": "FAIL 1.17 % flat colour, caused by 'Target level' being drawn disabled (dimmed label and field) while Normalize loudness is OFF; Figma shows it enabled. Other differences: ⓘ missing on 'Speaker setup' and 'Replay gain preamp'. Unit suffixes are drawn inside the fields: Volume step '1  %' where Figma has '1', Replay gain preamp '0  dB' where Figma has '0.0', and 'Always starts at' '200 %' where Figma has '200%'. The Maximum volume slider draws about 20 ticks (every 10 %) where Figma has 7 lighter ticks (every 25 %); see sliders.png. Visualization size is left out (D035). The inline equalizer and advanced frame have no gallery entry, so they were not rendered; their labels exist in SettingsEqualizerView.swift.",
+    "evidence": "parity-6/S48_Settings_audio/{side-by-side,report.txt}; parity-6/sliders.png",
+    "owner": "F-settings"
+   },
+   {
+    "screen": "S57 Settings: Subtitles (3180:17989) + advanced (6536:13908)",
+    "verdict": "match",
+    "differences": "REVIEW 0.10 %. There is an extra ⓘ on Shadow; everything else lines up, including the 50 % opacity fixture. The relative font-size slider order (Auto at stop 0 vs Figma stop 3) is an owner decision (D033) and is not judged. The advanced frame has no gallery entry and was checked by labels only.",
+    "evidence": "parity-6/S48_Settings_subtitles/side-by-side.png",
+    "owner": "F-settings"
+   },
+   {
+    "screen": "S58 Settings: Library (6542:15251)",
+    "verdict": "match",
+    "differences": "REVIEW. 'Only allow one VLC window', 'Add to the playlist instead of replacing it' and 'Apply to files opened from the file manager' are left out as the Windows/Linux one-instance options (D035).",
+    "evidence": "parity-6/S48_Settings_library/side-by-side.png",
+    "owner": "F-settings"
+   },
+   {
+    "screen": "S59 Settings: Network (6543:15649)",
+    "verdict": "match",
+    "differences": "REVIEW. The proxy fields and Cipher preference are left out (D035). The disabled caching fields show the effective values ('1000 ms', '300 ms'); Figma's are empty. This is intentional (VLC semantics) but undocumented. It is cosmetic.",
+    "evidence": "parity-6/S48_Settings_network/side-by-side.png",
+    "owner": "F-settings"
+   },
+   {
+    "screen": "S60 Settings: Performance (6571:15958)",
+    "verdict": "minor-diff",
+    "differences": "FAIL 9.61 %, because everything below 'Drop frames' is gone from the render. Process priority is left out (D035). Rescan plugins is removed (D039 note, C-05). The Developer section is shown only in developer mode (D035), and since it holds every advanced row, the Advanced Options bar disappears too. The video at 18m20 shows that section expanded. 'Give VLC real-time priority' and the Developer 'Encoder' row are also missing. Both are obsolete VLC 4 options (add_obsolete_bool rt-priority and add_obsolete_string encoder in src/libvlc-module.c), so leaving them out is right, but no decision records it, and SettingsFigmaDeviations has no cuts for them or for Rescan or Developer, which is why the check FAILs. Fix: extend D035 and the performance figmaDeviations. 'Clock synchronization' uses US spelling and the value 'Automatic' where Figma has 'Default'; this is visible only in developer mode.",
+    "evidence": "parity-6/S48_Settings_performance/{side-by-side,report.txt}; redesign/design/figma/renders/Settings - performance.png",
+    "owner": "F-settings"
+   },
+   {
+    "screen": "S61 Settings: Recording, Casting & Streaming Out (6571:16429)",
+    "verdict": "minor-diff",
+    "differences": "REVIEW. Casting is left out (D035). The default path reads '~/Movies' where Figma has '~/Videos' (the macOS folder; sensible, undocumented). Encoding preset reads 'Default (Medium)' where Figma has 'Medium' (D035, dropdowns resolve engine values). There are extra ⓘ icons on the record-native and include-* rows. The Figma typo 'include subtitles' is corrected to 'Include subtitles'.",
+    "evidence": "parity-6/S48_Settings_recording/side-by-side.png",
+    "owner": "F-settings"
+   },
+   {
+    "screen": "S62 Settings: Extensions / Add-ons & Scripts (6575:17137)",
+    "verdict": "match",
+    "differences": "FAIL comes from the Remove button only: it is drawn disabled (#131313) because nothing is selected, while Figma shows it enabled (Δ6). That is correct behaviour. The title follows Figma ('Add-ons & Scripts'); the video at 18m26 says 'Extensions & Scripts' with no Advanced bar. The populated fixture (VLsub, Lyrics Finder, Playlist Exporter with Enable toggles) reads well, though there is no Figma reference for it. Whether 'Find more extensions' stays visible depends on D045 (pending owner decision).",
+    "evidence": "parity-6/S48_Settings_extensions/side-by-side.png; extra/s.png; key-frames/14-settings__extensions-scripts__18m26.1s.jpg",
+    "owner": "F-settings"
+   },
+   {
+    "screen": "S63 Settings dropdown popup (2372:8300)",
+    "verdict": "match",
+    "differences": "REVIEW 0.44 % structural. The card, check mark, selected row fill and shadow are identical to Figma.",
+    "evidence": "parity-6/C_Dropdown_default-open/side-by-side.png",
+    "owner": "D-menus"
+   },
+   {
+    "screen": "S64 Keyboard Shortcuts dialog (2437:14832)",
+    "verdict": "match",
+    "differences": "FAIL comes only from the Save button fill (#1F1F1F vs #1F1E1D, Δ2) and 1-px corner antialiasing; the layout, key caps, edit icons and sections are 1:1. The shipping state hides the Global Hotkey column because macOS has no global hotkeys (D035, 'this-mac' entry); the Hotkey column then sits at the right. The conflict state (two orange outlines, accent Save), search ('volume' shows ↑/↓), Light and compact variants all render cleanly.",
+    "evidence": "parity-6/S64_KeyboardShortcuts_default/side-by-side.png; extra/k.png",
+    "owner": "F-settings"
+   },
+   {
+    "screen": "S68 Profiles submenu + New (6648:20666, 6648:20514) and Manage Profiles card",
+    "verdict": "match",
+    "differences": "REVIEW. The submenu card is 1:1 with Figma. The parent ⋯ menu shows Mac shortcut glyphs (⌘O, ⇧⌘O…) instead of Figma's 'Ctrl + O', and About has no shortcut (D026/D034). The Manage Profiles card in the shipping composition is centred, per SD-15. The pixelated cat behind it is the low-resolution video fixture, not the product. The leftover shadow mentioned in the handoff (D-12) is not visible offscreen.",
+    "evidence": "parity-6/S68_ProfileSubmenu_movies/side-by-side.png, parity-6/S68_Profiles_movies/side-by-side.png, extra/S68_App_manage-profiles-sw.png",
+    "owner": "D-menus"
+   },
+   {
+    "screen": "Settings and Shortcuts in the real window (blur, scrim, keyboard, VoiceOver)",
+    "verdict": "not-checked",
+    "differences": "Live check for the live-acceptance wave. Open Settings (⌘,) over a playing 1080p video in Dark and Light. Expect: the native blur and the BG/B1 Transparent tint in Dark, an opaque light dialog in Light (D045), and the scrim over the bars. Tab and arrow keys move through the sidebar and controls with the fgA1 focus ring (D046). Esc and ⌘W close. From Controls, open 'Edit Keyboard Shortcuts': it should replace Settings and return to it on Cancel (D035). Capture a new key and check that a conflict outlines both rows, and that the OSD shows the key afterwards (S13). Toggle Developer mode and check that the Developer sections appear on General and Performance. Switch the theme live and check that every page recolours without reopening.",
+    "evidence": "Not possible in this wave (no live UI).",
+    "owner": "F-settings"
+   }
+  ],
+  "summary": "I checked the Settings group (S48–S64 plus S68 profiles) on HEAD 4c457baa03 with the area agents' uncommitted edits. I ran `mxr-snapshot check` on every entry that has a Figma frame, rendered all 13 Light pages, the extra Settings and Shortcuts variants and the shipping-window compositions, and looked at them next to the Figma renders and the video key frames. I also compared every text label in all 19 Settings Figma frames (including the -1 'advanced' frames, which have no gallery entry) with the labels in `settings-map.json5`. All outputs are in `<scratch>` (per-entry folders, `light/`, `extra/`, `figma-label-gaps.txt`, `sliders.png`).\n\n**Matches:** chrome, General, Privacy, Controls, Playback, Subtitles, Library, Network, Extensions, the dropdown, Keyboard Shortcuts and Profiles are 1:1 apart from rows that D035 leaves out and the Mac shortcut glyphs (D026/D034). The Shortcuts and Extensions FAILs come from a Δ2 Save fill and a Remove button correctly drawn disabled. The Light pages follow the Figma Light tokens and are clean, though the video shows a solid accent segment and a dark Browse button.\n\n**Real gaps, all owned by F-settings:**\n1. **General advanced is missing two rows.** 'Show minor warnings' and 'Additional command line options' were deleted in 5ac081046e with no decision.\n2. **Interface advanced is missing two rows.** 'Allow the app icon to change' (VLC's macOS dock-icon option) and 'Show the file browser inside the open dialog' are gone with no decision. The 'System Tray' section and its rows were renamed to menu-bar wording without a record.\n3. **Performance FAILs for missing documentation, not wrong code.** 'Give VLC real-time priority' and 'Encoder' are correctly gone (both obsolete in VLC 4), and the Developer and Rescan omissions are covered by D035 and the D039 note. Neither D035 nor the Performance deviation list records the first two, and the deviation list has no cuts for any of them, so the check fails.\n4. **Minor Audio and Video differences:** ⓘ icons missing or added on some rows, '%' and 'dB' units drawn inside fields, the Maximum volume slider has ticks every 10 % where Figma has them every 25 %, and Target level is drawn disabled while Figma shows it enabled.\n\n**Not compared visually:** the advanced frames for Interface, Playback, Video, Audio (with the inline equalizer) and Subtitles have no gallery entries, and the image renderer cannot scroll, so I checked them by labels only.\n\n**Owner decisions** (list only): D045 (extensions page and the 'Find more extensions' button, opaque light dialogs, track numbers from 1); D033 (subtitle size slider order). Real-window checks are listed as not-checked."
+ },
+ {
+  "group": "Dialogs: Open Media (file/disc/network/capture), Convert, Stream, Add Subtitles, Media Info, confirmations, modal host",
+  "screens": [
+   {
+    "screen": "S25 Add Subtitles: To This Folder (Figma 1911:7545, dark)",
+    "verdict": "minor-diff",
+    "owner": "H-design",
+    "differences": "Everything matches 1:1: layout, header band, dropdowns, path field, matched rows with dashed leaders, Cancel and Save. One visible difference: the .srt row icon. Figma `subtitle` (1911:8286) is a document with a folded top-left corner and a fold line. The shipped glyph is a plain rounded document with no fold. The exported subtitle.svg seems to have lost the fold path, because it only has a large top-left radius. The icon export should be regenerated so it matches the Figma node. Cancel text sits about 0.5 pt off (negligible).",
+    "evidence": "mxr-snapshot check: REVIEW, mean Δ 0.46, structural 0.22 %. parity-7/S25_AddSubtitles_folder/side-by-side.png, parity-7/icon_zoom.png (8× zoom of the icon, render vs Figma), parity-7/crop_S25_AddSubtitles_folder_230.png"
+   },
+   {
+    "screen": "S26 Add Subtitles: To This File, From Computer (Figma 1919:8707, dark)",
+    "verdict": "minor-diff",
+    "owner": "H-design",
+    "differences": "Rows, selected-row fill, accent checks and footer match. The only difference is the same subtitle-file glyph as in S25: the folded corner is missing.",
+    "evidence": "check REVIEW, mean Δ 0.12, structural 0.021 %. parity-7/S26_AddSubtitles_file/side-by-side.png"
+   },
+   {
+    "screen": "S27 Add Subtitles: From OpenSubtitles results (Figma 1919:9278, dark) + unavailable state",
+    "verdict": "minor-diff",
+    "owner": "F-settings",
+    "differences": "The results state matches Figma: search field, language dropdown, rows and check. The glyph differs as in S25 (owner H-design). The unavailable state is not in Figma (S27 needs an API key per SCREENS.md). It shows 'From OpenSubtitles' with an 'is unavailable' message. D035 says not to list what does not work; D035 is about Settings, but the same reasoning applies here, so the owner should confirm. Its 'Choose Files' button draws as plain text with no tile, unlike the filled DialogButton in the empty Add Subtitles state.",
+    "evidence": "check REVIEW, mean Δ 0.06. parity-7/S27_AddSubtitles_results/side-by-side.png, parity-7/r/S27_AddSubtitles_unavailable.png"
+   },
+   {
+    "screen": "S25.App Add Subtitles over the player (modal host, video 06m02.5)",
+    "verdict": "major-diff",
+    "owner": "F-settings",
+    "differences": "The hosting render matches the video frame: dialog at y 140–940 in 1080, same as 06m02.5. The shipping-window render puts the same dialog at y 121–921, so it sits about 19 pt above the window centre. The video area shifts up the same way. The shipping-window capture also has no top bar, but the S01.App shipping render lacks it too, so that part is a capture limitation and not this group's defect. The scrim follows D035 (BG/B2 Transparent), although the video frame shows almost no darkening. In the offscreen render the dialog body shows the cat artwork sharp through it. Figma's 95 % fill with a 50 pt background blur would keep it blurred. Offscreen does not draw native blur, so this needs a live check. The empty 'Choose subtitle files…' state is not designed in Figma or the video and is acceptable. A-window should check the window safe area and titlebar inset.",
+    "evidence": "parity-7/r/S25_App_add-subtitles.png (shipping-window), parity-7/r/S25_App_hosting.png, parity-7/S25_hosting_vs_shipping.png. Row scan: hosting dialog edges 140/940, shipping 121/921, video key frame top 140 with title at 164. Live check: open Add Subtitles in a 1920×1080 window over a bright video and confirm (a) the dialog is centred on the window (top about 140, bottom about 940), (b) the top bar stays visible as at 06m02.5, (c) the artwork behind the body is blurred, never sharp."
+   },
+   {
+    "screen": "Modal host in a compact window (S37.App/convert-compact 960×540; same for S48.App/settings-compact)",
+    "verdict": "major-diff",
+    "owner": "F-settings",
+    "differences": "The shipping-window composition clips the dialog's top. The header band shows only rows 0–32 instead of 20–72: the 'Convert' title sits at y≈7 and the top corners and top inset are cut off. The dialog runs from about −20 to 520, where it should run from 20 to 520 (MXRDialogFrame: height = min(preferred, container − 2·panelInset)). The hosting engine draws it correctly (20–72 header, 520 bottom), so the shift comes from where the overlay's GeometryReader / ignoresSafeArea container sits in the real window. The Settings modal in the compact shipping render is clipped at the top the same way. This breaks D035 ('dialogs shrink to the window and scroll'). The fix may also touch A-window, which owns the window and safe-area composition. The body correctly scrolls rather than scaling.",
+    "evidence": "parity-7/r/S37_App_convert-compact.png, parity-7/compact_top.png, parity-7/r/compact_hosting.png (hosting is correct), parity-7/ship_check.png (settings-compact clipped). Live check: resize the installed window to 960×540, open Convert and Settings. The full header band (title and ✕) must be visible with panelInset above it."
+   },
+   {
+    "screen": "S36 Open Network Stream: empty (Figma 6216:13614, video 13m17.8) and valid",
+    "verdict": "match",
+    "owner": "J-media-io",
+    "differences": "Matches Figma: title band, section headings, hints, URL text area, divider, playlist field, Cancel, disabled Save. The valid state, which Figma lacks, keeps the same geometry, enables Save in accent, and keeps the divider. The only difference is a tiny corner antialias.",
+    "evidence": "check REVIEW, mean Δ 0.50, structural 0.014 %. parity-7/S36_NetworkStream_empty/side-by-side.png, parity-7/r/S36_NetworkStream_valid.png"
+   },
+   {
+    "screen": "S37 Open Disc (not designed; reuses dialog chrome)",
+    "verdict": "minor-diff",
+    "owner": "J-media-io",
+    "differences": "There is no Figma frame, and it reuses the S36 chrome correctly. The DVD/Blu-ray/Audio CD segmented control uses the accent-dim selected tile. The 'No disc found' dropdown is disabled, and Choose… sits next to it. A large empty area is left under the form because the shell's fixed height is 589. That is acceptable, but the dialog could fit its content. Disc detection with real hardware needs a live check.",
+    "evidence": "parity-7/r/S37_Disc_empty.png"
+   },
+   {
+    "screen": "S37 Open Capture Device (not designed)",
+    "verdict": "minor-diff",
+    "owner": "J-media-io",
+    "differences": "The title now matches the menu ('Open Capture Device', J-08). The chrome is consistent, and the camera dropdown is disabled when no camera is found. Most of the 589 pt dialog is empty space under one field. Camera permission prompt and Continuity Camera need a live check.",
+    "evidence": "parity-7/r/S37_Capture_empty.png"
+   },
+   {
+    "screen": "S37 Convert (not designed): empty, running, light",
+    "verdict": "minor-diff",
+    "owner": "J-media-io",
+    "differences": "The chrome is consistent and the progress row sits inside the Save As section without overlapping (J-04 fixed). In the empty state the Format dropdown is drawn with a bright 1 px outline (a focus ring on the first field, never seen in Running). The other dialogs show no ring until keyboard navigation, so this is inconsistent with the D046 focus rule. In Light (D045 pending, no Figma), the 'Choose…' buttons lose their tile and read as plain text, and the Format field turns into a darker grey block.",
+    "evidence": "parity-7/r/S37_Convert_empty.png, parity-7/r/S37_Convert_running.png, parity-7/light.png"
+   },
+   {
+    "screen": "S37 Stream (not designed): empty, running",
+    "verdict": "minor-diff",
+    "owner": "J-media-io",
+    "differences": "The chrome is consistent. The HTTP/UDP/RTP segmented control and the fields match the dialog style. The address, port and path fields have no labels, only placeholders, so a filled field ('0.0.0.0', '8080', '/live') does not say what it is. In the running state the hint shows this Mac's real host name ('MacBook-Pro-2.local'), taken from the running machine rather than fixture data. Both are minor.",
+    "evidence": "parity-7/r/S37_Stream_empty.png, parity-7/r/S37_Stream_running.png"
+   },
+   {
+    "screen": "Media Info / Properties & Metadata (S65.MediaInfo/episode; not designed)",
+    "verdict": "minor-diff",
+    "owner": "F-settings",
+    "differences": "There is no Figma frame and the chrome is consistent. The value columns are misaligned. In the properties grid, values start at x≈110 after the labels. In 'Tracks', values start at x≈70 after shorter labels ('Video', 'Audio'). The third track row is cut off at the footer edge with no fade or divider: 'Audio … AAC' is half visible above Close. 'Show in Finder' floats as unstyled text at the top right.",
+    "evidence": "parity-7/r/S65_MediaInfo_episode.png"
+   },
+   {
+    "screen": "Confirmations (reset, delete preset/profile, replace file, errors)",
+    "verdict": "not-checked",
+    "owner": "F-settings",
+    "differences": "Not designed in Figma. They are native NSAlert / SwiftUI .alert (MXRSettingsView:99, MXRProfilesView:41, SettingsSidebar:212, OpenMediaDialogs:332, MXRNativePresentations:124) and have no gallery entry, so the offscreen renderer cannot draw them. D035: destructive resets ask first. Live check: in the installed app, trigger Settings → Reset all shortcuts, delete a subtitle preset, and Convert to an existing file. Each should show a native sheet attached to the window in the current appearance with a destructive button. Esc should cancel without closing the dialog underneath, and focus should return to the dialog."
+   },
+   {
+    "screen": "Add Subtitles / dialogs in Light (no Figma light frame)",
+    "verdict": "not-checked",
+    "owner": "F-settings",
+    "differences": "The light renders use opaque surfaces, per proposed decision D045, which is pending owner sign-off. Not judged against Figma because Figma has no light dialog frame. Noted in this group: Convert's 'Choose…' tiles are invisible in Light.",
+    "evidence": "parity-7/light.png"
+   }
+  ],
+  "summary": "Design-parity check of the Dialogs group (S25, S26, S27, S36, S37 Disc/Capture/Convert/Stream, Media Info, confirmations, modal host) on claude/final at 4c457baa03 plus the uncommitted edits. All outputs are in <scratch>; I edited nothing and launched nothing.\n\nAll four dialogs with Figma frames come out REVIEW in mxr-snapshot check (mean Δ 0.06–0.50, structural ≤ 0.22 %). Looking at them side by side, they are nearly 1:1.\n- **S36 Open Network Stream:** match.\n- **S25, S26, S27 Add Subtitles:** one visible difference. The subtitle-file icon has lost Figma's folded top-left corner and fold line, probably in the subtitle.svg export. Owner: H-design.\n\nTwo major problems in the modal host (owner F-settings; the fix may touch A-window, which owns the window composition):\n1. **Dialog sits too high in the real window.** In the shipping-window render, Add Subtitles in a 1080-high window is at y 121–921. The hosting render and the video frame at 06m02.5 put it at y 140–940, so in the real window the dialog sits about 19 pt above centre.\n2. **Header cut off in a compact window.** At 960×540 the dialog's top is clipped: Convert's title band shows only 32 of its 52 pt and the title sits at y≈7. Settings in the compact shipping render is clipped the same way. This breaks D035's rule that dialogs shrink to the window and scroll, and it needs a live check.\n\nMinor issues:\n- **Convert:** a focus ring shows on the Format field on open. In Light (D045 pending), the Choose… buttons lose their tile.\n- **Stream:** the address, port and path fields have no labels, and the running hint shows this Mac's real host name.\n- **Media Info:** the Tracks values do not line up with the property values, and the last track row is cut off at the footer.\n- **S27 OpenSubtitles unavailable state:** it shows a source that cannot work, which is at odds with D035's spirit; it needs the owner's confirmation. Its Choose Files button has no tile.\n- **Disc and Capture:** fixed-height dialogs leave large empty areas under the form.\n\nNot checked:\n- **Confirmations** are native alerts with no gallery entry, so they need the live wave.\n- **Dialog background blur** is not drawn offscreen.\n- **Top bar:** it is missing from every shipping-window render, including S01. That is a capture limitation, not a fault in these dialogs.\n\nOwner decisions this group depends on: D045 (opaque light dialogs) and D035 (scrim and only-what-works). The live checks needed are listed under each screen."
+ },
+ {
+  "group": "Customization mode, onboarding, design system (icons, accents, typography, colours, materials)",
+  "screens": [
+   {
+    "screen": "S66 Customize Player mode, window composition (2107:5604 'Player - customize'; key frame 19m12.4)",
+    "verdict": "major-diff",
+    "owner": "A-window",
+    "differences": "1) The empty second-row band is missing. Figma (every Player - customize* frame) and the 19m12 key frame always give the edit-mode bottom area two rows (972–1080 pt). With a one-row layout the upper row is an empty bar-material band, 54 pt tall (#191919 with a #212121 top divider at 972 and again at 1026). spec-part2 §A says the same: 'The control bar area gets a slightly lighter band (y 975–1035)'. It is the visible slot that a dragged item fills to start a new row, as at 19m26. The product draws no band. The flat-gray dim runs down to the single control bar, and the new-row drop target is an invisible 8 pt strip (PlayerBars.swift MXRControlBar overlay `.bottom(rowCount)`). No DECISIONS entry covers this. Fix: in edit mode, when the layout has fewer than 2 bottom rows, render an empty bar row above the control bar using the bar backdrop and divider, make it the `.bottom(rowCount)` drop target, and stop the dim inset at it. The same gap shows in S66.App/customization-compact. 2) [H-design, minor] Edit-mode play tile: Figma insets the 48 pt accent fill 3 pt inside the 54 pt dashed box (measured: Player.png fill 54 pt, Player - customize fill 48 pt). The render keeps the 54 pt fill touching the dashed box sides. D046 asks only for the 'taller Figma tile boxes', not this inset. 3) Covered by decisions or fixtures, not defects: traffic lights instead of Windows buttons (D022); playhead, duration 23:06 vs 25:40 and volume level (fixture / D047). 4) Matches: dialog position (436,189.5) and size, header and hint, the 9-column tile grid, dashed outlines on the top bar and control-bar groups (time+seek+duration as one box), and the Cancel/Save states. 5) Dialog body: the render reads #0F0F0F, Figma #181818. Figma blurs a real video frame behind the translucent dialog; the fixture has only flat gray. This needs a live check over real video.",
+    "evidence": "<scratch> (S66.Window/customization shipping-window vs Figma); p_bottom.png and p_play.png in the same folder; Figma row scan: band 1944–2052 px in Player - customize.png and customize-1…8; spec-part2.md line 513; key frame 15-customize-onboarding__customize-edit-mode-native__19m12.4s.jpg"
+   },
+   {
+    "screen": "S66 Customize Player dialog (6587:18867, S66.Customization/default)",
+    "verdict": "minor-diff",
+    "owner": "H-design",
+    "differences": "The hosting render matches the tile grid, labels, header and footer. Remaining small offsets: two-line labels such as Forward 15s / Backward 15s and the last-row labels (Bookmark, Bookmarks, Playlists) sit about 2 pt lower than in Figma, where the label y varies per tile with the icon height. The 21.8 % 'FAIL' is the body fill: Figma has #181818 because the video shows through, the render has #0E0E0E BG/B1 over a transparent backdrop. That is a backdrop artifact of the isolated render, not a defect. Note: under --engine image this entry renders yellow placeholders, so use hosting.",
+    "evidence": "S66_Customization_default-dark-hosting/side-by-side.png, S67_Customization_two-row-edit-dark-hosting/side-by-side.png"
+   },
+   {
+    "screen": "S67 Customize two-row draft dialog (6587:19979)",
+    "verdict": "minor-diff",
+    "owner": "H-design",
+    "differences": "REVIEW. Save is enabled in the accent style and the grid omits Favorite, which is correct. The same ~2 pt label-baseline offsets as S66 on the Forward/Backward 15s tiles and the last row.",
+    "evidence": "S67_Customization_two-row-edit-dark-hosting/side-by-side.png"
+   },
+   {
+    "screen": "S67 Customized alternate layout result in the window (2160:8301 customize-7, 2160:8732 customize-8; key frame 19m27.6)",
+    "verdict": "not-checked",
+    "owner": "A-window",
+    "differences": "There is no Window or App gallery entry that shows the saved two-row layout outside the dialog, so the two-row bottom bar (full-width seek row 972–1026, centered transport, title bar reduced to logo + window controls) cannot be rendered offscreen. Add an S67.Window/two-row entry (shipping-window) with LayoutModel.twoRowExample and compare it to customize-7. Live check: Customize → build the 19m26 layout → Save. The bars should match 19m27.6.",
+    "evidence": "mxr-snapshot list shows only S67.Customization/two-row-edit"
+   },
+   {
+    "screen": "S68 Profiles submenu (6648:20666, S68.ProfileSubmenu/movies)",
+    "verdict": "match",
+    "owner": "D-menus",
+    "differences": "REVIEW only. Row pitch, checkmark, highlight, divider and + New match. The ⌘ glyph shortcuts replace Ctrl+X (D026). About VLC and Keyboard Shortcuts show no shortcut (D025 menu notes).",
+    "evidence": "def/S68_ProfileSubmenu_movies/side-by-side.png"
+   },
+   {
+    "screen": "S68 Profiles list (6648:20514, S68.Profiles/movies)",
+    "verdict": "match",
+    "owner": "H-design",
+    "differences": "With the integrator's hosting fix it is REVIEW and matches visually: rows, check, divider and + New. One local difference of 11×11 pt at the trailing corner (corner antialiasing).",
+    "evidence": "S68_Profiles_movies-dark/side-by-side.png"
+   },
+   {
+    "screen": "S68 Manage Profiles (no Figma; S68.App/manage-profiles)",
+    "verdict": "not-checked",
+    "owner": "A-window",
+    "differences": "There is no Figma frame. The render shows a centered profile card over the scrim. In the shipping-window render of this App entry the top bar is absent, which is a tooling artifact (see the S72.App note). Judge it in the live wave: ⋯ → Profile → Manage Profiles.",
+    "evidence": "S68_App_manage-profiles.png"
+   },
+   {
+    "screen": "S69 Onboarding 1 Welcome (1899:3055)",
+    "verdict": "match",
+    "owner": "H-design",
+    "differences": "Visually 1:1: logo, title, paragraph, label, field, Browse and Next. '~/Movies' instead of '~/Videos' is the Mac adaptation (SD-13 in MXROnboardingView; not in DECISIONS.md — worth a one-line entry). The FAIL verdict comes from a ~2 pt bottom-corner/edge strip ('matches if moved -2 pt'), not from a visible difference. Note: running it with --engine image overrides the entry's hosting engine and gives false FAILs.",
+    "evidence": "def/S69_Onboarding_welcome/side-by-side.png; key frame 15-customize-onboarding__onboarding-welcome__19m46.7s.jpg"
+   },
+   {
+    "screen": "S70 Onboarding 2 Theme + accent (1902:3670 orange, 4020 red, 4325 olive, 4634 green, 4940 teal, 5245 blue, 5550 purple, 6160 pink, 6465 gray)",
+    "verdict": "minor-diff",
+    "owner": "H-design",
+    "differences": "Theme tiles, selected ring, mini preview recolouring, the 9 swatches with ring, and Next all match for orange, teal and gray (the others fail on the same single region). Differences: 1) On the alternate-accent frames Figma has no Back button and the product keeps it. This is documented only in the gallery entry notes, not in DECISIONS.md. 2) The title sits about 0.5–1 pt higher. The remaining check FAIL is that Back region. System and Light variants (S70.Onboarding/system, S72.Onboarding/light) have no Figma frame; they look consistent.",
+    "evidence": "def/S70_Onboarding_orange/side-by-side.png, def/S70_Onboarding_teal/side-by-side.png, def/onb_light_sys.png"
+   },
+   {
+    "screen": "S71 Onboarding 3 Keyboard shortcuts (1902:6770)",
+    "verdict": "minor-diff",
+    "owner": "H-design",
+    "differences": "Layout, keycaps (3D bottom edge), columns and footer match. The keys differ where the product shows the real shortcuts: Previous/Next Item P / N instead of < / >, and Show/Hide File Browser ⌘ L instead of L. Both are covered by D026 (Mac conventions, real hotkeys). The footer hint 'Find the full list in the menu.' sits about 1 pt lower than in Figma.",
+    "evidence": "def/S71_Onboarding_shortcuts/side-by-side.png; key frame 15-customize-onboarding__onboarding-shortcuts__19m52.7s.jpg"
+   },
+   {
+    "screen": "S72 Light theme window (2425:13624, S72.Window/light shipping-window)",
+    "verdict": "minor-diff",
+    "owner": "H-design",
+    "differences": "1) [real bug, H-design] In Light the VLC cone draws #E8851A (Light/Accent/Main), but Figma's cone 2425:13629 uses Light/Accent/Logo #C2711A (measured on the render vs the ref). Root cause: Generated/Icons.swift gives `vlc` a single layer with role .accent, and MXRIcon styles .accent with Theme.Color.accentMain, ignoring the `tint: Theme.Color.accentLogo` passed by PlayerBars.swift:236, PlayerView.swift:57 and MediaInfoDialogs.swift:76. Dark is unaffected (accentLogo == accentMain). Fix: let the cone's accent layer take accentLogo, for example a logo role or honouring the tint for single-accent-layer icons, rather than special-casing the view. 2) Covered: bars #A8A8A8 vs #ABABAA (D046); the play button uses Light accent #E8851A where Figma uses the Dark style (INDEX: the frame mixes styles; D032); library list text, gear and next button greyed in Figma come from Dark FG styles mixed into the frame (D032); sort dot (D044); traffic lights (D022). 3) [E-library, minor, judgment] The library header divider is dark in Figma and light gray in the render. The current crumb 'S01' and the ellipsis are FG/A3-gray in Figma and dark in the render. These are likely the same Dark-style mixing, but they are not explicitly listed in D032.",
+    "evidence": "S72_Window_light-light/side-by-side.png, tl.png, bot.png, list.png; pixel sample: render cone (232,133,26) vs Figma (194,113,26)"
+   },
+   {
+    "screen": "S72 Light theme App entry (S72.App/light) and S66.App/customization under --engine shipping-window",
+    "verdict": "not-checked",
+    "owner": "A-window",
+    "differences": "Tooling trap: with --engine shipping-window, the App* entries (S66.App/customization, S72.App/light, S68.App/manage-profiles) render without the top bar, so the content shifts up 40 pt and the comparison FAILs spuriously. With --engine image they draw yellow placeholders. The matching Window* entries render the top bar correctly, so judge those screens with S66.Window/customization and S72.Window/light. Either make App entries refuse shipping-window or make the top bar visible there, so check-all does not report false FAILs.",
+    "evidence": "S66_App_customization-dark-shipping-window/render_top.png vs t2.png (S66.Window); S72_App_light-light-shipping-window/side-by-side.png"
+   },
+   {
+    "screen": "Design system: C.PlayButton (848:1711)",
+    "verdict": "match",
+    "owner": "B-controls",
+    "differences": "PASS, no visible difference.",
+    "evidence": "C_PlayButton_play-dark/side-by-side.png"
+   },
+   {
+    "screen": "Design system: icons (Figma 42:356 Icon, 177:98 Icon Wrapper; D.Icons/mono, D.Icons/twoTone)",
+    "verdict": "minor-diff",
+    "owner": "H-design",
+    "differences": "The sheet covers the Figma Icon set with default, active and selected states and two-tone accent parts. Spot checks against Icon.png (gear, playlist, folder, streaming, eq presets, thumbnails, heart, shield, paint) agree. There is no Figma node for a pixel compare. The only icon defect found is the cone's accent layer ignoring accentLogo (see S72).",
+    "evidence": "def/D_Icons_mono.png vs redesign/design/figma/renders/Icon.png"
+   },
+   {
+    "screen": "Design system: accents (D.Accents/default; Settings and onboarding swatches)",
+    "verdict": "match",
+    "owner": "H-design",
+    "differences": "9 accents in Figma order with the derivation rule from colors.json (AccentPalette). Onboarding frames 1902:* confirm the dark values. Light non-orange shades are derived, and AccentPalette.swift says so; Figma has no light frame for them.",
+    "evidence": "def/D_Accents_default.png"
+   },
+   {
+    "screen": "Design system: colours (D.Colors/light) and typography (D.Typography/default)",
+    "verdict": "match",
+    "owner": "H-design",
+    "differences": "The token sheets match colors.json and typography.json, including the D032 light foregrounds, D046 (no readableSecondary or keyboardFocus tokens), and the light volume cone tokens. There is no Figma frame for a pixel compare.",
+    "evidence": "def/D_Colors_light.png, def/D_Typography_default.png"
+   },
+   {
+    "screen": "Design system: Button (500:3063), Toggle (536:1014)",
+    "verdict": "not-checked",
+    "owner": "F-settings",
+    "differences": "These components are used through the Settings and dialog screens, and the settings parity judge checks them. This group has no standalone gallery entry for them.",
+    "evidence": "redesign/design/figma/renders/Button.png, Toggle.png"
+   },
+   {
+    "screen": "Live-only aspects of this group",
+    "verdict": "not-checked",
+    "owner": "H-design",
+    "differences": "Live checks: (a) Customize over real playing video. The dialog should show the blurred video through BG/B1 as in 19m12 (#181818-ish), and the dim should be warm gray. (b) Drag a palette tile to the bottom. A new row should form in the band, as at 19m26 (after the band fix). (c) Onboarding: Next, then Esc, then check the folder in ml.db (H-03). (d) Light theme: the cone colour in the real window should be #C2711A.",
+    "evidence": "—"
+   }
+  ],
+  "summary": "I compared the customization, onboarding and design-system screens (S66–S72, plus the design sheets) with Figma and the video key frames on claude/final at HEAD 4c457baa03 plus the uncommitted area edits. I rendered them offscreen and looked at each side by side. Outputs are in <scratch> differences with no decision covering them:**\n1. **Missing empty second row in Customize (S66, major, A-window).** In every Figma customize frame and in the 19m12 key frame, the bottom area in edit mode is two rows tall. With a one-row layout the upper row is an empty 54 pt band (#191919 with a divider); spec-part2 §A describes it too. It is where a dragged item lands to start a new row. The product dims the video all the way down to the single control bar, and its new-row drop target is an invisible 8 pt strip in `PlayerBars.swift`.\n2. **Wrong logo colour in the Light theme (S72, H-design).** The VLC cone draws #E8851A, but Figma uses #C2711A (Light/Accent/Logo). The cone icon's only layer is styled as an accent layer, and `MXRIcon` paints that with `accentMain`. The `tint: Theme.Color.accentLogo` passed in `PlayerBars.swift:236`, `PlayerView.swift:57` and `MediaInfoDialogs.swift:76` is ignored. Dark is unaffected because the two colours are equal there.\n3. **Minor (H-design):**\n   - In edit mode Figma insets the play button's 48 pt fill 3 pt inside its 54 pt dashed box; the render's fill touches the box.\n   - Some two-line tile labels in the Customize dialog sit about 2 pt lower than in Figma.\n   - The alternate-accent onboarding frames have no Back button, and the product keeps it; this is documented only in the gallery notes, not in DECISIONS.md.\n   - The onboarding shortcuts footer sits about 1 pt lower.\n   - '~/Movies' instead of '~/Videos' is explained only in a code comment (SD-13).\n4. **Possible E-library item.** In the light library header, Figma's divider is dark and the current breadcrumb is gray; in the render it is the other way round. This is probably the Figma frame mixing Light and Dark styles, but D032 does not say so explicitly.\n\n**Matching or covered by decisions:**\n- The profile submenu and profiles list match. The ⌘ shortcuts follow D026.\n- The Welcome, Theme + accent and Shortcuts onboarding steps are visually 1:1, apart from the shortcut keys covered by D026.\n- The Customize dialog grid and both dialog states match.\n- The light bars follow D046, and the traffic lights follow D022.\n- The play button passes. The icon, accent, colour and typography sheets are consistent with the tokens.\n\n**Can't be checked offscreen yet:**\n- There is no gallery entry for the saved two-row layout in the window (customize-7/8), so it needs a new `S67.Window` entry or a live check.\n\n**Snapshot tool traps (A-window):**\n- With `--engine shipping-window`, the App entries (`S66.App`, `S72.App`, `S68.App`) render without the top bar and FAIL for that reason alone. Use the matching Window entries instead.\n- Passing `--engine image` to the onboarding entries overrides their own engine and also gives false FAILs.\n\n**Owner decisions:** none in this group depends on D041, D045, C-09 or the subtitle slider order.\n\n**Live checks still needed:**\n- The Customize dialog's translucency over real video.\n- Dragging an item into the new row.\n- Onboarding Next then Esc, then checking the folder in ml.db.\n- The Light cone colour in the real window."
+ }
+]

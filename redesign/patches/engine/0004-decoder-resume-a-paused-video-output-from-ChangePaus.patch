@@ -1,0 +1,63 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lemelson <97357844+Lemelson@users.noreply.github.com>
+Date: Wed, 14 Oct 2026 15:07:20 +0300
+Subject: [PATCH 4/5] decoder: resume a paused video output from ChangePause
+
+On resume after a paused seek with VideoToolbox, the video decoder can
+block in pic_pacer_WaitAllocatableSlot(): the picture slots are held by
+the paused video output (LLDB: pacer full, paused=0, output_paused=1,
+frames_countdown=0). The DecoderThread loop that would resume the
+output is never reached, because the decoder is blocked waiting for a
+slot that only the resumed output can release. Playback stays frozen.
+
+In vlc_input_decoder_ChangePause(false), resume a paused video output
+directly with the existing Decoder_ChangeOutputPause() helper, under
+the FIFO lock and only for VIDEO_ES with output_paused set. The
+DecoderThread loop still acknowledges the new pause date as before
+(on_output_paused is emitted there). Nothing is flushed or discarded;
+audio and SPU are unchanged.
+
+Note for review: this relaxes the documented rule that only the
+DecoderThread drives the outputs while the decoder runs; the input
+thread now calls vout_ChangePause() while holding the FIFO lock. Output
+replacement by the ModuleThread is serialized by the same lock, and
+the ownership comment is updated accordingly. Upstream may prefer to
+fix the root cause (pacer slots held by a paused vout) differently;
+this patch should then be dropped.
+
+Reproduction: as in the decoder first-picture patch, with VideoToolbox
+and AUHAL, then resume: video stays frozen and the decoder thread is
+parked in pic_pacer_WaitAllocatableSlot(). Covered by
+redesign/patches/engine/tests/run-paused-seek-smoke.sh (videotoolbox
+auhal video).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/input/decoder.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/src/input/decoder.c b/src/input/decoder.c
+index 514bc80..403af31 100644
+--- a/src/input/decoder.c
++++ b/src/input/decoder.c
+@@ -208,6 +208,8 @@ struct vlc_input_decoder_t
+      *
+      * The input thread can read these variables in order to stop outputs, when
+      * both ModuleThread and DecoderThread are stopped (from DecoderDelete()).
++     * It can also resume a paused video output while holding the FIFO lock;
++     * ModuleThread output replacement is serialized by that same lock.
+      */
+      union {
+         struct decoder_video video;
+@@ -2899,6 +2901,11 @@ void vlc_input_decoder_ChangePause( vlc_input_decoder_t *p_owner,
+     p_owner->paused = b_paused;
+     p_owner->pause_date = i_date;
+     p_owner->frames_countdown = 0;
++    /* An asynchronous decoder can be waiting for picture slots held by the
++     * paused output. Resume it here so the decoder can acknowledge the date
++     * in its normal loop; no picture is flushed or discarded. */
++    if (!b_paused && p_owner->cat == VIDEO_ES && p_owner->output_paused)
++        Decoder_ChangeOutputPause(p_owner, false, i_date);
+     vlc_fifo_Signal( p_owner->p_fifo );
+     vlc_fifo_Unlock( p_owner->p_fifo );
+ }

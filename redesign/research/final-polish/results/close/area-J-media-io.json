@@ -1,0 +1,135 @@
+{
+ "area": "J-media-io",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "I fixed every J-media-io work-list item offscreen; nothing was launched or put on screen.\n\n1. **Format, Disc and Camera dropdowns.** The Convert/Stream Format dropdown, the Open Disc disc dropdown and the Capture camera dropdown now use Figma's dialog dropdown (Add Subtitles 1959:5324: BG/A5 field, FG/A1 title, FG/A2 chevron, 34 pt tall, radius lg). They no longer use the Settings well. This closes parity S37 Convert minor-diff (the dropdown differed from Add Subtitles inside the same dialog family; the Light Format field looked like a pressed control). It is a new private DialogChoiceField in OpenMediaDialogs.swift, built on DialogMenu, and it dims to FG/A4 when disabled.\n2. **Whole-point sheet heights.** fittedFormSize and MXRStreamView.preferredSize now round up to whole points. Capture is 713×343, Disc 713×432, Stream 713×680. The extra fraction is space above the footer, so the layout inside does not move.\n3. **J-03 wiring.** The Convert/Stream form logic moved from @State plus onChange into an @MainActor @Observable OutputForm controller. The view only forwards each action to it, and the tests drive that same object over MockOutput. Completion is now applied once per job, before any action (settle), so the view's onChange wiring is gone. A format change renames the destination and drops its confirmation. Replace confirms the name and is not undone afterwards.\n4. **Light DialogButton (critic P1).** F-settings' secondaryFill (Light BG/A4) is in the tree. I checked it in my Light renders: the Choose… and Cancel tiles are visible in Convert, Stream, Disc and Capture.\n\nTargeted suites OpenMediaIOTests (9), OutputModelTests (7) and DialogsTests pass. `swift build` is clean with no warnings.",
+   "fixed": [
+    "(a) parity S37 Convert minor-diff: the Format dropdown now matches the Figma dialog dropdown (Add Subtitles 1959:5324), the same as Add Subtitles. The Light Format field no longer looks like a darker pressed block. Disc and Capture dropdowns were changed the same way. Before: ../build/evidence/final5/polish/J-media-io/before/S37_Convert_empty{,_light}.png. After: ../build/evidence/final5/polish/J-media-io/after/S37_Convert_empty{,_light}.png, after/S37_Disc_empty_light.png, after/S37_Capture_empty*.png. Figma reference crop: ../build/evidence/final5/polish/J-media-io/figma_addsubs_header.png",
+    "(c) verifier open[1] / (d) half-point sheet heights: Capture 344.5 to 343, Stream 679.5 to 680, Disc 434 to 432 (432 because the dropdown is now 34 pt instead of the Settings 36 pt). Frames are rounded up to whole points and the content layout does not move. Test: testOpenMediaSheetsAreWholePointsTall",
+    "(c) verifier open[2] / (d) J-03 wiring: the logic moved into the OutputForm controller, which the view only forwards to. Completion is settled once per job before any action, so a later Replace is not undone. New tests in Tests/MXRUISnapshotTests/OpenMediaIOTests.swift: testAFormatChangeRenamesTheDestinationAndAsksBeforeReplacing, testTheSavePanelsNameIsReplacedWithoutAsking, testAFinishedFileIsNotReplacedSilently, testReopeningShowsTheRunningJobWithoutConfirmingItsFile. A mutation run (no completion settle, no rename on format change, no rounding) gave 8 failures: ../build/evidence/final5/polish/J-media-io/mutations.log",
+    "(b) critic P1 / (c) verifier open[0] / (d) Light DialogButton tiles: checked after F-settings' DialogButton.secondaryFill fix (Light BG/A4). Choose… and Cancel are visible in Convert, Stream, Disc and Capture Light: ../build/evidence/final5/polish/J-media-io/after/*_light.png",
+    "(a) S37 Stream running and Disc/Capture renders were checked after the change. The running state is restored from the job, the host shows Studio-Mac.local, and the Format dropdown is disabled while streaming: after/S37_Stream_running.png"
+   ],
+   "notFixed": [
+    {
+     "id": "(a) S36 Network Stream disabled-Save delta #525252 vs #54524F, corner antialiasing",
+     "why": "The parity verdict is match and both come from shared DialogShell/DialogFooter code, not J files. Nothing to fix."
+    },
+    {
+     "id": "(a) Open from Clipboard (not-checked)",
+     "why": "It has no dialog to render. The behaviour needs the real app, so it is in liveChecks."
+    },
+    {
+     "id": "Light segmented control (Disc Type, Send To) still in Settings style",
+     "why": "SettingsSegmentedControl belongs to F-settings, and Figma has no dialog segmented control to match. It is consistent with Settings Light. I left it unchanged."
+    },
+    {
+     "id": "(b) critic P2 PER-02 (subtitle-folder I/O on MainActor)",
+     "why": "That code is in DialogInput.swift and SubtitleFolderRules, which J does not own. Owner assignment is the orchestrator's call."
+    },
+    {
+     "id": "COMP-08 audio-track matcher",
+     "why": "The owner has not scheduled it (D039 amendment by E-library). It spans C-bridge and E-library files."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/OpenMediaDialogs.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/OpenMediaIOTests.swift"
+   ],
+   "editsOutsideOwnership": [
+    "Tests/MXRUISnapshotTests/OpenMediaIOTests.swift (J's own test file from the last wave; added the OutputForm and sheet-size tests)"
+   ],
+   "decisionsWritten": [],
+   "ownerDecisions": [],
+   "evidence": [
+    "../build/evidence/final5/polish/J-media-io/before/ (dark and light renders of Convert, Stream, Disc, Capture before the change)",
+    "../build/evidence/final5/polish/J-media-io/after/ (the same renders after the change, plus Stream running and Convert running)",
+    "../build/evidence/final5/polish/J-media-io/figma_addsubs_header.png (Figma dialog dropdown reference)",
+    "../build/evidence/final5/polish/J-media-io/mutations.log (8 failures with the fixes removed)"
+   ],
+   "liveChecks": [
+    {
+     "id": "J-dropdown-live",
+     "steps": "Open File > Convert. Click the Format field, choose Audio — MP3, then reopen it and choose Video — MP4. Repeat in Light appearance.",
+     "expect": "The list opens over the field at the field's width, with the current format checked. The field shows the choice. In Light the field is a light #F4F4F4 tile on the grey dialog, not a dark pressed block."
+    },
+    {
+     "id": "J-overwrite-live",
+     "steps": "Convert: choose a source, Save As ~/Movies/Test.mp4, Convert, wait for 'Saved'. Click Convert again. Then cancel, switch the format to MP3 and back to MP4, and Convert again. Choose Replace.",
+     "expect": "Each repeat conversion asks before replacing Test.mp4. After Replace, the conversion runs without a second question."
+    },
+    {
+     "id": "J-sheet-edges",
+     "steps": "On a 1x external display, open Open Capture Device and Stream.",
+     "expect": "The sheet edges are crisp, with no half-pixel blur. Capture is 343 pt tall, Stream is 680 pt."
+    },
+    {
+     "id": "J-clipboard",
+     "steps": "Copy an http(s) media URL and use Open from Clipboard (Option-Cmd-V). Then copy plain text and try again.",
+     "expect": "The URL plays. With plain text, the command is disabled or shows a clear notice."
+    },
+    {
+     "id": "J-disc-dropdown",
+     "steps": "Insert a DVD or mount a VIDEO_TS disc image, then open Open Disc.",
+     "expect": "The disc dropdown is enabled and lists the disc with a check. Choosing it enables Open."
+    }
+   ],
+   "notesForOthers": "Integrator: the Convert/Stream form logic is now the OutputForm controller in OpenMediaDialogs.swift (MXRUI), and the view only forwards actions to it. Gallery sizes come from preferredSize: Disc 713×432, Capture 713×343, Stream 713×680. No other file needed changes. F-settings: the DialogButton secondaryFill (Light BG/A4) fix is checked in all four J dialogs. The Light SettingsSegmentedControl (Disc Type, Send To) is still the Settings well, which is consistent with Settings Light, and I left it unchanged."
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "Tests/MXRUISnapshotTests/OpenMediaIOTests.swift:131,140-141 testOpenMediaSheetsAreWholePointsTall",
+    "description": "The test is not @MainActor, but it reads the main-actor-isolated MXRDiscView/MXRCaptureView/MXRStreamView.preferredSize. A clean `swift build --build-tests` gives 5 strict-concurrency warnings here, and they become errors in Swift 6 language mode. The fixer's 'no warnings' claim is true only for `swift build`, which does not compile the tests. Fix: mark the test @MainActor."
+   },
+   {
+    "severity": "minor",
+    "where": "OutputForm.settle(_:) / OpenMediaIOTests",
+    "description": "The claim 'Replace is not undone afterwards' is true in the code but no shipped test covers it. In an isolated copy, removing the `settledJobID != job.id` guard (so completion clears the confirmation again on every action) still passes all 9 tests: testAFinishedFileIsNotReplacedSilently goes through a format change, which forgets the finished job first. I added a scratch test in the copy for the direct path (finish, Convert, Replace). It passes on the real code. With the guard removed it fails: the Replace question comes back and no second job starts. A test for that path should be added."
+   },
+   {
+    "severity": "minor",
+    "where": "OpenMediaDialogs.swift DialogChoiceFieldLabel (disabled)",
+    "description": "When disabled, the dropdown ('No disc found', 'No camera found', the Format field while streaming) has FG/A4 text on the BG/A5 fill. That is very low contrast in Dark, but the section hint above repeats the message. This matches the other disabled dialog controls. Cosmetic."
+   },
+   {
+    "severity": "minor",
+    "where": "SettingsSegmentedControl in Open Disc / Stream (F-settings file)",
+    "description": "In Light, the Disc Type and Send To segmented controls still use the Settings well (grey tiles). There is no Figma dialog segmented control to compare against. The fixer correctly left it, since F-settings owns that file."
+   }
+  ],
+  "summary": "J-media-io passes independent verification (round 1). No blocker or major is left.\n\n**Tree state.** Engine untouched: `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty. The fixer changed only OpenMediaDialogs.swift and its own OpenMediaIOTests.swift. No DECISIONS entries were added or amended, and none were needed. The Settings gate was not touched. Values come from tokens only: no literal colours or sizes in OpenMediaDialogs.swift, and SettingsChoiceMenu is no longer used there. `swift build` is clean.\n\n**Targeted tests pass on the shared tree:** OpenMediaIOTests (9), OutputModelTests (7), DialogsTests (20) and OutputAdapterTests.\n\n**Mutations, run in an isolated copy at ../build/evidence/final5/polish/J-media-io-verify-r1/pkg:**\n- settle made a no-op: 2 failures.\n- No rename on format change: 5 failures.\n- No Stream rounding: 1 failure (679.5).\n- Settle's once-guard removed: no failures. I wrote a scratch test for finish, Convert, Replace. It passes on the real code and fails without the guard. This is the minor test gap listed in issues.\n\n**Work list:**\n- **(a) S37 Convert minor-diff: fixed.** I looked at the renders next to Add Subtitles and its Figma header. The Format, Disc and Camera dropdowns are now the dialog dropdown: #151515 BG/A5 fill, the same as S26's header dropdowns, 34 pt tall, FG/A1 title, FG/A2 chevron. In Light the field is a #F4F4F4 tile, no longer a dark pressed block.\n- **(a) S36 Network Stream: unchanged.** REVIEW, with the same disabled-Save Δ4 and corner antialiasing.\n- **(a) Disc, Capture, Stream (empty and running): consistent.** The running state shows Studio-Mac.local, and the Format field is disabled while streaming.\n- **(b) critic P1 and (d) Light DialogButton: fixed.** Choose… and Cancel tiles are visible in Light in Convert, Stream, Disc and Capture.\n- **(c)/(d) Whole-point sheets: fixed.** Capture 713×343, Disc 713×432, Stream 713×680. The extra fraction (under 1 pt) is space above the footer, which the test checks.\n- **(c)/(d) J-03 wiring: fixed at the root.** The logic is now an @MainActor @Observable OutputForm controller, and the view only forwards actions to it. The tests drive that same object over MockOutput (EEXIST, Replace, Cancel, completion, resume). The onChange wiring is gone.\n\n**Minor issues:**\n- The sheet-size test lacks @MainActor, which gives 5 strict-concurrency warnings when the tests build.\n- The once-guard has no test, as above.\n- Disabled dropdown text has low contrast.\n- The Light segmented control belongs to F-settings.\n\nRenders are in ../build/evidence/final5/polish/J-media-io-verify-r1/r/.",
+  "liveChecks": [
+   {
+    "id": "J-dropdown-live",
+    "steps": "Open File > Convert. Click the Format field and choose Audio — MP3, then reopen it and choose Video — MP4. Repeat in Light appearance, and with Open Disc and Open Capture Device that have a disc or camera present.",
+    "expect": "The menu opens anchored to the field, with the current choice checked. The field shows the new choice. In Light the field is a #F4F4F4 tile on the grey dialog."
+   },
+   {
+    "id": "J-overwrite-live",
+    "steps": "Convert: choose a source, Save As ~/Movies/Test.mp4, then Convert and wait for 'Saved'. Click Convert again at once and choose Replace. When it finishes, switch the format to MP3 and back to MP4, Convert, and choose Replace.",
+    "expect": "Each repeat conversion asks once before replacing Test.mp4. After Replace the conversion starts without asking a second time, and it never asks in a loop."
+   },
+   {
+    "id": "J-sheet-edges",
+    "steps": "On a 1x display, open Open Capture Device, Open Disc and Stream.",
+    "expect": "The sheet edges are crisp with no half-pixel blur. The sheets are 343, 432 and 680 pt tall."
+   },
+   {
+    "id": "J-clipboard",
+    "steps": "Copy an http(s) media URL and use Open from Clipboard (Option-Cmd-V). Then copy plain text and try again.",
+    "expect": "The URL plays. With plain text on the clipboard, the command is disabled or shows a clear notice."
+   },
+   {
+    "id": "J-disc-dropdown",
+    "steps": "Mount a VIDEO_TS disc image, then open Open Disc.",
+    "expect": "The disc dropdown is enabled and lists the disc with a check. Open is enabled and plays the disc from its menu."
+   }
+  ],
+  "ownerDecisions": []
+ }
+}

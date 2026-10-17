@@ -1,0 +1,136 @@
+{
+ "area": "D-menus",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "I checked the predecessor's WIP for D-menus (3c690eb2a0) in the full checkout. It holds together: swift build is green and all menu, popup and shortcut suites pass. ShortcutDefaultsTests passes 7/7 here, so its earlier failure came from the isolated copy, not a regression. Nothing the predecessor reverted needed restoring, and no half-done piece needed removing.\n\nNew fix (f): after the media ends, Space now restarts it like the Play button. The cause is VLC's play-pause hotkey (modules/control/hotkeys.c:261), which only pauses or resumes, so it does nothing once the player has stopped. ShortcutsModel now has a small `engineActionOverride` hook, and AppModel sets it: when the player is stopped and there is still media or a queue, \"play-pause\" goes through `PlayerModel.togglePlayPause()` (the Play button's path) and shows the \"Play\" OSD line. In every other state the engine hotkey runs as before. Media keys and Playback > Play already took this path. The new test fails without the fix (3 failures when the hook is bypassed) and passes with it.\n\nRe-rendered S29, S68 and S07, and rendered S08 for the first time; I looked at each next to its Figma reference. S29 now draws the two-tone check on Mark as Watched. The remaining differences in S29, S68 and S07 are covered by D026/D034 and by the predecessor's 2026-10-17 note under D034. S08 is the same card as the Profile submenu.\n\nExtension submenu freshness: I traced the whole chain in code. Opening the menu sends a `.list` request; the bridge reply replaces the snapshot and posts changed; ExtensionsModel bumps `availabilityRevision`; the menu-bar mirror's Observation callback updates the menu even while it is open. The bridge's 1-second poll also catches menus that change later. Still needs a live check with a real extension.\n\nThe Accelerate item needs no change: the built plugin already links Accelerate.framework through Swift autolinking.",
+   "fixed": [
+    "(f) Space after the end of the media now restarts playback like the Play button. Fix in Sources/MXRCore/Models/ServiceModels.swift (`engineActionOverride` hook in ShortcutsModel.trigger) and Sources/MXRCore/App/AppModel.swift (the hook handles 'play-pause' when `player.isStopped` and there is media or a queue: `togglePlayPause()` plus the 'Play' OSD). Test: Tests/MXRCoreTests/SpaceAfterEndTests.swift (2 tests). With the hook bypassed it fails 3 assertions (state stays 'stopped'); with the fix it passes.",
+    "(d) Disabled submenu rows in the menu bar (predecessor's MXRNativeMenuMirror, autoenablesItems=false, each row's own enabled state plus isBehindModal): checked in the full checkout, NativeMenuMirrorTests 4/4 pass.",
+    "(a) S29 Mark as Watched icon: the two-tone check now draws. Re-rendered and looked at it next to Figma: ../build/evidence/final4/D-menus/S29_LibraryMenu_file/side-by-side.png (REVIEW; the remaining differences are the Add to Playlist chevron and Show in Finder, covered by the note under D034).",
+    "(a) S08 Open Recent gallery entry: rendered for the first time and looked at. It is the same card as the Profile submenu: ../build/evidence/final4/D-menus/S08_RecentSubmenu.png",
+    "(a) S07 and S68: re-checked, both REVIEW; the only differences are the D026/D034 Mac shortcut glyphs. Evidence: ../build/evidence/final4/D-menus/S68_ProfileSubmenu_movies/ and ../build/evidence/final4/D-menus/S07_AppMenu_default/. S09, S10 and S63 are 'match' in parity.json; nothing to change.",
+    "(d) J-10 wording: confirmed identical ('Discover Cast Devices' / 'Discovering Cast Devices…') in PlayerMenus and EffectsSidebars, as the predecessor checked.",
+    "(d)/(b) P2/(c) open minor #1, extension submenu freshness: the whole chain is in place in code (see summary). NativeMenuMirrorTests.testExtensionSubmenuReadsItsEntriesWhenItOpens and testOpenMenuFollowsItsModelAndClosedMenuWaits pass. Live check listed.",
+    "(c) open minor #2, Accelerate: no change needed. `otool -L` on the built plugin shows Accelerate.framework, linked through Swift autolinking. Evidence: ../build/evidence/final4/D-menus/accelerate-autolink.txt",
+    "(c) open minor #3, faint S68 speckles: below visibility; no action.",
+    "(e) parity-run-interrupted.json: no notes or notFixed items name D-menus.",
+    "Checked ShortcutDefaultsTests in the checkout: 7/7 pass. The predecessor's failure came from its isolated copy."
+   ],
+   "notFixed": [
+    {
+     "id": "critic P1 F-08 (dialog keyboard isolation; owner F-settings, test file D-menus)",
+     "why": "The fix belongs in F-settings' focus files (MXRDesign/Focus/MXRKeyboardFocus.swift and the dialog host), which F-settings is editing in this wave. Its regression test should come with that fix, so I left both to F-settings to avoid conflicting edits."
+    },
+    {
+     "id": "S11 native menu bar and critic P0 C4 (Esc and click-outside close without pausing)",
+     "why": "Needs the real window; this wave has no live UI. Listed in liveChecks."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/Sources/MXRCore/App/AppModel.swift",
+    "modules/gui/macosx_redesign/Sources/MXRCore/Models/ServiceModels.swift",
+    "modules/gui/macosx_redesign/Tests/MXRCoreTests/SpaceAfterEndTests.swift"
+   ],
+   "editsOutsideOwnership": [
+    "Sources/MXRCore/Models/ServiceModels.swift: added the `engineActionOverride` property and a one-line change in ShortcutsModel.trigger. This is shortcut dispatch, which is D-menus scope, but the file is not on the ownership list."
+   ],
+   "decisionsWritten": [],
+   "ownerDecisions": [
+    "Predecessor's note under D034 in DECISIONS.md (lines 405-410, accepted (agent, 2026-10-17)): Add to Playlist chevron in the Library file menu, 'Show in Finder' for 'Show in File Explorer', locale decimal separator in menu numbers."
+   ],
+   "liveChecks": [
+    {
+     "id": "D-menus-space-after-eos",
+     "steps": "Play S01E01 (60 s) to the end until the play icon shows. Press Space once.",
+     "expect": "Playback restarts from the start (the pause icon shows) and the OSD shows 'Play' / 'Pressed Space'. Press Space again: it pauses."
+    },
+    {
+     "id": "D-menus-menubar-disabled-submenus",
+     "steps": "Play media with a fixed rate (a live stream) or with no audio devices; open the Audio and Video menus in the menu bar.",
+     "expect": "Speed and Audio Device rows that are disabled in the ⋯ popup look disabled (grey) in the menu bar too and do not open. With a dialog open, every mirrored row is disabled."
+    },
+    {
+     "id": "D-menus-extension-freshness",
+     "steps": "Install a Lua extension that has a menu, activate it, then open View > Extensions > <extension> right away and keep the menu open for 2 s.",
+     "expect": "The submenu shows the extension's entries. If they arrive after the menu opened, the open menu fills in without being reopened."
+    },
+    {
+     "id": "D-menus-S11-menubar",
+     "steps": "Look through every menu-bar menu: App, File, Edit, View, Playback, Audio, Video, Window, Help.",
+     "expect": "The menus match D034. Shortcuts show ⌘ glyphs that match the ⋯ and right-click cards. The Video menu has no Full Screen row (it is in View with ⌘F). Open Recent lists recent media and has Clear Menu."
+    },
+    {
+     "id": "D-menus-C4-popup-close",
+     "steps": "During playback open the ⋯ menu, hover Open Recent, press Esc; open the ⋯ menu again and click on the video outside it; repeat with the right-click menu.",
+     "expect": "Hover opens the submenu to the right, top aligned with its row. Esc and click-outside close the menu with the same motion as opening. Playback keeps running and does not pause."
+    },
+    {
+     "id": "D-menus-voiceover",
+     "steps": "Turn on VoiceOver and move through the ⋯ menu and the right-click menu.",
+     "expect": "Every row reads its title and checked or disabled state; submenu rows say that they open a submenu."
+    }
+   ],
+   "evidence": [
+    "../build/evidence/final4/D-menus/S29_LibraryMenu_file/side-by-side.png",
+    "../build/evidence/final4/D-menus/S08_RecentSubmenu.png",
+    "../build/evidence/final4/D-menus/S68_ProfileSubmenu_movies/side-by-side.png",
+    "../build/evidence/final4/D-menus/S07_AppMenu_default/side-by-side.png",
+    "../build/evidence/final4/D-menus/accelerate-autolink.txt",
+    "Test run in the checkout: NativeMenuMirrorTests, PopupMenuTests, MenuAuditRegressionTests, AnchoredPopupPinPolicyTests, ExtensionMenuObservationTests, ExtensionCapabilityTests, ExtensionAvailabilityTests, DialogKeyLoopGuardTests, BridgeKeyContractTests, ServiceTests, AppActionFeedbackTests, ShortcutDefaultsTests, SpaceAfterEndTests: 0 failures."
+   ],
+   "notesForOthers": "[\"F-settings: critic P1 F-08 (dialog keyboard isolation and its regression test) is left to you.\", \"Integrator: AppModel.swift and ServiceModels.swift now have a play-pause override; MXRAppController's empty-queue intercept still runs first.\"]"
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "Sources/MXRGalleryCatalog/Entries/MenusGallery.swift:127 (AppSubmenuComposition, new S08.RecentSubmenu/default entry)",
+    "description": "The S08 gallery composition draws the Open Recent submenu one row (48 pt) above its row. The y offset is `(row - 1) * appMenuRow.height`. The `- 1` makes up for the separator that comes before the Profile row, so S68 lines up, but Open Recent comes before that separator, so its submenu sits 48 pt too high. Render: ../build/evidence/final4/D-menus-verify-r1/check/S08.RecentSubmenu_default.png (submenu top about 241 pt, row top about 292 pt). This is a fixture bug only, because the product places submenus through the popup presenter, not this offset. Still, it contradicts the entry's own note ('top aligned with the row') and the fixer's claim that it looked at S08. Fix: count only the non-separator rows before the expanded row."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRGalleryCatalog/Entries/CustomizationGallery.swift:99 (not D-menus)",
+    "description": "`swift build` gives a Swift 6 strict-concurrency warning: main actor-isolated static property 'preferredSize' referenced from a nonisolated context. It is not in a D-menus file; noted for the integrator and the owning area. D-menus files build with no warnings."
+   }
+  ],
+  "summary": "I verified D-menus independently against the working tree on top of 3c690eb2a0. `swift build` is green; touching the D-menus files and rebuilding gives no warnings in them. Targeted suites all pass: SpaceAfterEndTests 2, NativeMenuMirrorTests 4, PopupMenuTests 13, MenuAuditRegressionTests 8, MenuExtensionsAndShadowTests 2, AnchoredPopupPinPolicyTests 3, ExtensionMenuObservationTests 1, ShortcutDefaultsTests 7, AppActionFeedbackTests 3.\n\n(f) Space after the end of the media: the cause is confirmed in modules/control/hotkeys.c:261. ACTIONID_PLAY_PAUSE only resumes from paused and otherwise pauses, so it does nothing once the player is stopped. The fix adds `ShortcutsModel.engineActionOverride` (ServiceModels.swift:85). AppModel sends 'play-pause' to `PlayerModel.togglePlayPause()` only when the player is stopped and there is media or a queue, which is the same path as the Play button (`backend.play()`). The real VLC action id is 'play-pause' (VLCShortcutCatalog), so the guard matches. MXRAppController's empty-queue intercept still runs first. To check the test, I disabled the fix in an isolated copy (../build/evidence/final4/D-menus-verify-r1/pkg): SpaceAfterEndTests fails with 3 assertions (state stays 'stopped'), and it passes with the fix. The edit to ServiceModels.swift is outside the ownership list but is declared.\n\n(d) Disabled submenu rows: MXRNativeMenuMirror sets autoenablesItems=false and gives each row its own enabled state, and every row is disabled while `isBehindModal` is set. The test drives real NSMenu updates.\nJ-10 renderer wording is identical in PlayerMenus.swift:129 and EffectsSidebars.swift:76.\nExtension submenu freshness: the menu sends `refresh()` when it opens, the submenu reads `menu(for:)` again, which tracks availabilityRevision, and an open menu updates in place. This is in code and tested; the live check is listed.\n\n(a) Re-rendered and compared with Figma:\n- S29 now draws the two-tone check (4004:12348) on Mark as Watched. The chevron and Show in Finder are covered by the D034 agent note, which is justified because it is a real submenu and Figma draws chevrons on the other submenu rows.\n- S07, S09 and S68: REVIEW, with differences only in the D026/D034 shortcut glyphs.\n- S68 Profiles, S30 and S31: REVIEW; C.Dropdown/default-open: REVIEW.\n- C.Menu/context-hover and S32 sort: PASS.\n- S10 video submenu: fine.\n- S08 is new and has the minor fixture offset bug listed under issues.\nThe new D034 note (Add to Playlist chevron, Finder wording, locale decimal separator) is justified by Mac convention and does not excuse a difference that could be fixed.\n\nHygiene: `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty. The mirror adds no literal design values. No masks or thresholds were touched.\n\nNo blocker or major remains.",
+  "liveChecks": [
+   {
+    "id": "D-menus-space-after-eos",
+    "steps": "Play S01E01 (60 s) to the end until the play icon shows. Press Space once, then once more.",
+    "expect": "The first press restarts playback from the start (pause icon) and the OSD shows 'Play' with 'Pressed Space'. The second press pauses."
+   },
+   {
+    "id": "D-menus-menubar-disabled-submenus",
+    "steps": "Play media where Speed or Audio Device is disabled in the ⋯/right-click popup (a fixed-rate stream, or no audio device). Open the Audio and Video menus in the menu bar. Then open a dialog and open them again.",
+    "expect": "Those submenu rows look grey and do not open. With a dialog open, every mirrored row is disabled."
+   },
+   {
+    "id": "D-menus-extension-freshness",
+    "steps": "Activate a Lua extension that has a menu, open View > Extensions > <extension> right away and keep it open for 2 s.",
+    "expect": "The entries show. If they arrive late, the open menu fills in without being reopened."
+   },
+   {
+    "id": "D-menus-S08-open-recent",
+    "steps": "During playback open ⋯ and hover Open Recent.",
+    "expect": "The submenu opens to the right with its top aligned to the Open Recent row. It lists recent media and then Clear Menu. Esc or a click outside closes the whole chain and playback does not pause."
+   },
+   {
+    "id": "D-menus-S11-menubar",
+    "steps": "Look through every menu-bar menu: App, File, Edit, View, Playback, Audio, Video, Window, Help.",
+    "expect": "The menus match D034, with ⌘ glyphs matching the in-window cards. Video has no Full Screen row (it is in View with ⌘F). There are no window-tab items."
+   },
+   {
+    "id": "D-menus-C4-popup-close",
+    "steps": "Open the ⋯ menu and the right-click menu during playback. Close each with Esc, then with a click outside.",
+    "expect": "Closing uses the same motion as opening, and playback keeps running."
+   }
+  ],
+  "ownerDecisions": [
+   "D034 agent note (DECISIONS.md around lines 415-420, accepted (agent, 2026-10-17)): Add to Playlist submenu chevron in the Library file menu, 'Show in Finder' for 'Show in File Explorer', and the locale decimal separator in menu numbers."
+  ]
+ }
+}

@@ -1,0 +1,161 @@
+{
+ "codexAssessment": "C-bridge overall: mostly correct and well-scoped, with a few real regressions and some ceremony. I read the diffs 3bbac3cb63..a215064366 and the current claude/final code (the working tree was clean), ran the targeted Swift suites (green), and rendered Settings/extensions, extensions-populated and the S13 OSD. I did not run the installed app: it was built from 3bbac3cb63, so it predates Codex, and none of the runtime claims are proven on the shipped binary.\n\nFixes that are correct:\n- PER-01: the expansion worker is registered before dispatch, Submit is gated on _stopped under @synchronized, and finishShutdown waits for the group before vlc_preparser_Delete. This is a genuine root-cause fix.\n- PERF-03 / D039: lazy network discovery. vlc_media_source_provider_GetMediaSource and AddListener now run only from discoverCategory, and LibrarySourceBrowserModel is created in the browser's .task.\n- SET-03: live playlist setters, plus syntheticSettingValues now reflecting the live playlist.\n- SET-10: setting the player 'rate' variable matches what vlc_player_ChangeRate itself does.\n- SET-05: shortcut topics are raised for key-* and global-key-* writes.\n- SET-07: the save-failed event keeps _savePending, so a failed save stays dirty and is retried.\n- PNL-01: background opacity is now a single setter.\n- COMP-17: tri-state restore-playback-pos.\n- NAT-04: native pointer reports exist and are gated on title flags.\n- PLAYER-07: OSD announcements are posted.\n\nFixes that are superficial or ceremony:\n- CODE-02 typed wire is mostly a mechanical rename. Command, service and request names became NS_TYPED_EXTENSIBLE_ENUM constants (`isEqual:@\"` literals in module/ dropped from 305 to 183). But every argument and payload key (args[@\"value\"], \"id\", \"items\", ...; 123 literals, up from 118) is still a raw string on both sides, and that is where silent typos actually happen. TypedServiceWireContractTests partly greps .m source text for substrings, which proves nothing about behaviour. It has some value, but it is not the typed boundary the audit asked for.\n- COMP-10 is a disabled feature presented as handled. All Lua activation, triggers and menu actions are now ENOTSUP, deactivate is dead code, and the extensions page shows dimmed toggles. It is disclosed in D039, but the real work (an extension-dialog provider) was not done.\n- COMP-05: HDR stays a disabled control with a single disabled menu item, even though the engine build has libplacebo tone-mapping options.\n- CODE-06: Codex added a third, Swift-native CoreAudio enumeration instead of using the engine's auhal-audio-device choices.\n\nFixes that are wrong or regress behaviour:\n- SET-02 Open paused adds :start-paused to every opened item, so later items in the queue also start paused.\n- The new addExternalTrack dedupe silently ignores an explicit add or drop of a subtitle that is already attached, even when select is requested.\n- SET-04 now duplicates to a local display for Convert jobs as well as Stream. That display can claim the main window's single video surface. sout-keep remains dead because every job is a one-item playlist.\n- NAT-04 bounces every surface mouse event, normal clicks included, through a serial queue and back to main asynchronously. It also re-reads video-filter with a string parse on every mouse move.\n\nI found no regressions of wave-1 bridge work (topic snapshots, OSD off on the engine, two-phase shutdown); those are intact.",
+ "confirmed": [
+  {
+   "id": "C-01",
+   "severity": "major",
+   "title": "Open paused adds :start-paused to every opened item",
+   "evidence": "AppModel.swift:96 adds \":start-paused\" to inputOptions for the whole batch. VLCQueueBackend.swift:34/47 wireItem copies inputOptions into every item. In VLC, start-paused is a per-input option, so items 2..N also start paused when the playlist advances to them, and so does any later replay of those items from the queue.",
+   "files": [
+    "Sources/MXRCore/App/AppModel.swift",
+    "Sources/MXRVLCBackend/VLCQueueBackend.swift",
+    "module/bridge/MXRServicesBridge.m"
+   ],
+   "fix": "Give QueueBackend.playNow a separate `startPaused: Bool` (or `initialOptions`) that applies only to items[startAt]. Wire it as a per-item options array, or as a top-level startPaused arg that MXRServicesBridge playNow applies with input_item_AddOption(inputs[index], \"start-paused\", TRUSTED) only. Keep the shared inputOptions for every item. Extend OpenAutoplayTests: 2 URLs with Open paused, assert that only the wire item at startAt carries the option."
+  },
+  {
+   "id": "C-02",
+   "severity": "major",
+   "title": "addExternalTrack dedupe drops an explicit subtitle add/select",
+   "evidence": "MXRServicesBridge.m:1155-1166. When SlaveURLsByHash already contains MD5Hex(url), nothing happens and VLC_SUCCESS is returned, even with select=YES. A drop or Add Subtitle File for an auto-detected sidecar (Movie.srt) that the user has turned off therefore does nothing. A URL whose async add failed also stays in _addedTrackURLs until the media changes (cleared only at :556), so it can never be retried.",
+   "files": [
+    "module/bridge/MXRServicesBridge.m"
+   ],
+   "fix": "On a hash hit with args[select]==YES, find the SPU track whose str id hash matches MD5Hex(url) (use the SourceHashOfTrack helper already in the file) and call vlc_player_SelectTrack(_player, track, VLC_PLAYER_SELECT_EXCLUSIVE). If no ES exists yet, record a pending select. Skip silently only when select==NO (the attachLibrarySubtitles/remembered-rule path at :736). Remove a URL from _addedTrackURLs when the player reports a slave/ES failure for it."
+  },
+  {
+   "id": "C-03",
+   "severity": "major",
+   "title": "sout-display duplicates locally for Convert jobs and can take the main video surface",
+   "evidence": "MXRMediaServices.m:205-207 wraps the chain in #duplicate{dst=display,...} whenever settings[sout-display] is set, with no mode check (unlike sout-keep at :209). Convert also adds clock-jitter=0/clock-synchro=0 (:470), so local display would play faster than realtime. MXRAppController.swift:484-490 surface(for:) gives the persistent main surface to whichever vout arrives first while mainOutput == nil, including the output player's vout. The setting label is 'Play locally while streaming' (settings-map.json5:572).",
+   "files": [
+    "module/bridge/MXRMediaServices.m",
+    "module/MXRVoutWindow.m",
+    "Sources/MXRPlugin/MXRAppController.swift"
+   ],
+   "fix": "In MXROutputOptions, add the duplicate only when [definition[@\"mode\"] isEqual:@\"stream\"]. Tag the output player's vout windows (for example check that the window's parent player is the _outputPlaylist player, or set a var on that player) so MXRWindowOpen/surface(for:) always gives them an auxiliary surface and never sets mainOutput. Verify: setting on, start a stream job, then start main playback; main playback must land in the main window."
+  },
+  {
+   "id": "C-05",
+   "severity": "major",
+   "title": "Lua extensions cannot be activated; no extension dialog provider",
+   "evidence": "MXRMediaServices.m:670-671 sets supportsActivation @NO, and :775 returns ENOTSUP for activate/trigger. D039 records this as a disclosed gap, not as completion. The VLC 4 API exists: include/vlc_dialog.h:491 vlc_dialog_provider_set_ext_callback. The stock GUI implements it in modules/gui/macosx/windows/extensions/VLCExtensionsDialogProvider.m (extension_WidgetClicked :318).",
+   "files": [
+    "module/bridge/MXRMediaServices.m",
+    "module/bridge/MXRDialogServices.m",
+    "Sources/MXRVLCBackend/VLCServiceBackends.swift"
+   ],
+   "fix": "Register vlc_dialog_provider_set_ext_callback(intf, cb, bridge) at start and unset it at shutdown. Snapshot extension_dialog_t and its widgets (under the dialog lock) into a Sendable 'extensionDialogs' topic. Route clicks and values back through extension_WidgetClicked and the widget value setters, and handle close via the dialog's b_kill/extension_DialogClosed. Render the dialogs in SwiftUI with the existing dialog chrome. Then re-enable activate/trigger/menu, remove the ENOTSUP branch and activationUnavailableReason, and update D039. Model it on VLCExtensionsDialogProvider.m and test it with VLsub."
+  },
+  {
+   "id": "C-06",
+   "severity": "minor",
+   "title": "Every video-surface mouse event takes an async round trip before reaching super",
+   "evidence": "MXRVoutWindow.m:128-157. reportMouseAt always dispatches to _reportQueue, runs var_InheritString(video-filter) plus string splitting per event, and calls dispatch_async(main, otherwise), so [super mouseDown:] runs after the event has returned. :279 installs an always-on NSTrackingMouseMoved area. On interactive titles (route = interactive), the host never gets clicks, which breaks D024 popup-dismiss-first and double-click fullscreen.",
+   "files": [
+    "module/MXRVoutWindow.m",
+    "module/bridge/MXREffectsServices.m",
+    "module/bridge/MXRPlayerBridge.m"
+   ],
+   "fix": "Decide routing synchronously on main. Keep an atomic 'filterNeedsMouse' bit that MXREffectsServices updates when it writes video-filter (magnify/puzzle/freeze/sam3), and read player.interactiveVideo. When not routing, call super immediately. When routing, post only the vlc_window_Report* calls to _reportQueue. On interactive titles still let the host see mouseDown first for popup dismissal. Install the mouseMoved tracking area only while routing is active."
+  },
+  {
+   "id": "C-07",
+   "severity": "minor",
+   "title": "Profile batch reloads shortcuts once per key-* write",
+   "evidence": "VLCServiceBackends.swift:18 calls changed() for every settings:key-*/global-key-* notification, and MXRServicesBridge.m:1350 sends [self changed:] per setConfig. The bridge also schedules the coalesced MXRTopicShortcuts (:1352), so the Swift prefix check is a redundant uncoalesced path.",
+   "files": [
+    "Sources/MXRVLCBackend/VLCServiceBackends.swift"
+   ],
+   "fix": "Make the VLCShortcutsBackend observer react only to service == .shortcuts and drop the settingOptionName prefix check. Add a test that applies N key writes through a fake transport and asserts one reload per flush."
+  },
+  {
+   "id": "C-08",
+   "severity": "minor",
+   "title": "Typed wire: unknown services are dropped silently, payload keys are untyped, and the contract test greps source",
+   "evidence": "VLCTypedServiceWire.swift:14-40 has a hand-maintained publishedServices set. VLCBackends.swift:84 silently returns for any service not in it, so a new header constant nobody adds is lost without a trace. Payload keys (value/id/items/url/kind/select/index) are still string literals on both sides.",
+   "files": [
+    "Sources/MXRVLCBackend/VLCTypedServiceWire.swift",
+    "Sources/MXRVLCBackend/VLCBackends.swift",
+    "Sources/MXRBridgeAPI/include/MXRBridgeKeys.h",
+    "Tests/MXRVLCBackendTests/TypedServiceWireContractTests.swift"
+   ],
+   "fix": "At minimum, assert or log unknown services in debug at VLCBackends.swift:84 instead of dropping them silently, and add a test that every MXRBridgeService constant in the header is published. Optionally add MXRBridgeArgKey constants for the hot payload keys. Do not grow more ceremony than that, and replace the source-grep test with a round trip through a fake bridge."
+  },
+  {
+   "id": "C-09",
+   "severity": "minor",
+   "title": "HDR selector is dead UI although the build ships libplacebo GL tone-mapping options",
+   "evidence": "MXREffectsServices.m:191 rejects any hdr != auto. D039 claims 'the bridge cannot implement that transformation', but build/arm64/config.h defines HAVE_LIBPLACEBO_GL 1, and modules/video_output/opengl/sampler.c:1259-1267 exposes target-trc/target-prim plus gl-tone-mapping options for caopengllayer. The Figma 'HDR Options' render shows Auto/Off/HDR10/HDR10+/Dolby Vision/HLG.",
+   "files": [
+    "module/bridge/MXREffectsServices.m",
+    "redesign/docs/DECISIONS.md"
+   ],
+   "fix": "Report the D039 contradiction to the owner. Implement at least Off (tone-map to SDR: target-trc=bt1886, target-prim=bt709) through writeOptions when the active vout is caopengllayer. HDR10/HDR10+/DV/HLG are source formats, not output targets, and may map only to target-trc pq/hlg overrides. Per D035, show only the choices that are honoured on the active vout (avsamplebuffer may support only Auto) instead of a disabled control."
+  },
+  {
+   "id": "C-10",
+   "severity": "minor",
+   "title": "Resolution logic duplicated, fragile snapshot equality, double preferred-resolution write, no save",
+   "evidence": "MXREffectsServices.m:192 and :264 define the same resolutionValues table. :196-198 compares [args mutableCopy] with the snapshot via isEqual (NSNumber/string or missing-key wire differences make it fall through to a full filter rewrite and vout restart). :200 and :265 both config_PutInt preferred-resolution, and neither path schedules a config save.",
+   "files": [
+    "module/bridge/MXREffectsServices.m",
+    "Sources/MXRVLCBackend/VLCPlayerBackend.swift"
+   ],
+   "fix": "Send Resolution through the settings path (set preferred-resolution via settingsCommand, which already schedules a save) from VLCPlayerBackend, remove resolution from the setVideoEffects args, and delete both tables and the equality shortcut."
+  },
+  {
+   "id": "C-11",
+   "severity": "minor",
+   "title": "Audio output devices enumerated through CoreAudio separately from VLC's auhal choices",
+   "evidence": "VLCSettingsBackend.swift:145-175 NativeAudioOutputDevices lists every device with output streams (including hidden and aggregate devices) and uses the AudioObjectID as id. The bridge already serves the playerDevices topic and dynamicChoices for auhal-audio-device, so lists and ids can disagree.",
+   "files": [
+    "Sources/MXRVLCBackend/VLCSettingsBackend.swift"
+   ],
+   "fix": "For .audioOutput, request dynamicChoices for auhal-audio-device (or read the playerDevices aout list) and map value/label to MediaDevice. Keep AVCaptureDevice for cameras and delete NativeAudioOutputDevices. VLCSettingsBackend.swift is not in the C-bridge list, so record it under editsOutsideOwnership."
+  },
+  {
+   "id": "C-12",
+   "severity": "minor",
+   "title": "Repeat/random persisted only when changed through app queue commands",
+   "evidence": "MXRServicesBridge.m:1235-1236 do config_PutInt(loop/repeat/random) inside queueCommand only. The QueueRepeat/QueueOrder listener callbacks (:375) just schedule topics, so changes from VLC hotkey actions or other playlist users never reach the config.",
+   "files": [
+    "module/bridge/MXRServicesBridge.m"
+   ],
+   "fix": "Move the config_PutInt calls (and scheduleSave) into the QueueRepeat/QueueOrder callbacks, and remove them from queueCommand."
+  },
+  {
+   "id": "C-13",
+   "severity": "minor",
+   "title": "Exit latency unmeasured; finishShutdown joins every service serially",
+   "evidence": "MXRServicesBridge.m:511-515 runs dispatch_sync(_workQueue) and then library, thumbnails, mediaServices, discovery, audio and subtitleCues finishShutdown strictly in sequence. No measurement of the installed build exists after a215064366.",
+   "files": [
+    "module/bridge/MXRServicesBridge.m",
+    "module/MXRIntf.m",
+    "module/bridge/MXRDiscoveryServices.m"
+   ],
+   "fix": "Add os_signpost intervals per step. Rebuild with install-app.sh and measure Cmd-Q to process exit (clean start, and after browsing Network). Join the independent services concurrently with dispatch_group_async plus a wait, and cancel discovery trees before joining."
+  },
+  {
+   "id": "C-14",
+   "severity": "minor",
+   "title": "MediaSourceBackend.sources(in:) getter starts discovery",
+   "evidence": "VLCServiceBackends.swift:130-133 sends .discover on every read. It is harmless today only because the bridge is idempotent, but it is a latent D039 lazy-discovery violation.",
+   "files": [
+    "Sources/MXRVLCBackend/VLCServiceBackends.swift",
+    "Sources/MXRCore/Backends/ServiceBackends.swift"
+   ],
+   "fix": "Add startDiscovery(in:) to MediaSourceBackend (and the mock), call it from LibrarySourceBrowserModel init/select, and make sources(in:) a pure snapshot read."
+  },
+  {
+   "id": "C-15",
+   "severity": "minor",
+   "title": "S48 Extensions page: missing Advanced Options row and extra info icon",
+   "evidence": "The side-by-side (scratchpad/final/C-bridge-review/S48.Settings_extensions/side-by-side.png) against Figma 'Settings - extensions.png' shows that the 'Advanced Options >' row under 'Load add-ons on startup' is missing and an extra ⓘ follows that label. Remove is dimmed only because the list is empty with nothing selected; that is correct native behaviour and not a defect.",
+   "files": [
+    "Sources/MXRUI/Settings/SettingsExtensionsView.swift"
+   ],
+   "fix": "F-settings area: drop the ⓘ, and restore the Figma 'Advanced Options >' disclosure row (same component and tokens as the other Settings pages' Advanced Options rows), opening the Lua/extension module options. Leave Remove disabled when nothing is selected. Re-run mxr-snapshot check S48.Settings/extensions."
+  }
+ ]
+}

@@ -1,0 +1,139 @@
+{
+ "codexAssessment": "In this area Codex's changes are small and mostly mechanical. The fixes are correct as code, but the claims around them go further than what was checked.\n\nWhat is correct:\n- Camera enumeration moved out of the view into a Sendable backend worker (CODE-06, camera part). It is minimal and deterministic in mocks.\n- Output and renderer adapters moved to typed wire names (CODE-02). The change is purely mechanical.\n- MXROutputOptions now reads sout-display, sout-keep and sout-audio/video/spu fresh on every job (SET-10, SET-04 flags). It replaces the old hard-coded no-sout-display/no-sout-keep. I checked the engine side with the built engine: no-sout-audio gives a video-only MP4, no-sout-video gives an audio-only MP4, and the quoted #duplicate{dst=display,dst=\"...\"} chain parses and writes the file.\n\nWhat is superficial or wrong:\n1. AUDIT_FIXES and D036 present the five formats as verified. I ran the bridge's exact H.264 chain and options on the built engine:\n   - It aborts the process in 5 of 6 runs on a synthetic clip and 4 of 4 runs on the project's Test Show S01E01.mp4: assertion `id < pcr_event->es_last_dts_entries.size` in modules/stream_out/transcode/pcr_sync.c.\n   - An HTTP H.264 stream aborts in 3 of 4 runs.\n   - The installed app's transcode plugin contains the same assertion.\n   - H.264 is the default format in both Convert and Stream, so the main flow of both dialogs crashes the whole app (the output player is in-process).\n   - Codex's runtime test only checks state==\"completed\" and size>0 on a 10 fps synthetic TS. It never validates the produced file, so it hides this.\n2. SET-04 \"Play locally\" is wired as a duplicate to display on the separate output player:\n   - Conversion mode also sets clock-synchro=0, so the local copy runs unpaced. A 5 s clip finished in 0.4 s.\n   - The display vout goes through MXRVoutWindow's single main surface. It either steals that surface or falls back to a stock window_macosx window, which is not the designed window.\n   - Codex marked this item Ч without checking it in the real app.\n3. Bugs left untouched in the area:\n   - Stop writes a state (\"stopping\") that the Swift enum cannot decode.\n   - Changing the format after the save panel silently overwrites another file.\n   - Audio CD opening is broken.\n   - The status overlay overlaps the form.\n   - There is no mock output backend, so the S37 gallery only ever shows \"isn't available\".\n\nNo regressions of wave-1 work were found in the owned files.\n\nVerification limits: the build was repeatedly broken by another agent's file (MXROnboardingPlayerPreview.swift), so I rendered only part of the gallery and no light-scheme or shipping-window renders. I did not drive the live window (not attempted). Engine-level checks used ../build/codex-arm64/vlc and the installed app's plugins. Outputs are in <scratch>",
+ "confirmed": [
+  {
+   "id": "J-01",
+   "severity": "blocker",
+   "title": "Default H.264 Convert/Stream profile aborts the engine (pcr_sync assertion); D036's 'verified' claim is false",
+   "files": [
+    "Sources/MXRUI/Dialogs/OpenMediaDialogs.swift",
+    "module/bridge/MXRMediaServices.m",
+    "redesign/docs/DECISIONS.md"
+   ],
+   "evidence": "I reproduced this with ../build/codex-arm64/vlc on build/media/Test Show S01E01.mp4 using the bridge's chain `#transcode{vcodec=h264,vb=2500,acodec=mp4a,ab=192}:standard{access=file{overwrite},mux=mp4,...}`. With the app's options (--no-sout-keep --no-sout-display --sout-audio/video/spu --clock-jitter=0 --clock-synchro=0) it aborted 3 of 4 runs with `Assertion failed: (id < pcr_event->es_last_dts_entries.size) ... pcr_sync.c, line 268`, leaving a file of about 6.8 MB with no moov atom. Without the clock options it aborted 2 of 3 runs. With audio-sync=no it aborted 4 of 4, and with --no-sout-spu 3 of 4, so neither is a workaround. The trigger is transcoding audio and video together: vcodec=h264 alone (audio passed through) passed 4 of 4, and acodec=mp4a alone passed 3 of 3. The shipped libstream_out_transcode_plugin.dylib imports ___assert_rtn, so asserts are live in /Applications/VLC Redesign.app and the output player in the app process takes the app down. Side finding: the one run that succeeded produced 106 MB of 14 Mbit/s H.264 from a 21.7 MB source, so vb=2500 is not honoured and the 'smaller' promise in the Stream hint is false. OpenMediaDialogs.swift:163 sets `format = \"h264\"` and OutputFormat.all lists it first. The scratch sweep uses the engine's command-line options, not the bridge itself (no-sout-transcode-audio-sync is not a global option there). The in-app run is still to verify.",
+   "fix": "Escalate to the owner: per D031 the real fix is an engine change in modules/stream_out/transcode/pcr_sync.c, where entries for an ES added after a PCR event must be treated as no-PCR instead of indexed out of range. Offer it as a quarantined patch under redesign/patches/engine plus a new DECISIONS entry, and do not apply it silently. Until it is decided: (1) in OpenMediaDialogs.swift:163 change the default to `copy` and move the copy entry first in OutputFormat.all; (2) drop the `h264` OutputFormat from both modes and from the bridge whitelist and transcode map in MXRMediaServices.m:140 and :187, or limit it to video-only transcode with audio passthrough, which is crash-free but only valid when the source audio is MP4-compatible; (3) amend D036 to record the crash and the vb issue; (4) make MXRMediaServicesRuntimeTests run the A+V MP4 profile at least 5 times on a 25 fps A/V source and validate the output with ffprobe (moov present, both streams, duration within 1 s); (5) if H.264 comes back, fix the bitrate (e.g. venc=x264{bitrate...} or an explicit rate-control option) and verify the output size."
+  },
+  {
+   "id": "J-05",
+   "severity": "major",
+   "title": "Stop writes state 'stopping', which OutputJobState cannot decode: the job vanishes and the form re-enables while the engine is still stopping",
+   "files": [
+    "module/bridge/MXRMediaServices.m",
+    "Sources/MXRCore/Models/OutputModel.swift",
+    "Sources/MXRVLCBackend/VLCOutputBackend.swift",
+    "Sources/MXRUI/Dialogs/OpenMediaDialogs.swift"
+   ],
+   "evidence": "MXRMediaServices.m:430 sets `_activeJob.record[@\"state\"] = @\"stopping\"`. OutputModel.swift:5 has no `stopping` case, and VLCOutputBackend.job (line 28) returns nil for unknown states, so the job drops out of `jobs`. OutputMediaForm.job becomes nil, isRunning becomes false, the button turns back into Convert/Start and the fields re-enable. Pressing it gives EBUSY until outputState STOPPED clears _activeJob.",
+   "fix": "Either write `finishing` at MXRMediaServices.m:430 or add `case stopping` to OutputJobState and include it in both isRunning checks (OpenMediaDialogs.swift:176 and :259). Also make VLCOutputBackend.job map unknown states to something visible instead of dropping the job. Add an AdapterTests case that decodes every state string the bridge writes (queued, running, stopping or finishing, completed, cancelled, failed)."
+  },
+  {
+   "id": "J-03",
+   "severity": "major",
+   "title": "Changing Format after Save As silently overwrites a different existing file",
+   "files": [
+    "Sources/MXRUI/Dialogs/OpenMediaDialogs.swift"
+   ],
+   "evidence": "OpenMediaDialogs.swift:206-207 changes `destination` to the new extension, and :285 always sends `overwrite: isConversion && destination != nil`. The bridge's EEXIST guard (MXRMediaServices.m:859-863) therefore never fires, and access=file{overwrite} truncates, for example, an existing movie.mp3 that the save panel never confirmed. Re-pressing Convert after a finished job also overwrites without asking.",
+   "fix": "Keep `@State confirmedDestination: URL?`, set only from DialogFilePicker.save. Send `overwrite: destination == confirmedDestination` and clear confirmedDestination after a job completes. When the bridge returns EEXIST (overwrite false), show a native replace confirmation or reopen the save panel with the new name and extension instead of showing a bare error."
+  },
+  {
+   "id": "J-04",
+   "severity": "major",
+   "title": "Job status is an overlay inside the body padding, so it collides with the last form rows",
+   "files": [
+    "Sources/MXRUI/Dialogs/OpenMediaDialogs.swift"
+   ],
+   "evidence": "I rendered S37.Convert/empty (scratchpad/final/J-media-io-triage/convert.png). The 'Converting isn't available…' line sits about 12 pt under 'No destination selected / Choose…' and about 20 pt above the footer, inside the 20 pt body padding, because .overlay(alignment: .bottomLeading) at :239 is not laid out. The running and completed block (state text, gap8, ProgressView and 'Show in Finder', roughly 55 pt) will cover the Save As row in Convert and the address fields in Stream.",
+   "fix": "Make the job status a real section in the VStack: DialogDivider(), then DialogSectionHeading(\"Progress\") followed by the state text, ProgressView and Show in Finder, using Theme.Spacing.gap20 and gap8 like the other sections. Show the unavailable text as a DialogSectionHeading hint or the footer error, not as an overlay. MXRStreamView.preferredSize must grow by the section height or rely on DialogShell's scroll. Add gallery entries for the running and completed states once J-09's mock exists."
+  },
+  {
+   "id": "J-02",
+   "severity": "major",
+   "title": "'Play locally while streaming' also applies to Convert, runs unpaced on the hidden output player and competes for the main video surface",
+   "files": [
+    "module/bridge/MXRMediaServices.m",
+    "Sources/MXRCore/Resources/settings-map.json5"
+   ],
+   "evidence": "MXROutputOptions (MXRMediaServices.m:205-208) wraps the chain in #duplicate{dst=display,...} whenever sout-display is set, for both modes. The settings-map label at :572 says 'Play locally while streaming'. startOutput :470 adds clock-synchro=0 and clock-jitter=0 for convert, so a local copy plays unpaced. The display vout belongs to _outputPlayer, and MXRVoutWindow attachSurfaceWithProposedSize (:188-205) asks the single provider surface. If that surface is free, the output job takes over the main player's surface; if it is busy, the vout falls back to another window provider. The Codex journal (AUDIT_FIXES SET-04 row :199) says local display was never checked. This is reasoned from code; I did not run it live.",
+   "fix": "In MXROutputOptions, apply the duplicate-to-display branch only when definition[@\"mode\"] is stream, matching the setting's own label, and add a unit case to the existing MXROutputOptions test. For stream mode, either give the output player its own preview surface or document that it uses the main player surface only when idle. Verify in the real app under the lock with sout-display on."
+  },
+  {
+   "id": "J-06",
+   "severity": "major",
+   "title": "Audio CD cannot open: no cdda detection, and the MRL uses a volume path where VLC needs a BSD device",
+   "files": [
+    "Sources/MXRUI/Dialogs/OpenMediaDialogs.swift",
+    "Sources/MXRUI/Dialogs/DialogInput.swift",
+    "Sources/MXRUI/Settings/SettingsAvailability.swift"
+   ],
+   "evidence": "OpenMediaDialogs.swift:52-58 `choose` recognises only BDMV and VIDEO_TS, so an Audio CD volume keeps kind .dvd and opens dvd:///Volumes/Audio%20CD. With Audio CD picked by hand, DialogInput.discURL builds cdda:///Volumes/.... modules/access/vcd/cdrom.c darwin_getTOC (:1078+) takes the basename of psz_dev, strips a leading 'r' and looks it up as a BSD name through IOKit, so '/Volumes/Audio CD' cannot work. Upstream VLCOpenWindowController.m:749 uses `cdda://%@` with devicePath. This is not checked on hardware.",
+   "fix": "Resolve the BSD name through DiskArbitration (DADiskCreateFromVolumePath, kDADiskDescriptionMediaBSDNameKey), ideally in the disc enumeration from J-07. In `choose`, set kind = .cdda when the volume format is Audio CD or cdda (the same test as SettingsAvailability.swift:77). For .cdda, build cdda:///dev/rdiskN in DialogInput.discURL and keep dvd:// and bluray:// on the volume path. Add a DialogInput test per kind. DialogInput.swift and SettingsAvailability.swift are outside J ownership, so keep those edits minimal."
+  },
+  {
+   "id": "J-10",
+   "severity": "minor",
+   "title": "Renderer identity is pointer-based and 'discovering' never clears, which drops the selection after refresh and leaves inconsistent menu states",
+   "files": [
+    "module/bridge/MXRMediaServices.m",
+    "Sources/MXRVLCBackend/VLCRendererBackend.swift",
+    "Sources/MXRUI/Player/PlayerMenus.swift",
+    "Sources/MXRUI/Panels/EffectsSidebars.swift"
+   ],
+   "evidence": "Renderers are keyed `renderer:%p` (MXRMediaServices.m:794, 807, 814). A discover request clears _renderers (:883), and the new items have new pointers, so the active selectedID matches nothing. EffectsSidebars.swift:52 then shows 'Local' and PlayerMenus.swift:119-123 checks nothing while casting continues. `_discovering = result != nil` (:897) stays YES while the discoverers live, so PlayerMenus.swift:129-130 permanently shows a disabled 'Discovering…' while EffectsSidebars.swift:106 still offers a clickable 'Discovering Destinations…'.",
+   "fix": "Key each renderer by a stable id (type + name + vlc_renderer_item_sout) and keep the selected reference in _renderers across rediscovery. Clear `discovering` after the first batch or a short timeout, or rename it to 'discovery active' and present the same explicit Refresh action in both PlayerMenus and EffectsSidebars."
+  },
+  {
+   "id": "J-11",
+   "severity": "minor",
+   "title": "A cancelled or failed conversion leaves a truncated file at the user's destination",
+   "files": [
+    "module/bridge/MXRMediaServices.m"
+   ],
+   "evidence": "access=file{overwrite} truncates the destination on open (:159-161). Stop or a mid-run error (and J-01's abort) leaves a partial file without moov in place of whatever the user had. The size > 0 completion check at :521 is acceptable only because an overwritten file is truncated first; it says nothing about integrity.",
+   "fix": "Write to a hidden temporary file in the destination folder (e.g. .<name>.vlc-partial), rename it over the destination only on a natural EOS with size > 0, and delete it on cancel or failure. The EEXIST/overwrite decision then applies to the rename."
+  },
+  {
+   "id": "J-07",
+   "severity": "minor",
+   "title": "Optical disc enumeration runs synchronously on the main actor, probes every volume including network shares, and never refreshes",
+   "files": [
+    "Sources/MXRUI/Dialogs/OpenMediaDialogs.swift",
+    "Sources/MXRUI/Settings/SettingsAvailability.swift"
+   ],
+   "evidence": "OpenMediaDialogs.swift:46 calls OpticalDiscs.mounted() in a MainActor .task. SettingsAvailability.swift:69-80 runs fileExists for VIDEO_TS, BDMV and AUDIO_TS on every mounted volume, and fetches .volumeIsRemovableKey without ever using it. Nothing observes NSWorkspace didMount/didUnmount.",
+   "fix": "Run the enumeration off the main actor (Task.detached or the backend device worker), skip volumes that are not local or not removable/ejectable (.volumeIsLocalKey, .volumeIsEjectableKey) before probing, return the BSD device needed by J-06, and refresh on NSWorkspace.didMountNotification and didUnmountNotification while the dialog is open."
+  },
+  {
+   "id": "J-08",
+   "severity": "minor",
+   "title": "The capture dialog is titled 'Open Camera' while the menu, command and shortcut say 'Open Capture Device'; its error text is stale",
+   "files": [
+    "Sources/MXRUI/Dialogs/OpenMediaDialogs.swift",
+    "Sources/MXRUI/Dialogs/DialogInput.swift"
+   ],
+   "evidence": "OpenMediaDialogs.swift:74 uses 'Open Camera'. AppCommand.swift:46, ShortcutValues.swift:187, MXRNativeMenus.swift:171 and the gallery entry (DialogsGallery.swift:68) all say 'Open Capture Device'. DialogInput.swift:62 still says 'Enter the capture device’s unique ID.', but the field no longer exists (it is now a dropdown).",
+   "fix": "Title the dialog 'Open Capture Device' to match the menu, and use the section heading 'Device' or keep 'Camera'. Change the DialogInput error to 'Choose a camera.' Audio-input capture is an optional follow-up, not required for this fix."
+  },
+  {
+   "id": "J-09",
+   "severity": "minor",
+   "title": "No mock output or renderer backend: the gallery shows S37 Convert and Stream only in the 'unavailable' state, and there are no model tests",
+   "files": [
+    "Sources/MXRMockBackend/MockServices.swift",
+    "Sources/MXRGalleryCatalog/Entries/DialogsGallery.swift"
+   ],
+   "evidence": "The S37.Convert/empty render shows 'Converting isn't available in this copy of VLC.' with a disabled Convert button. grep finds no OutputBackend or RendererBackend in Sources/MXRMockBackend, and only AdapterTests touches output. Under D030 the gallery should show the product's normal enabled state.",
+   "fix": "Add MockOutputBackend (available, profiles, deterministic jobs per state, start/stop) and MockRendererBackend to MXRMockBackend. Point S37.Convert and S37.Stream at the available state and add running and completed entries, which are also needed to review J-04. Add OutputModel and RendererModel tests for start/stop, state decoding and select/discover."
+  },
+  {
+   "id": "J-12",
+   "severity": "minor",
+   "title": "Literal width multiplier in the Stream path field",
+   "files": [
+    "Sources/MXRUI/Dialogs/OpenMediaDialogs.swift"
+   ],
+   "evidence": "OpenMediaDialogs.swift:233 uses `.frame(width: Theme.Metric.buttonWidth * 1.5)`, an arithmetic literal in a view, which the 'tokens only' rule forbids.",
+   "fix": "Add a Theme.Metric.DialogForms.pathFieldWidth token (value = buttonWidth × 1.5, defined in MXRDesign) and use it here. Showing the resolved receiving URL (http://<Mac IPv4>:port/path, udp://@:port) once streaming runs is a reasonable optional improvement, but no design source requires it."
+  }
+ ]
+}

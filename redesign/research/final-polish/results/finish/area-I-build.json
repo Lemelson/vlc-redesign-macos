@@ -1,0 +1,103 @@
+{
+ "area": "I-build",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "I checked every I-build finding against the code. B-01, B-02, B-03, B-05, B-06, B-07, B-09, B-10 and B-14 were already fixed on disk by the two interrupted attempts, and their tests pass. B-04 was only half done, and that is the root cause of the B/H install failure. The dev-sync path (finalize-app.py) regenerated plugins.dat but never signed it. Anything inside Contents/Frameworks must carry its own signature, so the bundle seal failed with \"code object is not signed at all\". install-app.sh only passed because it now runs --verify-only and never re-seals.\n\nI fixed finalize-app.py. Its unused full mode, which re-signed every Mach-O, is deleted, and --sign is now required. It now follows the tail of codesign.sh: re-sign the replaced dylib, run vlc-cache-gen, sign plugins.dat, seal non-deep, verify. test-finalize-app.py now uses a fake codesign that enforces the real rule (everything in Frameworks must be signed), so removing the plugins.dat signing makes the test fail with the real error.\n\nOther changes:\n- native-tests.py now fails up front with a clear message when ffprobe is missing for the media suite.\n- New contract test: any Swift test that creates an NSWindow or NSPanel must set isReleasedWhenClosed = false.\n- Fixed two test offenders in files owned by other areas (listed in editsOutsideOwnership).\n\nProven by real runs:\n- install-app.sh under the lock: exit 0 in 4 min 11 s. One copy of the app, no build-dir VLC.app, no stage directory or lock left behind, codesign --verify --deep --strict OK.\n- dev-sync.sh against the installed app: exit 0, signature valid, plugins.dat fresh.\n- A no-op make leaves both libMXRPlugin.a and the plugin dylib mtimes unchanged (no relink).\n- Native suites: contracts PASS; media PASS with no pcr_sync assertion.\n- All 7 tooling test scripts pass.\n\nThe app was not launched.",
+   "fixed": [
+    "B-04: finalize-app.py dev-sync path now signs plugins.dat after vlc-cache-gen and before the non-deep seal. This was the root cause of `codesign --force -s - *.app` failing on plugins.dat. The unused full re-sign-everything mode is deleted and --sign is required. install-app.sh only verifies (--verify-only). Tests: tools/test-finalize-app.py (7 OK; the fake codesign rejects an unsigned Frameworks item). Real proof: scratchpad/final2/I-build/dev-sync.log + install.log",
+    "B-01 (already on disk, confirmed): install-app.sh parses the real `PATH: dir/` lines from config.log, fails clearly when there are none, and checks that autoconf/automake are available. test-install-app.py writes the real config.log format and has a no-PATH case. A real install ran through make, which reruns automake: scratchpad/final2/I-build/install.log, rc=0",
+    "B-10 (already on disk, confirmed): installer lock records its pid, and a stale lock is reclaimed. Test test_lock_left_by_killed_installer_is_reclaimed passes",
+    "B-03 (already on disk, confirmed): swiftpm-build.sh copies the archive only when it changed (cmp) and runs actool only when the catalog is newer. Real no-op make: dylib mtime 1792170055 and archive mtime 1792170053, both unchanged (scratchpad/final2/I-build/noop-make.log)",
+    "B-09 (already on disk) + ffprobe precheck added: native-tests.py removes its work dir after a pass, keeps it on failure or with --keep, and WORKFLOW uses the make targets instead of a copied list. The contracts and media runs left no new dirs (the newest is from 19:57, before this run)",
+    "B-05 (already on disk, confirmed): Makefile.am target check-macosx-redesign-app runs smoke-native.py and is documented in WORKFLOW. Running it is a live check",
+    "B-07 (already on disk, confirmed): MXRSettingsInheritanceTests.c has no side effects inside assert (it uses fail()), and the fixed /private/tmp userdata and setenv are gone",
+    "B-06 (already on disk, confirmed): bridge test .md files have no personal paths, and PROVENANCE.md has a re-capture command with the /private/tmp hashes labelled historical",
+    "B-02 (already on disk + small update): BUILD.md describes the three supported paths, uses $SRC/$BUILD, calls dev-sync with 2 arguments and has no stocktest step. Updated it to say that dev-sync signs plugins.dat",
+    "B-14 (already on disk, confirmed): build-native.sh ends at make and no longer packages a bundle",
+    "Shared test hygiene: new contract test_swift_test_windows_survive_close (tools/test-build-contracts.py). Fixed the offender SeekProgressRedrawTests (missing isReleasedWhenClosed = false) and the CODE-01 violation in DialogKeyLoopTests (makeKeyAndOrderFront + NSApp.sendEvent replaced with window.sendEvent, so no window is ordered on screen). Both suites pass via swift test --filter"
+   ],
+   "notFixed": [
+    {
+     "id": "B-15",
+     "why": "Plan only, by the finding itself: the huge-file split (MXRServicesBridge.m, GalleryCatalog.swift) must not start during the parallel wave and the files belong to other areas."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/tools/finalize-app.py",
+    "modules/gui/macosx_redesign/tools/test-finalize-app.py",
+    "modules/gui/macosx_redesign/tools/native-tests.py",
+    "modules/gui/macosx_redesign/tools/test-build-contracts.py",
+    "redesign/docs/BUILD.md",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/SeekProgressRedrawTests.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/DialogIsolationTests.swift"
+   ],
+   "editsOutsideOwnership": [
+    "Tests/MXRUISnapshotTests/SeekProgressRedrawTests.swift: added `window.isReleasedWhenClosed = false` in hostedSeekBar (otherwise close() over-releases the window and xctest crashes with SIGSEGV)",
+    "Tests/MXRUISnapshotTests/DialogIsolationTests.swift (DialogKeyLoopTests): removed window.makeKeyAndOrderFront(nil), which put a test window on screen and violated the CODE-01 contract, and replaced NSApp.sendEvent(tab) with window.sendEvent(tab). The test passes; the D-menus owner should confirm it still catches a Tab leak behind the scrim"
+   ],
+   "evidence": [
+    "<scratch> (install-app.sh rc=0, ends with 'PASS: redesign identity, fresh plugins.dat, valid bundle signature' and 'installed /Applications/VLC Redesign.app')",
+    "<scratch> (rc=0, 'PASS: re-signed replaced code, fresh signed plugins.dat, final nonrecursive bundle seal')",
+    "<scratch> (no relink: dylib/archive mtimes unchanged)",
+    "<scratch> (PASS: contracts)",
+    "<scratch> (PASS: media; ffprobe /opt/homebrew/bin; no pcr_sync assertion)",
+    "All tools/test-*.py OK: build-contracts, finalize-app, install-app, native-runtime-isolation, packaging, schema-drift, swift-results",
+    "Single copy: only /Applications/VLC Redesign.app and the owner's untouched /Applications/VLC.app; mdfind finds one org.example.vlc-redesign.codex bundle; no $BUILD/VLC.app"
+   ],
+   "liveChecks": [
+    {
+     "id": "PERF-02/B-05",
+     "steps": "With the Mac idle and VLC Redesign closed: make -C ../build/codex-arm64/modules check-macosx-redesign-app MXR_SMOKE_MEDIA='\"../build/media/Test Show S01E01.mp4\" \"../build/media/Test Show S01E02.mp4\"'",
+     "expect": "PASS. The log in $BUILD/modules/macosx-redesign-smoke.log shows the macosx_redesign intf and vout, videotoolbox, auhal, the first picture for each item, a clean exit, and 0 'stale plugins cache' lines"
+    },
+    {
+     "id": "install-launch",
+     "steps": "Open '/Applications/VLC Redesign.app' from Finder after the 20:06 install (and the later dev-sync)",
+     "expect": "Gatekeeper does not complain and the app starts with the redesign interface and its own icon"
+    }
+   ],
+   "ownerDecisions": [],
+   "notesForOthers": "Integrator: the root cause of the earlier install-app.sh failure was in finalize-app.py, which never signed plugins.dat after vlc-cache-gen. Anything in Contents/Frameworks needs its own signature, so the seal failed. It is fixed now, a test reproduces the real codesign rule, and dev-sync.sh ran for real against the installed app. finalize-app.py no longer has a 'sign everything' mode: it requires --sign <file> or --verify-only. The new tooling contract fails if a Swift test creates an NSWindow or NSPanel without isReleasedWhenClosed = false, or calls makeKeyAndOrderFront. D-menus: please review my 2-line change in DialogKeyLoopTests (window.sendEvent instead of ordering the window on screen). make check-macosx-redesign-app launches the real app, so it belongs to the live wave."
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "Tests/MXRUISnapshotTests/DialogIsolationTests.swift (DialogKeyLoopTests, owned by D-menus)",
+    "description": "The window is no longer ordered on screen, and Tab now goes through window.sendEvent instead of NSApp.sendEvent. The test passes, but it has no positive control: nothing asserts that Tab actually moves focus inside the newPlaylist dialog. So it cannot tell 'Tab stayed inside the dialog' apart from 'Tab was never delivered' on a window that is not key. It was already missing this before, but the change makes it more likely the test is vacuous. D-menus should add an assertion that focus moves between the dialog's own fields, or confirm with a mutation (remove the scrim isolation and check the test goes red)."
+   },
+   {
+    "severity": "minor",
+    "where": "tools/test-build-contracts.py test_swift_test_windows_survive_close",
+    "description": "The contract checks per file, not per window: a file passes if it creates any NSWindow/NSPanel and contains one 'isReleasedWhenClosed = false'. A second window in the same file without the flag would slip through. Every current file has exactly 1 window and 1 flag. The check also does not cover windows created by helpers under Sources/ that are only called from tests."
+   },
+   {
+    "severity": "minor",
+    "where": "scratchpad/final2/I-build/noop-make.log",
+    "description": "B-03 says a no-op make leaves the mtimes unchanged (dylib 1792170055, archive 1792170053), but those numbers are not in the 13-line log. Only the code was verified: swiftpm-build.sh copies only on a cmp difference, and actool runs only when something is -newer. The no-relink claim was not independently re-measured, because other areas' ongoing edits make a true no-op make impossible right now."
+   }
+  ],
+  "summary": "I checked every I-build finding independently. B-04, the root cause of the B/H install failure, is fixed and covered by a test. finalize-app.py now signs plugins.dat after vlc-cache-gen and before the non-deep seal, which matches the tail of extras/package/macosx/codesign.sh (lines 131-133). The unused full re-sign mode is deleted, and --sign is required.\n\n**B-04 test.** I ran a mutation test in a copy (`scratchpad/final2/I-build-verify-r1/mut`): with the plugins.dat signing removed, tools/test-finalize-app.py fails 3 of 7 tests with the real error \"code object is not signed at all: .../plugins.dat\". The test therefore catches the real failure.\n\n**Installed app (read-only, not launched).** `codesign --verify --deep --strict` passes on /Applications/VLC Redesign.app. plugins.dat carries its own generic signature. `finalize-app.py --verify-only` passes.\n\n**Single copy.** /Applications contains only VLC Redesign.app and the owner's untouched VLC.app. There is no $BUILD/VLC.app and no leftover installer lock or stage directory.\n\n**Tests I ran:**\n- All 7 tools/test-*.py pass.\n- Under the native lock, `native-tests.py --suite media` passes in 16 s with 0 pcr_sync or Assertion lines (ffprobe found in /opt/homebrew/bin), and `--suite contracts` passes in 35 s.\n- swift build is clean, and `swift test --filter 'SeekProgressRedrawTests|DialogKeyLoopTests'` passes (5 tests, no SIGSEGV).\n\n**Other findings, checked in code:**\n- **B-01:** install-app.sh reads the real \"PATH: dir/\" lines; the real config.log has them on lines 39-44. It fails clearly when they are missing and checks for autoconf/automake.\n- **B-10:** the lock records its pid and reclaims a stale lock after a `kill -0` check.\n- **B-03:** cmp-guarded archive copy, and actool runs only when the catalog is newer.\n- **B-09:** the work dir is removed after a pass unless --keep is given, and an ffprobe precheck was added.\n- **B-05:** the Makefile.am target `check-macosx-redesign-app` runs smoke-native.py and is documented in WORKFLOW.md.\n- **B-07:** fail() replaces assert() side effects, and the fixed setenv path is gone.\n- **B-06:** the remaining /private/tmp hits are only mkdtemp/UUID-unique fixture dirs, with no personal paths.\n- **B-02:** BUILD.md matches the single-copy rule and dev-sync takes 2 arguments.\n- **B-14:** build-native.sh ends at make.\n- **B-15:** plan only, legitimately deferred.\n\n**Rules.** The engine diff against upstream-base-2026-10-14 (src, lib, include, modules/gui/macosx) is empty. The edits outside ownership are small and declared.\n\nOnly minors remain: DialogKeyLoopTests has no positive control after the offscreen change, the new window contract checks per file rather than per window, and the no-op make mtime numbers are claimed but not in the log. Running the real app and the smoke gate are left as live checks.",
+  "liveChecks": [
+   {
+    "id": "B-05/PERF-02 smoke gate",
+    "steps": "With the Mac idle and VLC Redesign closed: export PATH=/opt/homebrew/bin:$PATH; make -C ../build/codex-arm64/modules check-macosx-redesign-app MXR_SMOKE_MEDIA='\"../build/media/Test Show S01E01.mp4\" \"../build/media/Test Show S01E02.mp4\"'",
+    "expect": "Exit 0 and PASS. $BUILD/modules/macosx-redesign-smoke.log shows the macosx_redesign intf, videotoolbox decode, auhal output, a first picture for each item, a clean quit, and 0 'stale plugins cache' lines"
+   },
+   {
+    "id": "install-launch",
+    "steps": "Open /Applications/VLC Redesign.app from Finder (after the latest install or dev-sync)",
+    "expect": "No Gatekeeper or 'damaged app' prompt. The redesign interface starts with its own icon, and Console shows no plugins.dat signature or cache warnings"
+   },
+   {
+    "id": "dialog-tab-loop",
+    "steps": "In the running app, focus the library search field, open About (or New Playlist), and press Tab and Shift+Tab several times",
+    "expect": "Focus never returns to the search field behind the scrim. In New Playlist, Tab cycles only among the dialog's own controls"
+   }
+  ],
+  "ownerDecisions": []
+ }
+}

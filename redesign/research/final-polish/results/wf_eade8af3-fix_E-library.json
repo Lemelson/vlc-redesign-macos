@@ -1,0 +1,38 @@
+{
+ "status": "partial",
+ "summary": "I picked up from the interrupted fixer's work in WIP 951f073be2 and checked each finding against the code rather than its notes. 11 of the 13 findings were already fixed correctly there, and I verified them with tests and renders. E-08 was missing one piece, which I added: a help line on the folder menu's \"Add File\" item. E-06 is still open. The offscreen render now matches Figma, but I could not check the real window: wait-idle exited 1 (\"Mac in use\") after 900 s, so I skipped install and launch and the native lock was never taken. `swift build` is green. These focused test runs pass: LibraryHomeAndPlaylistOrderTests, LibraryAuditRegressionTests, LibraryPaginationTests, LibraryWireRegressionTests, and the wider filter `Library|MiniPlayer|Playlist`. The three native library tests also pass: lifetime, import-sort, and the new playlist-order test.",
+ "fixed": [
+  "E-01: compact Home now shows every section via ForEach(library.homeSections), with 3 rows each (MXRLibraryView.swift). D044 records that Figma 1106:5633 overrides COMP-14. Test: LibraryHomeAndPlaylistOrderTests.testCompactHomeKeepsEveryFigmaSection. Render: final/E-library/S40_Library_home/side-by-side.png shows all sections, verdict REVIEW; the remaining differences are fixture data only.",
+  "E-02: under Oldest First / Newest First a playlist now shows its own stored order (Newest First reverses it). The whole-library dateRanks query and the importDates tie-break are deleted (MXRLibraryServices.m mediaAt 'playlist'); the mock does the same. Native test NativeLibraryPlaylistOrderRegression.m is registered in tools/native-tests.py and passes. Swift test: testPlaylistDateSortsFollowThePlaylistOrder.",
+  "E-03: the new -playlistMedia:complete: compares i_nb_media and i_nb_present_media with the listing. Rows get a playlistOccurrence only when the playlist is complete. Removal of a partial playlist is refused with 'Some items in this playlist are on a disconnected drive…'. The positions-only removeFromPlaylist and LibraryModel.removeFromCurrentPlaylist(positions:) are deleted from the protocol, the VLC backend, the mock and the test double. Covered by the native test (stale revision and partial playlist cases).",
+  "E-05: Home row caps are native again. History is limited to a 200-play ranking window; each section is capped by LibraryHomeSectionKind.homeLimit (20 or 8), which VLCLibraryBackend sends as 'limits'. The per-folder linear lookup and the bridging inside the playlist N+1 are removed, and that scan is capped. A section's '›' page uses the uncapped homeSectionEntries in the same order. The literal 20/8 is gone from MXRLibraryView. Tests: testHomeRowsAreCappedAndShowAllListsEverything, plus the adjusted LibraryAuditRegressionTests.",
+  "E-04: the library count and the mini-player summary and durations use fgA3 again; the token was removed under D046.",
+  "E-07: ↑/↓ move by columns(width:) (grid, full list, or 1 for compact); ←/→ move by one entry.",
+  "E-08: Add File imports now return the media typed by the interface (MediaItem.kind(of:) via UTType). The library then navigates to Videos or Songs with the new files selected. The extension list and the N+1 per root query are replaced by a cached imported snapshot that is invalidated on dirty. This session I added a help line to the folder menu's Add File ('Add files to the library. They appear under Videos or Music.'). Test: testImportShowsAndSelectsTheImportedFile.",
+  "E-09: one shared MXRLibraryActions.audioTrackHelp string, 'Play a file first to attach an external audio track.', is used in all three menus.",
+  "E-10: Remove from Playlist acts on the whole multi-selection, and its title shows the count.",
+  "E-11: rows are identified by entry id (indexedEntries; repeats get a suffix) instead of by offset.",
+  "E-12: fixture progress values now match the Figma bar lengths (0.072/0.016/0.016, DON'T BLINK 0.029). D044 records the sort-dot rule ('differs from the category default', which matches the video). Render: S43_Library_home side-by-side matches.",
+  "E-13: listsMedia is deleted. The hidden ⌥⌘F button is removed; Edit ▸ Find ▸ Search Library (MXRNativeMenus.swift:99) sets library.searchFieldRequested. D044 records that the S46 artist chip in Figma is a placeholder."
+ ],
+ "notFixed": [
+  {
+   "id": "E-06",
+   "why": "I could not run the real-app check: wait-idle exited 1 ('Mac in use (idle 0s) after 900s'), so the live part was skipped and the lock was never taken. The offscreen shipping-window render (`check --id S72.Window/light --scheme light --engine shipping-window`) matches Figma Player - Light: panel #C1C1C1 vs #C1C1C0, rail #AAAAAA vs #AAAAA9 (final/E-library/S72_light). The only remaining difference is the bar, which D043 covers. I made no code change, because the finding's own premise is 'change only if the live window is lighter'. Someone also has MXRBackdropSurface.swift (H-design) modified in the working tree right now, which will affect this. Still needed: screencapture of a light-scheme compact library over a playing video in the installed app."
+  }
+ ],
+ "filesChanged": [
+  "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibraryPopup.swift"
+ ],
+ "editsOutsideOwnership": [],
+ "evidence": [
+  "<scratch>",
+  "<scratch>",
+  "<scratch>",
+  "<scratch> (all 3 native library tests PASS)",
+  "modules/gui/macosx_redesign/Tests/NativeLibraryPlaylistOrderRegression.m",
+  "modules/gui/macosx_redesign/Tests/MXRCoreTests/LibraryHomeAndPlaylistOrderTests.swift",
+  "redesign/docs/DECISIONS.md (D044)"
+ ],
+ "notesForOthers": "Most of this area's fixes live in WIP 951f073be2. This session only added the Add File help line in LibraryPopup.swift. The integrator's full test runner also covers the native test NativeLibraryPlaylistOrderRegression.m, now registered in tools/native-tests.py. The real-app check for E-06 (light compact library panel over a playing video, target panel ≈#C2C2C1) is still open: the owner was using the Mac. H-design: MXRBackdropSurface.swift is currently modified in the working tree, and that bears on E-06."
+}

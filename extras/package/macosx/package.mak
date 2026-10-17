@@ -26,11 +26,13 @@ VLC.app: macos-install
 	rm -Rf $@
 	## Copy Contents
 	cp -R "$(macos_destdir)$(datadir)/macosx/" $@
+if ENABLE_MACOSX_UI
 	## Copy .strings file and .nib files
 	cp -R "$(srcdir)/modules/gui/macosx/Resources/"*.lproj $@/Contents/Resources/
 	cp -R "$(top_builddir)/modules/gui/macosx/UI/." $@/Contents/Resources/Base.lproj/
 	## Copy Asset catalog
 	cp "$(top_builddir)/modules/gui/macosx/Resources/Assets.car" $@/Contents/Resources/Assets.car
+endif
 if ENABLE_MACOSX_UI_SHADERS
 	## Copy Shaders metal library
 	cp "$(top_builddir)/modules/gui/macosx/Resources/Shaders.metallib" $@/Contents/Resources/Shaders.metallib
@@ -81,6 +83,9 @@ endif
 	install_name_tool -rpath "$(libdir)" "@executable_path/../Frameworks/" $@/Contents/MacOS/VLC
 	cp "$(macos_destdir)$(pkglibexecdir)/vlc-preparser" $@/Contents/MacOS/
 	install_name_tool -rpath "$(libdir)" "@executable_path/../Frameworks/" $@/Contents/MacOS/vlc-preparser
+if ENABLE_MACOSX_REDESIGN
+	$(SHELL) "$(srcdir)/modules/gui/macosx_redesign/tools/app-bundle-hook.sh" "$@" "$(abs_top_builddir)" "$(MXR_BUNDLE_ID)" "$(MXR_APP_NAME)"
+endif
 	## Generate plugin cache
 	if test "$(build)" = "$(host)"; then \
 		VLC_LIB_PATH="$@/Contents/Frameworks" bin/vlc-cache-gen $@/Contents/Frameworks/plugins ; \

@@ -1,0 +1,155 @@
+{
+ "codexAssessment": "Mixed. About half of Codex's panel changes are right, the rest are wrong, superficial or tested only in pure helpers.\n\nWhat is right:\n- PNL-01: the opacity setter does fix the slider-from-zero bug. It is redundant, though: a didSet plus setBackgroundOpacity both keep a stored `background` in step.\n- COMP-11: the subtitle timeline now uses ScrubSession. It is minimal and matches D038.\n- COMP-01 and WIN-01 gating in InterfaceModel and MXRAppView looks correct (showsPlayerInformation = !isUIHidden && library != .full).\n- Removing the bookmark .alert and the system .contextMenu in favour of mxrContextMenu follows D025/D034.\n- PLAYER-02 and PLAYER-V01: immediate selection works through simultaneousGesture. The extra DragGesture(minimumDistance:0) used to capture modifiers is over-engineered, because NSApp.currentEvent at tap end already carries them. It may also interfere with .onDrag row reordering (not verified at runtime).\n\nWhat is wrong (COMP-16 \"sliders added\"): this contradicts both Figma and the video.\n- Figma 2199:9211 (Subtitle Offset) is a 48 pt field-only row.\n- Figma 6114:13491 (Rotate) is field-only \"0 deg\".\n- Video 07m52.9 shows Subtitle Offset, pixel Font Size, Outline Thickness and Background Opacity as plain text fields in Pixels mode.\n- Codex still added sliders to Offset, Rotate and pixel Font Size. Rotate also regressed: it now shows \"0.00 deg\", the wide row height is gone, and typed angles are clamped (-90 becomes 0) where they used to wrap (-90 becomes 270).\n\nWhat is superficial or asserts the bug away:\n- PLAYER-08 and A11Y-03 queue/bookmark/tab keyboard support (Return plays, Space selects, arrows move, ⌥↑/↓ move, tab ←/→) is dead in the real app. MXRAppController's local keyDown monitor sees a focused SwiftUI row as not a text field or control, so it routes Space (play-pause), Enter (nav-activate), Up/Down/Left/Right (nav-*) to VLC hotkeys first. The SwiftUI handlers never fire. Codex's tests only exercise the pure PanelQueueInteraction helpers.\n- The same change made rows `.focusable()` and programmatically focused them on click, without `.focusEffectDisabled()`/`mxrKeyboardFocusable`. This most likely brings back the system accent focus ring that wave 1 removed (C1/D028).\n\nDesign changes made without a decision:\n- NAT-05 invented a token `readableSecondary` (#8F8F8F) labelled \"figmaStyle: App/Readable Secondary\". That style does not exist in figma_file.json, and there is no DECISIONS entry. It brightens queue and bookmark durations and summaries away from Figma FG/A3, even though ThemeColor already maps fgA3 to fgA1 under Increase Contrast.\n- COMP-05 added a caption under Resolution that is in neither Figma nor the video.\n- HDR is greyed out per Codex's own D039. Rather than this disabled look, it would match the Reverse pattern better to keep the row and add an ⓘ.\n\nNot done: dead `.onExitCommand` in MXRRightPanelView (CODE-09 subset), gallery entries for the scrolled subtitle Appearance section, and any runtime check.\n\nLive window verification was skipped. The Mac was in active use (HID idle about 0 s), and the installed app dates from Oct 15 04:32, so it predates these changes.",
+ "confirmed": [
+  {
+   "id": "G-01",
+   "severity": "major",
+   "title": "Sliders under Subtitle Offset and Pixels-mode Font Size contradict Figma and the video",
+   "files": [
+    "Sources/MXRUI/Panels/SettingsSidebar.swift"
+   ],
+   "evidence": "SettingsSidebar.swift:387 adds a PanelSlider under Subtitle Offset. numericStyleField (:429-436), used at :398 for Pixels-mode Font Size, wraps the field in a VStack with a PanelSlider. Figma 2199:9211 'Frame 99' is 360x48 and holds only the label and a 140x36 text_input '0px', with no wrapper or range. Video frame 07m52.9 (Pixels mode) shows Subtitle Offset 0px, Font Size 18px, Outline Thickness 2px and Background Opacity 0% as plain fields with no sliders. VIDEO_BREAKDOWN §329 says 'Pixels mode shows exact px fields'. The Claude audit cited the generic rule #42 (COMP-16), but the frame-level design evidence overrides it.",
+   "fix": "Delete line 387 (Subtitle Offset slider). Make numericStyleField return only the PanelFieldRow and keep the clamp to `range`. Do not change the Synchronization sliders, because Figma shows sliders there. Add a DECISIONS line under D033 saying that the 'every number has a slider' rule does not apply to Subtitle Offset or Pixels-mode values, per 2199:9211 and 07m52.9."
+  },
+  {
+   "id": "G-02",
+   "severity": "major",
+   "title": "Rotate became field + slider: '0.00 deg' format, no wrap-around, wrong row height",
+   "files": [
+    "Sources/MXRUI/Panels/EffectsSidebars.swift"
+   ],
+   "evidence": "EffectsSidebars.swift:29 is `slider(\"Rotate\", path: \\.rotation, range: 0...359, unit: \" deg\")`. In the S18.Sidebar/video side-by-side (scratchpad final/G-panels-triage/S18.Sidebar/video), the render shows '0.00 deg' with a slider, while Figma 498:2965 and video 09m01.0 show a field-only '0 deg'. Every row below shifts down about 18 pt (Zoom at y 639 vs 621 at 2x). Wave 1 (5ac081046e, lines 29-31) had a PanelFieldRow with `String(format: \"%.0f deg\")`, a modulo wrap and `height: PanelMetric.wideRowHeight`. The current slider clamps -90 to 0 and 360 to 359.",
+   "fix": "Restore the wave-1 code exactly: `PanelFieldRow(title: \"Rotate\", value: String(format: \"%.0f deg\", video.effects.rotation), commit: { text in if let n = panelNumber(text) { video.update { $0.rotation = (n.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360) } } }, height: PanelMetric.wideRowHeight)`. Remove the slider. Re-run `mxr-snapshot check --id S18.Sidebar/video`."
+  },
+  {
+   "id": "G-03",
+   "severity": "major",
+   "title": "Queue and bookmark keyboard handlers (Return, arrows, Space) are swallowed by the app key monitor",
+   "files": [
+    "Sources/MXRUI/Panels/QueuePanel.swift",
+    "Sources/MXRUI/Panels/PanelControls.swift",
+    "Sources/MXRPlugin/MXRKeyRouting.swift",
+    "Sources/MXRPlugin/MXRAppController.swift",
+    "Sources/MXRCore/Models/InterfaceModel.swift"
+   ],
+   "evidence": "MXRAppController.swift:110-139 installs a local keyDown monitor. MXRKeyRouting.shouldHandle (MXRKeyRouting.swift:14-19) exempts only NSTextView or NSControl first responders. A focused SwiftUI row is neither, because the window's first responder stays the hosting view. The monitor then runs `shortcuts.handle(binding)` and returns nil. VLC's macOS defaults (src/libvlc-module.c ~2319-2347) bind Space to play-pause, Enter to nav-activate and Up/Down/Left/Right to nav-*, and VLCShortcutCatalog exposes the nav-* actions. As a result, QueuePanel.swift:311 (.onKeyPress .return), :312 (.space), :109-114 and :140-144 (.onMoveCommand) and the bookmark .onKeyPress(.return) at :177 never fire. Option+arrows are not bound by default, so they probably pass through. PanelAuditRegressionTests only test the pure PanelQueueInteraction helpers. Confirmed by code-path reasoning; not reproduced live.",
+   "fix": "Remove `.onKeyPress(.space)` (QueuePanel.swift:312), because Space stays play/pause. Add `public var panelListHasKeyboardFocus = false` to InterfaceModel. Set it from QueuePanel through `.onChange(of: focusedQueueItem)` and `.onChange(of: focusedBookmark)` (non-nil means true), and reset it in onDisappear. Add a `panelListFocused: Bool` parameter to MXRKeyRouting.shouldHandle. When it is true, return false for unmodified Return/Enter, Up, Down, Left, Right and Delete, and for Option+Up/Down, so SwiftUI receives them. Pass `model.interface.panelListHasKeyboardFocus` from MXRAppController:112. Add a MXRKeyRouting unit test with panelListFocused true and false. Verify in the installed app with Full Keyboard Access: Tab to a queue row, Return plays it, arrows move the selection, Space still pauses."
+  },
+  {
+   "id": "G-04",
+   "severity": "major",
+   "title": "Queue and bookmark rows use plain .focusable() and are focused by mouse clicks, so the system accent focus ring appears",
+   "files": [
+    "Sources/MXRUI/Panels/QueuePanel.swift"
+   ],
+   "evidence": "QueuePanel.swift:310 `.focusable()` (queue rows) and :173 (bookmark rows) have no `.focusEffectDisabled()`. The click paths assign focus: select() at :276 `focusedQueueItem = item.id`, and the bookmark tap at :166 `focusedBookmark = bookmark.id`. Every other wave-1 surface uses the keyboard-only pattern: MXRKeyboardFocus.swift uses `.focusable(true, interactions: .activate)`, `.focusEffectDisabled()` and a design ring in Theme.Color.keyboardFocus. SettingsSidebar:158, MXRLibraryView:146 and PlayerMenus:361/402 also disable the system effect. Not confirmed live.",
+   "fix": "Replace `.focusable()` on both rows with `.focusable(true, interactions: .activate).focusEffectDisabled()`. Keep the existing `.focused($focusedQueueItem, equals:)` and `.focused($focusedBookmark, equals:)` bindings, which G-03 needs. Draw the design ring as an overlay when `focusedQueueItem == item.id`: `RoundedRectangle(cornerRadius: Theme.Radius.md).strokeBorder(Theme.Color.keyboardFocus, lineWidth: Theme.Stroke.iconActive)`. Do not use mxrKeyboardFocusable here: its private @FocusState cannot drive the list's arrow navigation. Remove `focusedQueueItem = item.id` from select() (:276) and `focusedBookmark = bookmark.id` from the tap handler (:166). Keep the focus assignment in the onMoveCommand paths."
+  },
+  {
+   "id": "G-06",
+   "severity": "major",
+   "title": "Subtitles Appearance rows differ from Figma: relative Font Size and Outline Thickness are dropdowns instead of field + ticked slider; Pixels Outline Thickness is not a px field",
+   "files": [
+    "Sources/MXRUI/Panels/SettingsSidebar.swift",
+    "Sources/MXRCore/Values/Effects.swift",
+    "Sources/MXRGalleryCatalog/Entries/PanelsGallery.swift"
+   ],
+   "evidence": "Figma 800:1126 (relative mode only) has three 360x86 frames. 804:1341 'Frame 96' is the 'Font Size' / 'Auto' text plus a 'wrapper' with a range, a 'degrees' tick frame and an 8x24 thumb. 804:1342 'Frame 97' is the 'Outline Thickness' / 'Normal' text plus a ticked range. 848:1686 is Background Opacity '0 %' plus a ticked range. Code: SettingsSidebar.swift:400-407 renders PanelDropdownRow for relative Font Size and for Outline Thickness in both modes, and :411 renders the opacity PanelSlider without `ticks: true`. SubtitleRelativeSize.title says 'Automatic', but Figma says 'Auto'. Video 07m52.9 (Pixels mode) shows Outline Thickness '2px' and Background Opacity '0%' as field-only rows. VIDEO_BREAKDOWN §329 says 'Relative mode shows word sliders; Pixels mode shows exact px fields'. This predates Codex. The rows are below the fold of S20.Sidebar/subtitles, so no check covers them.",
+   "fix": "Relative mode: show PanelFieldRow with the word value plus `PanelSlider(..., range: 0...Double(cases.count-1), step: 1, ticks: true)` over SubtitleRelativeSize.allCases (6 steps) and SubtitleOutline.allCases (4 steps). Order Font Size from smaller to larger. Rename SubtitleRelativeSize.automatic's title to 'Auto'. Give the Background Opacity slider `ticks: true` in 10% steps. Pixels mode: render Outline Thickness as an 'Npx' PanelFieldRow and map it to SubtitleOutline by nearest raw value (0/2/4/6). If freetype-outline-thickness accepts any integer, store an Int instead. Render Background Opacity as a field only, per 07m52.9. Add gallery entries that render the Appearance section scrolled, in both size modes. Compare the relative-mode entry with Figma 800:1126 and the Pixels-mode entry by eye with 07m52.9."
+  },
+  {
+   "id": "G-05",
+   "severity": "minor",
+   "title": "readableSecondary deviates from Figma FG/A3 with no DECISIONS entry and a fabricated figmaStyle label",
+   "files": [
+    "Sources/MXRUI/Panels/QueuePanel.swift",
+    "redesign/design/tokens/colors.json",
+    "redesign/docs/DECISIONS.md"
+   ],
+   "evidence": "QueuePanel.swift:72, 120, 159 and 289 use Theme.Color.readableSecondary (dark #8F8F8F, the same value as fgA2; light #595959). colors.json:340 and :597 label it `figmaStyle: \"App/Readable Secondary\"`, but `grep -c 'Readable Secondary' figma_file.json` returns 0. Figma 491:2378 and 6320:13816 use FG/A3 #6B6B6B. The change answers ChatGPT audit NAT-05 (major a11y: 3.09:1 on bgA2), and D032 is a precedent for readability deviations, so the change is not pure taste. It is an undocumented Figma deviation that brightens S22 durations and the summary. Correction to the report: MXRMiniPlayerView.swift:197/223 and MXRLibraryView.swift:87 also use the token, so it is not limited to queue and bookmarks. ThemeColor.swift:33 already maps fgA3 and readableSecondary to fgA1 under Increase Contrast.",
+   "fix": "Given the owner's 1:1 priority, revert the four QueuePanel uses to Theme.Color.fgA3. Tell the Library area owner to revert MXRMiniPlayerView:197/223 and MXRLibraryView:87 too. Record a DECISIONS entry: NAT-05 is met through the native Increase Contrast path (ThemeColor.swift:33, fgA3 to fgA1), and default secondary text stays Figma FG/A3. Then delete the readableSecondary token, or keep it with figmaStyle changed to 'app-defined (NAT-05, D0xx)'. Never leave the fabricated Figma style name. If the owner prefers AA by default, keep the token, write a D032-style decision and apply it to every panel's enabled secondary text."
+  },
+  {
+   "id": "G-07",
+   "severity": "minor",
+   "title": "Extra Resolution caption not in Figma or the video pushes the Video tab content down",
+   "files": [
+    "Sources/MXRUI/Panels/EffectsSidebars.swift"
+   ],
+   "evidence": "EffectsSidebars.swift:41-42 add a Theme.Font.caption Text: 'Preferred stream resolution applies to the next media opened.' It is absent from Figma 498:2965 and video 09m01.0. In the S18 side-by-side it adds about 22 pt, and the Filters 'Expand Settings' card ends up hidden under the preset footer.",
+   "fix": "Delete the Text at :41-42 and add `.help(\"Preferred stream resolution applies to the next media opened.\")` to the Resolution PanelDropdownRow (:38). D039 already documents the semantics."
+  },
+  {
+   "id": "G-08",
+   "severity": "minor",
+   "title": "HDR dropdown is fully disabled and dimmed; Figma and the video show an active Auto dropdown, and D039 disables only the non-Auto modes",
+   "files": [
+    "Sources/MXRUI/Panels/EffectsSidebars.swift"
+   ],
+   "evidence": "EffectsSidebars.swift:33-36 applies `.disabled(true)` to the whole PanelDropdownRow, which renders a dimmed 'Auto' in S18. Figma 498:2965 and video 09m01.0 show a normal 'Auto' dropdown. D039 reads 'Non-Automatic HDR controls remain disabled with an explanation', which does not cover the whole row. PanelDropdownRow's unavailableReason (PanelControls.swift:336-343) also disables the row, so it is not a fix. PanelChoice has no isEnabled.",
+   "fix": "Keep the row enabled. Pass `choices: [PanelChoice(id: \"auto\", title: HDRMode.auto.title) { video.update { $0.hdr = .auto } }]`, so the list offers only Auto, and keep `.help(\"HDR is selected automatically by the video output. Manual overrides are unavailable.\")`. D039 needs no change. Optionally add an `isEnabled` flag to PanelChoice and list the other modes disabled."
+  },
+  {
+   "id": "G-09",
+   "severity": "minor",
+   "title": "Inline bookmark rename: system-bezeled TextField, stale edit state on click-away, empty name silently ignored",
+   "files": [
+    "Sources/MXRUI/Panels/QueuePanel.swift"
+   ],
+   "evidence": "QueuePanel.swift:149-154 is `TextField(\"Bookmark name\", text: $bookmarkName)` with no `.textFieldStyle(.plain)`, mxrTextStyle or fill. PanelFieldRow does style its field (PanelControls.swift ~374-392). editingBookmark is cleared only by onSubmit or onExitCommand. saveBookmarkName (:262-268) returns without leaving edit mode when the text is empty.",
+   "fix": "Style the field like PanelFieldRow: `.textFieldStyle(.plain).mxrTextStyle(Theme.Font.body).foregroundStyle(Theme.Color.fgA1)` on a bgB2 rect with Theme.Radius.md. Add `.onChange(of: bookmarkEditorFocused) { _, focused in if !focused { saveBookmarkName() } }`. In saveBookmarkName, set `editingBookmark = nil` when the text is empty, which cancels the edit. Clear editingBookmark in onChange(of: tab) and onDisappear."
+  },
+  {
+   "id": "G-10",
+   "severity": "minor",
+   "title": "Zero-distance DragGesture used only to read modifiers duplicates simpler code and may compete with .onDrag reordering",
+   "files": [
+    "Sources/MXRUI/Panels/QueuePanel.swift"
+   ],
+   "evidence": "QueuePanel.swift:301-309 adds `simultaneousGesture(DragGesture(minimumDistance: 0))` plus @State pressedModifiers and an async reset, only to read modifier flags. The same view carries `.onDrag` (:324) for drag reordering (video 20m21.4). LibraryEntryView.swift:58 reads `NSEvent.modifierFlags` directly for ⌘/⇧-click. The report's 'NSApp.currentEvent, mirroring LibraryEntryView' is inaccurate. Interference with dragging is not verified live.",
+   "fix": "Delete the DragGesture and pressedModifiers. In the TapGesture use `select(NSEvent.modifierFlags.intersection(.deviceIndependentFlagsMask))`, matching LibraryEntryView.swift:58. Verify in the installed app that ⌘-click, ⇧-click and drag-reorder all work."
+  },
+  {
+   "id": "G-11",
+   "severity": "minor",
+   "title": "SubtitleStyle.background is a stored duplicate of backgroundOpacity; decode and init can make them disagree",
+   "files": [
+    "Sources/MXRCore/Values/Effects.swift"
+   ],
+   "evidence": "Effects.swift:560-565 store `background` and keep it in sync through a didSet on backgroundOpacity. The memberwise init (:576-591) assigns both without the didSet, and synthesized Decodable also skips it. PresetStore.swift:36 persists SubtitleStyle in presets. A stored preset with background=false and backgroundOpacity=0.5 therefore decodes inconsistent. The bridge (MXREffectsServices.m:260) writes freetype-background-opacity=0 when background is false, while the sidebar shows 50%.",
+   "fix": "Make `background` a computed property `{ backgroundOpacity > 0 }`. Remove the didSet, the init parameter and the duplicate line in setBackgroundOpacity. Add explicit CodingKeys plus init(from:) that ignores a decoded 'background', and an encode(to:) that still writes `background` = opacity > 0, because the bridge reads args[@\"background\"] at MXREffectsServices.m:260. Otherwise also edit that bridge line to derive it from backgroundOpacity. Add a test that decodes a legacy payload {background:false, backgroundOpacity:0.5} and expects opacity 0.5 with background true."
+  },
+  {
+   "id": "G-15",
+   "severity": "minor",
+   "title": "Legacy presets with HDR or Resolution values outside the bridge's list make the preset's whole video section fail to apply",
+   "files": [
+    "Sources/MXRCore/Values/Effects.swift",
+    "Sources/MXRCore/Models/EffectsModels.swift"
+   ],
+   "evidence": "MXREffectsServices.m:191-195 rejects the whole setVideoEffects when hdr != 'auto' or resolution is not one of 1080p/720p/576p/360p/240p. Wave 1 offered 2160p, 1440p and 480p (5ac081046e EffectsSidebars:38) and HDR10/HDR10+ (HDRMode still has them). PresetStore.swift:43 persists VideoEffects, and apply (:175-180) passes them through unchanged. Correction to the report: VideoEffectsModel.update starts from backend.videoEffects, the engine's value, so later sidebar edits still work. What fails is applying such a preset, which also drops its flip, rotate, zoom, crop and aspect values.",
+   "fix": "Add `VideoEffects.sanitized` (resolution outside the allowed list becomes nil, hdr becomes .auto) and use it in VideoEffectsModel.set before backend.setVideoEffects. Also apply it in a custom init(from:), or in PresetStore.apply if that file's owner agrees. Define the allowed resolution list once in Effects.swift and use it for the dropdown choices at EffectsSidebars:38 as well. Add a test that applies a legacy preset with resolution '2160p' and hdr 'hdr10' and keeps flip/zoom."
+  },
+  {
+   "id": "G-14",
+   "severity": "minor",
+   "title": "S17 fixture shows the Subtitle Timeline toggle disabled; S20 delay slider labels sit 4 pt low",
+   "files": [
+    "Sources/MXRGalleryCatalog/Entries/PanelsGallery.swift",
+    "Sources/MXRUI/Panels/PanelControls.swift"
+   ],
+   "evidence": "The S17.Sidebar/playback side-by-side shows 'Show Subtitle Timeline on Seekbar' dimmed with ⓘ, because subtitleTimelineUnavailable (SettingsSidebar.swift:298-302) treats the fixture's selected subtitle as embedded. Figma 5187:24308 shows a normal OFF toggle. In S20.Sidebar/subtitles the '-10 s / 0 s / +10 s' labels sit at y≈725 vs 717 in Figma at 2x, so 4 pt low. The 'fill sliver' on Subtitle Speed is not a min-fill bug: the value is 1.000 on a 0...60 range (SettingsSidebar.swift:369), so the fill is correct. That part of the report is rejected.",
+   "fix": "In PanelsGallery sidebarApp() for S17, select an external subtitle track, or give the mock capabilities that match Figma, without changing product defaults (D030). In PanelSlider (PanelControls.swift ~579), reduce the labels' offset by 4 pt: check PanelMetric.sliderLabelsGap (10, from 1905:7365) against the label line height and Figma 804:1165. Re-run S17 and S20 checks. The S15 offsets of 1-2 pt are optional."
+  },
+  {
+   "id": "G-13",
+   "severity": "minor",
+   "title": "Unused PanelMetric.rowPitch and dropdownListMaxHeight remain (CODE-09 subset)",
+   "files": [
+    "Sources/MXRUI/Panels/PanelControls.swift"
+   ],
+   "evidence": "`rg -w 'rowPitch|dropdownListMaxHeight'` over Sources and Tests finds only the definitions at PanelControls.swift:23 and :37.",
+   "fix": "Delete both constants. Keep TrackPopover.swift:19 `.onExitCommand` (see the rejection note)."
+  }
+ ]
+}

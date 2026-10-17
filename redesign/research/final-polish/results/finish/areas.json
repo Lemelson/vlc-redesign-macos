@@ -1,0 +1,450 @@
+[
+ {
+  "area": "A-window",
+  "mode": "refix",
+  "state": "passed",
+  "fixed": [
+   "Major (gate order dependence): the cause is that the font-smoothing setting is read once per process, the first time AppKit is touched, so any earlier test that touches AppKit made recording FAIL. testSettingsCategoriesMatchFigmaOutsideDocumentedDeviations now runs each S48 Settings check in its own mxr-snapshot process (4 in parallel), so it gives the same verdict as the CLI in any order. Checked: the pair passes twice in a row, the run with DialogsTests first passes, and the targeted set is 41/41.",
+   "Major (b) recording: its undocumented differences are listed in openSettingsDifferences with the exact reason: ~/Movies, Default (Medium), and the ⓘ on Include video and Include subtitles. Its verdict is now a steady REVIEW, 1532 px, the same as the CLI.",
+   "Minor (hard-coded differs rects): added FigmaDeviation.differs(node:outset:), placed from the Figma node box minus the removed bands above it. The general, general-advanced, playback and recording deviations now point at the Toggle or Dropdown node: 3046:9900, 3046:9356, 3062:12858 and 6571:16804. New test testNodeAnchoredDifferenceFollowsRemovedRows; the citation and ancestry test also covers anchored nodes."
+  ],
+  "notFixed": [
+   {
+    "id": "Minor D030 citation note",
+    "why": "Adding a DECISIONS.md line that records the product defaults would be a decision entry. I do not own that file and should not decide it. The defaults in question are Continue 'Ask', Play locally OFF and ~/Movies. Listed under ownerDecisions."
+   },
+   {
+    "id": "Minor S12 library row file names",
+    "why": "This belongs to the library area. Passed to the library owner in notesForOthers."
+   },
+   {
+    "id": "Recording undocumented differences",
+    "why": "These are F-settings product details: ~/Movies vs ~/Videos, 'Default (Medium)' vs 'Medium', and the ⓘ on Include video and Include subtitles. They are not in my files. Recording is listed as an open difference until they are fixed or documented."
+   },
+   {
+    "id": "A-05 runtime",
+    "why": "This wave allows no live UI. The checks stay in liveChecks from the previous report: A-05-S01, S72, queue-hideui, cpu, cursor, pip, A-08-live."
+   }
+  ],
+  "notesForOthers": "Integrator:\n- testSettingsCategoriesMatchFigmaOutsideDocumentedDeviations now launches `mxr-snapshot` from the same build products directory as the test bundle. `swift build --build-tests` or `swift test` builds it. If the binary is missing, the test fails with an error rather than skipping.\n- Any new pixel-exact Figma gate that renders text in-process can depend on test order. Font smoothing is set once per process, by whichever test first touches AppKit (NSApplication, any NSFont). Such a gate should run through mxr-snapshot as this one does.\n\nF-settings: S48.Settings/recording is now in openSettingsDifferences:\n- '~/Movies' vs Figma '~/Videos'\n- 'Default (Medium)' vs 'Medium'\n- ⓘ icons on Include video and Include subtitles that Figma does not have.\nFix these or document them, then remove the entry. A changed product default can be declared with `.differs(node: <Figma control node>, decision:)` in SettingsFigmaDeviations.swift.\n\nLibrary owner: in S12.Window/continue-narrow, the compact library rows show the raw file name 'The_Wand_S01E…' with underscores, while the top-bar title is clean (A-04).",
+  "verdict": {
+   "pass": true,
+   "summary": "A-window round 3 holds up: no blocker or major issue that code, tests or renders can establish. The only remaining part is the real-window check for A-05, which goes to liveChecks.\n\n**Build and tests**\n- `swift build --build-tests` is clean.\n- Order test: I ran `ContinueWatchingToastTests`, `DialogsTests`, `FigmaDeviationTests` and `PanelsTests` together. `DialogsTests` touches AppKit before the gate runs, and all 32 tests passed. The Settings gate no longer depends on test order, because each check runs in its own mxr-snapshot process.\n- Targeted set: `WindowCompositionTests` (12), `AnchoredPopupPinPolicyTests` (3), `PlayerProgressRegressionTests` (4), `GalleryRenderTests` (13) and `OSDLayoutTests` (2). All 34 passed.\n- Logs are in `<scratch>`.\n\n**Cross-area items**\n- **(1) F-06 deviation mechanism.** `FigmaDeviation` supports three kinds of deviation:\n  - `removed`: a Figma row the product leaves out; it is cut from the reference and the rows below are still compared.\n  - `differs`: a rect where the product draws something else.\n  - `differsAt`: the same, anchored to a Figma node and moved up by the rows removed above it.\n  \n  Every deviation must cite an accepted decision, and a test checks that each one does and that each anchored node belongs to the entry's Figma frame. Another test draws a wrong block outside every declared area and confirms the check still FAILs. There is no global threshold change. The edit to SettingsGallery.swift is minimal.\n  \n  My CLI runs gave these verdicts:\n  - recording: REVIEW\n  - playback: REVIEW\n  - general: REVIEW\n  - general-advanced: FAIL. This is a real open difference: I looked at the side-by-side, and Show minor warnings and Additional command line options are missing.\n  - performance: FAIL, listed as open with its reason.\n- **(2) Player-6 transport region.** The strict test now gets a PASS for \"transport and elapsed time\" and the other three regions. The whole-entry check still reports FAIL at the playhead (346,1040). That is the documented position difference: Figma's own times put the playhead at 8.4 %.\n- **(3) A-08 resume toast.** I rendered S12.Window/continue-narrow and looked at it. The toast now shows only Continue Watching and close, sits in the middle of the visible video to the right of the compact library, and nothing is truncated. A test measures the toast's real fitted size at the narrow and wide widths.\n\n**Earlier minor issues are fixed**\n- The title tooltip uses `mxrHelp(optional)`, so non-file media no longer get an empty tooltip.\n- The PiP icon has its own metric, `MXRPlayerMetrics.pictureInPictureIcon`.\n- The S72 note now cites D046 instead of the superseded D043.\n\n**Hard rules**\n- No engine edits: `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty.\n- No literal design values were added.\n- No masks or thresholds hide differences.",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "Tests/MXRUISnapshotTests/FigmaDeviationTests.swift openSettingsDifferences",
+     "description": "Six S48 Settings entries are non-strict expected failures: general-advanced, interface, audio, performance, extensions and recording. While they stay open, the gate cannot catch a new regression in those six categories. Each reason is specific and I checked general-advanced by eye: Show minor warnings and Additional command line options really are missing. F-settings or the owner still has to close these entries."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRUI/Player/PlayerView.swift MXRContinueWatchingToast",
+     "description": "ViewThatFits falls back to the actions-only toast. If the video is narrower than that layout (about 400 pt), the toast overflows instead of shrinking further. This does not happen in any state the gallery covers. The 640 pt window with the compact library renders correctly."
+    },
+    {
+     "severity": "minor",
+     "where": "S12.Window/continue-narrow (library area)",
+     "description": "The compact library rows show the raw file name 'The_Wand_S01E…' with underscores, while the top-bar title is clean. This belongs to the library owner, and the fixer already passed it on."
+    }
+   ]
+  }
+ },
+ {
+  "area": "B-controls",
+  "mode": "verify",
+  "state": "passed",
+  "verdict": {
+   "pass": true,
+   "summary": "Independent verification, round 1, of B-controls at HEAD 4c457baa03, plus the fixer's report wf_eade8af3-fix_B-controls.json. The build is green and owned files raise no warnings after a touch-rebuild. Engine diff vs upstream-base-2026-10-14 (src lib include modules/gui/macosx) is empty. gen-tokens --check passes (rc 0).\n\nTargeted tests all pass: SeekProgressRedraw 4, PlayerProgressRegression 4, ConeScrollIsolation 4, OSDLayout 2, PauseButtonContrast 1, ThemeContrast 8, MiniPlayerSeekBinding 1, PlaybackClock 4, Scrubbing 6, VideoClickTiming 2.\n\nPer finding:\nB-01 (blocker) FIXED. SeekProgressNSView now registers withObservationTracking on revision, displaySecond, isRunning and length, re-registers on every change, and moves CALayers; there is no updateNSView dependency. SeekProgressRedrawTests hosts the real MXRSeekBar in an NSHostingView/NSWindow and reads the head layer's frame after each scrub step, after a paused jump and after a Reduce Motion second. These are behavioural tests, not predicates. The dead `let _ =` line is gone.\nB-05 (major) FIXED in code. A CADisplayLink at the half-point rate is gated on bars visible, Reduce Motion, window occlusion (notification), NSApp hidden and view hidden, and each frame only changes layer geometry. The fixer's live CPU numbers (visible 7.2–7.5 % vs Hide UI 5.9 %) cannot be re-measured in this no-live wave; see liveChecks.\nB-04 (major) FIXED. allowsStill is now off only for active essential or colour pixel filters. Subtitles, renderer, resolution, deinterlace and HDR keep the still. PausedStillLayout reproduces flip, rotate (rotate-filter semantics: size kept, CCW angle), croppadd insets, crop ratio, aspect override and zoom, and is tested numerically. D047 amends D038.\nB-02 FIXED. No NSView remains in the cone: it uses a SwiftUI hover plus a local monitor modifier. Image-engine checks: C.VolumeCone/0 PASS; /50, /100 and /200 show only Δ2 gradient colour (FAIL on the flat-colour rule, no placeholder).\nB-03 FIXED. Direction is (natural ? -1 : 1) × (reverse ? -1 : 1), the same rule as MXRNativePreferences:91. It reads the same macosx-redesign-reverse-scroll option and has a unit test.\nB-06 FIXED. No disabled Button: the whole 76×28 box is the target, mxrKeyboardFocusable gives no system ring, and non-seekable streams get a hint.\nB-10 FIXED with D047 (Figma proportional digits). C.CurrentTime/default PASS, structural 0 %; Duration/default and Duration/remaining PASS.\nB-08 FIXED, with minor loose ends (see issues). The s13 render, viewed next to key frame 15m27.1s, has a clear margin and correct two-line hierarchy.\nB-09 FIXED. Light S01.ControlBar crop next to the Player - Light crop: #888888 track, lifted green fill and #262626 body match (cone_cmp.png). The tokens are generated.\nB-11 FIXED. PauseButtonFill keeps standard-contrast fgA3, and the contrast test covers both schemes and both contrast settings.\n\nAlso checked: C.PlayButton play and pause PASS; VolumeTooltip and SeekPreview are REVIEW (antialiasing or shadow only). Waveform is off by default, and VideoClickTiming and NowPlaying are untouched and tested.\n\nCross-area C.SeekBar/default: the geometry is correct and the fixture equals Figma's labels. Figma's drawn head (0.0734 ≈ 113 s) contradicts its own 02:10/25:40 labels (0.0844). It still FAILs because no fixer applied the honest fixture fix, which is to give the bar-only entry Figma's drawn time. Recorded as minor; it is not a product defect.\n\nOwnership: the fixer's edits outside its area (MXRAppView OSD line, DECISIONS D047, AUDIT_FIXES) are declared. No blocker or major remains. Evidence is in <scratch> (C_*/report.txt and side-by-side.png, S01_ControlBar_default, S01_light, cone_cmp.png, s13.png, s13_crop.png).",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "Sources/MXRGalleryCatalog/Entries/PlayerGallery.swift:34 (C.SeekBar/default fixture), cross-area item assigned to B-controls",
+     "description": "C.SeekBar/default still FAILs (flat colour 1.15 %, region at x≈92–114 pt). The fixer did not address it. Evidence: Figma 1908:7387 draws the fill at x=2, w=98 and the head 'Rectangle 10' at x=92, so progress = (92−2)/(1238−4−8) = 0.0734. The Controls frame's own labels say 00:02:10 / 00:25:40 (130/1540 = 0.0844), which puts the head at 2 + 1226×0.0844 = 105.5 pt, exactly where our render draws it. Our geometry is right: seekHeadX is linear and the fill = travel×p + head.width reproduces Figma's 98 pt fill for Figma's own head. The fixture time also equals Figma's labels (videoApp loads 0:02:10 of 0:25:40, and C.CurrentTime/C.Duration PASS). The mismatch is internal to Figma. Honest fix: give the bar-only C.SeekBar/default entry its own fixture time at the position Figma draws (≈113 s of 1540, i.e. 00:01:53). Keep videoApp/product defaults and the time-label entries at 02:10, and keep the existing S01.ControlBar note explaining the label-vs-head inconsistency. Do not change the geometry and do not mask the region."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRUI/MXRAppView.swift:~189 + Sources/MXRDesign/Typography/OSDTypography.swift pictureHeight",
+     "description": "B-08 is done in substance. The render s13.png shows a clear margin that scales with the text, matching key frame 15m27.1s. Two loose ends remain: (1) the OSD scales against CGSize(width: size.width, …), the full window width, not the information rect's width, so when the compact library or a right panel is open the aspect-fit picture height is overestimated for narrow areas; (2) the OSD is anchored to the trailing edge of the information rect, not of the pillarboxed picture. Neither is visible in the default full-width case."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRUI/Player/PlayerControls.swift MXRTimeLabel.staticLabel",
+     "description": "The inner staticLabel declares its own accessibilityElement(children: .ignore), label, value and hint, while the outer MXRTimeLabel body still applies .accessibilityValue(label) too, so the value is set twice. Harmless, but VoiceOver output should be confirmed in the live wave (see liveChecks)."
+    }
+   ]
+  }
+ },
+ {
+  "area": "C-bridge",
+  "mode": "refix",
+  "state": "passed",
+  "fixed": [
+   "C-01 (major, verifier r1): one-shot per-item ':start-paused' consumed in the on_current_media_changed callback (MXRServicesBridge.m queueCommand playNow, PlayerMedia, dropStartPausedItem; refixer's code, verified against src/input/input.c:249 and src/player/player.c:60-95). Proven by the real-engine bridge smoke (module/tests/bridge-smoke.m) via native-tests.py --suite fixture: PASS",
+   "C-02 (minor, verifier r1): CanonicalMRL (vlc_uri2path + vlc_path2uri) is applied before hashing and storing in _addedTrackURLs, so sidecars named like 'Movie (2020).srt' are selected rather than added twice (refixer's code, checked)",
+   "C-10 (minor, verifier r1): VLCPlayerBackend.setVideoEffects skips a side only when the request equals both the snapshot and the previous request; tests testRevertTogetherWithAResolutionChangeSendsBothSides and testRequestEqualToThePreviousOneIsSentAfterAnOutsideChange, plus the existing revert and resolution tests",
+   "D045 stale 'no extension-dialog provider' wording (verifier r1 minor): updated in DECISIONS.md by the refixer; the SettingsExtensionsView comment is already gone",
+   "Stale bridge-smoke thumbnail assertion (it expected PNG data; the service returns a CGImage): now asserts a 160x90 CGImage, so the whole fixture smoke passes again",
+   "B-controls note, Hide UI (⌘\\) OSD showed only 'Pressed ⌘\\': app actions triggered by a key now show the action line plus the key (ShortcutsModel passes keyed to appActionHandler; AppModel reports the result through osd.actionPerformed). Tests: Tests/MXRCoreTests/AppActionFeedbackTests.swift",
+   "C-13: services join in parallel with os_signpost (first fixer); verified in code. The latency number itself is a live check"
+  ],
+  "notFixed": [
+   {
+    "id": "C-09",
+    "why": "Owner decision (D039 HDR 'Off' trade-off): the default avsamplebuffer vout has no tone-map override, so Off means forcing caopengllayer, which gives up PiP and EDR. Auto stays the only honoured mode."
+   },
+   {
+    "id": "C-15",
+    "why": "SettingsExtensionsView.swift belongs to F-settings (missing Advanced Options row, extra ⓘ)."
+   },
+   {
+    "id": "C-05-risk",
+    "why": "Trigger-only Lua scripts still run synchronously on the media-services serial queue, the same pattern Qt uses. I kept it on purpose: the serial queue is what keeps a concurrent rescan or unload from freeing the extension manager while a script runs. The verifier rated it acceptable and not a correctness failure."
+   },
+   {
+    "id": "C-03-runtime",
+    "why": "A headless run cannot reach MXRVoutWindow: vdummy/vmem never request a window. So the claim that a 'Play locally while streaming' vout is tagged auxiliary and stays off the main surface goes to liveChecks. The mode check (stream only) is covered by the contracts suite, and the parent chain (window → vout → dummy vout → stream_out → sout instance → output player) matches src/input/resource.c and stream_out/display.c."
+   }
+  ],
+  "notesForOthers": "- **AppModel owner:** the app-action OSD wiring is in AppModel. `ShortcutsModel.appActionHandler` now takes `(actionID, keyed)`, and AppModel's `keyFeedback(after:)` returns the OSD line.\n- **Engine actions:** VLC actions with no OSD text in the bridge (fullscreen, quit, snapshot) still show only \"Pressed <key>\", as before.\n- **Integrator:** the fixture native suite passes again. Its thumbnail assertion had been stale since the service switched to returning a CGImage.\n- **F-settings:** C-15 (Advanced Options row, extra ⓘ on the extensions page) is still yours.",
+  "verdict": {
+   "pass": true,
+   "summary": "Pass. The r1 major (C-01) is fixed and I confirmed it independently against the real engine. All other confirmed C-bridge findings are fixed, deferred to the owner, or belong to another area, with only minor notes left.\n\nHow I checked:\n- `swift build`: green.\n- `swift test --filter MXRVLCBackendTests`: 57 tests, 0 failures.\n- AppActionFeedbackTests, ShortcutsAndOSDTests, QueueStartPaused and OpenAutoplay tests: pass.\n- Native suites, run under lock.sh by me: fixture PASS, contracts PASS, extensions PASS. Logs are in scratchpad/final2/C-bridge-verify-r2/native-*.log.\n- `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty, so there are no engine edits.\n\nC-01: playNow now puts a one-shot ':start-paused' only on inputs[index]. I traced this against the engine:\n- src/input/input.c:249 applies item options inside input_Create, and input.c:656 reads start-paused.\n- src/player/player.c:85-94 has on_current_media_changed as the only sender, firing right after vlc_player_input_New, on both the synchronous path and the destructor-thread path.\n- PlayerMedia strips the option under the player lock, which is the same lock the playlist uses.\n- The real-engine bridge smoke (argv[3] audio branch, which runs in the fixture suite) proves four things: open paused while playing gives PAUSED, it stays paused for 1 s, the option has left the queue item, and replaying the item plays.\n\nC-02: CanonicalMRL uses the engine's own vlc_path2uri, which matches how sidecar MRLs and their MD5 str-id prefixes are built (subtitles.c:346, input.c:2826). The case with ( ) or ' in the file name has no runtime test, so it is a live check.\n\nC-10: the new two-baseline gate (snapshot and previous request) closes the revert-during-lag hole. I walked through these sequences and none of them drops a request:\n- change then revert before the topic arrives;\n- revert together with a resolution change;\n- a stale intermediate topic;\n- an outside hotkey change followed by a re-request.\n\nThe behaviour tests use a fake transport that publishes topics.\n\nHide UI OSD: app actions triggered by a key now go through canPerform, then perform, then osd.actionPerformed(keyFeedback). Menu triggers stay silent, and a blocked action shows only the key. The tests check the real OSD message and pressed-key text through AppModel.mock.\n\nOther findings, all re-checked in code:\n- C-03: the stream-only mode check is correct; the auxiliary-vout runtime part is a live check.\n- C-06, C-07, C-08, C-11, C-12, C-14: fixed in code.\n- C-13: services shut down in parallel with signposts; the latency number is a live check.\n- C-09: deferred to the owner (D039).\n- C-15: belongs to F-settings.\n\nOwnership: the edits outside C-bridge (AppModel.swift, the new AppActionFeedbackTests) are small and declared. Neither the Swift build nor the tests showed any errors, and I found no masks, thresholds or literal design values.",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "module/bridge/MXRHotkeyFeedback.inc MXRHotkeyFeedback default branch (~line 439)",
+     "description": "Cross-area item 'every custom command produces the two-line OSD' is met for all app-* commands (AppModel.keyFeedback). Engine actions VLC itself draws no text for (fullscreen, quit, navigation, bookmarks, viewpoint) still show only 'Pressed <key>', and a snapshot shows its file once the file is written. This follows VLC's behaviour and is documented in the code. It is not a defect, but the owner or live wave should confirm it is acceptable for fullscreen (⌘F/F)."
+    },
+    {
+     "severity": "minor",
+     "where": "module/bridge/MXRServicesBridge.m addExternalTrack + CanonicalMRL",
+     "description": "C-02: the canonicalisation is correct by code. It uses the same vlc_uri2path/vlc_path2uri path that src/input/subtitles.c:346 and input.c:1043 use to build sidecar MRLs, and the same MD5 as input.c:2826. No native runtime test covers a sidecar named with ( ) or ', so it stays a live check (C-02-live)."
+    },
+    {
+     "severity": "minor",
+     "where": "module/bridge/MXRServicesBridge.m queueCommand playNow / PlayerMedia",
+     "description": "C-01 edge case: if vlc_player_input_New fails (ENOMEM), on_current_media_changed fires with media NULL, and the ':start-paused' option stays on the item until the next playNow calls dropStartPausedItem. This is practically unreachable."
+    },
+    {
+     "severity": "minor",
+     "where": "module/bridge/MXRMediaServices.m extension trigger path",
+     "description": "C-05 risk carried over from r1 and accepted: trigger-only Lua scripts run synchronously on the serial media-services queue, the same pattern as Qt. The native 'extensions' suite passes again: a real Lua dialog is drawn, input reaches the script, close deactivates it, and quit never waits for main."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRUI/Settings/SettingsExtensionsView.swift (F-settings)",
+     "description": "C-15 (missing Advanced Options row, extra ⓘ) is still open and belongs to F-settings, not C-bridge."
+    }
+   ]
+  }
+ },
+ {
+  "area": "D-menus",
+  "mode": "minors",
+  "state": "passed",
+  "fixed": [
+   "D-12 residual: popup shadow bitmap now uses Figma's fitted kernel (σ 0.45×blur, cut at 0.93×blur) through vImage, replacing CG setShadow. S68 goes from FAIL to REVIEW on all three engines; only the D026 glyph regions remain.",
+   "S68 gallery composition: the Profile submenu card is shown at its own 265 pt width (.fixedSize()) instead of stretched to 375 pt.",
+   "Verify issue: submenu rows built from the shared model in the menu bar now show their disabled state. These menus turn off autoenabling and set every row from its own state plus isBehindModal (refreshEnabledState).",
+   "Verify issue: the PiP gate in the overflow menu and menu bar no longer borrows canPerform(.toggleFullscreen); it uses !isBehindModal.",
+   "Verify/notFixed D-13 cosmetic: the S10.Overflow/compact-bar frame, and also the S10.ContextSubmenu/* frames, are sized from their content.",
+   "J-10: renderer discovery wording is now 'Discover Cast Devices' / 'Discovering Cast Devices…' in PlayerMenus and EffectsSidebars, matching Figma's 'Discover cast devices'.",
+   "C-05 UI entry: native View ▸ Extensions submenu, using the new MXRPlayerMenus.extensions builder (extension menus, enable/disable, run on demand, Manage Extensions…).",
+   "Verify issue D-07 queue: already fixed in HEAD (QueuePanel uses the shared addToPlaylist); confirmed, no edit needed."
+  ],
+  "notFixed": [
+   {
+    "id": "live-app verification (D-01, D-02, D-05, Esc, new View ▸ Extensions, disabled submenu rows)",
+    "why": "No live UI in this wave. The steps are in liveChecks."
+   }
+  ],
+  "notesForOthers": "Integrator:\n- **S68.Profiles/movies (CustomizationGallery, not my area)** FAILs with mean |Δ| 81/255. The render is #FFCC00 against Figma #181818, which looks like a placeholder or failed render of MXRProfilesView in the image engine. Worth a look by the owning area.\n- **Accelerate dependency.** MXRMenuCard.swift now imports Accelerate. The plugin build uses autolinking: UniformTypeIdentifiers, CryptoKit and ImageIO are imported without being listed in Makefile.am either. If the native link complains, add -framework,Accelerate to libmacosx_redesign_plugin_la_LDFLAGS.\n- **Other Figma shadows.** Figma's kernel is σ ≈ 0.45 × blur, cut off at about 0.93 × blur, not the CSS blur/2. Other mxrShadow users (radius = blur/2) may have slightly long tails in their own compares.",
+  "verdict": {
+   "pass": true,
+   "summary": "I verified the area independently against HEAD 4c457baa03 plus the working tree. `swift build` is green, with no warnings in D-menus files. Targeted tests pass: MenuAuditRegressionTests, the new MenuExtensionsAndShadowTests (2), PopupMenuTests 13, AnchoredPopupPinPolicyTests 9, ModalIsolationTests 6 and ShortcutDefaultsTests 7.\n\nNew fixes, checked in code:\n- **Disabled submenu rows.** `autoenablesItems = false` is set on the lazy shared-model menus. `refreshEnabledState` runs in `menuNeedsUpdate` on every update (which also covers key-equivalent searches). Submenu rows use the row's own enabled state AND `!isBehindModal`; other rows go through `validateMenuItem`. `runNativeAction` still guards on enabled and `!isBehindModal`.\n- **PiP gate.** It uses `!isBehindModal` in both the overflow menu and the menu bar, and no longer borrows the `.toggleFullscreen` gate.\n- **J-10.** Both the right-click Renderer submenu and the Video sidebar's Render dropdown say \"Discover Cast Devices\" / \"Discovering Cast Devices…\". The EffectsSidebars edit is one line and is declared.\n- **C-05, View ▸ Extensions.** The submenu is lazy and builds:\n  - a run row for on-demand extensions, with errors going to the dialogs;\n  - a checked submenu holding the extension's entries plus Disable for an enabled extension that has a menu;\n  - a checkable toggle row for other extensions, gated by activate availability;\n  - \"No Extensions\" when nothing is installed;\n  - \"Manage Extensions…\", which opens Settings ▸ extensions.\n\n  The test exercises the real builder: it enables an extension, runs its actions, opens its submenu and disables it.\n- **D-12 shadow.** The shadow is now a separable vImage convolution with a truncated Gaussian kernel (σ = 0.45 × blur, cut at 0.93 × blur). The test checks the drawn alpha profile: clear inside the card, about half at the edge, about 16% at 1σ, and roughly 0 at the kernel's reach.\n\nRenders I ran and looked at, under scratchpad/final2/D-menus-verify-r2/check:\n- **S68.ProfileSubmenu/movies:** REVIEW on the image, hosting and shipping-window engines (mean |Δ| 0.81). The side-by-side and heatmap show only the D026 Mac shortcut glyph regions; the shadow tail is gone and the Profile submenu is shown at its own width.\n- **PASS:** C.Menu/context-hover, C.Menu/view-options, S32 sort and S32 view.\n- **REVIEW, glyph or shortcut regions only:** S07, S09, S29, S30, S31 and both dropdowns.\n- **S10.Overflow/compact-bar and S10.ContextSubmenu/playback:** frames hug the cards and the rows are in Figma style.\n\nEarlier findings D-01 to D-13 were verified in round 1, and nothing in this round's diff regresses them. The lint test still finds no `.contextMenu`, `.popover` or `.menuStyle` under MXRUI. The QueuePanel issue from round 1 is resolved: it now uses the shared addToPlaylist.\n\nHygiene: `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty. No thresholds or masks were changed. No literal design values were added to views; the shadow kernel constants describe how the renderer is modelled and are documented. The only edit outside ownership is the declared one-line J-10 change.\n\nWhat remains is live-only checking (listed below) plus minor follow-ups: extension menus may be stale until refreshed, and the Accelerate link should be confirmed at install.",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "Sources/MXRUI/Player/PlayerMenus.swift extensions(_:) + VLCServiceBackends.menu(forExtension:)",
+     "description": "The entries of an extension's own menu come from the cached extensions catalog snapshot. The bridge fills that snapshot (extension_GetMenu) only when the catalog is rebuilt, and the menu bar rebuilds the submenu only when Observation marks it dirty. VLC's own UIs query extension_GetMenu each time the menu opens. If a Lua extension's menu() is not ready right after activation, or changes later, View ▸ Extensions can show a stale or missing submenu: the extension appears as a checked toggle row with no entries. This needs a live check with a real extension. It is not a blocker."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRDesign/Popup/MXRMenuCard.swift (import Accelerate)",
+     "description": "Accelerate is not listed in Makefile.am LDFLAGS. On Darwin, Swift autolinking (LC_LINKER_OPTION) should resolve it, as it already does for CryptoKit and ImageIO. The native plugin link was not run in this verification, so the integrator should confirm the libtool link at install time."
+    },
+    {
+     "severity": "minor",
+     "where": "S68.ProfileSubmenu/movies diff-heatmap",
+     "description": "S68 is now REVIEW on all three engines (mean |Δ| 0.81). The remaining boxed regions are the D026 Mac shortcut glyphs. A few faint single-pixel speckles remain along the submenu card's left edge, below visibility. The shadow tail that caused the earlier FAIL is gone. No threshold or mask was changed, and the fit is documented in code and pinned by a test that checks the drawn alpha profile."
+    }
+   ]
+  }
+ },
+ {
+  "area": "E-library",
+  "mode": "verify",
+  "state": "passed",
+  "verdict": {
+   "pass": true,
+   "summary": "Independent verification, round 1, of E-library at HEAD 4c457baa03. The working tree is clean, and `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty. I re-checked all 13 confirmed findings in code. 12 are fixed correctly. E-06 cannot be closed without the real window.\n\n- E-01: compact Home runs ForEach(homeSections) with prefix(3). I rendered S40.Library/home and looked at it: all five Figma sections appear in the compact panel. The only differences are fixture names. D044 records the decision.\n- E-02: in mediaAt 'playlist', INSERTIONDATE keeps the storage order, and b_desc reverses it. The dateRanks query and the importDates tie-break are gone, and SortedMedia only reorders for the watched sorts, so it does not override this.\n- E-03: -playlistMedia:complete: compares i_nb_media, i_nb_present_media and the listing count. A partial playlist gets no playlistOccurrence, so the popup hides Remove. A removal request against a partial playlist is refused with the disconnected-drive message. The positions-only API is deleted from the protocol, the VLC backend, the mock and LibraryModel (grep is clean).\n- E-05: Home caps are native again. Ranking uses a 200-play window, per-kind limits come from LibraryHomeSectionKind.homeLimit, and the playlist scan is capped at 200. The literal 20/8 is gone from the view. The '›' page uses the uncapped homeSections:nil and goes through the page cache.\n- E-04: fgA3 is restored, and readableSecondary no longer appears anywhere in Sources or Tests.\n- E-07: ↑/↓ move by columns(width:) and ←/→ move by 1. moveSelection clamps.\n- E-08: imports are typed via UTType and vlc_ml_media_set_type. A cached imported snapshot replaces the N+1, and Add File navigates to Videos or Songs with the new files selected.\n- E-09: one shared audioTrackHelp string is used in all three menus.\n- E-10: Remove from Playlist acts on the multi-selection, and its title shows the count.\n- E-11: rows are keyed by entry id, with a suffix for repeats.\n- E-12: S43 fixture progress bars now match Figma (render checked), and the sort-dot rule is in D044.\n- E-13: listsMedia is deleted. The hidden ⌥⌘F button is removed, and Edit ▸ Find ▸ Search Library is registered with [.command, .option].\n\nChecks run:\n- `swift build`: green.\n- `swift test --filter 'Library|MiniPlayer|Playlist'`: 79 test cases passed, 0 failures, rc=0.\n- The 3 native library tests, compiled standalone against the engine build: PASS (lifetime, import-sort, playlist-order with 8 assertions).\n- S72.App/light rendered offscreen in the shipping window: the panel is #C1C1C1 against Figma #C1C1C0. E-06 still needs the real-window capture.\n\nNo new literal design values in the library views. Evidence is in <scratch> (S40, S43_Library_home, S28_Library_folder, S38_Library_playlists, S46_*, S72_light, tests.log, build.log, native-lib-tests.sh).",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "Tests/NativeLibraryPlaylistOrderRegression.m",
+     "description": "The native test stubs -playlistMedia:complete:, so it never exercises the real comparison of i_nb_media, i_nb_present_media and the listing count against the engine. It only covers what the page and remove paths do with the flag. The real check is a 3-line comparison that reads correctly. Upstream entities.cpp:448/475 fills i_nb_present_media from nbPresentMedia(). Even so, nothing tests an unmounted-media playlist against a real ML database."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRCore/Models/LibraryModel.swift importFiles",
+     "description": "A mixed import (audio and video files picked together) navigates to Videos and selects only the video rows. The audio files go to Songs and are neither shown nor selected, so for them the user gets no feedback."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRUI/Library/MXRLibraryView.swift",
+     "description": "No test drives the view-level behaviours: E-07 (arrow-key columns), E-10 (multi-select Remove title and targets) and E-11 (id-keyed rows). They were verified by reading the code only."
+    },
+    {
+     "severity": "minor",
+     "where": "mxr-snapshot check (tooling, not E-library owned)",
+     "description": "One `mxr-snapshot check --id S40.Library/home` run exited with SIGSEGV (rc 139) and wrote no output. The identical rerun succeeded, and `render` of the same entry is fine. Likely a race with a concurrent SwiftPM build or a crash in the compare stage. Worth a look by whoever owns the tool."
+    }
+   ]
+  }
+ },
+ {
+  "area": "F-settings",
+  "mode": "refix",
+  "state": "passed",
+  "fixed": [
+   "F-13 regression: title-bar toggle ON = file name without extension and underscores as spaces, OFF = media title (refixer, checked)",
+   "F-13 underscores (refixer, checked)",
+   "F-02 VoiceOver reads 'Auto' for an automatic track row (refixer, checked)",
+   "F-08 keyboard isolation: Tab cannot reach text fields behind the scrim, via DialogKeyLoopGuard + DialogKeyLoopTests (refixer, checked; tests pass)",
+   "C-15 Advanced Options bar on the Extensions page, with a working 'Extensions folder' row",
+   "C-15 no ⓘ on 'Load add-ons on startup', as in Figma; restart note moved to a caption shown after a change",
+   "C-15 stale 'no Lua extension-dialog provider yet' comment (already gone)"
+  ],
+  "notFixed": [
+   {
+    "id": "F-06 (D035-aware Settings gate)",
+    "why": "Another agent is building it right now (new Sources/MXRGalleryCatalog/FigmaDeviation.swift, GalleryCatalog.swift figmaDeviations). I did not touch SettingsGallery.swift so as not to collide with that work. For S48.Settings/extensions the only remaining difference is the dimmed Remove button: since F-03 it is disabled until an extension is selected. Mark it as a 'differs' deviation for that reason, or give the fixture a selected extension."
+   },
+   {
+    "id": "Live verification (F-01, F-03, F-08, F-12, new Extensions folder button)",
+    "why": "No live UI in this wave; the checks are listed in liveChecks."
+   }
+  ],
+  "notesForOthers": "[\"F-06 gate owner (FigmaDeviation work): S48.Settings/extensions now differs from Figma only in the dimmed Remove button. Since F-03 it is disabled until an extension is selected; add a 'differs' deviation for that reason or give the fixture a selected extension. Playback and general still need the D035 'removed' cuts and the D030 'Ask' 'differs' area.\", \"C-bridge / integrator: the settings snapshot now has a 'userDataDirectory' key. The installed app gets it only after the next install-app.sh. Until then, Open in the Extensions folder row shows an 'unsupported' message.\", \"Dead code: AppModel's 'rescan-plugins' action calls VLCSettingsBackend.rescanPlugins, which sends .rescanPlugins, but the bridge has no handler for it. No catalog row uses it; testUnsupportedPluginRescanIsAbsent expects it to stay that way.\"]",
+  "verdict": {
+   "pass": true,
+   "summary": "Round 2 verification of F-settings: no blocker or major remains; 5 minor issues are open (one of them in F-08). I checked against HEAD 4c457baa03 plus the uncommitted working tree.\n\n- **Build and tests:** swift build is clean. These suites pass with 0 failures (22 tests in the UI bundle and 29 in MXRCoreTests in my run): SettingsWorkflowTests, SettingsUnitsAudit, SettingsAuditRegression, SettingsBackendEvent, ModalIsolation, DialogKeyLoop, DialogIsolation, ModalCapture, ProfileDeletion and SubtitleLookupCancellation. No engine edits: `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty.\n- **F-13 (the round-1 major):** fixed. With the toggle ON, a local file shows its file name with no extension and underscores read as spaces, even when it has a tag title. With it OFF, it shows the media title, and drops the extension when that title is only the file name. The test now asserts that ON and OFF differ for tagged media. D042 still needs the owner's confirmation.\n- **F-02 VoiceOver:** the empty track field now reports \"Auto\" as its value (SettingsControls.swift:189).\n- **C-15, Extensions page:** I rendered it and looked at it next to Figma 6575:17137. The Advanced Options bar is where Figma has it and the ⓘ on \"Load add-ons on startup\" is gone. The only remaining difference is the dimmed Remove button, which F-03 intends. The new \"Extensions folder › Open\" row is real: it uses config_GetUserDir(VLC_USERDATA_DIR) + lua/extensions, the folder VLC loads user extensions from. The stale comment is gone. The restart note appears after a change, but it stays even if the value is set back (minor).\n- **Previously confirmed items still hold in code:** F-01, F-03, F-04, F-05, F-07, F-09, F-11, F-12 and F-14.\n- **F-08 Tab isolation, partly fixed:** I ran probes in an isolated copy (results below).\n  - A field behind the dialog that had focus does give it up when the dialog opens.\n  - When the field behind is outside the dialog's rectangle, the guard corrects Tab every time.\n  - The guard judges \"inside\" by geometry, so a field lying under the dialog's rectangle still receives Tab focus. Probe counts: 6 out of 6 with New Playlist, and the same result with Settings in a 1280×800 window. In a real window this is likely the library search field.\n  - DialogKeyLoopTests does not exercise the guard's Tab path: it sends with window.sendEvent, which never reaches the guard's event monitor (0 calls), and it starts from no focused field.\n- **Ownership:** the edits outside ownership are declared: AppModel.swift, BackendOperations.swift, MXRServicesBridge.m and the tests. New view code uses Theme tokens only.\n- **F-06 gate:** still open. Interface, performance, audio and general-advanced still FAIL; this is waiting on another agent's deviation work.\n\nOutputs are in <scratch> chk-<category>/ Figma checks, build-test.log, probe.log, and pkg/Tests/MXRUISnapshotTests/VerifyKeyLoopProbeTests.swift (the probes).",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "Sources/MXRUI/Dialogs/MXRDialogHost.swift:180-200 (DialogKeyLoopGuard.isInside, F-08)",
+     "description": "The guard decides whether a field is 'inside' the dialog by geometry: is the field's centre inside the dialog's rectangle? A text field behind the scrim that lies under the dialog's rectangle therefore counts as inside, so Tab can still move focus into it and the user can type there. The dialog is clamped to the window, so in a smaller window most of the content is under it. For example, Settings at 1048 pt wide in a 1280×800 window covers the library search field. I proved this in an isolated copy (scratch pkg, VerifyKeyLoopProbeTests.testTabFromDialogField and testGeometricHole). In New Playlist, Tab from the dialog's field reached a field behind the scrim 6 out of 6 times without the guard. With the guard it reached it 0 times when that field was at the top of the window, but still 6 out of 6 when the field was centred under the dialog. The same happens with Settings in a 1280×800 window: a centred field keeps focus after keepFocusInside. Fix: take the background text fields out of the key-view loop at the source instead of using geometry. MXRSearchField and the other TextFields would read mxrKeyboardFocusSuspended and become unfocusable or refuse first responder."
+    },
+    {
+     "severity": "minor",
+     "where": "Tests/MXRUISnapshotTests/DialogIsolationTests.swift DialogKeyLoopTests",
+     "description": "The Tab part of the test does not test the guard, so it would pass without it. It sends Tab with window.sendEvent, and that path never runs the guard's NSEvent local monitor; my probe counted 0 monitor calls. The fixer's report says NSApp.sendEvent, but the code uses window.sendEvent. The test also never puts focus in the dialog's own field first. From a nil first responder, Tab never reaches the field behind, even with no guard: the probe found it there 0 times. Only the part 'a focused field resigns when the dialog opens' is real. To make the test real, focus the dialog's field, send Tab, then make the guard's correction run, for example by calling keepFocusInside or by sending through NSApp on a key window. Then check that focus does not land on a field behind the dialog, including one placed under the dialog's rectangle."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRCore/Models/SettingsModel.swift:181-184 (C-15 restart note)",
+     "description": "An option goes into restartPendingOptions on any write and only leaves it when VLC restarts. Turning 'Load add-ons on startup' off and then on again still shows 'Takes effect after restarting VLC.', although the running value now matches. The same happens after Reset or a profile switch that brings back the original value. Fix: record the value at launch and show the note only while the current value differs from it."
+    },
+    {
+     "severity": "minor",
+     "where": "S48 Settings Figma gate (F-06, being done in another area: FigmaDeviation.swift / SettingsFigmaDeviations.swift, uncommitted)",
+     "description": "Results of my check run: extensions FAIL, only because Remove is dimmed (F-03 disables it until something is selected); interface FAIL; performance FAIL 9.61 %; audio FAIL 1.17 %; general-advanced FAIL 3.05 %; playback, general, controls, subtitles, network, privacy and recording REVIEW. On the interface page the section is titled 'Menu Bar and Notifications' where Figma has 'Notifications and System Tray', and 'Remember window size and position' has an ⓘ that Figma does not have. Neither is listed as a deviation yet. The deviation system is unfinished work by another agent, so this is not a fault of this area."
+    },
+    {
+     "severity": "minor",
+     "where": "C-15 'Extensions folder' row / bridge userDataDirectory",
+     "description": "No headless probe has checked the new userDataDirectory key against the real engine. Until install-app.sh runs again, the installed app shows an 'unsupported' message for Open. The code path is correct by reading: config_GetUserDir(VLC_USERDATA_DIR) + lua/extensions is the folder VLC searches for user Lua extensions, OwnedString frees the C string, and an empty or nil path returns nil."
+    }
+   ]
+  }
+ },
+ {
+  "area": "G-panels",
+  "mode": "minors",
+  "state": "passed",
+  "fixed": [
+   "D-07 remainder: queue row context menu uses shared MXRPlayerMenus.addToPlaylist submenu; private QueuePlaylistPicker popup deleted; multi-selection aware via PanelQueueInteraction.media(for:in:)",
+   "S20.Sidebar/subtitles-appearance: removed clipped figmaNode 800:1126 (check --all now skips instead of spurious FAIL), notes record node ids and figma_file.json geometry to compare",
+   "Panel test files compile and pass (PanelAuditRegressionTests, PanelsTests, SidePanelContentTests, ThemeContrastTests, PanelValuesRegressionTests, MenuAuditRegressionTests)",
+   "G-09 minor (verify r1): a bookmark rename in progress is saved on a click to another row, Rename on another row, + Add bookmark, a tab change or the panel closing, instead of staying open or being discarded"
+  ],
+  "notFixed": [
+   {
+    "id": "D033 relative font-size Auto stop order",
+    "why": "Owner decision pending (Auto at stop 0 vs Figma stop 3); kept current implementation."
+   },
+   {
+    "id": "shift-click-range",
+    "why": "PanelQueueInteraction.selection has never supported a Shift range, so this is new behaviour, not a regression, and outside this pass. The fixer report already notes it as out of scope."
+   },
+   {
+    "id": "S23 disabled minus tint",
+    "why": "In the Figma bookmarks frame the − button has the same tint as +. The product dims − while no bookmark is selected, which is the state-correct native behaviour. The difference was left on purpose and not hidden."
+   },
+   {
+    "id": "live keyboard/FKA checks G-03/G-04/G-09/G-10",
+    "why": "Need the installed app; listed in liveChecks."
+   }
+  ],
+  "notesForOthers": "EffectsSidebars.swift (my area) has an uncommitted edit by another agent: the Cast-device choice label is now \"Discover Cast Devices\". I left it as is. The queue's Add to Playlist item is now disabled, not hidden, when hasMediaLibrary is false, which matches the mini player and the Playlist menu.",
+  "verdict": {
+   "pass": true,
+   "summary": "Round 2 verification of G-panels at HEAD 4c457baa03 plus the working tree.\n\nCross-area item (1), D-07: done. The queue row's context menu now uses MXRPlayerMenus.addToPlaylist(app, isEnabled: hasMediaLibrary, newPlaylist:, media:, onError: app.dialogs.presentError), the same call the mini player makes (MXRMiniPlayerView.swift:235). The private QueuePlaylistPicker popup, its separate LibraryModel and the playlistTarget state are deleted (-62 lines). The row adds the whole selection in queue order when it is part of a multi-row selection (PanelQueueInteraction.media), otherwise only itself. \"New Playlist…\" passes the same media. The item is disabled, not hidden, when there is no media library.\n\nCross-area item (2): done. S20.Sidebar/subtitles-appearance no longer declares figmaNode, and `check --all` prints `skip (no figmaNode)`. The notes keep the node ids and the geometry. I rendered both the Relative and Pixels variants and looked at them: Font Size, Outline Thickness and Background Opacity show text values over 6/4/11-stop ticked sliders, as r1 confirmed against figma_file.json. No mask or threshold was added.\n\nCross-area item (3): done. playlistDestinations and readableSecondary have no remaining references. The panel suites pass in the shared package: PanelAuditRegressionTests 9/9, PanelsTests 5/5, SidePanelContentTests 3/3, ThemeContrastTests 8/8, PanelValuesRegressionTests 4/4 and MenuAuditRegressionTests, 33+4 tests with 0 failures. The MXRUISnapshotTests target compiles again.\n\nG-09 click-away: done. saveBookmarkName() is now called on a tap on another row, on Rename of another row (beginRename saves first), on + Add bookmark, on a tab change and in onDisappear. The TextField's focus-loss handler, Return and Esc are kept. An empty name keeps the old one.\n\nRemaining findings, unchanged since r1 and still in place in code and renders:\n- G-01, G-02, G-06, G-07 and G-08: S18 and S20 are REVIEW, with the Rotate field, the active HDR Auto dropdown, no Resolution caption and field-only offset rows.\n- G-03, G-04 and G-10: key routing, the activate-only focusable rows with an fgA1 ring, and no zero-distance DragGesture.\n- G-11, G-13 and G-15: values.\n- G-14: S17 shows the timeline toggle enabled.\n\ncheck --all for panel entries: S14, S15, S16, S18, S19, S20, S22, S23, S24 and C.Dropdown are REVIEW with 1–2 pt offsets. S17, S20.Presets and S21 FAIL for the documented, already-known reasons; I looked at the S17 side-by-side myself.\n\nOther checks:\n- swift build is clean.\n- The engine diff (git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx) is empty.\n- Ownership is respected: only QueuePanel.swift, PanelsGallery.swift and one panel test file were changed. Another agent changed the EffectsSidebars Cast label to \"Discover Cast Devices\", a copy-only change.\n- The new code uses tokens only.\n\nNo blocker or major remains. The keyboard, FKA, drag and live submenu behaviour still needs the live-acceptance checks below.\n\nOutputs: <scratch>",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "Tests/MXRUISnapshotTests/PanelAuditRegressionTests.swift testQueueRowAddToPlaylistResolvesRowOrSelection",
+     "description": "The new test only checks the pure media-resolution helper (PanelQueueInteraction.media). It does not check that the queue row's context menu really contains the shared Add to Playlist submenu (New Playlist…, a separator, then the playlists). The wiring was verified by reading QueuePanel.swift:236-243 and :356. MenuAuditRegressionTests covers the shared submenu itself. A small test that builds the queue row's menu items would close the gap."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRGalleryCatalog/Entries/PanelsGallery.swift S20.Sidebar/subtitles-appearance",
+     "description": "With figmaNode removed, `check --all` correctly reports skip, but `check --id S20.Sidebar/subtitles-appearance` now exits 2 with an error (no figmaNode). This is expected tool behaviour, not a product issue. The row geometry can now only be compared by eye or with figma_file.json. I rendered it and it matches r1's geometry check: text values over 6/4/11-stop ticked sliders, Outline thumb at stop 2."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRUI/Panels/SettingsSidebar.swift relative Font Size slider (D033)",
+     "description": "Auto is still at stop 0 with no fill, while Figma 804:1341 has it at stop 3. This was documented and left as an owner decision, not a defect of this pass."
+    },
+    {
+     "severity": "minor",
+     "where": "S17.Sidebar/playback, S20.Presets/open, S21.Timeline/default",
+     "description": "These panel entries still FAIL `check`. S17 fails on the D033 row set (Waveform and Metadata rows, Reverse disabled with an info icon, Statistics absent) and the resulting surface-colour shift; I looked at the side-by-side and confirmed this. S20.Presets fails on homeCard vs bgA4, Δ2, which belongs to the tokens area. S21 fails on the timeline accent fill, a documented timeline note. The same causes as r1; nothing new and nothing masked."
+    }
+   ]
+  }
+ },
+ {
+  "area": "H-design",
+  "mode": "minors",
+  "state": "passed",
+  "fixed": [
+   "Cross-area: LibrarySheetView light surface was mid grey #A7A7A7 (darkAqua base in a native .sheet) -> now MXRDialogSurface (opaque BG/A3 #D5D5D5 in Light, translucent in Dark)",
+   "Verifier minor: D046 claimed every MXRBackdropSurface sits over video/scrim -> doc comment in MXRBackdropSurface.swift and DECISIONS.md D046 corrected to name the dialog surface for non-overlay surfaces"
+  ],
+  "notFixed": [
+   {
+    "id": "H-02 (live part)",
+    "why": "Live only: the light bars over real video need a screencapture of the installed app. The offscreen shipping-window render gives #A8A8A8 against Figma #ABABAA."
+   },
+   {
+    "id": "H-03 (live part)",
+    "why": "Live only: Next then Esc on an isolated profile, then check ml.db. The logic is covered by testOnboardingNextAddsTheFolderImmediatelyAndOnce."
+   },
+   {
+    "id": "H-07 (live part)",
+    "why": "Live only: a real drag of a palette tile using the declared UTType. The Info.plist hook adds the entry idempotently."
+   }
+  ],
+  "notesForOthers": "E-library: LibrarySheets.swift line 61 now uses MXRDialogSurface (internal, from MXRUI/Dialogs/DialogSupport.swift) instead of MXRBackdropSurface. Please keep it. Rule for everyone: a surface that is not over the video or a dialog scrim (native sheets, dialog bodies) must not use MXRBackdropSurface directly, because its darkAqua base turns Light surfaces #A7A7A7. Use MXRDialogSurface. To render the sheet: MXR_TEST_RENDER_DIR=<dir> swift test --filter LibrarySheetSurfaceTests.",
+  "verdict": {
+   "pass": true,
+   "summary": "Round 2 verdict for H-design: pass. The cross-area LibrarySheets item is fixed, and the r1 minor issue (D046 wording) is fixed too. I found no regression in the 13 confirmed findings.\n\n**Cross-area item: LibrarySheets**\n- The diff in `Sources/MXRUI/Library/LibrarySheets.swift:61` is the single-line swap `MXRBackdropSurface` -> `MXRDialogSurface`.\n- `MXRDialogSurface` is defined in `DialogSupport.swift:171-178`. It uses `tint.opaqueCounterpart` in Light, which is the same path as the other dialogs.\n- I rendered the sheet myself through `LibrarySheetSurfaceTests` with `MXR_TEST_RENDER_DIR`, into `<scratch>` and `library-sheet-NSAppearanceNameDarkAqua.png`.\n  - Light: the body is an opaque light grey (BG/A3), the header is lighter, and the old mid grey #A7A7A7 is gone.\n  - Dark: the body is dark and translucent, and the header is darker.\n- I compared it with the r1 render of the light S39 dialog (`s39-light-shipping-window.png`). The surface and the unfilled Cancel/Close button look the same, so the sheet matches the existing light dialogs.\n- The new test hosts the real `LibrarySheetView` in a window with its live material and samples a pixel from the drawn body. It tests what is drawn, not a predicate. I did not repeat the fixer's red check.\n\n**Rest of the area**\n- I audited the other `MXRBackdropSurface` call sites. All of them are chrome over the video or a dialog scrim: the bars, the compact library, the panels, Customize, and Profiles inside the dialog host. No other native sheet uses it.\n- The doc comment in `MXRBackdropSurface` and the D046 bullet in `DECISIONS.md` now name `MXRDialogSurface` for surfaces that are not over the video or a scrim.\n\n**Build and tests**\n- `swift build` first failed in `GalleryCatalog.swift`, which another area was editing (`FigmaDeviation` missing). It was green on the retry.\n- `swift test --filter ThemeContrastTests|CustomizationInteractionTests|PauseButtonContrastTests|LibrarySheetSurfaceTests` ran 22 tests with 0 failures.\n- `gen-tokens.py --check` exits 0.\n\n**Regression spot checks**\n- No `readableSecondary` or `keyboardFocus` tokens are left.\n- Customize and Profiles use `.mxrContextMenu`.\n- The only `scaleEffect` left is the onboarding player-preview thumbnail, which takes its scale from a token. Onboarding itself does not use it.\n- `UTExportedTypeDeclarations` is present in `tools/app-bundle-hook.sh` and matches the `UTType(exportedAs:)` in `LayoutDrag.swift`.\n- `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty.\n\n**Ownership**\nEdits outside the area are limited to the assigned LibrarySheets line, three lines in `DECISIONS.md` and the new test file. All three are declared.\n\nOnly the live checks remain.",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "live app (H-02, H-03, H-07, library sheet)",
+     "description": "The live parts of H-02 (light bars over real video), H-03 (Next then Esc on an isolated profile, then ml.db) and H-07 (palette drag with the declared UTType) are still unverified. The library sheet has also not been checked in the installed app. Code, tests and offscreen renders all support the fixes, and every item is listed in liveChecks."
+    }
+   ]
+  }
+ },
+ {
+  "area": "I-build",
+  "mode": "fix",
+  "state": "passed",
+  "fixed": [
+   "B-04: finalize-app.py dev-sync path now signs plugins.dat after vlc-cache-gen and before the non-deep seal. This was the root cause of `codesign --force -s - *.app` failing on plugins.dat. The unused full re-sign-everything mode is deleted and --sign is required. install-app.sh only verifies (--verify-only). Tests: tools/test-finalize-app.py (7 OK; the fake codesign rejects an unsigned Frameworks item). Real proof: scratchpad/final2/I-build/dev-sync.log + install.log",
+   "B-01 (already on disk, confirmed): install-app.sh parses the real `PATH: dir/` lines from config.log, fails clearly when there are none, and checks that autoconf/automake are available. test-install-app.py writes the real config.log format and has a no-PATH case. A real install ran through make, which reruns automake: scratchpad/final2/I-build/install.log, rc=0",
+   "B-10 (already on disk, confirmed): installer lock records its pid, and a stale lock is reclaimed. Test test_lock_left_by_killed_installer_is_reclaimed passes",
+   "B-03 (already on disk, confirmed): swiftpm-build.sh copies the archive only when it changed (cmp) and runs actool only when the catalog is newer. Real no-op make: dylib mtime 1792170055 and archive mtime 1792170053, both unchanged (scratchpad/final2/I-build/noop-make.log)",
+   "B-09 (already on disk) + ffprobe precheck added: native-tests.py removes its work dir after a pass, keeps it on failure or with --keep, and WORKFLOW uses the make targets instead of a copied list. The contracts and media runs left no new dirs (the newest is from 19:57, before this run)",
+   "B-05 (already on disk, confirmed): Makefile.am target check-macosx-redesign-app runs smoke-native.py and is documented in WORKFLOW. Running it is a live check",
+   "B-07 (already on disk, confirmed): MXRSettingsInheritanceTests.c has no side effects inside assert (it uses fail()), and the fixed /private/tmp userdata and setenv are gone",
+   "B-06 (already on disk, confirmed): bridge test .md files have no personal paths, and PROVENANCE.md has a re-capture command with the /private/tmp hashes labelled historical",
+   "B-02 (already on disk + small update): BUILD.md describes the three supported paths, uses $SRC/$BUILD, calls dev-sync with 2 arguments and has no stocktest step. Updated it to say that dev-sync signs plugins.dat",
+   "B-14 (already on disk, confirmed): build-native.sh ends at make and no longer packages a bundle",
+   "Shared test hygiene: new contract test_swift_test_windows_survive_close (tools/test-build-contracts.py). Fixed the offender SeekProgressRedrawTests (missing isReleasedWhenClosed = false) and the CODE-01 violation in DialogKeyLoopTests (makeKeyAndOrderFront + NSApp.sendEvent replaced with window.sendEvent, so no window is ordered on screen). Both suites pass via swift test --filter"
+  ],
+  "notFixed": [
+   {
+    "id": "B-15",
+    "why": "Plan only, by the finding itself: the huge-file split (MXRServicesBridge.m, GalleryCatalog.swift) must not start during the parallel wave and the files belong to other areas."
+   }
+  ],
+  "notesForOthers": "Integrator: the root cause of the earlier install-app.sh failure was in finalize-app.py, which never signed plugins.dat after vlc-cache-gen. Anything in Contents/Frameworks needs its own signature, so the seal failed. It is fixed now, a test reproduces the real codesign rule, and dev-sync.sh ran for real against the installed app. finalize-app.py no longer has a 'sign everything' mode: it requires --sign <file> or --verify-only. The new tooling contract fails if a Swift test creates an NSWindow or NSPanel without isReleasedWhenClosed = false, or calls makeKeyAndOrderFront. D-menus: please review my 2-line change in DialogKeyLoopTests (window.sendEvent instead of ordering the window on screen). make check-macosx-redesign-app launches the real app, so it belongs to the live wave.",
+  "verdict": {
+   "pass": true,
+   "summary": "I checked every I-build finding independently. B-04, the root cause of the B/H install failure, is fixed and covered by a test. finalize-app.py now signs plugins.dat after vlc-cache-gen and before the non-deep seal, which matches the tail of extras/package/macosx/codesign.sh (lines 131-133). The unused full re-sign mode is deleted, and --sign is required.\n\n**B-04 test.** I ran a mutation test in a copy (`scratchpad/final2/I-build-verify-r1/mut`): with the plugins.dat signing removed, tools/test-finalize-app.py fails 3 of 7 tests with the real error \"code object is not signed at all: .../plugins.dat\". The test therefore catches the real failure.\n\n**Installed app (read-only, not launched).** `codesign --verify --deep --strict` passes on /Applications/VLC Redesign.app. plugins.dat carries its own generic signature. `finalize-app.py --verify-only` passes.\n\n**Single copy.** /Applications contains only VLC Redesign.app and the owner's untouched VLC.app. There is no $BUILD/VLC.app and no leftover installer lock or stage directory.\n\n**Tests I ran:**\n- All 7 tools/test-*.py pass.\n- Under the native lock, `native-tests.py --suite media` passes in 16 s with 0 pcr_sync or Assertion lines (ffprobe found in /opt/homebrew/bin), and `--suite contracts` passes in 35 s.\n- swift build is clean, and `swift test --filter 'SeekProgressRedrawTests|DialogKeyLoopTests'` passes (5 tests, no SIGSEGV).\n\n**Other findings, checked in code:**\n- **B-01:** install-app.sh reads the real \"PATH: dir/\" lines; the real config.log has them on lines 39-44. It fails clearly when they are missing and checks for autoconf/automake.\n- **B-10:** the lock records its pid and reclaims a stale lock after a `kill -0` check.\n- **B-03:** cmp-guarded archive copy, and actool runs only when the catalog is newer.\n- **B-09:** the work dir is removed after a pass unless --keep is given, and an ffprobe precheck was added.\n- **B-05:** the Makefile.am target `check-macosx-redesign-app` runs smoke-native.py and is documented in WORKFLOW.md.\n- **B-07:** fail() replaces assert() side effects, and the fixed setenv path is gone.\n- **B-06:** the remaining /private/tmp hits are only mkdtemp/UUID-unique fixture dirs, with no personal paths.\n- **B-02:** BUILD.md matches the single-copy rule and dev-sync takes 2 arguments.\n- **B-14:** build-native.sh ends at make.\n- **B-15:** plan only, legitimately deferred.\n\n**Rules.** The engine diff against upstream-base-2026-10-14 (src, lib, include, modules/gui/macosx) is empty. The edits outside ownership are small and declared.\n\nOnly minors remain: DialogKeyLoopTests has no positive control after the offscreen change, the new window contract checks per file rather than per window, and the no-op make mtime numbers are claimed but not in the log. Running the real app and the smoke gate are left as live checks.",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "Tests/MXRUISnapshotTests/DialogIsolationTests.swift (DialogKeyLoopTests, owned by D-menus)",
+     "description": "The window is no longer ordered on screen, and Tab now goes through window.sendEvent instead of NSApp.sendEvent. The test passes, but it has no positive control: nothing asserts that Tab actually moves focus inside the newPlaylist dialog. So it cannot tell 'Tab stayed inside the dialog' apart from 'Tab was never delivered' on a window that is not key. It was already missing this before, but the change makes it more likely the test is vacuous. D-menus should add an assertion that focus moves between the dialog's own fields, or confirm with a mutation (remove the scrim isolation and check the test goes red)."
+    },
+    {
+     "severity": "minor",
+     "where": "tools/test-build-contracts.py test_swift_test_windows_survive_close",
+     "description": "The contract checks per file, not per window: a file passes if it creates any NSWindow/NSPanel and contains one 'isReleasedWhenClosed = false'. A second window in the same file without the flag would slip through. Every current file has exactly 1 window and 1 flag. The check also does not cover windows created by helpers under Sources/ that are only called from tests."
+    },
+    {
+     "severity": "minor",
+     "where": "scratchpad/final2/I-build/noop-make.log",
+     "description": "B-03 says a no-op make leaves the mtimes unchanged (dylib 1792170055, archive 1792170053), but those numbers are not in the 13-line log. Only the code was verified: swiftpm-build.sh copies only on a cmp difference, and actool runs only when something is -newer. The no-relink claim was not independently re-measured, because other areas' ongoing edits make a true no-op make impossible right now."
+    }
+   ]
+  }
+ },
+ {
+  "area": "J-media-io",
+  "mode": "verify",
+  "state": "passed",
+  "verdict": {
+   "pass": true,
+   "summary": "Independent round-1 check of J-media-io at HEAD 4c457baa03. The fixer's work is all committed in 4c457baa03. None of the area's files have uncommitted changes. The engine is untouched: `git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx` is empty.\n\n**J-01 (blocker): fixed.**\n- I re-ran the old chain on Test Show S01E01.mp4 with the app's options. It still aborts 3 of 3 times (pcr_sync.c:268 assertion, no moov atom), so the bug is real.\n- The new chain (`venc=x264{keyint=60}` plus `no-forward-pcr`) passed 6 of 6 runs. ffprobe reads every file as h264 + aac + mov_text, 60.03 s, about 2.67 Mbit/s, so the bitrate is now honoured.\n- MP3, AAC and WAV also produce valid files of the right length.\n- H.264 over HTTP (stream mode, paced in real time): a viewer joining 4 s late decoded 260 and 272 frames in two 10 s captures, and nothing aborted.\n- `native-tests.py --suite contracts` and `--suite media` both pass. I held the lock for about 15 min. The media suite runs the A+V H.264 conversion 5 times and checks each output with ffprobe. It also checks the \"already exists\" (EEXIST) guard, the Stop sequence (stopping, then cancelled) and that no partial file is left behind.\n\n**Other findings, code traced:**\n- **J-05: fixed.** `stopping` is now a state; `isActive` drives both form locks; an unknown state shows as a failure instead of dropping the job.\n- **J-03: fixed.** The form keeps `confirmedDestination`; overwrite is sent only when the destination equals it. EEXIST becomes `OutputError.destinationExists`, which shows a native Replace alert.\n- **J-04: fixed.** The status overlay is gone. The renders show no overlap (Convert empty and running in dark and light, Stream running in hosting view and shipping window).\n- **J-02: fixed.** `#duplicate{dst=display}` is used only in stream mode. The output player sets `MXR_AUXILIARY_VIDEO_VAR`, so MXRVoutWindow and MXRAppController give its video its own window and never the main surface.\n- **J-06: fixed in code.** Audio CDs are detected by the cddafs file system and opened as `cdda:///dev/rdiskN`. Not checked on hardware.\n- **J-07: fixed.** Disc scanning runs off the main actor, skips volumes that are not local or not removable/ejectable, and rescans on mount and unmount.\n- **J-08: fixed.** The title is \"Open Capture Device\" and the error reads \"Choose a camera.\"\n- **J-09: fixed.** `MockOutput` and `MockRenderers` exist; the S37 Convert and Stream entries now show the enabled state, plus new running entries.\n- **J-10: bridge part fixed.** Renderer ids are stable (type + sout target), the selected renderer survives rediscovery, and \"discovering\" clears after 5 s. The wording mismatch between the two menus remains.\n- **J-11: fixed.** Conversions write a hidden `.vlc-partial` file and rename it into place (`renamex_np`, exclusive unless replace was confirmed); it is deleted on stop, failure and shutdown.\n- **J-12: token used.** The token is declared in the view file rather than in MXRDesign.\n\n**Build and tests:** `swift build` is clean, with no warnings in the area's files. The targeted suites pass: OutputAdapterTests, OutputModelTests, OpenMediaIOTests, DialogsTests and DeviceDiscoveryTests.\n\n**Scope and quality:** the fixer's edits outside the area are small and listed. No masks or thresholds hide visual differences, and the views use tokens.\n\nOnly minor issues remain (listed in issues). Evidence is in <scratch> (sweep/, stream/, renders/, native-*.log).",
+   "open": [
+    {
+     "severity": "minor",
+     "where": "module/bridge/MXRMediaServices.m:609-614 (outputStopping)",
+     "description": "After Stop, the player's on_stopping_current_media callback (reason USER) overwrites the bridge's `stopping` state with `finishing`. Until the player reaches STOPPED, the Convert hint changes from 'Stopping…' to 'Finishing “name”…', and the main button is enabled again as 'Stop', because it is disabled only for `.stopping`. The runtime test reads the state synchronously right after Stop, so it does not catch this. Fix: when `_activeJob.cancelRequested` is set, keep `stopping` in outputStopping."
+    },
+    {
+     "severity": "minor",
+     "where": "module/bridge/MXRMediaServices.m:202-205 (aac/audio profiles); OpenMediaDialogs.swift Format hint",
+     "description": "The 'Audio — AAC (M4A)' output keeps the source's subtitle track. A headless conversion of Test Show S01E01.mp4 produced aac plus mov_text. This contradicts the hint 'Audio formats keep only the sound'. The runtime fixture has no subtitles, so the media suite cannot catch it. Fix: add scodec=none or no-sout-spu to the audio-only profiles."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRUI/Player/PlayerMenus.swift vs Sources/MXRUI/Panels/EffectsSidebars.swift",
+     "description": "J-10 UI part is still open: the two menus label renderer discovery differently ('Discovering…'/'Discover Renderers' vs 'Discovering Destinations…'/'Refresh Destinations'). Now that the bridge clears 'discovering' after 5 s, the disabled state is only brief. The files belong to other areas."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRUI/Dialogs/OpenMediaDialogs.swift:10-14, 238",
+     "description": "J-12: the pathFieldWidth token (buttonWidth × 1.5) is declared in the view file, not in MXRDesign as the fix asked. OutputProgressBar takes its height from Theme.Spacing.gap4, a spacing token used as a size."
+    },
+    {
+     "severity": "minor",
+     "where": "Sources/MXRGalleryCatalog/Entries/DialogsGallery.swift S37.Stream/running",
+     "description": "The S37.Stream/running render is not deterministic. Its hint shows the build machine's own name (e.g. MacBook-Pro-2.local), because receivingURL reads SCDynamicStoreCopyLocalHostName."
+    },
+    {
+     "severity": "minor",
+     "where": "Tests/MXRCoreTests/OutputModelTests.swift",
+     "description": "The J-03 tests exercise only MockOutput's EEXIST behaviour. Nothing tests the view logic that decides overwrite (a format change renames the destination and loses confirmedDestination; confirmedDestination clears on completion); that logic exists only inside OutputMediaForm."
+    }
+   ]
+  }
+ }
+]

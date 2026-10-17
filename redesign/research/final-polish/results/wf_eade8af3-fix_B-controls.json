@@ -1,0 +1,49 @@
+{
+ "status": "done",
+ "summary": "I continued the previous fixer's WIP (951f073be2). On resume, swift build failed in my own file: the MXRTimeLabel body in PlayerControls.swift timed out the type-checker. I split it into a staticLabel(box:) helper and fixed the accessibilityAction call, and the build is green again. The previous fixer had already finished B-01 (layer-based seek progress that observes the clock), B-04 code (PausedStillLayout), B-06/B-10 code, B-11 (PauseButtonFill) and B-09 (tokens plus colour-scheme-aware cone). I finished B-02/B-03: the cone's NSViewRepresentable is replaced by a pure SwiftUI modifier (hover tracking plus one local monitor), which follows natural scrolling and the reverse-scroll preference. I also finished B-08 (OSD margin scales with its text, and the text scales with the aspect-fit picture rather than the letterbox), added decision D047 (amends D038 and BB-12), added focused tests, and checked the visuals. In the real app (lock held, Mac idle) I installed and measured CPU: bars visible 7.2–7.5 %, Hide UI 5.9 %, app hidden 6.0 %, minimized 5.6 %, scrub 28.2 %. The playhead followed the pointer during a live drag. All 23 focused tests pass (SeekProgressRedraw, PlayerProgressRegression, ConeScrollIsolation, OSDLayout, PauseButtonContrast, ThemeContrast).",
+ "fixed": [
+  "B-01: SeekProgressNSView observes PlaybackClock itself with withObservationTracking, and the fill/head/waveform are CALayers. In SeekProgressRedrawTests, the head follows every scrub step while paused, a paused jump, and the Reduce Motion second. Live: the head moved from 1124px to 1072px between two captures of one drag (live/s2_scrub1.png, s2_scrub2.png).",
+  "B-05: The CADisplayLink runs at the half-point rate and is gated on window occlusion, NSApp hidden, bars visible, PiP and Reduce Motion. Measured in the installed app: bars visible 7.2–7.5 % vs Hide UI 5.9 %, app hidden 6.0 %, minimized 5.6 %, scrub 28.2 %, so visible is at most 1.6 pp over Hide UI (target 2 pp). Numbers are in B-controls/live/cpu.txt and AUDIT_FIXES_2026-10-15.md.",
+  "B-04: The still is shown unless active colour/essential pixel filters are on. Subtitles, renderer, resolution, deinterlace and HDR no longer suppress it. Geometry (flip, rotate, crop, ratio, aspect, zoom) is reproduced in PausedStillLayout. Tested in PlayerProgressRegressionTests. Recorded as the D047 amendment to D038.",
+  "B-02: ConeScrollHandler is now a SwiftUI modifier (mxrConeScroll), so there is no NSView in the cone. The image engine renders C.VolumeCone/0 as PASS. C.VolumeCone/100 and /200 still report FAIL, but only on a Δ2 gradient colour difference; the yellow placeholder is gone (B-controls/C_VolumeCone_*).",
+  "B-03: The cone wheel direction is (natural ? -1 : 1) * (reverse-scroll ? -1 : 1), the same rule as on the video. Tested in ConeScrollIsolationTests.testConeFollowsTheVideoScrollDirection.",
+  "B-06: The time label is no longer a disabled Button, so it never dims. The whole 76×28 box is the target, it uses mxrKeyboardFocusable (no system ring), and it has an accessibility hint for non-seekable streams.",
+  "B-10: Proportional digits per Figma, recorded in D047. C.CurrentTime/default now PASSes with 0 % structural difference (was 11.7 %).",
+  "B-08: The OSD pads by Theme.OSD.margin (half the title size), and its size comes from Theme.OSD.pictureHeight, i.e. the aspect-fit picture. Render: B-controls/s13.png. Also seen in the live app: live/s1_hideui.png. Tested in OSDLayoutTests.",
+  "B-09: The light cone samples (176,213,70) fill and (136,136,136) track, matching Figma Player - Light (B-controls/cone_light.png).",
+  "B-11: PauseButtonFill keeps Figma FG/A3 under Increase Contrast. PauseButtonContrastTests checks that both glyph halves stay at 3:1 or better in both schemes and both contrast settings."
+ ],
+ "notFixed": [
+  {
+   "id": "C.SeekBar/default FAIL (not a carry finding)",
+   "why": "This FAIL predates the wave (the review shows the same result): the playhead in the fixture sits about 15 pt right of where Figma draws it, so the head region differs. It looks like a mismatch between the fixture's time and Figma. It was not in my confirmed list and I left it alone."
+  }
+ ],
+ "filesChanged": [
+  "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerControls.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Player/ConeScrollHandler.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Player/MXROSDView.swift",
+  "modules/gui/macosx_redesign/Sources/MXRDesign/Typography/OSDTypography.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/MXRAppView.swift",
+  "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/ConeScrollIsolationTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/OSDLayoutTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/PauseButtonContrastTests.swift",
+  "redesign/docs/DECISIONS.md",
+  "redesign/research/AUDIT_FIXES_2026-10-15.md",
+  "(from WIP 951f073be2, kept) Sources/MXRUI/Player/NativeSeekProgress.swift, PausedSeekStill.swift, PlayerGeometry.swift, Tests/MXRUISnapshotTests/SeekProgressRedrawTests.swift, PlayerProgressRegressionTests.swift"
+ ],
+ "editsOutsideOwnership": [
+  "Sources/MXRUI/MXRAppView.swift line 189: MXRPlayerOSD(videoHeight:) changed to MXRPlayerOSD(container: CGSize(width: size.width, height: ...)) so the OSD can size from the picture (B-08). The old init(videoHeight:) is kept.",
+  "redesign/docs/DECISIONS.md: appended D047 (control bar details; amends D038's third paragraph and BB-12).",
+  "redesign/research/AUDIT_FIXES_2026-10-15.md: appended the PERF-01/NAT-04 CPU measurement section.",
+  "Tests/MXRUISnapshotTests/ConeScrollIsolationTests.swift: added two tests and an AppKit import."
+ ],
+ "evidence": [
+  "<scratch>",
+  "<scratch> + s2_scrub2.png (head moves during a live drag)",
+  "<scratch> (live OSD with margin), s1_visible.png, s2_after.png (paused-seek still + preview)",
+  "<scratch> (no placeholder), C_CurrentTime_default/report.txt (structural 0 %)",
+  "<scratch>, s13.png"
+ ],
+ "notesForOthers": "[\"Whole test target: Tests/MXRUISnapshotTests/ModalCaptureTests.swift references a missing 'KeyBinding' type, which intermittently broke test builds for everyone. It is another area's file and compiled again later.\", \"Install pipeline: my first install-app.sh run failed in finalize-app.py at the codesign of the final bundle (plugins.dat inside Contents/Frameworks is not code). I-build changed finalize-app.py afterwards and the second install passed.\", \"Live Hide UI test: the OSD showed only 'Pressed ⌘\\\\' with no action line. The owner of the hide-UI command/OSD message (not B-controls) may want to add the action text.\"]"
+}

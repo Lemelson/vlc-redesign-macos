@@ -1,0 +1,220 @@
+{
+ "area": "H-design",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "H-design finished its work list. All targeted tests pass (63 in MXRUISnapshotTests plus the Core store tests). The three new or tightened test files fail with their fix reverted.\n\n- **Light bars now match Figma's layer stack exactly.** Figma's Player - Light is a black fill, then the video image (it reads #2D2B29 under the bars), then BG/A3 Transparent with a background blur. The product now uses that same video colour for the base under the pinned bars (new token `videoUnderBars`, used by `MXRBackdropBase`). The bars draw the tint over it with no NSVisualEffectView. They read exactly #ABABAA offscreen (they read #A7A7A7 before), whatever is behind them. D053 no longer excuses a difference.\n- **S63 dropdowns drop below the field.** Settings and side-panel lists open one anchor gap below a field that stays visible, and the field keeps its down chevron, as in video 17m31.0. The preset list and the dialog header pop-ups still open over their field (video 07m58.9 and 06m08.5).\n- **S70 onboarding preview uses the Mac window chrome:** traffic lights, then the cone, and only the fullscreen button on the right. In Light, the swatches use the Light accents and the preview bars are the real Light window's bars.\n- **S71 onboarding shortcuts match the installed app.** Modifiers use the ⇧ glyph. With VLC's Mac engine bindings (C-bridge's mock fix), the old layout drew empty keycaps and dropped the '/'. A row with two bindings now writes each binding as one keycap (\"⌥⌘←\"), and nothing gets squeezed.\n- **S66 volume tile:** the dashed box is now 130×36, as in Figma.\n- **Gallery deviations:** S72.Window/light and the S70/S71 entries now record their documented deviations.\n- **DECISIONS.md:** D015, D022, D026, D032, D034, D049 and D053 are amended (listed under ownerDecisions).",
+   "fixed": [
+    "(d) Light bars #A7A7A7 vs Figma #ABABAA. Figma's stack under the bars is a black fill, then the video image (#2D2B29 at the bar edges), then #D5D5D5 @ 0.75 with a 50 pt background blur. The product now uses that video colour as the base under the pinned bars (raw colour 2425:13624 → Theme.Color.videoUnderBars, MXRBackdropBase). In the Light window the bars draw the tint over that base with no material (MXRBackdropSurface(overCanvasBase:), set through the mxrBarsBesidePicture environment value from MXRAppView). Offscreen all bar samples are now (171,171,170); the bar flat-colour FAIL is gone (flat 0.099 %, was 6.14 %). The same path, with no material, runs in the real window. The remaining S72 FAIL is E-library's thumbnail at 70,752. Evidence: ../build/evidence/final5/polish/H-design/after/S72_Window_light/, after/bars_render_vs_figma.png, before/S72_Window_light/",
+    "(d) S63 dropdown placement: standard lists drop below the field (MXRDropdownListPlacement, .below with the anchor gap, above when there is no room). The preset list and DialogMenu (overField: true) stay over the field. The standard field keeps its down chevron while open (17m31.0). Test: DropdownPlacementTests. Evidence: before/figma_dropdowns.png; key frames 17m31.0 and 06m08.5",
+    "(d) S70 mini player preview: Windows controls replaced by Mac chrome (new Theme.MacWindowControls token group measured from the shipping-window traffic lights: 12 pt, 8 pt apart, at 13 pt; cone after them with the left-group gap; fullscreen only). The S70 entries carry a D022 deviation for the preview top bar, so the check shows only the frame-edge alpha strip. Evidence: after/S70_render_over_figma.png, after/S70_Onboarding_{orange,teal,blue}/",
+    "S70 light variant: swatches are each accent's Accent/Main in the theme shown, so the selected one is #E8851A like Next. In Light the preview bars are the Light window's own bars (BG/A3 Transparent over the canvas base, #ABABAA). Evidence: after/S72_Onboarding_light.png",
+    "(d) S71: checked against the engine's __APPLE__ defaults (the C-bridge mock now reports them). With those bindings the old keycaps rendered empty and the '/' disappeared. Fixed: ⇧ glyph instead of 'SHIFT'; one keycap per binding when a row has two bindings; keycaps and rows are fixedSize, so nothing truncates. Gallery notes updated, with a D026 deviation on the keycap columns. Tests: OnboardingShortcutKeycapTests. Evidence: before/S71_Onboarding_shortcuts/side-by-side.png, after/S71_Onboarding_shortcuts/render.png",
+    "S66 item 1: volume group dashed box 4 pt too tight. Now 130×36 around the speaker and cone, per Figma 2115:7291 (metrics.json customization.outline.volumeHorizontal 5 / volumeVertical 4; LayoutDrag outset for .volume). Evidence: after/S66_volume_box_render_over_figma.png",
+    "S72 gallery hygiene: S72.Window/light now records the D048 head, D049 play button and D022 left/right group deviations, as S01 does. Its stale D046 note was rewritten",
+    "D015 doc leftover: the PiP item is marked resolved by D007, amended in D055",
+    "(d) disabled-opacity token: B-controls added it in my metrics.json (controlBar.iconButton.disabledOpacity 0.3, from Figma I856:2587;848:1877) and uses it in PlayerControls. I regenerated Tokens.swift with gen-tokens.py; output is consistent",
+    "S67 extra divider before the queue (LayoutStore.twoRowExample): already removed by another agent and covered by D057; checked in the diff"
+   ],
+   "notFixed": [
+    {
+     "id": "S50 Light Settings: selected segment, ON cell and Browse vs video 17m44.0",
+     "why": "Kept, recorded as a D032 amendment. Figma has no Light Settings frame, and pixel values come from Figma (PHILOSOPHY §1), so the dark Settings structure stays with the Light styles of the same names. The video frame also tints the unselected 'Dark' segment, so it is not a consistent style to copy. The owner can choose the video's look instead; that is a one-line change in SettingsSegmentedControl, which F-settings owns."
+    },
+    {
+     "id": "S50 scrim in Light (MXRDialogHost)",
+     "why": "F-settings owns it. Not touched."
+    },
+    {
+     "id": "S66/S67 gear icon (plain settings vs playback-settings)",
+     "why": "Already covered by D057's last bullet (keep one icon). No change."
+    },
+    {
+     "id": "S67 left-cluster spacing and transport centring",
+     "why": "A-window's layout; covered by D057 (header spacing, two-spacer centring)."
+    },
+    {
+     "id": "P2 Δ2–3: S43/S44 full-library top bar #191919 vs Figma #1B1B1B",
+     "why": "Kept, with a new D053 bullet. Figma's bar 6261:15080 is BG/A3 Transparent over that frame's own photo fill, so it varies from #191A1A to #1C1C1D along the bar. Under a full library the product has no photo, so the same tint reads #191919."
+    },
+    {
+     "id": "P2 Δ2: music control bar and VolumeCone gradient",
+     "why": "B-controls already covers these in D056 (music bar tint, exact gradient rgb in my colors.json, regenerated)."
+    },
+    {
+     "id": "S69/S70/S71 1–2 px frame-edge strip FAIL",
+     "why": "Tooling artefact: the Figma crop's edge pixels have alpha 226–235 from the frame's fractional position. The product's pixels are the same colour at alpha 255. No product change."
+    },
+    {
+     "id": "S66.Customization/default dialog body #0E0E0E vs #181818",
+     "why": "Needs window-server blur over real video. Listed as a live check."
+    },
+    {
+     "id": "Light accents of the non-orange swatches",
+     "why": "Derived (AccentPalette); owner sign-off pending, since no Figma frame exists."
+    }
+   ],
+   "filesChanged": [
+    "redesign/design/tokens/colors.json",
+    "redesign/design/tokens/metrics.json",
+    "modules/gui/macosx_redesign/tools/gen-tokens.py",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Generated/Tokens.swift",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Materials/MXRBackdropSurface.swift",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Theme/MacWindowControls.swift",
+    "modules/gui/macosx_redesign/Sources/MXRDesign/Popup/MXRDropdown.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Customization/MXROnboardingPlayerPreview.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Customization/MXROnboardingView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Customization/LayoutDrag.swift",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/CustomizationGallery.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerBars.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/MXRAppView.swift",
+    "modules/gui/macosx_redesign/Sources/MXRUI/Dialogs/DialogMenu.swift",
+    "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/ShippingGallery.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/LightBarBackdropTests.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/DropdownPlacementTests.swift",
+    "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/OnboardingShortcutKeycapTests.swift",
+    "redesign/docs/DECISIONS.md"
+   ],
+   "editsOutsideOwnership": [
+    "Sources/MXRDesign/Popup/MXRDropdown.swift (Popup is not in my path list, but S63 was assigned to me): placement moved into MXRDropdownListPlacement, overField parameter added, standard chevron no longer flips",
+    "Sources/MXRUI/Player/PlayerBars.swift (A-window/B-controls): two @Environment(\\.mxrBarsBesidePicture) lines, and overCanvasBase: passed at the two bar MXRBackdropSurface calls",
+    "Sources/MXRUI/MXRAppView.swift (A-window): one .environment(\\.mxrBarsBesidePicture, canvasStyle == .underBars && interface.library != .full) on the bars group",
+    "Sources/MXRUI/Dialogs/DialogMenu.swift (G-panels): overField: true on its mxrDropdownList call (header pop-up opens over its field, 06m08.5)",
+    "Sources/MXRGalleryCatalog/Entries/ShippingGallery.swift (A-window): S72.Window/light notes plus D048/D049/D022 deviations",
+    "redesign/docs/DECISIONS.md: amendments to D015, D022, D026, D032, D034, D049, D053"
+   ],
+   "decisionsWritten": [
+    "D053 bullet 1 rewritten: the Light bars use Figma's exact stack (tint over the frame's #2D2B29 video base, no material), so the Δ4 is fixed rather than excused",
+    "D053 new bullet: full-library top bar Δ≤3 is Figma's tint over its own photo fill",
+    "D034: 'Dropdown lists drop below their field' replaces the owner open question; preset list and dialog header pop-ups stay over the field",
+    "D022 amendment: the onboarding preview draws the Mac bar (Theme.MacWindowControls); Light preview bars are the Light window's",
+    "D026 amendment: onboarding ⇧ glyph; VLC's macOS defaults shown; paired bindings drawn as one keycap each",
+    "D049 amendment: onboarding swatches use each accent's Accent/Main in the shown theme; unselected stay at Figma's 50 %",
+    "D032 amendment: Light Settings keep Figma's dark structure with the Light styles (BG/Accent Bright segment, BG/A4 Browse); the video's solid look is offered to the owner",
+    "D015: PiP item marked resolved by D007/D055"
+   ],
+   "ownerDecisions": [
+    "D053 bullet 1 amended (agent, 2026-10-17): Light bars match Figma's layer stack exactly via the videoUnderBars base and no material",
+    "D053 new bullet (agent, 2026-10-17): full-library top bar #191919 vs Figma #191A1A–#1C1C1D, tint over Figma's photo",
+    "D034 amended (agent, 2026-10-17): settings and sidebar dropdown lists drop below the field; preset and dialog headers open over the field. This answers D034's open owner question",
+    "D022 amended (agent, 2026-10-17): onboarding preview shows the Mac window chrome",
+    "D026 amended (agent, 2026-10-17): onboarding keycaps use ⇧, show the engine's macOS defaults, and draw paired bindings as one keycap each",
+    "D049 amended (agent, 2026-10-17): theme-aware onboarding swatches",
+    "D032 amended (agent, 2026-10-17): Light Settings selected segment and Browse keep the Figma token mapping rather than video 17m44.0; owner may choose the video look",
+    "D015 updated: PiP question resolved by D007/D055"
+   ],
+   "evidence": [
+    "../build/evidence/final5/polish/H-design/before/ (S72_Window_light, S70_Onboarding_orange, S71_Onboarding_shortcuts, figma_dropdowns.png, tl_crop.png, S48_general_light.png)",
+    "../build/evidence/final5/polish/H-design/after/S72_Window_light/report.txt: bars (171,171,170) at (600,10), (900,25), (1500,1060), (700,1072); flat colour 0.099 %",
+    "../build/evidence/final5/polish/H-design/after/bars_render_vs_figma.png (top bar and control bar, render over Figma)",
+    "../build/evidence/final5/polish/H-design/after/S70_render_over_figma.png, after/S72_Onboarding_light.png",
+    "../build/evidence/final5/polish/H-design/after/S71_Onboarding_shortcuts/render.png (engine Mac bindings, all keycaps drawn)",
+    "../build/evidence/final5/polish/H-design/after/S66_volume_box_render_over_figma.png",
+    "../build/evidence/final5/polish/H-design/revert-test.log (the tests fail with the fixes reverted: DropdownPlacementTests 2, LightBarBackdropTests 2, OnboardingShortcutKeycapTests 1)",
+    "swift test filter (LightBar, Dropdown, OnboardingShortcutKeycap, PopupMenu, Customization*, Onboarding*, FigmaDeviationTests, WindowShippingParityTests, WindowCompositionTests): 63 + 5 tests, 0 failures",
+    "S01.Window/shipping still PASS; C.Dropdown/default-open REVIEW; S67.Customization/two-row-edit REVIEW (no regressions)"
+   ],
+   "liveChecks": [
+    {
+     "id": "H-light-bars",
+     "steps": "Installed app, Light theme, windowed, bars pinned (no auto-hide), any video playing (one bright and one dark clip). Sample the top bar at an empty spot (e.g. x 600, y 10 pt) and the control bar's empty area.",
+     "expect": "Both bars read #ABABAA (±1) for both clips; the video never shows through the bars."
+    },
+    {
+     "id": "H-light-bars-transition",
+     "steps": "Light theme: enter and leave Customize; set auto-hide to always and let the bars hide and reveal; open and close the full library.",
+     "expect": "No black or #2D2B29 flash bigger than one frame above or below the picture while the bars fade. In Customize and when auto-hidden, the bars blur the video (material path). In the full library the top bar looks as before."
+    },
+    {
+     "id": "H-dropdown-below",
+     "steps": "Settings ▸ General ▸ Log details dropdown; Settings ▸ Subtitles autoload/filename dropdown; a side-panel dropdown (e.g. HDR or EQ preset in the sidebar, not the preset picker). Click each to open.",
+     "expect": "The list opens 6 pt below the field, as wide as the field. The field stays visible with its down chevron. If the field is near the screen bottom, the list opens above it. Arrow keys, Return and Esc still work."
+    },
+    {
+     "id": "H-dropdown-overfield",
+     "steps": "Open Add Subtitles and click the header 'To This File' dropdown; open the sidebar preset picker.",
+     "expect": "Both still open over their field, with the current row on the field's row (06m08.5, 07m58.9)."
+    },
+    {
+     "id": "H-onboarding",
+     "steps": "Run onboarding on a clean profile (isolated HOME). Step 2: check the preview; switch to Light and pick a non-orange accent. Step 3: read every keycap.",
+     "expect": "The preview shows red, yellow and green traffic lights, then the cone, and only fullscreen at the right. In Light the selected swatch matches Next's colour. Step 3 shows Space; ⌥⌘← / ⌥⌘→; ⌘← / ⌘→; ⇧E / E; S; L; ⌘ F; ⌘↑ / ⌘↓; Q; ⌘ L; ⌥ ⌘ S; ⇧ ⌘ R. No 'SHIFT', no empty keycaps, and a '/' between each pair."
+    },
+    {
+     "id": "H-customize-volume",
+     "steps": "View ▸ Customize Player over a playing video.",
+     "expect": "The volume tile's dashed box leaves about 5 pt of padding on both sides of the speaker and cone, as in 19m12.4. The dialog body shows the blurred video (about #181818), not flat #0F0F0F."
+    }
+   ],
+   "notesForOthers": "A-window: MXRAppView.bars now sets mxrBarsBesidePicture, true when the canvas style is underBars and no full library is open. PlayerBars reads it and passes overCanvasBase to its two MXRBackdropSurface calls. In that state the Light bars are the tint over Theme.Color.videoUnderBars (#2D2B29) with no material. PlayerView.canvasFill's bands (MXRBackdropBase) now resolve to that colour. I also added the D048/D049/D022 deviations to S72.Window/light in ShippingGallery. G-panels: DialogMenu passes overField: true. Every other mxrDropdownList caller (SettingsChoiceMenu, PanelDropdown in standard style, MXRDropdown) now drops below the field. A custom pop-up that must open over its field needs overField: true. F-settings: D032 now records that Light Settings keep the BG/Accent Bright segment and the BG/A4 Browse. SettingsControls.swift:360 still uses a literal 0.4 (Figma I3176:16574;3176:16554); a metrics token would make it tokens-only. When I ran my suites, SettingsDialogsPolishTests.swift:104 referenced Theme.Accent.default, which does not exist; it was fixed later by its owner. C-bridge: the onboarding keycaps are verified with your Mac-defaults mock; OnboardingShortcutKeycapTests depends on the mock reporting ⌥⌘→ for jump+short. Integrator: new test files DropdownPlacementTests.swift and OnboardingShortcutKeycapTests.swift; new source file Sources/MXRDesign/Theme/MacWindowControls.swift. After editing colors.json or metrics.json, regenerate Tokens.swift with tools/gen-tokens.py."
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "summary": "H-design passes round 1. Every work-list item is either fixed or covered by a decision with evidence. No blocker or major remains that code, tests or renders can establish.\n\nBuild and tests:\n- `swift build` is clean.\n- The targeted suites pass: 63 MXRUISnapshot tests plus Core, among them LightBarBackdrop, DropdownPlacement, OnboardingShortcutKeycap, FigmaDeviation, Customization*, Onboarding*, WindowShippingParity, WindowComposition, LayoutStore and MockShortcutDefaults.\n- The fixer's revert log shows that all three new or tightened tests fail with their fix reverted.\n- The engine diff (`git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx`) is empty.\n\nItem by item:\n- **(d) Light bars: fixed.** The S72.Window/light shipping-window render reads (171,171,170) at every bar sample, the same as Figma, and the video under them is (45,43,41) in both. The bar flat-colour FAIL is gone (flat 0.063 %). The only remaining FAIL is E-library's thumbnail at 70,752.\n  - The layer stack is correct: Figma's #2D2B29 video under BG/A3 @ 0.75 gives exactly #ABABAA. The product draws the same tint over a raw-colour token with no NSVisualEffectView, only while the bars are pinned beside the Light picture (`.underBars`, no full library).\n  - D053's bullet no longer excuses a difference.\n- **S63 dropdown: fixed.** `MXRDropdownListPlacement` drops standard lists one anchorGap below the field, and above it when there is no room. Only the preset list and DialogMenu open over the field. This matches video 17m31.0 (the gap there is about 7 pt). Figma's \"open\" variant is only a component-set layout, so the video is the right source.\n- **S70: fixed.** I looked at the render over Figma. The preview now shows traffic lights, then the cone, and only fullscreen on the right. In Light, the selected swatch is #E8851A, the same as Next, and the preview bars are #ABABAA.\n- **S71: fixed.** The render shows Mac engine defaults with the ⇧ glyph, no empty keycaps and the '/' separators.\n- **S66 volume box: fixed.** The crop of render over Figma lines up at 130×36.\n- **Disabled-opacity token:** present, `controlBar.iconButton.disabledOpacity` 0.3. PlayerControls has no literal 0.4 left.\n- **D015 PiP leftover:** fixed.\n- **S72 gallery deviations (D048 and D049):** added.\n- **S50 Light Settings:** recorded as a D032 amendment. Figma has no Light Settings frame, and the 17m44.0 frame is mid-transition, so the record is defensible; the owner may still choose the video's look.\n- **Regressions:** none. S01.Window/shipping is still PASS, C.Dropdown/default-open and S67.Customization/two-row-edit are still REVIEW. S66.App/customization (bar Δ3) and S66.Customization/default (no real blur offscreen) were already listed as FAILs in integration.json. S69, S70 and S71 FAIL only on the documented frame-edge alpha strip at 0,752.\n\nOwnership: the edits outside H-design's files are declared and minimal. The rowTop refactor in MXRPopupStyle and MXRPopupPresenter is not in H-design's report and looks like another area's work.\n\nEvidence: ../build/evidence/final5/polish/H-design-verify-r1/ (check/S72_light/report samples, check/S70_Onboarding_orange/topbar_render_over_figma.png, check/S71_Onboarding_shortcuts/keycaps.png, check/S66A/vol.png, onb-light.png, general-light.png).",
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "Sources/MXRUI/Customization/MXROnboardingView.swift onboardingKeycaps(pairedWithAnother:)",
+    "description": "S71 mixes two keycap styles on one screen. Rows with one binding split the modifiers into separate keycaps ('⌘' 'F', '⌥' '⌘' 'S'). Paired rows combine each binding into one keycap ('⌘↑', '⌥⌘←'). The D026 amendment documents this and the result is legible, but it looks inconsistent next to Figma's split style. The owner should confirm."
+   },
+   {
+    "severity": "minor",
+    "where": "Settings accent swatches (F-settings) vs onboarding swatches (H-design, D049 amendment)",
+    "description": "In Light, the onboarding swatches now use Light/Accent/Main (#E8851A). The Settings › General accent swatch row still draws the dark swatch hex #D37918 (sampled at 722,178 in S48.Settings/general-light). The same picker therefore looks different in two places. Either align Settings or extend the D049 bullet."
+   },
+   {
+    "severity": "minor",
+    "where": "redesign/docs/DECISIONS.md D032 amendment (S50)",
+    "description": "The pale BG/Accent Bright selected segment and ON cell, and the BG/A4 Browse, differ from video 17m44.0 (solid accent, white text, near-black Browse). Keeping them is defensible, since Figma has no Light Settings frame and the video frame is mid-transition. It is still an agent decision waiting for the owner, not an unjustified excuse."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRDesign/Theme/MacWindowControls.swift",
+    "description": "The traffic-light colours and geometry are hand-written constants in a Theme file, not generated from tokens JSON. This is acceptable as a Theme token group, but it is not in colors.json or metrics.json and has no Figma node. It stands in for a picture of AppKit chrome."
+   }
+  ],
+  "liveChecks": [
+   {
+    "id": "H-light-bars",
+    "steps": "Installed app, Light theme, windowed, auto-hide off (bars pinned). Play a bright clip, then a dark one. Sample the top bar at an empty spot (about x 600, y 10 pt) and an empty area of the control bar.",
+    "expect": "Both bars read #ABABAA ±1 for both clips. No video shows through. No #BBB7BC or #A7A7A7."
+   },
+   {
+    "id": "H-light-bars-transition",
+    "steps": "Light theme: enter and leave View ▸ Customize Player. Set controls auto-hide to always and let the bars hide and reveal. Open and close the full library.",
+    "expect": "No black, #090909 or #2D2B29 flash longer than one frame above or below the picture while the bars fade. Bars that are auto-hidden or in Customize blur the video (material path). The full-library top bar is unchanged (about #191919 in Dark)."
+   },
+   {
+    "id": "H-dropdown-below",
+    "steps": "Settings ▸ General ▸ Log details; Settings ▸ Subtitles autoload/filename dropdown; a side-panel standard dropdown (e.g. HDR in the sidebar). Click each to open. Then move the window so a dropdown field sits near the bottom of the screen and open it again.",
+    "expect": "The list opens about 6 pt below the field and is as wide as it. The field stays visible with its down chevron. Near the screen bottom the list opens above the field. Arrow keys, Return, Esc and click-outside all work."
+   },
+   {
+    "id": "H-dropdown-overfield",
+    "steps": "Open Add Subtitles and click the header 'To This File' pop-up. Open the sidebar subtitle preset picker.",
+    "expect": "Both open over their field, with the current row on the field's row (06m08.5, 07m58.9)."
+   },
+   {
+    "id": "H-onboarding",
+    "steps": "Run onboarding on a clean profile (isolated HOME). Step 2: inspect the preview, switch to Light and pick a non-orange accent. Step 3: read every keycap.",
+    "expect": "The preview shows red, yellow and green traffic lights, then the cone, and only fullscreen on the right. In Light, the selected swatch matches Next's colour. Step 3 shows Space; ⌥⌘← / ⌥⌘→; ⌘← / ⌘→; ⇧E / E; S; L; ⌘ F; ⌘↑ / ⌘↓; Q; ⌘ L; ⌥ ⌘ S; ⇧ ⌘ R. There is no 'SHIFT', no empty or truncated keycap, and a '/' sits between each pair."
+   },
+   {
+    "id": "H-customize-volume",
+    "steps": "View ▸ Customize Player over a playing video.",
+    "expect": "The volume tile's dashed box leaves about 5 pt on each side of the speaker and cone, as in 19m12.4. The dialog body shows the blurred video (about #181818), not a flat #0E0E0E."
+   }
+  ],
+  "ownerDecisions": [
+   "D053 bullet 1 amended (agent, 2026-10-17): Light bars use Figma's exact layer stack (BG/A3 tint over the #2D2B29 videoUnderBars base, no material). Verified as a fix, not an excuse.",
+   "D053 new bullet (agent, 2026-10-17): the full-library top bar is #191919 against Figma #191A1A–#1C1C1D, because Figma has a photo under its bar. Δ≤3; the owner should approve.",
+   "D034 amended (agent, 2026-10-17): settings and side-panel dropdown lists drop below the field; the preset list and dialog header pop-ups open over the field. This answers D034's former open owner question, so the owner should confirm.",
+   "D022 amended (agent, 2026-10-17): the onboarding preview draws the Mac window chrome (Theme.MacWindowControls).",
+   "D026 amended (agent, 2026-10-17): onboarding keycaps use ⇧, show the engine's macOS defaults, and draw a paired binding as one keycap. This mixes keycap styles on S71; the owner should confirm.",
+   "D049 amended (agent, 2026-10-17): onboarding swatches use each accent's Accent/Main in the shown theme; unselected swatches stay at 50 % (pastel in Light). The Settings swatch row is not aligned yet.",
+   "D032 amended (agent, 2026-10-17): Light Settings keep the BG/Accent Bright segment and ON cell and the BG/A4 Browse instead of video 17m44.0's solid accent and dark Browse. The owner may choose the video look.",
+   "D015 updated: the PiP item is marked resolved by D007/D055."
+  ]
+ }
+}

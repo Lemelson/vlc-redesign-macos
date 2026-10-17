@@ -4850,6 +4850,7 @@ if test "${enable_minimal_macosx}" = "yes" -a "${SYS}" = "darwin"
 then
   VLC_ADD_PLUGIN([minimal_macosx])
 fi
+m4_include([modules/gui/macosx_redesign/configure.m4])
 
 dnl
 dnl Mac OS X fancy dmg build tool

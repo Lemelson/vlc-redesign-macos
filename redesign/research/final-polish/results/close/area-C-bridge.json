@@ -1,0 +1,149 @@
+{
+ "area": "C-bridge",
+ "reports": [
+  {
+   "status": "done",
+   "summary": "C-bridge fixed every bridge item on its list, each with a regression test that fails without the fix.\n(1) Jump OSD (critic P2, B-controls open): the bridge no longer pairs on_seek reports with presses by count within 1 s. A jump's target is now captured synchronously: the timer's on_seek fires on main, inside var_SetInteger(\"key-action\"). So a seek-bar seek, a chapter seek, or a jump that did not seek can no longer take its slot. The pending counter and the deadline are removed.\n(2) Subtitle safe inset, primary vout only: setSubtitleSafeInset uses vlc_player_vout_Hold (the main vout, or the dummy it inherits from), and a VOUT_STARTED callback applies the inset only for VLC_VOUT_ORDER_PRIMARY.\n(3) Subtitle safe inset, re-send on geometry/scale change: the new SubtitleSafeInsetFeed (MXRVLCBackend) measures the video host view, not the window content view. It subtracts the letterbox and re-sends on a view frame change, NSWindow.didChangeBackingProperties or didChangeScreen. MXRAppController now uses it.\n(4) The stale 'plugin rescan' comment in VLCSettingsBackend is gone.\n(5) The mock hotkeys now report VLC's macOS engine defaults, checked headless against the real engine (engine-hotkey-defaults.txt). Galleries now show what the product shows: S09 ⌘. ⌘← ⌘→ ⇧⌘R (matches D034's amendment and D026); S64 ⌘F/⌘./⌘→/⌘← (D026).\nRendering S71 after the change exposed a real product bug that is not mine: onboarding keycaps for multi-modifier engine keys (⌘⌥← / ⌘⌥→, ⌘↑/⌘↓, ⌘⌥S, ⇧⌘R) compress to empty caps in the 153 pt keycap column. The installed app shows the same, since it reads the same engine keys. Handed to H-design.\nVerification:\n- Native suites, under the lock, on the shared tree: media, including 'PASS: subtitle safe inset' with the new two-video-track check; fixture (bridge-smoke with the new 'jump that did not seek' check); contracts.\n- Swift: MXRVLCBackendTests 61/61; the MXRCoreTests suite 193/193 earlier, plus targeted reruns.\n- Mutation checks: restoring the old count-based jump code fails the bridge-smoke check (\"…not 00:00 / 00:02\"). Applying the inset to every vout fails the effects check (\"a secondary vout keeps the user's offset, not the inset (63)\").\nNo new or amended DECISIONS entries.",
+   "fixed": [
+    "Critic P2 / B-controls verify open: the jump OSD paired hotkeys with on_seek reports by count within 1 s. It now takes the target reported synchronously inside the hotkey's own key-action call on main. Seeks from other threads and the seek bar's are ignored, and a jump that did not seek shows nothing. Test: bridge-smoke sets a negative jump size, triggers the jump, then does a seek-bar seek and requires that no OSD appears. Mutant log: ../build/evidence/final5/polish/C-bridge/mutant-jump-osd-fixture.log. Pass log: native-fixture.log.",
+    "Critic P2 / C-bridge verify open[1]: the subtitle safe inset now applies only to the primary vout (performCommand uses vlc_player_vout_Hold; the vout callback passes the vout order). Test: effects-runtime muxes the fixture's video twice as MJPEG with ffmpeg, selects both tracks and checks that the secondary vout keeps the user's offset (3) while the main vout gets 63. Mutant log: ../build/evidence/final5/polish/C-bridge/mutant-secondary-vout.log. Pass log: native-media.log.",
+    "Critic P2 / C-bridge verify open[0] / (d): the inset is now re-sent on a resize, a backing-scale change or a screen change, and is measured on the video view (videoHost) instead of the window content view. Change: new SubtitleSafeInsetFeed, which observes NSView.frameDidChange, NSWindow.didChangeBackingProperties and didChangeScreen, filtered to the view's window. Tests: SubtitleSafeInsetFeedTests (3), using an NSWindow that is never shown: a resize re-sends with the letterbox subtracted (80 to 30), a 2x to 1x scale change re-sends, and another window's screen change is ignored. Without the observers these sends never happen.",
+    "(d) The letterbox subtraction is kept (fittedPicture/points), now done inside the feed.",
+    "Critic P2 code hygiene: removed the stale 'plugin rescan' comment from VLCSettingsBackend.swift:7.",
+    "(d) Mock hotkeys: MockShortcuts.defaultActions now uses VLC's macOS engine defaults. They were checked headless against the real engine with a libvlccore probe (../build/evidence/final5/polish/C-bridge/engine-hotkey-defaults.txt). Examples: stop ⌘., prev ⌘←, next ⌘→, record ⇧⌘R, fullscreen ⌘F, mute ⌘⌥↓, snapshot ⌘⌥S, subtitle track S, audio track L. Test: MockShortcutDefaultsTests parses the __APPLE__ block of src/libvlc-module.c and its add_key table, and compares them with every mock engine action. Renders: ../build/evidence/final5/polish/C-bridge/renders/{S09_ContextMenu_default,S64_KeyboardShortcuts_default,S71_Onboarding_shortcuts}/side-by-side.png. S09 now shows ⌘. ⌘← ⌘→ ⇧⌘R ⌘\\ ⌘Q, covered by D026 and D034's right-click-keys amendment."
+   ],
+   "notFixed": [
+    {
+     "id": "(d)/(b) bridge rewrite: CODE-02/C-08 typed DTOs and the B-15/CODE-08 split of MXRServicesBridge.m",
+     "why": "Still not worth doing in this wave. Other agents are editing MXRServicesBridge.m and MXRBridgeKeys right now (uncommitted COMP-08 soundtrack work: MXRLibraryExternalTracks, AttachAudioTrack), so a split or a typed wire would conflict with them. The current wire is covered by the BridgeKeyContract and BridgeWireBehaviour tests and by the native suites. Per critic P2, the orchestrator should schedule it as a single-agent task right after this wave."
+    },
+    {
+     "id": "PER-02 (blocking subtitle-folder syscall on MainActor)",
+     "why": "Not in C-bridge files. The code is in Sources/MXRCore/Settings/SubtitleFolderRules.swift and Sources/MXRUI/Dialogs/DialogInput.swift, both owned by F-settings."
+    },
+    {
+     "id": "A-window open: restore-prompt time for external media (applyRestoreQueryForURL / stateSnapshot), untested",
+     "why": "bridge-smoke runs with --no-media-library, and the media-library suite belongs to E-library; adding an ML-backed restore harness was out of reach this wave. The code is unchanged and correct as read. Listed as live check C-restore-external."
+    },
+    {
+     "id": "D039 disabled Edit/Add Audio Tracks rows (COMP-08)",
+     "why": "Another agent is already implementing it in the shared tree: soundtrack slaves through MXRLibraryExternalTracks/MXRLibraryAddTrackSlaves in MXRServicesBridge.m, and AttachAudioTrack in MXRLibraryServices. I did not duplicate or touch that work."
+    },
+    {
+     "id": "Compact-library subtitles (D055)",
+     "why": "A geometry question for A-window (whether the video sits right of the library). A vertical sub-margin cannot fix it. Unchanged."
+    }
+   ],
+   "filesChanged": [
+    "modules/gui/macosx_redesign/module/bridge/MXRServicesBridge.m",
+    "modules/gui/macosx_redesign/module/bridge/MXREffectsServices.h",
+    "modules/gui/macosx_redesign/module/bridge/MXREffectsServices.m",
+    "modules/gui/macosx_redesign/module/bridge/tests/MXREffectsServicesRuntimeTests.m",
+    "modules/gui/macosx_redesign/module/tests/bridge-smoke.m",
+    "modules/gui/macosx_redesign/Sources/MXRVLCBackend/VLCSubtitleSafeInsetFeed.swift (new)",
+    "modules/gui/macosx_redesign/Sources/MXRVLCBackend/VLCSettingsBackend.swift",
+    "modules/gui/macosx_redesign/Sources/MXRMockBackend/MockServices.swift",
+    "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRAppController.swift",
+    "modules/gui/macosx_redesign/Tests/MXRVLCBackendTests/SubtitleSafeInsetFeedTests.swift (new)",
+    "modules/gui/macosx_redesign/Tests/MXRCoreTests/MockShortcutDefaultsTests.swift (new)",
+    "modules/gui/macosx_redesign/Tests/MXRCoreTests/ServiceTests.swift"
+   ],
+   "editsOutsideOwnership": [
+    "Sources/MXRPlugin/MXRAppController.swift (A-window): observeSubtitleSafeInset now feeds SubtitleSafeInsetFeed(view: videoHost). The private sendSubtitleSafeInset/sentSubtitleSafeInset are removed. stop() invalidates the feed. Nothing else touched.",
+    "module/tests/bridge-smoke.m (shared harness): one block added after the jump-target assertion (negative jump size + seek-bar seek, then no OSD); the jump size is restored to 1 afterwards.",
+    "Tests/MXRCoreTests/ServiceTests.swift: testDraftEditingAndConflicts now uses Command+f (the mock's fullscreen key) and expects Command+. after Reset All, following the mock's new macOS defaults."
+   ],
+   "decisionsWritten": [],
+   "ownerDecisions": [
+    "No DECISIONS entry added or amended by C-bridge. The mock keys now follow D026 (engine hotkeys keep VLC's macOS defaults) and D034's right-click-keys amendment (Gallery fixtures show the same macOS keys, D030). Both entries already cover Figma's bare S/N/P/F letters in S09/S64/S71."
+   ],
+   "evidence": [
+    "../build/evidence/final5/polish/C-bridge/native-media.log (PASS: subtitle safe inset, PASS: media)",
+    "../build/evidence/final5/polish/C-bridge/native-fixture.log (PASS: fixture, bridge-smoke)",
+    "../build/evidence/final5/polish/C-bridge/native-contracts.log (PASS: contracts)",
+    "../build/evidence/final5/polish/C-bridge/mutant-jump-osd-fixture.log (old count-based code: FAIL a seek-bar seek after a jump that did not seek shows no jump OSD, not 00:00 / 00:02)",
+    "../build/evidence/final5/polish/C-bridge/mutant-secondary-vout.log (all-vouts code: FAIL a secondary vout keeps the user's offset, not the inset (63))",
+    "../build/evidence/final5/polish/C-bridge/engine-hotkey-defaults.txt (real engine key-* defaults, headless probe)",
+    "../build/evidence/final5/polish/C-bridge/renders/S09_ContextMenu_default/side-by-side.png",
+    "../build/evidence/final5/polish/C-bridge/renders/S64_KeyboardShortcuts_default/side-by-side.png",
+    "../build/evidence/final5/polish/C-bridge/renders/S71_Onboarding_shortcuts/side-by-side.png (shows the empty-keycap product bug passed to H-design)",
+    "swift test: MXRVLCBackendTests 61/61 (incl. SubtitleSafeInsetFeedTests 3/3); MXRCoreTests 193/193 (incl. MockShortcutDefaultsTests 2/2)"
+   ],
+   "liveChecks": [
+    {
+     "id": "C-safeinset-scale",
+     "steps": "Play Test Show S01E01.mp4 (has a .srt) on a Retina display and enter fullscreen. Move the pointer to reveal the control bar while a cue is on screen. If a non-Retina external display is attached, move the fullscreen window there (or toggle display scaling) while the bar is revealed.",
+     "expect": "With the bar revealed, the cue sits fully above it on both displays, and drops back to its normal position when the bar hides. Subtitles never hide under the bar after the screen or scale change, and never jump twice the bar height."
+    },
+    {
+     "id": "C-safeinset-resize",
+     "steps": "In a window (not fullscreen), open Customize so the control bar overlays the picture, with a subtitle cue showing. Resize the window taller and wider, so letterbox bars appear above and below the picture.",
+     "expect": "The cue stays just above the bar. Once a letterbox band below the picture is taller than the bar, the cue goes back to its normal position, not higher."
+    },
+    {
+     "id": "C-jump-osd",
+     "steps": "Play S01E03 (10 min). Press the seek-forward hotkey (⌘⌥→) twice quickly. Then press it once and immediately click on the seek bar.",
+     "expect": "After the double press, the OSD shows the second jump's target, matching the seek bar. After the single press plus click, the OSD shows the jump's target once; the click does not post a second position OSD."
+    },
+    {
+     "id": "C-restore-external",
+     "steps": "With Continue set to Ask, play a file from outside any library folder (e.g. drag ../build/media/Test Show S01E03.mp4 in) to about 3:00 and quit with ⌘Q. Relaunch and open the same file.",
+     "expect": "The Continue Watching toast offers a time near 3:00, not --:-- and not 0:00, and Continue seeks there."
+    }
+   ],
+   "notesForOthers": "H-design: product bug in MXROnboardingView keycaps (Sources/MXRUI/Customization, your file). The rows take the real engine keys, which on the Mac are VLC's __APPLE__ defaults: seek ⌘⌥← / ⌘⌥→, volume ⌘↑ / ⌘↓, prev/next ⌘← / ⌘→, snapshot ⌘⌥S, record ⇧⌘R. Six compact caps cannot fit the 153 pt keycap area (column 393 − label 220 − gap 20), so SwiftUI compresses each Text to nothing: empty caps for Seek, Volume and Previous/Next, and near-empty caps for Snapshot and Record. The installed app shows the same; it was hidden before only because the mock reported Windows keys. See ../build/evidence/final5/polish/C-bridge/renders/S71_Onboarding_shortcuts/side-by-side.png. Possible fixes: one cap per binding with the Mac glyph string ('⌘⌥←'), as menus show it, or a narrower label width. In both cases add .fixedSize() so a glyph never truncates to empty.\nD-menus: the mock now reports the macOS engine keys, so S09.ContextMenu/default shows ⌘. ⌘← ⌘→ ⇧⌘R ⌘\\ ⌘Q, as your D034 right-click-keys amendment says. The mock's subtitle delay keys are now the engine's (up J, down H). The S64 gallery shows ⌘F/⌘./⌘→/⌘←.\nF-settings: in S64 the ⌘ glyph renders small in the monospaced hotkey field (cosmetic, your view).\nIntegrator:\n- New files: Sources/MXRVLCBackend/VLCSubtitleSafeInsetFeed.swift, Tests/MXRVLCBackendTests/SubtitleSafeInsetFeedTests.swift, Tests/MXRCoreTests/MockShortcutDefaultsTests.swift.\n- The bridge changes (MXRServicesBridge.m, MXREffectsServices.{h,m}) need the make/install build. applySubtitleSafeInsetToVout: now takes order:.\n- The effects-runtime harness calls ffmpeg, which the media gate already requires.\n- At one point the Swift test target failed to compile in Tests/MXRUISnapshotTests/SettingsDialogsPolishTests.swift:104 (Theme.Accent has no member 'default', another area's file); it compiled again a few minutes later.\nOrchestrator: schedule the MXRServicesBridge.m split and the typed DTOs (CODE-02/C-08, B-15/CODE-08) as a single-agent task after the parallel wave."
+  }
+ ],
+ "verdict": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "minor",
+    "where": "Sources/MXRVLCBackend/VLCSubtitleSafeInsetFeed.swift / module/bridge/MXRServicesBridge.m SeekFeedbackSeek comment",
+    "description": "The comment says chapter keys 'never count'. In fact a chapter hotkey run through triggerAction does report its on_seek synchronously on main while capture is on. This is harmless only because the captured target is used just when MXRHotkeyFeedback returns AwaitSeek, which chapter actions do not. The comment is slightly inaccurate. Nothing visible goes wrong."
+   },
+   {
+    "severity": "minor",
+    "where": "Sources/MXRMockBackend/MockServices.swift (MockSettings .number→.float hunk)",
+    "description": "The uncommitted diff of this C-bridge-owned file has a MockSettings change: fractional step means .float. The C-bridge report does not declare it, so it is probably another area's edit. The integrator should attribute it before committing."
+   },
+   {
+    "severity": "minor",
+    "where": "D055 / compact-library subtitles",
+    "description": "Still not fixed: a cue can sit under the compact library. A bottom sub-margin cannot cure a left overlay, so the fix belongs to A-window's geometry, not to the bridge. The D055 agent decision still awaits the owner, and the difference is still visible."
+   },
+   {
+    "severity": "minor",
+    "where": "Bridge rewrite (CODE-02/C-08, B-15/CODE-08)",
+    "description": "Deferred again because other agents are editing MXRServicesBridge.m concurrently. The current wire is covered by contract and behaviour tests, so this is acceptable. It still needs to be scheduled as a single-agent task."
+   }
+  ],
+  "summary": "C-bridge round 1: pass. No blocker or major found.\n\n**Checked by reading the code (and the engine source):**\n- **Jump OSD:** The count-based pairing is gone. src/player/input.c:170 and timer.c:320 show that on_seek fires on the caller's thread before input_ControlPush. So a jump triggered from main reports its target while var_SetInteger(\"key-action\") is still running. Seek-bar and position seeks on main are ignored outside that capture. Arrow navigation fallback seeks are still matched on the input thread, as before.\n- **Safe inset, primary vout only:** setSubtitleSafeInset uses vlc_player_vout_Hold (the main vout, or the dummy one, which has no sub-margin and is skipped by the var_Type check). The VOUT_STARTED callback passes the vout order, and only VLC_VOUT_ORDER_PRIMARY gets the inset.\n- **Safe inset feed:** SubtitleSafeInsetFeed measures videoHost instead of the window's content view. It subtracts the fitted-picture letterbox and re-sends on a view frame change, didChangeBackingProperties or didChangeScreen (only for the view's own window). It skips the send when nothing changed, and stop() invalidates it.\n- **Stale comment:** the 'plugin rescan' comment in VLCSettingsBackend.swift is gone.\n- **Mock hotkeys:** the mock now reports exactly the engine's `__APPLE__` defaults. I cross-checked them against the fixer's real-engine probe (engine-hotkey-defaults.txt), and MockShortcutDefaultsTests parses src/libvlc-module.c itself.\n\n**Build and tests:**\n- `swift build` is clean (Swift 6).\n- MXRVLCBackendTests 61/61, including SubtitleSafeInsetFeedTests 3/3.\n- MockShortcutDefaultsTests 2/2 and ShortcutsAndOSDTests 5/5.\n- I re-ran the native fixture suite (bridge-smoke with the new 'jump that did not seek' check) and the media suite ('PASS: subtitle safe inset', including the secondary-vout check) under lock.sh, on the current shared tree. Both pass.\n- The fixer's mutant logs show the old count-based jump code and the all-vouts inset each failing their new checks. The feed test cannot pass without the frame and backing observers.\n\n**Renders:**\n- S09.ContextMenu/default is REVIEW. It now shows ⌘. ⌘← ⌘→ ⇧⌘R ⌘\\ ⌘Q where Figma has S/P/N/R and Ctrl. D026 and D034's right-click-keys amendment cover this with a real constraint: these are VLC's Mac bindings, bare S is the subtitle-track key and ⌘P is Print.\n- S71.Onboarding/shortcuts now shows filled one-binding-per-cap keycaps. The empty-cap bug the fixer handed over appears fixed by H-design's D026 amendment.\n- S64 is REVIEW.\n\n**Other checks:**\n- PER-02 is not in C-bridge files (DialogInput.swift and SubtitleFolderRules.swift).\n- D039's soundtrack work is being done by another agent in MXRServicesBridge.m, which the fixer left alone.\n- The engine diff (`git diff upstream-base-2026-10-14 -- src lib include modules/gui/macosx`) is empty. There is no view or token code in C-bridge files.\n- The declared edit outside ownership (MXRAppController) is minimal. The new Swift file is picked up by Makefile.am's find over Sources.\n- No DECISIONS entries were added or amended.\n\nEvidence is in ../build/evidence/final5/polish/C-bridge-verify-r1/: native-fixture.log, native-media.log, and renders/*/side-by-side.png.",
+  "liveChecks": [
+   {
+    "id": "C-safeinset-scale",
+    "steps": "Play Test Show S01E01.mp4 (it has a .srt) fullscreen on a Retina display and reveal the control bar while a cue is on screen. If a 1x external display is attached, move the fullscreen window to it and reveal the bar again.",
+    "expect": "The cue sits just above the revealed bar on both displays, at neither half nor double the offset, and drops back when the bar hides."
+   },
+   {
+    "id": "C-safeinset-resize",
+    "steps": "In a window, open Customize so the bar overlays the picture, with a cue showing. Resize the window taller until a letterbox band appears below the picture, taller than the bar.",
+    "expect": "The cue stays just above the bar while the band is shorter than the bar. Once the band is taller, the cue returns to its normal position and is not raised further."
+   },
+   {
+    "id": "C-jump-osd",
+    "steps": "Play S01E03 (10 min). Press the seek-forward hotkey (⌥⌘→) twice quickly. Then press it once and immediately click the seek bar elsewhere.",
+    "expect": "After the double press, the OSD shows the second jump's target, which matches the seek bar. After the press and the click, the jump OSD shows its target once, and the click posts no extra position OSD."
+   },
+   {
+    "id": "C-mac-keys-menu",
+    "steps": "Right-click the video during playback.",
+    "expect": "The rows show Stop ⌘., Previous ⌘←, Next ⌘→, Record ⇧⌘R, Hide UI ⌘\\ and Quit ⌘Q, the same as the S09 gallery."
+   }
+  ],
+  "ownerDecisions": [
+   "No DECISIONS entry was added or amended by C-bridge. The Mac engine keys shown in S09, S64 and S71 rely on D026 (with H-design's 2026-10-17 amendment) and on D034's right-click-keys amendment. Both are agent decisions waiting for the owner. They record a real constraint: VLC's macOS key bindings, with bare S as the subtitle-track key and ⌘P as Print.",
+   "D055 (subtitles under the compact library) is still open. It is a geometry question for A-window and cannot be fixed with a bottom sub-margin."
+  ]
+ }
+}
