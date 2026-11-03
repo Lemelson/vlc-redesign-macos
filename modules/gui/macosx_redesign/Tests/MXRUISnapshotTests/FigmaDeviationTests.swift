@@ -170,9 +170,9 @@ final class FigmaDeviationTests: XCTestCase {
             GalleryCatalog.allEntries().filter { $0.id.hasPrefix("S48.Settings/") && $0.figmaNode != nil }.map(\.id)
         }
         XCTAssertGreaterThanOrEqual(ids.count, 14)
-        let tool = try Self.snapshotTool()
         let output = FileManager.default.temporaryDirectory.appending(path: "mxr-settings-gate-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: output) }
+        let tool = try Self.backgroundApp(running: Self.snapshotTool(), in: output)
 
         let checks = ConcurrentChecks()
         let queue = OperationQueue()
@@ -216,6 +216,29 @@ final class FigmaDeviationTests: XCTestCase {
             throw GalleryToolingError("mxr-snapshot is not built at \(tool.path); run swift build --build-tests")
         }
         return tool
+    }
+
+    /// The tool inside a throwaway app bundle marked `LSBackgroundOnly`. xctest is a regular app
+    /// once a test touches AppKit, and every unbundled AppKit child it started (14 per run) left
+    /// a ghost tile in the Dock; a background-only bundle never registers with the Dock at all.
+    private static func backgroundApp(running tool: URL, in folder: URL) throws -> URL {
+        let contents = folder.appending(path: "mxr-snapshot.app/Contents")
+        let executable = contents.appending(path: "MacOS/mxr-snapshot")
+        try FileManager.default.createDirectory(at: executable.deletingLastPathComponent(), withIntermediateDirectories: true)
+        do { try FileManager.default.linkItem(at: tool, to: executable) } catch { try FileManager.default.copyItem(at: tool, to: executable) }
+        // SwiftPM's resource bundles are looked up in the app's Resources once the tool is bundled.
+        let resources = contents.appending(path: "Resources")
+        try FileManager.default.createDirectory(at: resources, withIntermediateDirectories: true)
+        let products = tool.deletingLastPathComponent()
+        for name in try FileManager.default.contentsOfDirectory(atPath: products.path) where name.hasSuffix(".bundle") {
+            try FileManager.default.createSymbolicLink(at: resources.appending(path: name), withDestinationURL: products.appending(path: name))
+        }
+        let info: [String: Any] = ["CFBundleIdentifier": "io.github.lemelson.vlc-redesign.snapshot-test",
+                                   "CFBundleExecutable": "mxr-snapshot", "CFBundlePackageType": "APPL",
+                                   "LSBackgroundOnly": true]
+        try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
+            .write(to: contents.appending(path: "Info.plist"))
+        return executable
     }
 
     private static func run(_ tool: URL, _ arguments: [String]) -> (status: Int32, output: String) {

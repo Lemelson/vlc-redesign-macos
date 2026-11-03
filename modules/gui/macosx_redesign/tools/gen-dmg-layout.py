@@ -8,23 +8,18 @@ see https://metacpan.org/dist/Mac-Finder-DSStore/view/DSStoreFormat.pod) from la
 - '.' icvp: icon view, icon and text size, background picture (an alias record);
 - '.' pBBk: the same picture as a bookmark (what current Finder reads first); '.' vstl: icon view;
 - an Iloc (icon centre) per item.
-The picture's alias and bookmark are made from a scratch HFS+ volume named like the DMG, holding
-`.background/background.tiff` at the same path; Finder resolves them by that volume name and path.
+The picture's alias and bookmark name only the volume and `.background/background.tiff`; Finder resolves
+them by that volume name and path. The output depends on layout.json alone (same bytes on every Mac).
 
-Usage: tools/gen-dmg-layout.py            regenerate the template (mounts and ejects a scratch image)
+Usage: tools/gen-dmg-layout.py            regenerate the template
        tools/gen-dmg-layout.py --check    verify the checked-in template against layout.json
 """
 import argparse
-import base64
-import datetime
 import json
-import os
 from pathlib import Path
 import plistlib
 import struct
-import subprocess
 import sys
-import tempfile
 
 TOOLS = Path(__file__).resolve().parent
 DMG = TOOLS.parent / 'Resources/dmg'
@@ -32,7 +27,6 @@ LAYOUT = DMG / 'layout.json'
 TEMPLATE = DMG / 'DS_Store'
 BACKGROUND = '.background/background.tiff'
 PAGE = 0x1000
-MAC_EPOCH = datetime.datetime(1904, 1, 1, tzinfo=datetime.timezone.utc)
 
 
 def load_layout():
@@ -46,74 +40,87 @@ def window_bounds(layout):
                                      window['height'] + window['titleBarHeight'])
 
 
-# --- background picture: tiff, alias, bookmark --------------------------------------------------
+# --- background picture: alias and bookmark -----------------------------------------------------
+# Both are built from the volume name and the picture's path alone, so the template is the same on
+# every Mac and carries nothing of the Mac that made it: no dates, file or volume ids, UUIDs, sizes,
+# sandbox tokens or temporary folders (Foundation's own bookmark data has all of these). The release
+# DMG is a new volume each time, so Finder resolves both by volume name and path anyway.
 
-def make_background_tiff(out):
-    """The 1x and 2x pictures as one multi-resolution TIFF, which Finder picks per display."""
-    subprocess.run(['tiffutil', '-cathidpicheck', str(DMG / 'background.png'), str(DMG / 'background@2x.png'),
-                    '-out', str(out)], check=True, capture_output=True)
-
-
-def mac_time(seconds):
-    return int(seconds - MAC_EPOCH.timestamp())
-
-
-def alias_record(volume, volume_name, relative):
-    """Alias Manager record (version 2) for volume/relative, like Finder writes into icvp."""
-    target = volume / relative
-    folder = target.parent
-    volume_date = mac_time(os.stat(volume).st_birthtime)
-    target_date = mac_time(os.stat(target).st_birthtime)
+def alias_record(volume_name, relative):
+    """Alias Manager record (version 2) for /Volumes/<volume_name>/<relative>, like Finder writes into
+    icvp, with the volume and file ids and dates left unknown (0)."""
+    target = Path(relative)
     carbon_volume = volume_name.encode('utf-8').replace(b':', b'/')
     carbon_name = target.name.encode('utf-8').replace(b':', b'/')
-    header = struct.pack('>h28pI2shI64pII4s4shhI2s10s', 0, carbon_volume, volume_date, b'H+', 5,
-                         os.stat(folder).st_ino, carbon_name, os.stat(target).st_ino, target_date,
+    header = struct.pack('>h28pI2shI64pII4s4shhI2s10s', 0, carbon_volume, 0, b'H+', 5, 0, carbon_name, 0, 0,
                          b'\0\0\0\0', b'\0\0\0\0', -1, -1, 0, b'\0\0', b'\0' * 10)
     def tag(number, data):
         return struct.pack('>hh', number, len(data)) + data + (b'\0' if len(data) & 1 else b'')
     def unicode(text):
         encoded = text.encode('utf-16-be')
         return struct.pack('>h', len(encoded) // 2) + encoded
-    cnids, path = [], target.parent
-    while path != volume:
-        cnids.append(os.stat(path).st_ino)
-        path = path.parent
-    extras = (tag(0, folder.name.encode('utf-8'))
-              + struct.pack('>hhQhhQ', 16, 8, volume_date * 65536, 17, 8, target_date * 65536)
-              + tag(1, struct.pack('>%dI' % len(cnids), *cnids))
-              + tag(2, ':'.join([volume_name, *Path(relative).parts]).encode('utf-8'))
+    extras = (tag(0, target.parent.name.encode('utf-8'))
+              + tag(2, ':'.join([volume_name, *target.parts]).encode('utf-8'))
               + tag(14, unicode(target.name)) + tag(15, unicode(volume_name))
-              + tag(18, ('/' + relative).encode('utf-8')) + tag(19, str(volume).encode('utf-8'))
+              + tag(18, ('/' + relative).encode('utf-8')) + tag(19, f'/Volumes/{volume_name}'.encode('utf-8'))
               + struct.pack('>hh', -1, 0))
     body = header + extras
     return struct.pack('>4shh', b'\0\0\0\0', 8 + len(body), 2) + body
 
 
-def bookmark(path):
-    """NSURL bookmark data for path (Foundation through JavaScript for Automation; no Apple events)."""
-    script = ('ObjC.import("Foundation");'
-              f'var url = $.NSURL.fileURLWithPath({json.dumps(str(path))});'
-              'var data = url.bookmarkDataWithOptionsIncludingResourceValuesForKeysRelativeToURLError(0, $(), $(), null);'
-              'data.base64EncodedStringWithOptions(0).js')
-    result = subprocess.run(['osascript', '-l', 'JavaScript', '-e', script], capture_output=True, text=True, check=True)
-    return base64.b64decode(result.stdout.strip())
+BOOKMARK_PATH, BOOKMARK_FILE_PROPERTIES = 0x1004, 0x1010
+BOOKMARK_VOLUME_PATH, BOOKMARK_VOLUME_URL, BOOKMARK_VOLUME_NAME = 0x2002, 0x2005, 0x2010
+BOOKMARK_KEYS = {BOOKMARK_PATH, BOOKMARK_FILE_PROPERTIES, BOOKMARK_VOLUME_PATH, BOOKMARK_VOLUME_URL, BOOKMARK_VOLUME_NAME}
 
 
-def picture_references(volume_name):
-    mount = Path('/Volumes') / volume_name
-    if mount.exists():
-        raise SystemExit(f'{mount} is in use; eject it first (the alias must name that mount point)')
-    with tempfile.TemporaryDirectory(prefix='mxr-dmg-layout-') as scratch:
-        image = Path(scratch) / 'layout.dmg'
-        subprocess.run(['hdiutil', 'create', '-quiet', '-size', '8m', '-fs', 'HFS+', '-volname', volume_name,
-                        '-type', 'UDIF', str(image)], check=True)
-        subprocess.run(['hdiutil', 'attach', '-quiet', '-nobrowse', '-mountpoint', str(mount), str(image)], check=True)
-        try:
-            (mount / BACKGROUND).parent.mkdir()
-            make_background_tiff(mount / BACKGROUND)
-            return alias_record(mount, volume_name, BACKGROUND), bookmark(mount / BACKGROUND)
-        finally:
-            subprocess.run(['hdiutil', 'detach', '-quiet', str(mount)], check=True)
+def bookmark(volume_name, relative):
+    """NSURL bookmark data ('book', the layout of CFURLCreateBookmarkData) holding only the path
+    components, "a regular file" and the volume's mount point, URL and name. Foundation resolves it
+    on any volume of that name (NSURL needs the file properties to; without them it finds nothing)."""
+    data, offsets = bytearray(b'\0\0\0\0'), {}                 # the first TOC's offset goes first
+    def item(kind, payload):
+        offset = len(data)
+        data.extend(struct.pack('<II', len(payload), kind) + payload + b'\0' * (-len(payload) % 4))
+        return offset
+    def string(text):
+        return item(0x0101, text.encode('utf-8'))
+    components = ['Volumes', volume_name, *Path(relative).parts]
+    parts = [string(part) for part in components]
+    offsets[BOOKMARK_PATH] = item(0x0601, struct.pack('<%dI' % len(parts), *parts))
+    # Resource flags, valid-flags mask, reserved: "is a regular file", the first four flags known.
+    offsets[BOOKMARK_FILE_PROPERTIES] = item(0x0201, struct.pack('<QQQ', 1, 0x0F, 0))
+    offsets[BOOKMARK_VOLUME_URL] = item(0x0901, ('file:///Volumes/%s/' % volume_name.replace(' ', '%20')).encode('utf-8'))
+    offsets[BOOKMARK_VOLUME_NAME] = string(volume_name)
+    offsets[BOOKMARK_VOLUME_PATH] = string(f'/Volumes/{volume_name}')
+    toc = len(data)
+    entries = sorted(offsets.items())
+    data.extend(struct.pack('<IIIII', 12 + 12 * len(entries), 0xFFFFFFFE, 1, 0, len(entries)))
+    for key, offset in entries:
+        data.extend(struct.pack('<III', key, offset, 0))
+    data[0:4] = struct.pack('<I', toc)
+    header = struct.pack('<4sIII', b'book', 64 + len(data), 0x10050000, 64) + b'\0' * 48
+    return header + bytes(data)
+
+
+def read_bookmark(data):
+    """key -> value (strings, lists of strings) of bookmark data written by bookmark()."""
+    if data[:4] != b'book':
+        raise ValueError('not bookmark data')
+    base = struct.unpack('<I', data[12:16])[0]
+    def item(offset):
+        length, kind = struct.unpack('<II', data[base + offset:base + offset + 8])
+        payload = data[base + offset + 8:base + offset + 8 + length]
+        if kind in (0x0101, 0x0901):
+            return payload.decode('utf-8')
+        if kind == 0x0601:
+            return [item(entry) for entry in struct.unpack('<%dI' % (length // 4), payload)]
+        return payload
+    toc = base + struct.unpack('<I', data[base:base + 4])[0]
+    _, magic, _, following, count = struct.unpack('<IIIII', data[toc:toc + 20])
+    if magic != 0xFFFFFFFE or following != 0:
+        raise ValueError('bookmark data has more than one table of contents')
+    return {key: item(offset) for key, offset, _ in
+            (struct.unpack('<III', data[toc + 20 + 12 * n:toc + 32 + 12 * n]) for n in range(count))}
 
 
 # --- .DS_Store ------------------------------------------------------------------------------------
@@ -148,6 +155,11 @@ def records(layout, alias, bookmark_data):
         entries.append((name, 'Iloc', 'blob', struct.pack('>IIII', x, y, 0xFFFFFFFF, 0xFFFF0000)))
     # Finder keeps records sorted by file name (case-insensitive), then by code.
     return sorted(entries, key=lambda entry: (entry[0].lower(), entry[1]))
+
+
+def template(layout):
+    name = layout['volumeName']
+    return ds_store(records(layout, alias_record(name, BACKGROUND), bookmark(name, BACKGROUND)))
 
 
 def ds_store(entries):
@@ -260,8 +272,16 @@ def check(data, layout):
     carbon = ':'.join([layout['volumeName'], *Path(BACKGROUND).parts]).encode('utf-8')
     if carbon not in alias or ('/' + BACKGROUND).encode('utf-8') not in alias:
         problems.append(f'background alias does not point at {layout["volumeName"]}/{BACKGROUND}')
-    if BACKGROUND.encode('utf-8').split(b'/')[-1] not in values.get(('.', 'pBBk'), b''):
-        problems.append('background bookmark is missing')
+    try:
+        marks = read_bookmark(values.get(('.', 'pBBk'), b''))
+    except (ValueError, struct.error):
+        marks = {}
+    if marks.get(BOOKMARK_PATH) != ['Volumes', layout['volumeName'], *Path(BACKGROUND).parts]:
+        problems.append(f'background bookmark does not point at {layout["volumeName"]}/{BACKGROUND}')
+    if set(marks) - BOOKMARK_KEYS:
+        problems.append('background bookmark carries more than the path and the volume name')
+    if data != template(layout):
+        problems.append('template is not the one layout.json generates')
     if values.get(('.', 'vstl')) != b'icnv':
         problems.append('window does not open in icon view')
     for name, (x, y) in layout['items'].items():
@@ -286,8 +306,7 @@ if __name__ == '__main__':
             sys.exit('FAIL: ' + '; '.join(problems) + ' (run tools/gen-dmg-layout.py)')
         print('PASS: DS_Store template matches layout.json')
     else:
-        alias, bookmark_data = picture_references(layout['volumeName'])
-        TEMPLATE.write_bytes(ds_store(records(layout, alias, bookmark_data)))
+        TEMPLATE.write_bytes(template(layout))
         problems = check(TEMPLATE.read_bytes(), layout)
         if problems:
             sys.exit('FAIL: ' + '; '.join(problems))

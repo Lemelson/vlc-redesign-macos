@@ -27,4 +27,21 @@ final class AboutReleaseIdentityTests: XCTestCase {
         let years = try XCTUnwrap(text.firstMatch(of: /COPYRIGHT_YEARS="([0-9]{4})-([0-9]{4})"/))
         XCTAssertTrue(MXRAboutView.engineCopyright.contains("\(years.1)–\(years.2)"))
     }
+
+    /// 1.0.1: About ▸ Licenses opens the notices the packaging hook writes into the app.
+    func testAboutLicensesLinkOpensBundledAcknowledgements() throws {
+        let scratch = FileManager.default.temporaryDirectory
+            .appendingPathComponent("mxr-about-\(UUID().uuidString).bundle")
+        try FileManager.default.createDirectory(at: scratch.appendingPathComponent("Contents/Resources"),
+                                                withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let notices = scratch.appendingPathComponent("Contents/Resources/Acknowledgements.txt")
+        try Data("notices".utf8).write(to: notices)
+        let bundle = try XCTUnwrap(Bundle(url: scratch))
+        XCTAssertEqual(MXRAboutView.licensesURL(in: bundle).standardizedFileURL.path,
+                       notices.standardizedFileURL.path)
+        let fallback = MXRAboutView.licensesURL(in: Bundle(for: Self.self))
+        XCTAssertEqual(fallback.host, "github.com", "without the file the link points at the same texts in the source")
+        XCTAssertTrue(fallback.path.hasSuffix("macosx_redesign/Resources/licenses"))
+    }
 }

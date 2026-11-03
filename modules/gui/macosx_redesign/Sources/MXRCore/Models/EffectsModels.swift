@@ -143,20 +143,6 @@ public final class AudioEffectsModel {
     /// Presets for the Equalizer dropdown (with preview curves).
     @ObservationIgnored public let equalizerPresets: [EqualizerPreset] = EqualizerPreset.builtIn
     @ObservationIgnored public let backend: any PlayerBackend
-    /// The values of a slider drag in progress (``edit(_:)``); `nil` between drags.
-    @ObservationIgnored private var burst: VideoEffects?
-    /// The last value a drag wrote to the engine.
-    @ObservationIgnored private var burstWritten: VideoEffects?
-    @ObservationIgnored private var burstDirty = false
-    @ObservationIgnored private var writeTask: Task<Void, Never>?
-    @ObservationIgnored private var settleTask: Task<Void, Never>?
-
-    /// Live run 2 (Essential card): a fast Brightness drag sent one filter-chain write per pointer
-    /// event and crashed VLC's vout. A drag reaches the engine at most once per `writeInterval`
-    /// (latest value wins) and ends `settleInterval` after its last change.
-    public static let writeInterval: Duration = .milliseconds(50)
-    public static let settleInterval: Duration = .milliseconds(400)
-
     public init(backend: any PlayerBackend) {
         self.backend = backend
         effects = backend.audioEffects
@@ -247,20 +233,6 @@ public final class ChaptersModel {
     public private(set) var programs: [MediaProgram] = []
 
     @ObservationIgnored public let backend: any PlayerBackend
-    /// The values of a slider drag in progress (``edit(_:)``); `nil` between drags.
-    @ObservationIgnored private var burst: VideoEffects?
-    /// The last value a drag wrote to the engine.
-    @ObservationIgnored private var burstWritten: VideoEffects?
-    @ObservationIgnored private var burstDirty = false
-    @ObservationIgnored private var writeTask: Task<Void, Never>?
-    @ObservationIgnored private var settleTask: Task<Void, Never>?
-
-    /// Live run 2 (Essential card): a fast Brightness drag sent one filter-chain write per pointer
-    /// event and crashed VLC's vout. A drag reaches the engine at most once per `writeInterval`
-    /// (latest value wins) and ends `settleInterval` after its last change.
-    public static let writeInterval: Duration = .milliseconds(50)
-    public static let settleInterval: Duration = .milliseconds(400)
-
     public init(backend: any PlayerBackend) {
         self.backend = backend
         backend.addListener(self) { [weak self] event in

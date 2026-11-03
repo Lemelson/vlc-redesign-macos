@@ -9,6 +9,8 @@ import SwiftUI
 enum MXRSnapshotMain {
     @MainActor
     static func main() {
+        // Renders only offscreen: never a Dock tile or the active app, also when run by hand.
+        NSApplication.shared.setActivationPolicy(.prohibited)
         var arguments = Array(CommandLine.arguments.dropFirst())
         // Must happen before any text is drawn; see GalleryRenderer.matchFigmaTextRasterization().
         if let index = arguments.firstIndex(of: "--font-smoothing") {

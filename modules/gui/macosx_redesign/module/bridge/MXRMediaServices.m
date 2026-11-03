@@ -18,6 +18,9 @@
 #include <vlc_modules.h>
 #include <vlc_configuration.h>
 #include <vlc_renderer_discovery.h>
+#include <vlc_sout.h>
+#include <vlc_window.h>
+#include "MXRModule.h"
 #import "MXRMediaServices.h"
 
 static NSError *MXRMediaError(NSInteger code, NSString *message)
@@ -238,16 +241,27 @@ BOOL MXROutputPlaysLocally(NSDictionary *definition, NSDictionary<NSString *, NS
     return [definition[@"mode"] isEqual:@"stream"] && [settings[@"sout-display"] boolValue];
 }
 
-/* Snapshot policy on every new job, never inherit cached output-player variables.
- * The chain never duplicates to a local display (live run 2: an HTTP stream sent 52 s of media
- * in 4 s). The input paces a stream only when its chain reports a synchronous output
- * (src/input/input.c, sout_StreamIsSynchronous): standard/udp/rtp do, but duplicate answers no
- * control query (modules/stream_out/duplicate.c), so a `#duplicate{dst=display,...}` input ran
- * as fast as the encoder could go while only its local display kept time. The local copy is
- * played by a player of its own instead (MXROutputPlaysLocally, -startLocalCopy:). */
+/* "Play locally while streaming" (F3, D060): one input feeds both the stream and the local
+ * display, so the source is opened once and the picture matches what is sent. Stock VLC's wizards
+ * build `duplicate{dst=display,dst=...}`, but duplicate answers no control query
+ * (modules/stream_out/duplicate.c), so the input, which paces itself only when the head of its
+ * chain reports a synchronous output (src/input/es_out.c, sout_StreamIsSynchronous), ran as fast
+ * as it could read (live run 2: an HTTP stream sent 52 s of media in 4 s). duplicate also skips a
+ * destination it cannot create while display lives, so a stream that failed to open (busy HTTP
+ * port) left a "running" job that sent nothing, and a nested chain must be quoted to survive
+ * the option parser (src/config/chain.c). This plugin's `mxr-local-display` filter heads the
+ * unchanged stream chain instead: it opens its own display beside it, copies every frame to it,
+ * and answers the pacing query with the stream chain's own answer. */
+static NSString *MXRDisplayedChain(NSString *chain)
+{
+    return [NSString stringWithFormat:@"#" MXR_LOCAL_DISPLAY_MODULE ":%@",
+            [chain hasPrefix:@"#"] ? [chain substringFromIndex:1] : chain];
+}
+
+/* Snapshot policy on every new job, never inherit cached output-player variables. */
 NSArray<NSString *> *MXROutputOptions(NSDictionary *definition, NSDictionary<NSString *, NSNumber *> *settings)
 {
-    NSString *chain = definition[@"sout"];
+    NSString *chain = MXROutputPlaysLocally(definition, settings) ? MXRDisplayedChain(definition[@"sout"]) : definition[@"sout"];
     BOOL stream = [definition[@"mode"] isEqual:@"stream"];
     BOOL keep = stream && [settings[@"sout-keep"] boolValue];
     NSMutableArray *options = [NSMutableArray arrayWithObjects:[@"sout=" stringByAppendingString:chain],
@@ -260,6 +274,96 @@ NSArray<NSString *> *MXROutputOptions(NSDictionary *definition, NSDictionary<NSS
         [options addObject:include ? name : [@"no-" stringByAppendingString:name]];
     }
     return options;
+}
+
+/* `mxr-local-display` sout filter (module.c, MXRDisplayedChain). The stream chain after it is
+ * created first (src/stream_output/stream_output.c, back to front), so a stream that cannot open
+ * fails the job as it does without the local copy. A display that cannot open only loses the
+ * local copy. */
+typedef struct { sout_stream_t *display; } MXRLocalDisplay;
+typedef struct { void *stream; void *display; } MXRLocalDisplayID;
+
+static void *MXRLocalDisplayAdd(sout_stream_t *stream, const es_format_t *format, const char *es_id)
+{
+    MXRLocalDisplay *sys = stream->p_sys;
+    MXRLocalDisplayID *id = malloc(sizeof(*id));
+    if (id == NULL) return NULL;
+    id->stream = sout_StreamIdAdd(stream->p_next, format, es_id);
+    if (id->stream == NULL) { free(id); return NULL; }
+    id->display = sys->display != NULL ? sout_StreamIdAdd(sys->display, format, es_id) : NULL;
+    return id;
+}
+static void MXRLocalDisplayDel(sout_stream_t *stream, void *opaque)
+{
+    MXRLocalDisplay *sys = stream->p_sys;
+    MXRLocalDisplayID *id = opaque;
+    if (id->display != NULL) sout_StreamIdDel(sys->display, id->display);
+    sout_StreamIdDel(stream->p_next, id->stream);
+    free(id);
+}
+static int MXRLocalDisplaySend(sout_stream_t *stream, void *opaque, vlc_frame_t *frames)
+{
+    MXRLocalDisplay *sys = stream->p_sys;
+    MXRLocalDisplayID *id = opaque;
+    if (id->display != NULL) {
+        vlc_frame_t *copies = NULL, **last = &copies;
+        for (vlc_frame_t *frame = frames; frame != NULL; frame = frame->p_next) {
+            vlc_frame_t *copy = vlc_frame_Duplicate(frame);
+            if (copy == NULL) break;
+            *last = copy; last = &copy->p_next;
+        }
+        if (copies != NULL) sout_StreamIdSend(sys->display, id->display, copies);
+    }
+    return sout_StreamIdSend(stream->p_next, id->stream, frames);
+}
+static void MXRLocalDisplayFlush(sout_stream_t *stream, void *opaque)
+{
+    MXRLocalDisplay *sys = stream->p_sys;
+    MXRLocalDisplayID *id = opaque;
+    if (id->display != NULL) sout_StreamFlush(sys->display, id->display);
+    sout_StreamFlush(stream->p_next, id->stream);
+}
+static void MXRLocalDisplaySetPCR(sout_stream_t *stream, vlc_tick_t pcr)
+{
+    MXRLocalDisplay *sys = stream->p_sys;
+    if (sys->display != NULL) sout_StreamSetPCR(sys->display, pcr);
+    sout_StreamSetPCR(stream->p_next, pcr);
+}
+static int MXRLocalDisplayControl(sout_stream_t *stream, int query, va_list args)
+{
+    MXRLocalDisplay *sys = stream->p_sys;
+    if (query == SOUT_STREAM_ID_SPU_HIGHLIGHT) {
+        MXRLocalDisplayID *id = va_arg(args, void *);
+        const void *highlight = va_arg(args, const void *); /* vlc_spu_highlight_t */
+        if (id->display != NULL) sout_StreamControl(sys->display, query, id->display, highlight);
+        return sout_StreamControl(stream->p_next, query, id->stream, highlight);
+    }
+    /* SOUT_STREAM_IS_SYNCHRONOUS: the stream decides, exactly as without the local copy. */
+    return sout_StreamControlVa(stream->p_next, query, args);
+}
+static void MXRLocalDisplayClose(sout_stream_t *stream)
+{
+    MXRLocalDisplay *sys = stream->p_sys;
+    if (sys->display != NULL) sout_StreamChainDelete(sys->display, NULL);
+    free(sys);
+}
+int MXRLocalDisplayOpen(vlc_object_t *object)
+{
+    static const struct sout_stream_operations operations = {
+        .add = MXRLocalDisplayAdd, .del = MXRLocalDisplayDel, .send = MXRLocalDisplaySend,
+        .control = MXRLocalDisplayControl, .flush = MXRLocalDisplayFlush,
+        .set_pcr = MXRLocalDisplaySetPCR, .close = MXRLocalDisplayClose,
+    };
+    sout_stream_t *stream = (sout_stream_t *)object;
+    if (stream->p_next == NULL) return VLC_EGENERIC;
+    MXRLocalDisplay *sys = calloc(1, sizeof(*sys));
+    if (sys == NULL) return VLC_ENOMEM;
+    /* A child of this stream, so its video window is found under the output player. */
+    sys->display = sout_StreamChainNew(object, "display", NULL);
+    if (sys->display == NULL) msg_Warn(stream, "the local display could not open; streaming without it");
+    stream->p_sys = sys;
+    stream->ops = &operations;
+    return VLC_SUCCESS;
 }
 
 @interface MXROutputJob : NSObject
@@ -390,8 +494,6 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
     vlc_player_t *_mainPlayer;
     vlc_playlist_t *_outputPlaylist;
     vlc_player_t *_outputPlayer;
-    /* "Play locally while streaming": the stream's source, played beside the job (main thread). */
-    vlc_playlist_t *_localCopyPlaylist;
     vlc_player_listener_id *_outputListener;
     vlc_player_listener_id *_mainListener;
     dispatch_queue_t _serviceQueue;
@@ -452,7 +554,9 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
     if (_outputPlaylist != NULL) {
         _outputPlayer = vlc_playlist_GetPlayer(_outputPlaylist);
         /* A player is a VLC object (src/player/player.h: `obj` comes first); vlc_player.h
-         * only keeps the type opaque. Its vouts inherit this flag. */
+         * only keeps the type opaque. Its vouts inherit this flag: the sout display's vout
+         * ("Play locally while streaming") is created under the job's input, whose stream
+         * chain is a child of this player (src/input/resource.c, sout_NewInstance). */
         vlc_object_t *outputObject = (vlc_object_t *)(void *)_outputPlayer;
         var_Create(outputObject, MXR_AUXILIARY_VIDEO_VAR, VLC_VAR_BOOL);
         var_SetBool(outputObject, MXR_AUXILIARY_VIDEO_VAR, true);
@@ -460,16 +564,6 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
         vlc_playlist_SetMediaStoppedAction(_outputPlaylist, VLC_PLAYLIST_MEDIA_STOPPED_STOP);
         _outputListener = vlc_player_AddListener(_outputPlayer, &MXROutputCallbacks, (__bridge void *)self);
         vlc_playlist_Unlock(_outputPlaylist);
-    }
-    _localCopyPlaylist = vlc_playlist_New(VLC_OBJECT(intf), VLC_PLAYLIST_PREPARSING_DISABLED, 1, 0);
-    if (_localCopyPlaylist != NULL) {
-        /* Its window is an auxiliary one too, never the main player surface. */
-        vlc_object_t *localObject = (vlc_object_t *)(void *)vlc_playlist_GetPlayer(_localCopyPlaylist);
-        var_Create(localObject, MXR_AUXILIARY_VIDEO_VAR, VLC_VAR_BOOL);
-        var_SetBool(localObject, MXR_AUXILIARY_VIDEO_VAR, true);
-        vlc_playlist_Lock(_localCopyPlaylist);
-        vlc_playlist_SetMediaStoppedAction(_localCopyPlaylist, VLC_PLAYLIST_MEDIA_STOPPED_STOP);
-        vlc_playlist_Unlock(_localCopyPlaylist);
     }
     vlc_player_Lock(_mainPlayer);
     _mainListener = vlc_player_AddListener(_mainPlayer, &MXRMainCallbacks, (__bridge void *)self);
@@ -490,7 +584,7 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
 
 - (void)dealloc
 {
-    assert(_outputListener == NULL && _mainListener == NULL && _outputPlaylist == NULL && _localCopyPlaylist == NULL && _extensions == NULL);
+    assert(_outputListener == NULL && _mainListener == NULL && _outputPlaylist == NULL && _extensions == NULL);
 }
 
 - (void)changed:(MXRBridgeService)service
@@ -577,7 +671,6 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
     for (NSString *name in @[@"sout-display", @"sout-keep", @"sout-audio", @"sout-video", @"sout-spu"])
         settings[name] = @(config_GetInt(name.UTF8String) != 0);
     NSMutableArray *options = [MXROutputOptions(definition, settings) mutableCopy];
-    NSMutableArray *localOptions = MXROutputPlaysLocally(definition, settings) ? [NSMutableArray arrayWithObject:@"sout="] : nil;
     if ([definition[@"mode"] isEqual:@"convert"]) [options addObjectsFromArray:@[@"no-sout-transcode-audio-sync", @"clock-jitter=0", @"clock-synchro=0"]];
     id inputOptions = arguments[@"inputOptions"];
     if (inputOptions != nil) {
@@ -588,7 +681,6 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
             if ([normalized hasPrefix:@"sout"] || [normalized hasPrefix:@"no-sout"])
                 { *error = MXRMediaError(EINVAL, @"Input options cannot override the output configuration."); return nil; }
             [options addObject:normalized];
-            [localOptions addObject:normalized];
         }
     }
     for (NSString *option in options)
@@ -615,31 +707,8 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
         [self changed:MXRBridgeServiceOutput];
         return nil;
     }
-    if (localOptions != nil) [self startLocalCopy:definition[@"sourceURL"] options:localOptions];
     [self changed:MXRBridgeServiceOutput];
     return @{@"job": [job.record copy]};
-}
-
-/* Plays the stream's source on the local-copy player, started with the job and stopped with it. */
-- (void)startLocalCopy:(NSString *)url options:(NSArray<NSString *> *)options
-{
-    if (_localCopyPlaylist == NULL) return;
-    input_item_t *media = input_item_New(url.UTF8String, "VLC local copy");
-    if (media == NULL) return;
-    for (NSString *option in options) input_item_AddOption(media, option.UTF8String, VLC_INPUT_OPTION_TRUSTED);
-    vlc_playlist_Lock(_localCopyPlaylist);
-    vlc_playlist_Clear(_localCopyPlaylist);
-    if (vlc_playlist_InsertOne(_localCopyPlaylist, 0, media) == VLC_SUCCESS) vlc_playlist_PlayAt(_localCopyPlaylist, 0);
-    vlc_playlist_Unlock(_localCopyPlaylist);
-    input_item_Release(media);
-}
-- (void)stopLocalCopy
-{
-    if (_localCopyPlaylist == NULL) return;
-    vlc_playlist_Lock(_localCopyPlaylist);
-    vlc_playlist_Stop(_localCopyPlaylist);
-    vlc_playlist_Clear(_localCopyPlaylist);
-    vlc_playlist_Unlock(_localCopyPlaylist);
 }
 
 - (void)outputState:(enum vlc_player_state)state media:(input_item_t *)media
@@ -647,7 +716,6 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
     if (atomic_load(&_shutDown) || _activeJob == nil) return;
     if (state == VLC_PLAYER_STATE_PLAYING && media == _activeJob.media) _activeJob.record[@"state"] = @"running";
     if (state == VLC_PLAYER_STATE_STOPPED) {
-        [self stopLocalCopy];
         MXROutputJob *job = _activeJob;
         BOOL natural = !job.cancelRequested && job.ended && job.reason != VLC_PLAYER_MEDIA_STOPPING_ERROR &&
                        job.reason != VLC_PLAYER_MEDIA_STOPPING_USER;
@@ -1162,7 +1230,6 @@ static NSString *MXRRendererIdentifier(vlc_renderer_item_t *item)
         _outputListener = NULL;
         vlc_playlist_Unlock(_outputPlaylist);
     }
-    [self stopLocalCopy];
     if (_mainListener != NULL) {
         vlc_player_Lock(_mainPlayer);
         vlc_player_RemoveListener(_mainPlayer, _mainListener);
@@ -1183,7 +1250,6 @@ static NSString *MXRRendererIdentifier(vlc_renderer_item_t *item)
             vlc_playlist_Delete(self->_outputPlaylist);
             self->_outputPlaylist = NULL; self->_outputPlayer = NULL;
         }
-        if (self->_localCopyPlaylist != NULL) { vlc_playlist_Delete(self->_localCopyPlaylist); self->_localCopyPlaylist = NULL; }
         if (self->_abandonedPartial != nil) unlink(self->_abandonedPartial.fileSystemRepresentation);
     });
 }

@@ -21,6 +21,11 @@ void MXRCloseIntf(vlc_object_t *obj);
 /* "vout window" submodule (MXRVoutWindow.m). */
 int  MXRWindowOpen(vlc_window_t *wnd);
 
+/* "sout filter" submodule (MXRMediaServices.m): `#mxr-local-display:<stream chain>` plays the
+ * stream's frames on a local display beside the chain ("Play locally while streaming", D060). */
+#define MXR_LOCAL_DISPLAY_MODULE "mxr-local-display"
+int  MXRLocalDisplayOpen(vlc_object_t *obj);
+
 /* Lets MXRWindowOpen accept windows: set once the interface has started (MXRIntf.m). */
 void MXRVoutWindowSetInterfaceStarted(void);
 

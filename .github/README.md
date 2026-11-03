@@ -10,7 +10,7 @@ macOS 14+ · Apple silicon and Intel · Swift 6 · SwiftUI + AppKit · VLC 4 eng
 
 ## Download
 
-**[Download VLC Redesign 1.0.0](https://github.com/Lemelson/vlc-redesign-macos/releases/latest)** (`VLC-Redesign-1.0.0-universal.dmg`): one file for any Mac with macOS 14 Sonoma or later, Apple silicon or Intel.
+**[Download VLC Redesign 1.0.1](https://github.com/Lemelson/vlc-redesign-macos/releases/latest)** (`VLC-Redesign-1.0.1-universal.dmg`): one file for any Mac with macOS 14 Sonoma or later, Apple silicon or Intel.
 
 <img src="media/install-dmg.jpg" width="560" alt="The disk image: drag VLC Redesign onto Applications">
 
@@ -160,10 +160,12 @@ The full guide, with sanity checks and troubleshooting, is in [`redesign/docs/BU
 
 ## Status
 
-**Release 1.0.0** (November 2026): one universal DMG for macOS 14+ with built-in updates. See the [release notes](https://github.com/Lemelson/vlc-redesign-macos/releases/latest).
+**Release 1.0.1** (November 2026): one universal DMG for macOS 14+ with built-in updates. See the [release notes](https://github.com/Lemelson/vlc-redesign-macos/releases/latest).
 
-**Verified for 1.0.0**
-- 655 of 655 Swift tests pass, none skipped.
+**New in 1.0.1**: an update check that falls during a video now runs once playback stops instead of the next day; About has a Licenses link (VLC's GPL and LGPL, Sparkle, the fonts); the update ⓘ says exactly what is sent; the DMG's Finder layout no longer carries data from the Mac that built it; "Play locally while streaming" shows the stream's own picture, in sync, from one open of the source.
+
+**Verified for 1.0.1**
+- 657 of 657 Swift tests pass, none skipped.
 - 9 of 9 native suites pass against the real engine: contracts, schema, library, headless regressions, audio, media, extensions, subtitle runtime and build runtime.
 - The installed universal app passes the smoke test on Apple silicon (native interface, hardware video, audio, clean exit). The Intel half was run under Rosetta on the same Mac without the window: it plays video through VideoToolbox and loads the interface. A real Intel Mac has not been tried yet.
 - Updates were tested end to end with a local test feed: 1.0.0 finds 1.0.1, checks its signature, installs it in place and relaunches; a file that does not match the signature is refused.
@@ -176,11 +178,9 @@ The full guide, with sanity checks and troubleshooting, is in [`redesign/docs/BU
 - Not notarized by Apple: macOS asks you to confirm the app on its first launch.
 - Live acceptance after the last fix wave has not been redone. Hardware checks (camera, audio CD, Chromecast, SMB) and VoiceOver and Full Keyboard Access need a person.
 - Seeking while paused hits an upstream engine bug. The app works around it (a new subtitle size on pause shows after Play); the full fix is an optional patch series (see below).
-- "Play locally while streaming" opens the source a second time, so the local copy and the stream are not in sync.
-- A background update check that falls while a video plays is skipped until Sparkle's next scheduled check; Check Now always works.
 - Picture in Picture uses a private system route that a future macOS may break.
 
-The full record is in [`redesign/design/SCREENS.md`](../redesign/design/SCREENS.md), [`redesign/docs/DECISIONS.md`](../redesign/docs/DECISIONS.md) (59 decisions) and [`redesign/research/final-polish/results/`](../redesign/research/final-polish/results/).
+The full record is in [`redesign/design/SCREENS.md`](../redesign/design/SCREENS.md), [`redesign/docs/DECISIONS.md`](../redesign/docs/DECISIONS.md) (60 decisions) and [`redesign/research/final-polish/results/`](../redesign/research/final-polish/results/).
 
 ## How it was made
 
@@ -227,6 +227,7 @@ Start with [`AGENTS.md`](../AGENTS.md), a map of the repo for people and AI agen
 - **Design and mock artwork:** [Juxtopposed](https://www.youtube.com/@juxtopposed) ([video](https://www.youtube.com/watch?v=ERFeOgqk324)), from the [VLC redesign Figma file](https://www.figma.com/community/file/1691465999134370980), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The video itself is not part of this repository.
 - **Fonts:** [Inter](https://github.com/rsms/inter) by The Inter Project Authors and [DM Mono](https://github.com/googlefonts/dm-mono) by Colophon Foundry, SIL Open Font License 1.1 (bundled with their licenses).
 - **Updater:** [Sparkle](https://sparkle-project.org) (MIT), from VLC's contribs.
+- The app carries these license texts: About VLC Redesign ▸ Licenses.
 - **This fork:** GPL-2.0-or-later.
 
 "VLC" and the cone logo are trademarks of VideoLAN. If you like VLC, consider [donating to VideoLAN](https://www.videolan.org/contribute.html). Upstream VLC's own README is [`README.md`](../README.md).

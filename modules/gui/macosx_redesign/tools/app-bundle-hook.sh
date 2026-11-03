@@ -23,6 +23,26 @@ for mxr_bundle in MacOSXRedesign_MXRCore.bundle MacOSXRedesign_MXRDesign.bundle;
 done
 # Own icon (flat Figma cone on dark chrome) so the app is distinguishable from stock VLC.
 cp "$(dirname "$0")/../Resources/AppIcon.icns" "$mxr_app/Contents/Resources/VLCRedesign.icns"
+# Licenses (About ▸ Licenses opens Acknowledgements.txt): VLC's GPL and LGPL as COPYING and
+# COPYING.LIB; Acknowledgements.txt has Sparkle's LICENSE (tag 2.8.1, with its bundled
+# components) and the two font licenses, all verbatim.
+mxr_licenses="$(dirname "$0")/../Resources/licenses"
+mxr_fonts="$(dirname "$0")/../Sources/MXRDesign/Resources/Fonts"
+for mxr_license in COPYING COPYING.LIB; do
+    cp "$(dirname "$0")/../../../../$mxr_license" "$mxr_app/Contents/Resources/$mxr_license"
+done
+mxr_notice() {
+    printf '\n\n==============================================================================\n%s\n%s\n==============================================================================\n\n' "$1" "$2"
+    cat "$3"
+}
+{
+    cat "$mxr_licenses/Acknowledgements-intro.txt"
+    mxr_notice "Sparkle 2.8.1 (software updates)" "https://github.com/sparkle-project/Sparkle" \
+        "$mxr_licenses/Sparkle-2.8.1-LICENSE.txt"
+    mxr_notice "Inter (typeface)" "https://github.com/rsms/inter" "$mxr_fonts/Inter-OFL.txt"
+    mxr_notice "DM Mono (typeface)" "https://github.com/googlefonts/dm-mono" "$mxr_fonts/DMMono-OFL.txt"
+} > "$mxr_app/Contents/Resources/Acknowledgements.txt.tmp"
+mv "$mxr_app/Contents/Resources/Acknowledgements.txt.tmp" "$mxr_app/Contents/Resources/Acknowledgements.txt"
 # The app's own version has one source: the module's VERSION file (D058). The engine's version
 # (upstream's CFBundleShortVersionString) moves to MXREngineVersion; About reads it from VLC itself.
 mxr_version=$(cat "$(dirname "$0")/../VERSION")

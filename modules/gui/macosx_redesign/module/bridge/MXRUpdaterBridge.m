@@ -33,6 +33,7 @@
 
 #ifdef HAVE_SPARKLE
 #import <Sparkle/Sparkle.h>
+#include "MXRUpdateDeferral.h"
 
 /// Extra Sparkle channels this Mac follows (array of strings), e.g. a future "engine" channel.
 static NSString *const MXRUpdateChannelsKey = @"MXRUpdateChannels";
@@ -41,6 +42,7 @@ static void *MXRUpdaterObservation = &MXRUpdaterObservation;
 static SPUStandardUpdaterController *g_retained_controller;
 
 @interface MXRUpdaterBridge () <SPUUpdaterDelegate>
+- (void)playbackStopped;
 @end
 #endif
 
@@ -49,9 +51,28 @@ static SPUStandardUpdaterController *g_retained_controller;
     vlc_playlist_t *_playlist;
 #ifdef HAVE_SPARKLE
     SPUStandardUpdaterController *_controller;
+    vlc_player_listener_id *_playerListener;
+    MXRUpdateDeferral _deferral;
+    NSUInteger _stopGeneration;
 #endif
     BOOL _shutDown;
 }
+
+#ifdef HAVE_SPARKLE
+/* Under the player lock. STOPPED comes only once the player has no next media to open. */
+static void MXRUpdaterPlayerState(vlc_player_t *player, enum vlc_player_state state, void *data)
+{
+    VLC_UNUSED(player);
+    if (state != VLC_PLAYER_STATE_STOPPED)
+        return;
+    __weak MXRUpdaterBridge *bridge = (__bridge MXRUpdaterBridge *)data;
+    dispatch_async(dispatch_get_main_queue(), ^{ [bridge playbackStopped]; });
+}
+
+static const struct vlc_player_cbs MXRUpdaterPlayerCallbacks = {
+    .on_state_changed = MXRUpdaterPlayerState,
+};
+#endif
 
 - (nullable instancetype)initWithPlaylist:(vlc_playlist_t *)playlist
 {
@@ -66,6 +87,10 @@ static SPUStandardUpdaterController *g_retained_controller;
         for (NSString *key in @[@"canCheckForUpdates", @"automaticallyChecksForUpdates",
                                 @"automaticallyDownloadsUpdates", @"lastUpdateCheckDate"])
             [_controller.updater addObserver:self forKeyPath:key options:0 context:MXRUpdaterObservation];
+        vlc_player_t *player = vlc_playlist_GetPlayer(playlist);
+        vlc_player_Lock(player);
+        _playerListener = vlc_player_AddListener(player, &MXRUpdaterPlayerCallbacks, (__bridge void *)self);
+        vlc_player_Unlock(player);
     }
     return self;
 #else
@@ -111,6 +136,13 @@ static SPUStandardUpdaterController *g_retained_controller;
     for (NSString *key in @[@"canCheckForUpdates", @"automaticallyChecksForUpdates",
                             @"automaticallyDownloadsUpdates", @"lastUpdateCheckDate"])
         [_controller.updater removeObserver:self forKeyPath:key context:MXRUpdaterObservation];
+    if (_playerListener != NULL) {
+        vlc_player_t *player = vlc_playlist_GetPlayer(_playlist);
+        vlc_player_Lock(player);
+        vlc_player_RemoveListener(player, _playerListener);
+        vlc_player_Unlock(player);
+        _playerListener = NULL;
+    }
     g_retained_controller = _controller;
 }
 
@@ -124,19 +156,40 @@ static bool MXRPlayingVideo(vlc_playlist_t *playlist)
     return video;
 }
 
-/* A background check waits while a video plays, so no update window covers it; the next
- * scheduled check runs it. A check the user asked for always runs. */
+/* A background check waits while a video plays, so no update window covers it: it is
+ * remembered and runs once playback has stopped for a few seconds (or at Sparkle's next
+ * scheduled check, whichever comes first). A check the user asked for always runs. */
 - (BOOL)updater:(SPUUpdater *)updater mayPerformUpdateCheck:(SPUUpdateCheck)updateCheck error:(NSError * __autoreleasing *)error
 {
     if (_shutDown)
         return NO;
-    if (updateCheck == SPUUpdateCheckUpdatesInBackground && MXRPlayingVideo(_playlist)) {
+    if (!MXRUpdateDeferralMayCheck(&_deferral, updateCheck == SPUUpdateCheckUpdatesInBackground,
+                                   MXRPlayingVideo(_playlist))) {
         if (error != NULL)
             *error = [NSError errorWithDomain:@"io.github.lemelson.vlc-redesign.updates" code:1
                                      userInfo:@{NSLocalizedDescriptionKey: @"A video is playing."}];
         return NO;
     }
     return YES;
+}
+
+/* Each stop restarts the wait; the last one decides, against the player's state then. */
+- (void)playbackStopped
+{
+    if (_shutDown || !_deferral.pending)
+        return;
+    NSUInteger generation = ++_stopGeneration;
+    __weak MXRUpdaterBridge *weakSelf = self;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(MXR_UPDATE_DEFERRAL_SETTLE_SECONDS * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        MXRUpdaterBridge *bridge = weakSelf;
+        if (bridge == nil || bridge->_shutDown || generation != bridge->_stopGeneration)
+            return;
+        SPUUpdater *sparkle = bridge->_controller.updater;
+        if (MXRUpdateDeferralTakeWhenIdle(&bridge->_deferral, MXRPlayingVideo(bridge->_playlist),
+                                          sparkle.automaticallyChecksForUpdates))
+            [sparkle checkForUpdatesInBackground];
+    });
 }
 
 /* Received right before Sparkle quits the app to install: stop like the stock interface. */

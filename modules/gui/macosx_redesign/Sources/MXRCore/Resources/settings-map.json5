@@ -28,7 +28,7 @@
             mock: true },
           // 3046:9901. Sparkle asks on the second launch; until then this reads off.
           { option: "updater-automatic-checks", control: "toggle", label: "Check for updates automatically",
-            info: "Once a day VLC Redesign asks github.com whether a newer version is out. Only the app's version and your macOS version are sent, nothing about what you play.",
+            info: "Once a day VLC Redesign asks github.com whether a newer version is out. The request names only the app and its version, nothing about your Mac or what you play.",
             mock: false },
           { option: "updater-automatic-installs", control: "toggle", label: "Install updates automatically",
             info: "Downloads a new version in the background and installs it the next time you quit VLC Redesign.",

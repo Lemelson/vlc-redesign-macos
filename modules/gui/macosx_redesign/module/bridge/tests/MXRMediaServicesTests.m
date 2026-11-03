@@ -14,6 +14,28 @@ static void require(BOOL condition, NSString *description)
     }
 }
 
+/* Each element of a sout chain as VLC's parser reads it: its name and its option names. */
+static NSArray *parsedChain(NSString *chain)
+{
+    NSMutableArray *elements = [NSMutableArray array];
+    char *rest = strdup(chain.UTF8String);
+    while (rest != NULL && *rest != '\0') {
+        char *name = NULL;
+        config_chain_t *config = NULL;
+        char *next = config_ChainCreate(&name, &config, rest);
+        free(rest);
+        rest = next;
+        NSMutableArray *names = [NSMutableArray array];
+        for (config_chain_t *option = config; option != NULL; option = option->p_next)
+            [names addObject:[NSString stringWithUTF8String:option->psz_name ?: ""]];
+        [elements addObject:@[[NSString stringWithUTF8String:name ?: ""], names]];
+        free(name);
+        config_ChainDestroy(config);
+    }
+    free(rest);
+    return elements;
+}
+
 int main(void)
 {
     @autoreleasepool {
@@ -79,10 +101,22 @@ int main(void)
         require([options containsObject:@"sout-keep"] && [options containsObject:@"no-sout-audio"] &&
                 [options containsObject:@"sout-video"] && [options containsObject:@"no-sout-spu"],
                 @"each new streaming input receives all current inclusion and keep values");
-        /* Live run 2: a duplicate chain is never paced (duplicate answers no IS_SYNCHRONOUS), so
-         * the local copy plays on a player of its own and the stream keeps its own chain. */
-        require([options.firstObject isEqual:[@"sout=" stringByAppendingString:definition[@"sout"]]],
-                @"playing locally never wraps the stream in a duplicate chain");
+        /* F3, B1 (D060): the local display heads the stream's own chain, which VLC's parser
+         * (src/config/chain.c, as sout_StreamChainNew reads it) still sees whole, element by
+         * element, for every streamable format and destination. */
+        require([options.firstObject isEqual:@"sout=#mxr-local-display:udp{dst=\"239.1.2.3:1234\"}"],
+                [NSString stringWithFormat:@"playing locally puts the local display before the stream: %@", options.firstObject]);
+        for (NSString *profile in @[@"copy", @"h264"])
+            for (NSString *target in @[@"udp://239.1.2.3:1234", @"rtp://127.0.0.1:5004", @"http://127.0.0.1:8080/live.ts"]) {
+                NSMutableDictionary *streamed = [stream mutableCopy]; streamed[@"profile"] = profile; streamed[@"streamURL"] = target;
+                NSDictionary *streamedDefinition = MXRCreateOutputDefinition(streamed, &error);
+                NSString *displayed = [MXROutputOptions(streamedDefinition, flags).firstObject substringFromIndex:@"sout=#".length];
+                NSArray *plain = parsedChain([streamedDefinition[@"sout"] substringFromIndex:1]);
+                NSArray *expected = [@[@[@"mxr-local-display", @[]]] arrayByAddingObjectsFromArray:plain];
+                require(plain.count == ([profile isEqual:@"h264"] ? 2 : 1) && [parsedChain(displayed) isEqual:expected],
+                        [NSString stringWithFormat:@"%@ to %@ played locally keeps every stream element: %@ vs %@",
+                         profile, target, parsedChain(displayed), plain]);
+            }
         require(MXROutputPlaysLocally(definition, flags), @"a stream with Play locally on plays its source locally");
         NSMutableDictionary *changed = [flags mutableCopy];
         changed[@"sout-audio"] = @YES; changed[@"sout-video"] = @NO; changed[@"sout-spu"] = @YES;

@@ -87,6 +87,13 @@ public struct MXRAboutView: View {
         [app.map { "Version \($0)" }, engine.map { "VLC engine \($0)" }].compactMap { $0 }
     }
 
+    /// Third-party notices written into the app by `tools/app-bundle-hook.sh` (Sparkle, the fonts, the
+    /// GPL); a bundle without them (the gallery, a dev run) links to the same texts in the source.
+    public static func licensesURL(in bundle: Bundle = .main) -> URL {
+        bundle.url(forResource: "Acknowledgements", withExtension: "txt")
+            ?? URL(string: "https://github.com/Lemelson/vlc-redesign-macos/tree/macos-redesign/modules/gui/macosx_redesign/Resources/licenses")!
+    }
+
     private let version: String?
     private let appVersion: String?
     /// `version` is the engine's (`VLC_Version()`); `appVersion` defaults to the bundle's
@@ -123,6 +130,7 @@ public struct MXRAboutView: View {
                     Link("Design source", destination: URL(string: "https://www.figma.com/community/file/1691465999134370980")!)
                     Link("CC BY 4.0", destination: URL(string: "https://creativecommons.org/licenses/by/4.0/")!)
                     Link("GPL", destination: URL(string: "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html")!)
+                    Link("Licenses", destination: Self.licensesURL())
                 }.mxrTextStyle(Theme.Font.body).foregroundStyle(Theme.Color.accentMain)
                 Spacer(minLength: 0)
             }.padding(Theme.Metric.Dialogs.dialogBody.padding)

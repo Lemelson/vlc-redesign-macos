@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise the app hook against disposable bundles; never launch a stock VLC id."""
 import base64
+import hashlib
 import json
 import pathlib
 import plistlib
@@ -85,6 +86,28 @@ class PackagingTests(unittest.TestCase):
         self.assertEqual(info["SUPublicEDKey"], feed["publicEDKey"])
         self.assertEqual(len(base64.b64decode(info["SUPublicEDKey"])), 32)
         self.assertNotIn("videolan", info["SUFeedURL"])
+
+    def test_ships_acknowledgements_with_sparkle_and_font_licenses_and_the_gpl(self):
+        module = HOOK.parent.parent
+        sparkle = module / "Resources/licenses/Sparkle-2.8.1-LICENSE.txt"
+        # The LICENSE file of sparkle-project/Sparkle at tag 2.8.1, unchanged.
+        self.assertEqual(hashlib.sha256(sparkle.read_bytes()).hexdigest(),
+                         "389a4e4e9a32f059775b13a06e25a591445ba229d2838d26dd3e7c0c45127cfe")
+        for run in range(2):  # packaging may run the hook again on the same bundle
+            result = self.run_hook()
+            self.assertEqual(result.returncode, 0, result.stderr)
+        resources = self.app / "Contents/Resources"
+        text = (resources / "Acknowledgements.txt").read_text()
+        fonts = module / "Sources/MXRDesign/Resources/Fonts"
+        for source in (sparkle, fonts / "Inter-OFL.txt", fonts / "DMMono-OFL.txt"):
+            self.assertEqual(text.count(source.read_text()), 1, source.name)
+        for component in ("EXTERNAL LICENSES", "bsdiff", "sais-lite", "orlp/ed25519", "SUSignatureVerifier.m"):
+            self.assertIn(component, text)
+        self.assertIn("GNU General Public License, version 2 or later", text)
+        self.assertIn("COPYING and COPYING.LIB next to this file", text)
+        for license in ("COPYING", "COPYING.LIB"):
+            self.assertEqual((resources / license).read_bytes(), (module.parents[2] / license).read_bytes())
+        self.assertFalse((resources / "Acknowledgements.txt.tmp").exists())
 
     def test_rejects_stock_bundle_identity_before_modifying_it(self):
         before = self.info.read_bytes()

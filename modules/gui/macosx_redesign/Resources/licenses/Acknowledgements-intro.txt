@@ -1,0 +1,15 @@
+VLC Redesign: licenses and third-party notices
+
+VLC Redesign is an unofficial build of VLC media player, not affiliated with or endorsed by VideoLAN.
+It is free software, licensed as a whole under the GNU General Public License, version 2 or later.
+libVLC, the core of the VLC engine, is also available under the GNU Lesser General Public License,
+version 2.1 or later. The full texts are in COPYING and COPYING.LIB next to this file
+(VLC Redesign.app/Contents/Resources) and at https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+and https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html. The source code is at
+https://github.com/Lemelson/vlc-redesign-macos. The libraries the VLC engine is built with are listed,
+with where their sources come from, in contrib/src of the source code.
+
+Design: Juxtopposed, "I Redesigned VLC After 25 Years", licensed under Creative Commons Attribution 4.0
+(CC BY 4.0), https://creativecommons.org/licenses/by/4.0/.
+
+The application also includes the following components, each under its own license.

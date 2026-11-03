@@ -1127,6 +1127,9 @@ Amends D012 (own update feed) and D035 (Check for updates). Design note for the 
   with `@loader_path/..` (vlc-cache-gen loads the plugin outside the app). Standard controller and
   windows; the app menu has "Check for Updates…" after About. A background check waits while a video
   plays (a manual one never does); playback stops before Sparkle quits the app to install.
+  *Amended (agent, 2026-11-03, 1.0.1):* the waiting check is remembered and runs once when playback
+  has stayed stopped for 10 s (`MXRUpdateDeferral.h`), never during a video; before, it was skipped
+  until Sparkle's next scheduled check, about a day later (review finding F5).
 - **Feed**: `https://github.com/Lemelson/vlc-redesign-macos/releases/latest/download/appcast.xml`,
   one feed for the universal DMG. `SUFeedURL` and `SUPublicEDKey` come from
   `Resources/update-feed.json` through `app-bundle-hook.sh`; VideoLAN's feed and keys are never shipped.
@@ -1140,8 +1143,32 @@ Amends D012 (own update feed) and D035 (Check for updates). Design note for the 
   "Install updates automatically" (enabled while checks are on) and "Check for updates — Check Now".
   These rows read Sparkle's preferences (`updater-*` names, not VLC options), so Sparkle's question
   and its update window stay in sync with them; Reset all settings does not change them. The ⓘ says
-  the check contacts github.com. The last-check time is not shown: Figma has no room for it.
+  the check contacts github.com and sends only the app's name and version: Sparkle 2.8.1 adds no feed
+  parameters while its system profile is off (`SUSendProfileInfo`, never asked: no `SUEnableSystemProfiling`),
+  and its User-Agent is `VLC Redesign/<version> Sparkle/2.8.1` (checked 2026-11-03 against a local feed).
+  The last-check time is not shown: Figma has no room for it.
 - **Channels**: the app passes the channels listed in the `MXRUpdateChannels` default to Sparkle, so
   a later opt-in channel (e.g. engine updates) needs only appcast items with `sparkle:channel` and a
   switch shipped through the normal feed.
+
+### D060 — "Play locally while streaming" shows the stream's own input · accepted (agent, 1.0.1) · 2026-11-03
+Review finding F3 of 1.0.0: the local copy was a second player on the same source, out of sync, and a
+network source was read twice. Stock VLC's wizards (Qt `dialogs/sout/sout.cpp`, macOS `VLCOutput.m`)
+build `duplicate{dst=display,dst=…}`, which does not fit here: the input paces itself only when the
+first sout element answers `SOUT_STREAM_IS_SYNCHRONOUS`, which `duplicate` does not, so that chain
+streams as fast as it can read; `duplicate` skips a destination it cannot create while the display
+lives, so a stream that fails to open (busy HTTP port) leaves a "running" job that sends nothing; and a
+nested chain (`transcode{…}:standard{…}`) must be quoted, or the parser cuts it after `transcode{…}`
+and the network gets nothing (1.0.1 review B1/S1). The module therefore registers a sout filter
+`mxr-local-display` (submodule of our plugin, priority 0, used only by name). The job chain is
+`#mxr-local-display:<unchanged stream chain>`; the filter opens its own `display` chain as its child,
+copies every frame and PCR to it, and passes the frames and every control query (the pacing query
+included) to the stream chain. The stream chain is created before the filter, so a stream that cannot
+open fails the job exactly as without the setting; a display that cannot open only loses the local
+copy. Without the setting the chain is unchanged. The display output's window comes from our window
+provider as an auxiliary window (never the main player surface). Engine untouched. Tests: the chain
+read by VLC's own parser for copy and H.264 to UDP, RTP and HTTP (`MXRMediaServicesTests.m`); at
+runtime, for copy and H.264, the UDP receiver gets the whole stream, packets spread over real time, one
+input opens the source, one job window and no player window, and a busy HTTP port fails the job with
+and without the setting (`MXRMediaServicesRuntimeTests.m`).
 

@@ -594,9 +594,9 @@ rm -rf "$SRC/../build/codex-arm64/VLC.app" "$SRC/../build/codex-x86_64/VLC.app" 
   mounts the result read-only and verifies the app and the layout inside again.
 - The window's design: `Resources/dmg/layout.json` (sizes, positions, texts, token names).
   `swift tools/gen-dmg-background.swift` redraws `background.png`/`background@2x.png` from it and the design
-  tokens; `tools/gen-dmg-layout.py` rewrites `DS_Store` (it mounts a scratch volume named "VLC Redesign" for the
-  picture's alias and bookmark, so `/Volumes/VLC Redesign` must be free) and `--check` compares the template
-  with `layout.json` (run by `package-dmg.sh` and the tests), including that every item and its label lie
+  tokens; `tools/gen-dmg-layout.py` rewrites `DS_Store` from layout.json alone (the picture's alias and bookmark
+  name only the volume and `.background/background.tiff`, so the file is the same on every Mac and holds
+  no data of the Mac that made it) and `--check` compares the template byte for byte with `layout.json` (run by `package-dmg.sh` and the tests), including that every item and its label lie
   inside a card. Change layout.json, run both, commit all four.
 - Finder draws icon labels in dark text on a picture background, in Dark appearance too (seen 2026-11-03,
   macOS 27): every item must sit on a light card. Window bounds in the `.DS_Store` count from the bottom left

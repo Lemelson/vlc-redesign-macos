@@ -23,6 +23,15 @@ final class UpdaterSettingsTests: XCTestCase {
         }
     }
 
+    /// 1.0.1: Sparkle 2.8.1 with profiling off sends no feed parameters; its User-Agent is
+    /// "VLC Redesign/<version> Sparkle/2.8.1". The ⓘ must not promise or claim more (no macOS version).
+    func testUpdateCheckInfoSaysOnlyTheAppAndItsVersionAreSent() throws {
+        let app = AppModel(backends: MockBackend(scenario: .idle).backends, persistence: .inMemory, clockTicks: false)
+        let info = try XCTUnwrap(try row(UpdaterSettings.automaticChecks, in: app).info)
+        XCTAssertTrue(info.contains("only the app and its version"), info)
+        XCTAssertFalse(info.contains("macOS version"), info)
+    }
+
     func testInstallAutomaticallyNeedsAutomaticChecks() throws {
         let mock = MockBackend(scenario: .idle)
         let app = AppModel(backends: mock.backends, persistence: .inMemory, clockTicks: false)

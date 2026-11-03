@@ -160,6 +160,24 @@ class PackageDMGTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('Read Me First.txt (with its label) does not fit inside a card', result.stderr)
 
+    def test_template_names_only_the_volume_and_picture_and_is_reproducible(self):
+        # 1.0.0's template held Foundation's bookmark: a sandbox token, a temporary folder and volume UUIDs.
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('gen_dmg_layout', TOOLS / 'gen-dmg-layout.py')
+        layout = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(layout)
+        data = (self.assets / 'DS_Store').read_bytes()
+        self.assertEqual(data, layout.template(layout.load_layout()), 'the same bytes on every Mac')
+        values = layout.read_ds_store(data)
+        marks = layout.read_bookmark(values['.', 'pBBk'])
+        self.assertEqual(set(marks), layout.BOOKMARK_KEYS)
+        self.assertEqual(marks[layout.BOOKMARK_PATH], ['Volumes', 'VLC Redesign', '.background', 'background.tiff'])
+        alias = plistlib.loads(values['.', 'icvp'])['backgroundImageAlias']
+        for blob in (values['.', 'pBBk'], alias):
+            for leak in (b'/private', b'/var/folders', b'/Users', b'/tmp', b'com.apple.app-sandbox'):
+                self.assertNotIn(leak, blob)
+        self.assertNotIn(b'mxr-dmg-layout', data)
+
     def test_template_matches_layout_and_is_wired_into_the_gate(self):
         check = subprocess.run([sys.executable, str(TOOLS / 'gen-dmg-layout.py'), '--check'], capture_output=True, text=True)
         self.assertEqual(check.returncode, 0, check.stdout + check.stderr)

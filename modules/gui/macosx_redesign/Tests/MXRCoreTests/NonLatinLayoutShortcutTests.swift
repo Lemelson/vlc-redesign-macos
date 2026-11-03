@@ -11,15 +11,16 @@ final class NonLatinLayoutShortcutTests: XCTestCase {
     private static let abc: [UInt16: String] = [3: "f", 8: "c", 12: "q", 46: "m", 44: "/"]
     private var saved: (@MainActor (UInt16) -> String?)!
 
-    override func setUp() {
-        super.setUp()
+    // The async overrides run on the class's main actor, where the layout hook lives.
+    override func setUp() async throws {
+        try await super.setUp()
         saved = KeyBinding.asciiLayoutCharacter
         KeyBinding.asciiLayoutCharacter = { Self.abc[$0] }
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         KeyBinding.asciiLayoutCharacter = saved
-        super.tearDown()
+        try await super.tearDown()
     }
 
     private func key(_ code: UInt16, _ chars: String, _ flags: NSEvent.ModifierFlags = []) -> NSEvent {
