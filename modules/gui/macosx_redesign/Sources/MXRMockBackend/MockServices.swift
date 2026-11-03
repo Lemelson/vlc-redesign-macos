@@ -36,13 +36,18 @@ public final class MockSettings: SettingsBackend {
                 }
                 continue
             }
+            // Like VLC, the engine has no update options; MockUpdater serves those rows (D059).
+            if UpdaterSettings.names.contains(name) { continue }
             if let secondary = row.secondaryOption {
                 let value = row.secondaryMock ?? .integer(0)
                 register(SettingOption(name: secondary, type: Self.type(of: value), defaultValue: value))
             }
-            let defaultValue = row.mock ?? Self.fallback(for: row)
+            var defaultValue = row.mock ?? Self.fallback(for: row)
             let range: ClosedRange<Double>? = (row.min != nil && row.max != nil) ? row.min!...row.max! : nil
-            register(SettingOption(name: name, type: Self.type(for: row, value: defaultValue), defaultValue: defaultValue, range: range,
+            let type = Self.type(for: row, value: defaultValue)
+            // A float option holds a float, as the engine reports it (the JSON mock may read 0.0 as 0).
+            if type == .float, case .integer(let whole) = defaultValue { defaultValue = .float(Double(whole)) }
+            register(SettingOption(name: name, type: type, defaultValue: defaultValue, range: range,
                                    choices: row.choices ?? [], text: row.label, longText: row.info))
         }
         // App options read by Core models.
@@ -301,6 +306,30 @@ public final class MockOSD: OSDBackend {
 
     public func addListener(_ owner: AnyObject, handler: @escaping @MainActor (String) -> Void) {
         events.add(owner, handler: handler)
+    }
+}
+
+/// Sparkle as the Figma General page draws it: automatic checks off (3046:9906), nothing running.
+@MainActor
+public final class MockUpdater: UpdaterBackend {
+    public var automaticallyChecks = false { didSet { events.send(()) } }
+    public var automaticallyInstalls = false { didSet { events.send(()) } }
+    public var canCheckForUpdates = true { didSet { events.send(()) } }
+    public private(set) var lastCheckDate: Date?
+    /// Checks requested, for tests.
+    public private(set) var checkCount = 0
+    private let events = EventChannel<Void>()
+
+    init() {}
+
+    public func checkForUpdates() {
+        checkCount += 1
+        lastCheckDate = Date()
+        events.send(())
+    }
+
+    public func addListener(_ owner: AnyObject, handler: @escaping @MainActor () -> Void) {
+        events.add(owner) { _ in handler() }
     }
 }
 

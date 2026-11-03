@@ -299,10 +299,14 @@ their VLC macOS defaults. Text fields and dialogs never block standard edit/quit
 *Amendment (H-design) · accepted (agent, 2026-10-17):* onboarding keycaps (S71) write Shift as ⇧ like ⌃ ⌥ ⌘
 (Figma 1902:6770 prints "SHIFT", from its Windows keys). The installed app shows VLC's macOS engine
 defaults there (⌘F, ⌥⌘← / ⌥⌘→, ⌘← / ⌘→, ⇧E / E, S, L, ⌘↑ / ⌘↓, ⌥⌘S, ⇧⌘R, plus the app's Q and ⌘L),
-not Figma's Windows keys (F, ← / →, < / >, SHIFT S…). A row's only binding keeps one keycap per key as
-Figma draws it; a row with two bindings writes each binding in one keycap (⌥⌘←), the way Mac menus
-write a shortcut, so ⌥⌘← / ⌥⌘→ fits the row instead of squeezing empty keycaps. Gallery: the keycap
+not Figma's Windows keys (F, ← / →, < / >, SHIFT S…). Every binding is one keycap (⌘F, ⌥⌘←, ⇧⌘R),
+the way Mac menus write a shortcut, so ⌥⌘← / ⌥⌘→ fits its row instead of squeezing empty keycaps and
+the screen keeps one keycap style (Figma's one-keycap-per-key, "Ctrl" "F", cannot fit the paired Mac
+rows; amended 2026-10-17 after the critic found the two styles mixed). Gallery: the keycap
 columns of S71.Onboarding/shortcuts are a documented D026 deviation; `OnboardingShortcutKeycapTests`.
+*Amendment (F-settings) · accepted (agent, 2026-10-17):* the Keyboard Shortcuts dialog (S64, 2437:14832)
+shows the same engine defaults in its Hotkey column (⌘F, ⌘., ⌘→, ⌘← where Figma prints F, S, N, P);
+the four fields are documented D026 deviations of S64.KeyboardShortcuts/default.
 
 ### D027 — Our UI owns the OSD · accepted · 2026-10-14
 VLC's core text/slider OSD is switched off for this interface (configuration, not engine
@@ -352,10 +356,13 @@ Light bgA5 (search and text-field surface) = #F4F4F4 (Figma #888888 left typed t
 library in Player - Light (2425:13624, S72) is drawn partly with Dark styles. Where that stays legible
 the product draws it as Figma does, in both themes: the header divider I2425:13646;6784:16224
 (`Dark/Divider/Dim`), the "▶" crumb separators 6131:13620/13475 (`Dark/FG/A4` #404040) and the "..."
-slot 6131:13671 (`Dark/FG/A2` #8F8F8F) (`libraryHeaderDarkStyle`, `LibraryNavigationStyleTests`). Kept:
-the rows and the current crumb use `Dark/FG/A1` #969696 / `Dark/FG/A2` there, about 1.7:1 on the
-#C2C2C1 panel, below D032's 4.5:1; the product uses the Light style of the same name (rows fgA1/fgA3 by
-watched state as in the dark frame and video 11m57, current crumb fg1). Evidence: figma_file.json style
+slot 6131:13671 (`Dark/FG/A2` #8F8F8F) (`libraryHeaderDarkStyle`, `LibraryNavigationStyleTests`). The
+full-window library uses the same header in Light (no Figma frame draws it; one header style for both
+sizes). Kept: the rows and the current crumb use Dark styles there (ref.png samples #8F8F8F for
+unwatched rows and the crumb 'S01' 6131:13646, #6B6B6B for watched rows), about 1.8:1 on the #C2C2C1
+panel, below D032's 4.5:1; the product uses the Light style of the same name (rows fgA1/fgA3 by
+watched state as in the dark frame and video 11m57, current crumb fgA2 #2E2E2E, not fg1; corrected
+2026-10-17, E-library: the earlier text said fg1, which neither Figma nor the code uses). Evidence: figma_file.json style
 ids, INDEX.md "mixes Light and Dark styles"; render `build/evidence/final5/polish/E-library/after/S72/`.
 App-defined raw colors carry their own light value (`lightHex` in colors.json). Test:
 `ThemeContrastTests`.
@@ -367,6 +374,11 @@ text and a near-black Browse, but Figma has no Light Settings frame, pixel value
 (PHILOSOPHY §1), and the same frame tints the unselected "Dark" segment as well, so it is not a
 consistent style to copy. Owner may choose the video's look instead (one fill/label change in
 `SettingsSegmentedControl`).
+*Amendment (F-settings) · accepted (agent, 2026-10-17):* Light dialogs follow the same rule. Text
+inputs are Figma's input frame (6251:13829, 6259:14966: `BG/B2` fill, 2 pt `BG/A4` border), Light
+#DEDEDE with a #B3B3B3 border; dialog dropdowns are `BG/A5`, Light #F4F4F4. The two already differ
+in the dark frames (#090909 inputs, #151515 dropdowns), so Light keeps the difference rather than
+giving both one fill.
 
 ### D033 — Side panel content details · accepted · 2026-10-14
 - Playback tab rows are the video's final list (09m17.5): Show Subtitle Timeline, Show Waveform,
@@ -463,10 +475,11 @@ consistent style to copy. Owner may choose the video's look instead (one fill/la
 - A Settings row appears only when the engine publishes every option it uses; nothing is listed as
   "unavailable", and a section with no visible row disappears. Figma rows left out because they have
   no meaning in this macOS interface: the Skin section, Interface language (no localizations yet),
-  Check for updates (no updater), Play video inside main window, Show window decorations, Show the
+  Play video inside main window, Show window decorations, Show the
   playlist as a tree, the Windows/Linux one-instance options, Last.fm, Web remote, Cast discovery
   and quality, Cipher preference, Process priority, the proxy fields (macOS proxy is used),
   Visualization size and Pause on interruption. Their app options are no longer registered.
+  *Amended (agent, 2026-11-03):* Check for updates is back with the updater (D059).
 - Developer mode reveals the developer sections (system log, VLC modules); Performance's Developer
   section (decoder and clock tuning) is Figma's Advanced Options there and always shown (D050).
   "Show confirmation and error dialogs" defaults ON (VLC's behaviour); OFF shows errors as an OSD
@@ -687,13 +700,24 @@ bars read Figma's #ABABAA (#A8A8A8 in the shipping-window render) over the video
   "2h 3m" is a placeholder) and its − is enabled only while queue rows are selected. Videos ▸ Shows
   (videos2 4778:25847) and Shows ▸ The Wand (videos3 4778:25957) count their own 1 and 2 folders
   where Figma repeats the Videos root's "3 items".
-- **Narrow compact panel.** Crumbs fold into "…" (last two, then the current one, then none); below
+- **Narrow compact panel.** Crumbs fold into "…" (last two, then the current one, middle-truncated;
+  live run 2 found the row falling through to a bare "…" at 680 pt, fixed 2026-10-17); below
   the full header width the item count and then Open Full Library give way (View ▸ Go Home still
   opens it), so at the 480 pt minimum window (216 pt panel) the header draws inside its column.
 - **Audit dispositions.** LIB-06: a playlist sorts by its own order (above); dates the media library
   never recorded cannot be invented. LIBSET-02: Frequently Visited Playlists lists each playlist's
   media once (the engine has no media-to-playlist query), capped at 200 playlists and cached until
   the library changes.
+*Amendment (E-library, 2026-10-17) · accepted (agent, 2026-10-17):*
+- **Selected grid cards** draw the list rows' selection fill (BG/A2, menu row 2107:5934) behind the
+  whole card. Figma has no selected card; without it a click and the arrow keys left no visible trace
+  (live run 2).
+- **Mini player in small windows.** Figma draws the 391 pt card (970:3090) only in the 1920 pt window.
+  Below a 1173 pt library the docked card keeps to a third of the library width, never under 200 pt
+  (`MiniPlayerLayout.dockedWidth`): the 16:9 video and its transport shrink with it, the padding, info
+  block and queue keep their sizes. Live run 2: at 680 pt the 391 pt card covered most of the grid.
+- **Over-video controls are white in Light.** The hover overlay (975:4333) keeps its Dark styles over
+  the picture in both themes; Light FG/1 made ✕ ↗ ⏮ ▶ ⏭ invisible on the scrimmed video (S46 parity).
 
 ### D045 — Settings: extensions, light dialogs and track numbers · accepted (owner, 2026-10-16) · 2026-10-16
 - **D035 vs D039 (extensions) — owner decision needed.** D039 keeps extension activation
@@ -811,6 +835,10 @@ bars read Figma's #ABABAA (#A8A8A8 in the shipping-window render) over the video
   Light/BG/Accent Bright. Every accent fill in Light, the play button included, follows the Light
   style. The VLC cone is not an accent fill: Figma paints it Accent/Logo (Light #C2711A, 2425:13629),
   and `gen-icons.py` gives it the `logo` role from those styles.
+  The same partial conversion leaves the playback-settings gear (I2425:13645;491:1729) and the
+  previous/next arrows (3603:12303, 3603:12306) in Dark/FG/A2 #8F8F8F (style 217:218), while the
+  frame's other bar icons (491:1730, 491:1732, 491:1734, 496:2470) use Light/FG/A2 #2E2E2E; the
+  product draws every Light bar icon Light/FG/A2 · accepted (agent, 2026-10-17).
 - **Onboarding step 2 keeps Back for every accent.** The orange frame 1902:3670 and the video
   (19m49, step 2 with Back and Next) have Back; the alternate-accent frames 1902:4020–6465 are copies
   made to show the swatch colours and drop it. Back stays, so the step does not change shape when a
@@ -822,6 +850,8 @@ bars read Figma's #ABABAA (#A8A8A8 in the shipping-window render) over the video
   in the theme shown (AccentPalette), so in Light the selected swatch is Light/Accent/Main #E8851A like
   Next, not the dark swatch hex #D37918. Unselected swatches keep Figma's 50 % (1902:4005), which over
   the light surface reads lighter (pastel), as every dimmed element in Light does. No Figma Light frame.
+  Settings › General's accent swatches follow the same rule (amended by agent, 2026-10-17; they drew
+  #D37918 in Light): Accent/Main of the shown theme, which in Dark is the swatch hex of 3046:9875.
 
 ### D050 — Settings rows, Mac wording and disabled Remove after the 2026-10-16 parity review · accepted · 2026-10-17
 Accepted (agent, 2026-10-17); owner sign-off pending. Amends D035.
@@ -863,6 +893,9 @@ Accepted (agent, 2026-10-17); owner sign-off pending. Amends D035.
 - **Disabled caching fields** (6543:15649 draws them empty): the four fields keep the Buffering
   preset's value, drawn in the placeholder colour (FG/A4) inside the 30 % row, so they read as
   empty like Figma while the real value stays findable. *(agent, 2026-10-17)*
+- **The ⓘ follows its label** on every row. Clock jitter (6571:16409) is the one Figma label drawn in a
+  fixed 104 pt box (every other row label hugs its text), which puts its ⓘ at x 354 instead of 10 pt
+  after "Clock jitter" (x 322); the product keeps the one rule. *(agent, 2026-10-17)*
 
 ### D051 — Customize new-row band, Player - Light list state and the narrow resume toast · accepted (agent, 2026-10-17) · 2026-10-17
 - **The Customize band is where a new row starts** (2107:5604 and every Player - customize* frame,
@@ -876,7 +909,8 @@ Accepted (agent, 2026-10-17); owner sign-off pending. Amends D035.
   gear. The product follows the video (11m57.0: watched rows dimmed, the playing row in the accent,
   the current folder at full strength) and enables the gear whenever the sidebar can open.
   `S72.Window/light` uses Figma's media (E04, 00:02:10 of 00:25:40, alone in the queue, 80 %
-  volume), so only these states differ.
+  volume), so only these states differ; it and `S72.App/light` list them as D051 deviations (the
+  row labels, the current crumb and the playing E04 row; added by agent, 2026-10-17).
 - **Resume toast in a narrow video** (amends D042's player information): below the 230 pt
   actions-only toast the button reads VLC 4's own short label "Continue" (qt/player/qml/ResumeDialog.qml)
   and hugs it, so at the 480 pt window with the compact library it is whole (amended by agent,
@@ -904,7 +938,10 @@ Accepted (agent, 2026-10-17); owner sign-off pending. Amends D035.
   `NSVisualEffectView` (`MXRBackdropSurface(overCanvasBase:)`, set through `mxrBarsBesidePicture`): the
   blur of a flat base is the base, and a material only adds its own colour (it gave #BBB7BC live over
   Light BG/B2 and #A7A7A7 offscreen over Dark BG/B2). The bars are #ABABAA offscreen and live, whatever
-  is behind them (`LightBarBackdropTests`); the former Δ4 is fixed, not excused. *Compact library:* it floats over the picture (D021), so over a bright,
+  is behind them (`LightBarBackdropTests`); the former Δ4 is fixed, not excused. In fullscreen (S05)
+  the bars overlay the picture itself, so there they are the tint over the native material like the
+  compact library, and their colour follows the video (#A8A8A8 offscreen over the frame's #2D2B29;
+  Figma has no Light fullscreen frame) (amended by agent, 2026-10-17). *Compact library:* it floats over the picture (D021), so over a bright,
   saturated video it is lighter and coloured, as Figma's own composition would be (over pure red
   #ECB9B9). The live #D3B7B4…#E1CDC9 over red lies between Figma over black (#B9B9B9) and over red:
   the native material keeps its dark base (darkAqua) and passes part of the video's hue, and a fixed
@@ -937,7 +974,18 @@ Accepted (agent, 2026-10-17); owner sign-off pending. Amends D035.
   illustrative and disagree with their own labels: Compressor 536:1514 draws Ratio "4.0 : 1" at 31 % of
   the track and RMS / Peak "0.2" at 15 %, Stereo Widener 612:1228 Delay "20.0 ms" at 26 %. The product
   places each thumb at the value within the module's range (compressor.c: ratio 1–20, rms-peak 0–1,
-  attack 1.5–400 ms; stereo_widen.c: delay 1–100 ms), so text and thumb agree.
+  attack 1.5–400 ms; stereo_widen.c: delay 1–100 ms), so text and thumb agree. *Amended (agent,
+  2026-10-17):* the same holds for the Equalizer's Preamp (6114:13615 "12.0 dB" drawn at 83 % of
+  equalizer.c's −20…20 dB, the value's 80 % is 10 pt left) and Compressor Threshold (536:1641 "−11.0 dB"
+  1 pt left of −11 dB in −30…0 dB). The gallery leaves out only the span between the two thumbs.
+- **Slider thumbs sit exactly at their values; ticks mark stops** (agent, 2026-10-17). A ticked
+  slider's thumb is centred on the tick of its value (804:1299, 607:1136); where Figma draws a thumb
+  off its own tick or at a rounded point the product does not follow it: Speed 5187:24557 sits 2.4 pt
+  right of its "1" tick; the −4 s subtitle delay thumb 1905:7368 is at 107 where −4 of ±10 s falls at
+  106.4 (its fill end, 184, matches); Banding Removal Radius 539:885 shows 14 on tick 3 of 7, but VLC's
+  gradfun radius is an integer (0 off, 4–32) and 14/32 lies 3 pt past that tick. In Light, which
+  Figma does not draw, the ticks multiply-blend instead of screen-blending, the mirror of Dark: a
+  darker warm mark on the light track (screen made it paler than the track).
 - **Stereo Widener values have no "%"** (612:1228 "0.2 %", "0.3 %", "0.8 %"): feedback, crossfeed and
   dry-mix are 0–0.9, 0–0.8 and 0–1 factors in stereo_widen.c, not percentages. Compressor's first row
   reads "RMS / Peak" (Figma's "FM5 / Peak" is a typo of the VLC option name).
@@ -965,9 +1013,29 @@ From the first live run on the installed window (live-run-1-window.json).
   16:9 like its window, so its render is unchanged (S72.Window/light before and after).
   There is no 10 pt frame in Light (checked by agent, 2026-10-17): Player - Light's video reaches
   x 1919 and runs under the rail (#ABABAA over it at x 5), where Player-6 and Player keep the dark
-  10 pt band (#1B1B1B at x 1911); so `--scheme light` drawing the video edge to edge is Figma's.
+  10 pt band (#1B1B1B at x 1911); so `--scheme light` drawing the canvas edge to edge is Figma's.
+  The picture itself keeps Player-6's rect in Light (y 41, 10 pt from the sides, down to the control
+  bar; `PlayerCanvasStyle.pictureInsets`), and the flat video base fills the canvas around it, so
+  Light and Dark fit a video to the same rect at every aspect ratio (live run 2 measured Light's
+  picture 1 pt higher and 2.5 pt wider; amended by agent, 2026-10-17). Gallery: the 10 pt strip
+  beside the picture is a D055 deviation of the S72 entries, where Figma's full-window media
+  vignette (#292725) continues and the base is #2D2B29.
+  With the bars hidden in Light (Hide UI, S06, and the auto-hidden window, S05) the window frame
+  around the video is Light BG/A3 (#D5D5D5), the Light counterpart of the dark #1B1B1B band; Figma
+  and the video have no Light frame for these states (added by agent, 2026-10-17).
+  With the bars hidden in Light (Hide UI, the auto-hidden window: S05/S06) the window frame is
+  Light BG/A3 #D5D5D5, the Light counterpart of the dark #1B1B1B band; Figma and the video have no
+  Light Hide UI frame, and the frame is window chrome, not video · accepted (agent, 2026-10-17).
+- **Customize canvas** (amends D021, live run 2): Customize uses the Light canvas in both themes:
+  the canvas runs under the bars and the picture stays in the window's picture rect, ending at the
+  new-row band. Player - customize (2107:5604) draws its video #2D2B29 between the top bar and the
+  band (y 40…972) with the bars and the band #191919 above and below it. The picture no longer fills
+  the window under the bars, which cropped a fitted picture (its burnt-in timecode under the top
+  bar) and made it ~7.5 % wider; opening Customize moves only the picture's bottom edge (the band).
+  Figma's video reaches x 0 where the picture rect keeps Player-6's 10 pt sides, as in Light (above);
+  the canvas fill shows there. `CustomizationKeyboardTests` · accepted (agent, 2026-10-17).
 - **Subtitles under overlays.** VLC renders subtitles inside the picture. Where the shown control bar
-  overlays the picture (fullscreen, Customize) the window reports the covered height
+  overlays the picture (fullscreen) the window reports the covered height
   (`InterfaceModel.subtitleSafeInset`) and the bridge raises subtitles by it ("sub-margin"), as
   video players lift captions above revealed controls. The compact library and the right panels
   float over the picture's side (D021) and do not move subtitles; "sub-margin" is vertical only.
@@ -990,10 +1058,12 @@ From the first live run on the installed window (live-run-1-window.json).
 
 
 ### D056 — Control bar states Figma does not draw, and the music bar's sources · accepted (agent, 2026-10-17) · 2026-10-17
-- **Play/pause hover** (amends D048's bar icon hover): Figma has no hover for 848:1711/848:1713. The
-  bar's own rule (Icon Wrapper 177:99) applies to them as well: the `iconHover` tile (white 6 %,
-  black 6 % in Light) over the fill, so Play stays Accent/Main under the pointer (~6 %, spec-part1 §0
-  infers "about 8 %") instead of switching to Accent/DIm (~20 % darker), and Pause reacts too.
+- **Play/pause hover** (amends D048's bar icon hover): Figma has no hover for 848:1711/848:1713.
+  *Amended (agent, 2026-10-17, parity S01 hover):* Play, an accent-filled button, is Accent/DIm
+  (#AB6314, Light #965916) under the pointer, as the video's only hovered accent button reads (14m09.8,
+  Continue Watching samples #8A4409 next to Play's #D16206; spec-part2 "hover is Accent/Dim"); it had
+  been lightened by the `iconHover` tile. Pause sits on an FG/A3 surface and keeps the bar's rule
+  (Icon Wrapper 177:99): the `iconHover` tile over its fill.
 - **No press highlight, Figma's disabled opacity.** Bar buttons draw their label as is (no press
   dimming, D028), and an unavailable control (and a non-seekable seek bar) is drawn at 30 %, the
   opacity Player-6 gives its unavailable arrow (I856:2587;848:1877); it was 40 % multiplied by the
@@ -1007,9 +1077,13 @@ From the first live run on the installed window (live-run-1-window.json).
 - **Music bar has no gear** (LayoutStore.music): both Player - Music frames (4767:23726 and its
   waveform twin) draw none; component 4778:26181 and video 12m56.6 do. The full frame wins, as in
   D048's top stroke; the playback sidebar stays one click away through the top bar's sidebar toggle.
-- **Music bar tint** is Figma's own style 1702:4100 (BG/A3 Transparent, #191919 @ 95 %). Figma's
-  #171717 is that tint over its blurred, darker artwork; the offscreen engine has no window-server
-  blur, so the Δ2 in S34.Player/music* is the backdrop under the tint. Only the real window is evidence.
+- **Music bar tint** is Figma's own style 1702:4100 (BG/A3 Transparent, #191919 @ 95 %). *Fixed
+  (agent, 2026-10-17, critic P2):* the canvas above the bar is black in Figma and in the product, and
+  the tint over black is Figma's #171717; the extra #02 was the `NSVisualEffectView` material's own
+  colour under the tint, not missing blur. The dark music bar lies over the player's own blurred
+  artwork or that black canvas, so it draws the tint over them with no material (as the Light bars
+  over the canvas base, D053) and reads #18 offscreen (`MusicBarTintTests`); S34's remaining Δ2 is the
+  artwork backdrop (#1B vs #1D), not the bar. Reduce Transparency still fills BG/A3.
 
 ### D057 — Saved control-bar rows and the compact library beside a panel · accepted (agent, 2026-10-17) · 2026-10-17
 - **Two spacers centre what is between them** (S67). Player - customize-7 (2160:8301) and key
@@ -1022,6 +1096,10 @@ From the first live run on the installed window (live-run-1-window.json).
   the 6 pt padded cell 2160:8419. The fullscreen button in a control-bar row is a bar icon (30 pt),
   not the top bar's 36 pt window-control cell; 19m27.6 draws queue and fullscreen glyphs 50 pt apart.
   `LayoutStore.twoRowExample` has no divider before the queue (customize-7, 19m27.6).
+  The play tile keeps the 54 × 28 pt of Player 187:328 and C.PlayButton (848:1711) in a saved
+  two-row bar; customize-7 draws it 50 pt wide (2160:8310 inside its 54 × 32 frame 231, 935–985 in
+  19m27.6), most likely the edit-mode inset tile, so one play button size is kept in every layout
+  (added by agent, 2026-10-17).
 - **The compact library beside a right panel** (D019, critic P1). The library never draws below
   `LibraryGeometry.compactMinimumWidth` (208 pt; it got 153 pt at 480 pt). With a panel open it
   stays only while both fit at their own widths (library minimum + the 400 pt panel and its
@@ -1030,4 +1108,40 @@ From the first live run on the installed window (live-run-1-window.json).
   Figma and the video only show both at 1920 pt (11m57.0), where nothing changes.
 - **Customize frames draw the plain gear** (42:355) where Player frames draw playback settings
   (2230:9222); the gear is the same control, so the product keeps one icon (B-controls owns it).
+
+### D058 — Release 1.0: identity, version, one universal DMG · accepted (owner) · 2026-11-03
+Owner decisions for the first public release: the name stays **VLC Redesign** with its icon, and it is
+an **unofficial** build, not affiliated with VideoLAN; Info.plist (`NSHumanReadableCopyright`), About, the
+DMG and the release page say so. Bundle id **`io.github.lemelson.vlc-redesign`** (replaces the placeholder
+`org.example.vlc-redesign.codex`; settles D010's id question). App version **1.0.0**, kept in the module's
+`VERSION` file; the VLC engine's version stays visible in About as the engine version. One **universal DMG**
+(Apple silicon + Intel) for macOS 14+, ad-hoc signed until D012 has a Developer ID (BUILD.md §8 "Release
+recipe"). Sparkle.framework stays in the bundle as upstream packages it; auto-update is D059. Per-bundle-id
+user data is not migrated by code; the pre-1.0 install's data is moved by hand once.
+
+### D059 — Updates through Sparkle with our own EdDSA-signed feed · accepted (owner asked for auto-update; details agent) · 2026-11-03
+Amends D012 (own update feed) and D035 (Check for updates). Design note for the owner:
+`build/evidence/release-1.0/updates-design.md` (outside git).
+- **Sparkle 2.8.1 from VLC's contribs**, as the stock interface uses it (`VLCMain+Sparkle.m`):
+  `package.mak` already copies `Sparkle.framework` and `codesign.sh` signs it; the plugin links it
+  with `@loader_path/..` (vlc-cache-gen loads the plugin outside the app). Standard controller and
+  windows; the app menu has "Check for Updates…" after About. A background check waits while a video
+  plays (a manual one never does); playback stops before Sparkle quits the app to install.
+- **Feed**: `https://github.com/Lemelson/vlc-redesign-macos/releases/latest/download/appcast.xml`,
+  one feed for the universal DMG. `SUFeedURL` and `SUPublicEDKey` come from
+  `Resources/update-feed.json` through `app-bundle-hook.sh`; VideoLAN's feed and keys are never shipped.
+- **Ad-hoc signing**: without a Developer ID Sparkle requires an EdDSA (Ed25519) signature on the
+  DMG; `tools/make-appcast.py` signs with CryptoKit (`tools/sparkle-ed25519.swift`). The private key
+  lives outside git (`build/publish-tools/`); losing it means users must download the next version by
+  hand once. Proven with a headless harness on this Mac: an ad-hoc-signed 1.0.0 installs a 1.0.1 DMG
+  in place and relaunches, without quarantine, and a DMG that is not the signed one is rejected.
+- **Defaults**: Sparkle's own flow: no check on the first launch, a question on the second. Settings ▸
+  General ▸ Startup has Figma's "Check for updates automatically" (3046:9901) and, added below it,
+  "Install updates automatically" (enabled while checks are on) and "Check for updates — Check Now".
+  These rows read Sparkle's preferences (`updater-*` names, not VLC options), so Sparkle's question
+  and its update window stay in sync with them; Reset all settings does not change them. The ⓘ says
+  the check contacts github.com. The last-check time is not shown: Figma has no room for it.
+- **Channels**: the app passes the channels listed in the `MXRUpdateChannels` default to Sparkle, so
+  a later opt-in channel (e.g. engine updates) needs only appcast items with `sparkle:channel` and a
+  switch shipped through the normal feed.
 

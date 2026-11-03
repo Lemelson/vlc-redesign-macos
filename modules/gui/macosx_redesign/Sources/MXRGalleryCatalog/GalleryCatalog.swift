@@ -388,6 +388,19 @@ public struct GalleryPaths: Sendable {
         toolsDirectory.appending(path: "snapshots/\(entry.fileSafeID)", directoryHint: .isDirectory)
     }
 
+    /// The nearest directory at or above `start` that contains `marker`, or nil. Stops at the file
+    /// system root: there (and above some executable URLs) deletingLastPathComponent() keeps adding
+    /// "/..", so the parent is standardized before the comparison.
+    static func ancestor(of start: URL, containing marker: String) -> URL? {
+        var dir = start.standardizedFileURL
+        while true {
+            if FileManager.default.fileExists(atPath: dir.appending(path: marker).path) { return dir }
+            let parent = dir.deletingLastPathComponent().standardizedFileURL
+            if parent.path == dir.path || dir.path == "/" { return nil }
+            dir = parent
+        }
+    }
+
     /// Finds the repository: `$MXR_REPO_ROOT`, then the directories above this source file,
     /// the current directory and the executable.
     public static func locate() throws -> GalleryPaths {
@@ -400,15 +413,7 @@ public struct GalleryPaths: Sendable {
         if let executable = Bundle.main.executableURL { starts.append(executable.deletingLastPathComponent()) }
         let marker = "redesign/design/figma/figma_file.json"
         for start in starts {
-            var dir = start.standardizedFileURL
-            while true {
-                if FileManager.default.fileExists(atPath: dir.appending(path: marker).path) {
-                    return GalleryPaths(repoRoot: dir)
-                }
-                let parent = dir.deletingLastPathComponent()
-                if parent.path == dir.path { break }
-                dir = parent
-            }
+            if let root = ancestor(of: start, containing: marker) { return GalleryPaths(repoRoot: root) }
         }
         throw GalleryToolingError("cannot find the repository (no \(marker) above \(starts.map(\.path))); set MXR_REPO_ROOT")
     }
@@ -825,7 +830,8 @@ public final class FigmaIndex: Sendable {
 
         let image: CGImage?
         if native {
-            image = Self.copyCrop(source, origin: pixelRect.origin, width: output.width, height: output.height)
+            image = Self.copyCrop(source, origin: pixelRect.origin, width: output.width, height: output.height,
+                                  restoresBoxEdges: node.depth == 0)
         } else {
             image = Self.resampledCrop(source, rect: pixelRect, width: output.width, height: output.height)
         }
@@ -864,7 +870,14 @@ public final class FigmaIndex: Sendable {
     /// `width`×`height` render pixels starting at `origin` (top-left, in pixels), transparent
     /// outside the render. A whole-pixel origin is copied exactly; a fractional one is sampled
     /// bilinearly in premultiplied RGBA, so content starting at `origin` starts at pixel 0.
-    static func copyCrop(_ source: CGImage, origin: CGPoint, width: Int, height: Int) -> CGImage? {
+    ///
+    /// `restoresBoxEdges`: the crop is a top-level frame's own box. A frame box that starts between
+    /// render pixels leaves its first and last rows and columns partly covered in the render, and
+    /// the bilinear shift keeps only `1 − f + f²` of the frame in them (f: the shift). Those edge
+    /// pixels are divided by that coverage, so the frame's fill reaches its box edge as in Figma's
+    /// own vector (a rounded corner keeps its shape; the onboarding frames, critic P2).
+    static func copyCrop(_ source: CGImage, origin: CGPoint, width: Int, height: Int,
+                         restoresBoxEdges: Bool = false) -> CGImage? {
         let ix = Int(origin.x.rounded(.down)), iy = Int(origin.y.rounded(.down))
         let wx = Int(((origin.x - CGFloat(ix)) * 256).rounded())
         let wy = Int(((origin.y - CGFloat(iy)) * 256).rounded())
@@ -898,7 +911,45 @@ public final class FigmaIndex: Sendable {
                 }
             }
         }
+        if restoresBoxEdges { restoreBoxEdges(&out, width: width, height: height, shift: CGPoint(x: wx, y: wy)) }
         return GalleryImageIO.image(fromRGBA: out, width: width, height: height)
+    }
+
+    /// Restores the outermost rows (vertical shift) and columns (horizontal shift) of a bilinearly
+    /// shifted frame crop (see ``copyCrop``). Where the pixel inside it is opaque, the edge pixel is
+    /// that pixel (the frame's fill runs to its box edge; sampling clamped to the box, so the shadow
+    /// outside the box does not darken it); elsewhere (a rounded corner) it is divided by the
+    /// coverage `1 − f + f²` the shift left in it.
+    static func restoreBoxEdges(_ pixels: inout [UInt8], width: Int, height: Int, shift: CGPoint) {
+        func coverage(_ weight: CGFloat) -> CGFloat {
+            let f = weight / 256
+            return 1 - f + f * f
+        }
+        func restore(_ x: Int, _ y: Int, inner: (x: Int, y: Int), factor: CGFloat) {
+            let i = (y * width + x) * 4, n = (inner.y * width + inner.x) * 4
+            if pixels[n + 3] == 255 {
+                for c in 0..<4 { pixels[i + c] = pixels[n + c] }
+                return
+            }
+            let alpha = CGFloat(pixels[i + 3])
+            guard alpha > 0 else { return }
+            let gain = min(factor, 255 / alpha) // premultiplied: colour and alpha scale together
+            for c in 0..<4 { pixels[i + c] = UInt8(min(255, (CGFloat(pixels[i + c]) * gain).rounded())) }
+        }
+        if shift.y > 0, height > 2 {
+            let factor = 1 / coverage(shift.y)
+            for x in 0..<width {
+                restore(x, 0, inner: (x, 1), factor: factor)
+                restore(x, height - 1, inner: (x, height - 2), factor: factor)
+            }
+        }
+        if shift.x > 0, width > 2 {
+            let factor = 1 / coverage(shift.x)
+            for y in 0..<height {
+                restore(0, y, inner: (1, y), factor: factor)
+                restore(width - 1, y, inner: (width - 2, y), factor: factor)
+            }
+        }
     }
 
     /// The render pixels in `rect` (fractional, top-left origin) resampled to `width`×`height`

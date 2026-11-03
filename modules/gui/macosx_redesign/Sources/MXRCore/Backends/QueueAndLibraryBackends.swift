@@ -98,7 +98,10 @@ public protocol LibraryBackend: AnyObject {
     /// it was read from; a backend rejects the whole request if the playlist changed since.
     func removeFromPlaylist(id: String, occurrences: [PlaylistOccurrence]) async throws
     /// Adds files to the library without a folder scan; returns them as the library lists them.
+    /// Files it cannot add do not stop the others: it then throws ``LibraryImportError`` with both.
     @discardableResult func importFiles(urls: [URL]) async throws -> [MediaItem]
+    /// "Remove from Library" for files added with ``importFiles(urls:)``; the files stay on disk.
+    func removeImportedMedia(ids: [String]) async throws
     func renamePlaylist(id: String, name: String) async throws
     func deletePlaylist(id: String) async throws
     func setPlaylistFavorite(_ favorite: Bool, id: String)
@@ -131,11 +134,33 @@ public protocol LibraryBackend: AnyObject {
 extension LibraryBackend {
     public func attachAudioTrack(url: URL, toMedia mediaID: String) {}
     public func importFiles(urls: [URL]) async throws -> [MediaItem] { throw BackendOperationError.unsupported("Import files into library") }
+    public func removeImportedMedia(ids: [String]) async throws { throw BackendOperationError.unsupported("Removing added files from the library") }
     public func cachedPage(at location: LibraryLocation, query: LibraryQuery) -> LibraryPage? { nil }
     public func cachedHomeSections() -> [LibraryHomeSection]? { nil }
     public func cachedBreadcrumb(for location: LibraryLocation) -> [LibraryCrumb]? { nil }
     public func cachedBookmarks(mediaID: String) -> [Bookmark]? { nil }
     public func renameNetworkStream(id: String, name: String) async throws { throw BackendOperationError.unsupported("Renaming a saved stream") }
+}
+
+/// An Add File import that left files out: the ones added still joined the library.
+public struct LibraryImportError: LocalizedError, Sendable {
+    public var imported: [MediaItem]
+    /// The files left out (not video or audio, missing, unreadable), in the order they were chosen.
+    public var rejected: [URL]
+
+    public init(imported: [MediaItem], rejected: [URL]) {
+        self.imported = imported
+        self.rejected = rejected
+    }
+
+    public var errorDescription: String? {
+        let names = rejected.prefix(3).map { "“\($0.lastPathComponent)”" }.joined(separator: ", ")
+        let more = rejected.count > 3 ? " and \(rejected.count - 3) more" : ""
+        let what = rejected.count == 1 ? "\(names) could not be added to the library."
+            : "\(rejected.count) files could not be added to the library: \(names)\(more)."
+        let rest = imported.isEmpty ? "" : imported.count == 1 ? " The other file was added." : " The other files were added."
+        return what + " Only video and audio files that can be read are added." + rest
+    }
 }
 
 /// Media-source change notifications (discovery is asynchronous: shares and UPnP servers appear later).

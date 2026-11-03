@@ -110,7 +110,9 @@ struct LibraryBreadcrumb: View {
         Group {
             if compact {
                 // A narrow panel folds crumbs into "..." rather than clipping them to unreadable
-                // pieces ("Th ▸ S0"): the last two (Figma S28), then the current one, then none.
+                // pieces ("Th ▸ S0"): the last two (Figma S28), then the current one. ViewThatFits
+                // draws its last choice when none fits, so "... ▸ <current>" always stays, with the
+                // current name middle-truncated (it used to fall through to a bare "...").
                 ViewThatFits(in: .horizontal) {
                     ForEach(Self.compactCrumbCounts(library.breadcrumb.count, searching: !library.appliedSearch.isEmpty), id: \.self) { count in
                         row(crumbs: Array(library.breadcrumb.suffix(count)))
@@ -124,10 +126,10 @@ struct LibraryBreadcrumb: View {
     }
 
     /// How many trailing crumbs the compact panel tries, widest first. Search results show only
-    /// their own place after the current crumb (S47); the last choice keeps just "...".
+    /// their own place after the current crumb (S47). The last choice keeps the current crumb.
     static func compactCrumbCounts(_ total: Int, searching: Bool) -> [Int] {
         let widest = min(total, searching ? 1 : 2)
-        return Array((0...widest).reversed())
+        return Array((min(total, 1)...widest).reversed())
     }
 
     private func row(crumbs: [LibraryCrumb]) -> some View {
@@ -152,9 +154,12 @@ struct LibraryBreadcrumb: View {
                 if index > 0 { separator }
                 Button { library.navigate(to: crumb.location) } label: {
                     let currentFullCrumb = !compact && crumbs.count > 1 && index == crumbs.count - 1 && library.appliedSearch.isEmpty
+                    let last = index == crumbs.count - 1
                     Text(crumb.title).mxrTextStyle(currentFullCrumb ? LibraryBreadcrumbTypography.current : Theme.Font.bodyLarge)
                         .foregroundStyle(currentFullCrumb ? Theme.Color.fgA1 : Theme.Color.fgA2).lineLimit(1)
+                        .truncationMode(compact && last ? .middle : .tail)
                 }.buttonStyle(.plain).help(crumb.title)
+                .layoutPriority(index == crumbs.count - 1 ? 1 : 0)
             }
             if !library.appliedSearch.isEmpty {
                 // Search results are a place of their own in the address line (S47).

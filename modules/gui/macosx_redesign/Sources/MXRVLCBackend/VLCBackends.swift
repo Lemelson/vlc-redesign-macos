@@ -17,7 +17,8 @@ public final class VLCBackends {
             mediaSources: VLCMediaSourcesBackend(transport: transport), settings: VLCSettingsBackend(transport: transport),
             shortcuts: VLCShortcutsBackend(transport: transport), dialogs: VLCDialogBackend(transport: transport),
             extensions: VLCExtensionsBackend(transport: transport), thumbnails: VLCThumbnailBackend(transport: transport),
-            osd: VLCOSDBackend(transport: transport), capabilities: VLCWire.capabilities(flags), output: VLCOutputBackend(transport: transport), renderers: VLCRendererBackend(transport: transport), quitHandler: { bridge.quit() })
+            osd: VLCOSDBackend(transport: transport), capabilities: VLCWire.capabilities(flags), output: VLCOutputBackend(transport: transport), renderers: VLCRendererBackend(transport: transport),
+            updater: bridge.updater.map { VLCUpdaterBackend(bridge: $0) }, quitHandler: { bridge.quit() })
     }
     public func invalidate() { transport.invalidate(); session.invalidate() }
 }

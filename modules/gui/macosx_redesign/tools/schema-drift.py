@@ -20,8 +20,9 @@ def mapped_options(path=CATALOG):
     # and visibility dependencies. Strip line comments only outside strings.
     text = re.sub(r'"(?:\\.|[^"\\])*"|//[^\n]*',
                   lambda match: '' if match.group().startswith('//') else match.group(), path.read_text())
+    # App options are ours; `updater-*` rows read Sparkle's preferences (D059), not VLC.
     return {name for name in re.findall(r'\boption\s*:\s*"([^"]+)"', text)
-            if not name.startswith('macosx-redesign-')}
+            if not name.startswith(('macosx-redesign-', 'updater-'))}
 
 
 def validate(actual, policy, mapped):

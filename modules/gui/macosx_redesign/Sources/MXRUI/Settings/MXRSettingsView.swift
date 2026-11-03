@@ -408,12 +408,6 @@ private struct SettingsRowView: View {
     @ViewBuilder private var controlFrame: some View {
         switch row.control {
         case .toggle: control.frame(width: Theme.Metric.Controls.toggle.width)
-        // The stacked choice keeps "Always starts at:" on one line: in a narrow window it may grow past
-        // the half-width column, up to its design width, and the label beside it wraps instead.
-        case .stackedChoice:
-            control.frame(minWidth: controlWidth, maxWidth: max(controlWidth, Theme.Metric.SettingsDetail.controlWidth))
-                .fixedSize(horizontal: true, vertical: false)
-                .layoutPriority(1)
         default: control.frame(width: controlWidth)
         }
     }
@@ -447,7 +441,7 @@ private struct SettingsRowView: View {
         // 3062:12486 and 3073:14906 use the standard 100-point action button.
         // Shortcut and maintenance launchers use the full value-column width (6540:15094, 6571:16316).
         switch row.action {
-        case "open-config-folder", "open-extensions-folder", "reset-all-settings", "clear-history", "reset-picture": min(Theme.Metric.buttonWidth, controlWidth)
+        case "open-config-folder", "open-extensions-folder", "reset-all-settings", "clear-history", "reset-picture", "check-for-updates": min(Theme.Metric.buttonWidth, controlWidth)
         default: controlWidth
         }
     }
@@ -474,7 +468,10 @@ private struct SettingsRowView: View {
             HStack(spacing: Theme.Spacing.gap4) {
                 ForEach(AccentChoice.allCases, id: \.self) { accent in
                     Button { appearance.setAccent(accent) } label: {
-                        RoundedRectangle(cornerRadius: Theme.Radius.xs).fill(Theme.Accent(accent).swatch.color)
+                        // Each accent's Accent/Main in the shown theme, like the onboarding swatches (D049):
+                        // the swatch hex in Dark (3046:9875), the Light accent in Light.
+                        RoundedRectangle(cornerRadius: Theme.Radius.xs).fill(Theme.Color.accentMain)
+                            .environment(\.mxrAccent, Theme.Accent(accent))
                             .opacity(appearance.accent == accent ? 1 : Theme.Metric.SettingsDetail.inactiveSwatchOpacity)
                             .frame(width: Theme.Metric.SettingsDetail.swatchSize, height: Theme.Metric.SettingsDetail.swatchSize)
                             .frame(maxWidth: .infinity).frame(height: Theme.Metric.SettingsDetail.controlInnerHeight)
@@ -507,15 +504,29 @@ private struct SettingsRowView: View {
             VStack(spacing: Theme.Spacing.gap2) {
                 ForEach(Array(settings.choices(for: row).enumerated()), id: \.offset) { index, choice in
                     let selected = settings.value(for: row)?.isEquivalent(to: choice.value) ?? false
-                    HStack(spacing: Theme.Spacing.gap10) {
-                        Button { settings.setValue(choice.value, for: row) } label: {
-                            HStack {
-                                Text(choice.title).mxrTextStyle(Theme.Font.body).lineLimit(1).fixedSize()
-                                Spacer(minLength: 0)
+                    // 3176:16574 puts the value beside "Always starts at:". In a column narrower than
+                    // the design's 320 pt (the 480 pt window) both no longer fit on one line: the value
+                    // goes under its label, so neither wraps and the control keeps to its column.
+                    let stacksValue = index == 1 && controlWidth < Theme.Metric.SettingsDetail.controlWidth
+                    let title = Button { settings.setValue(choice.value, for: row) } label: {
+                        HStack {
+                            Text(choice.title).mxrTextStyle(Theme.Font.body).lineLimit(1).fixedSize()
+                            Spacer(minLength: 0)
+                        }.frame(minHeight: stacksValue ? Theme.Metric.SettingsDetail.controlInnerHeight : nil)
+                    }.buttonStyle(.plain)
+                    Group {
+                        if stacksValue {
+                            VStack(alignment: .leading, spacing: 0) {
+                                title
+                                SettingsSecondaryValueEditor(row: row, isSelected: selected, fillsWidth: true)
+                            }.padding(.bottom, Theme.Spacing.gap2)
+                        } else {
+                            HStack(spacing: Theme.Spacing.gap10) {
+                                title
+                                if index == 1 {
+                                    SettingsSecondaryValueEditor(row: row, isSelected: selected)
+                                }
                             }
-                        }.buttonStyle(.plain)
-                        if index == 1 {
-                            SettingsSecondaryValueEditor(row: row, isSelected: selected)
                         }
                     }
                     .foregroundStyle(selected ? AnyShapeStyle(MXRAccentLabel()) : AnyShapeStyle(Theme.Color.fgA3))

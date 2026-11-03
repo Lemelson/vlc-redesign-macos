@@ -10,8 +10,8 @@ AC_ARG_ENABLE([macosx-redesign],
     [redesigned macOS interface; replaces the stock one, needs --disable-macosx (default disabled)]))
 AC_ARG_WITH([macosx-redesign-bundle-id],
   AS_HELP_STRING([--with-macosx-redesign-bundle-id=ID],
-    [bundle identifier of the packaged app (default org.example.vlc-redesign, a placeholder until DECISIONS D010)]),
-  [], [with_macosx_redesign_bundle_id="org.example.vlc-redesign"])
+    [bundle identifier of the packaged app (default io.github.lemelson.vlc-redesign)]),
+  [], [with_macosx_redesign_bundle_id="io.github.lemelson.vlc-redesign"])
 AC_ARG_WITH([macosx-redesign-app-name],
   AS_HELP_STRING([--with-macosx-redesign-app-name=NAME],
     [name of the packaged app in the menu bar and Finder (default "VLC Redesign")]),

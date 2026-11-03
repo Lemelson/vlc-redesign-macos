@@ -2027,5 +2027,11 @@
     "miniplayer": 391,
     "seekThumbnail": 272,
     "button": 100
+  },
+  "macWindowControls": {
+    "note": "Not Figma: where AppKit puts the window buttons in the player's compact unified toolbar, measured from the shipping-window render (12 pt buttons 8 pt apart, the first 13 pt from the edge, centred in the 40 pt bar). Colours in colors.json macWindowControls.",
+    "diameter": 12,
+    "spacing": 8,
+    "leadingInset": 13
   }
 }

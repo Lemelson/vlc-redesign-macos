@@ -63,6 +63,7 @@ void MXRSetCurrentInterfaceBridge(MXRInterfaceBridge *bridge)
             [_player shutdown];
             return nil;
         }
+        _updater = [[MXRUpdaterBridge alloc] initWithPlaylist:_playlist];
     }
     return self;
 }
@@ -85,6 +86,7 @@ void MXRSetCurrentInterfaceBridge(MXRInterfaceBridge *bridge)
     _videoSurfaceProvider = nil;
     [_player shutdown];
     [_services shutdown];
+    [_updater shutdown];
 }
 
 - (void)finishShutdown { [_services finishShutdown]; }

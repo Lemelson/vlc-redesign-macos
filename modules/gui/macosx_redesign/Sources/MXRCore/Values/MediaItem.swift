@@ -88,6 +88,10 @@ public struct MediaItem: Identifiable, Hashable, Sendable, Codable {
     public var artworkURL: URL?
     /// Video resolution in pixels, when known.
     public var videoSize: CGSize?
+    /// True for a file added with Add File (not found by a folder scan): "Remove from Library"
+    /// takes it out again. Optional so pins and recents saved before it still decode.
+    public var importedFile: Bool? = nil
+    public var isImported: Bool { importedFile == true }
 
     public init(
         id: String,
@@ -137,6 +141,37 @@ public struct MediaItem: Identifiable, Hashable, Sendable, Codable {
         self.videoSize = videoSize
     }
 
+    /// Items saved in pins and recents by another version still decode: only the id, MRL and title
+    /// are required; a missing play count or favorite flag reads as the default, and a kind this
+    /// version does not know is guessed from the MRL.
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let mrl = try c.decode(String.self, forKey: .mrl)
+        let kind = (try? c.decodeIfPresent(MediaKind.self, forKey: .kind))
+            ?? URL(string: mrl).map(Self.kind(of:)) ?? .unknown
+        self.init(id: try c.decode(String.self, forKey: .id), mrl: mrl, title: try c.decode(String.self, forKey: .title),
+                  fileName: try c.decodeIfPresent(String.self, forKey: .fileName), kind: kind,
+                  duration: try c.decodeIfPresent(MediaTime.self, forKey: .duration),
+                  progress: try c.decodeIfPresent(Double.self, forKey: .progress),
+                  playCount: try c.decodeIfPresent(Int.self, forKey: .playCount) ?? 0,
+                  isFavorite: try c.decodeIfPresent(Bool.self, forKey: .isFavorite) ?? false,
+                  lastPlayedDate: try c.decodeIfPresent(Date.self, forKey: .lastPlayedDate),
+                  addedDate: try c.decodeIfPresent(Date.self, forKey: .addedDate),
+                  artist: try c.decodeIfPresent(String.self, forKey: .artist),
+                  album: try c.decodeIfPresent(String.self, forKey: .album),
+                  albumArtist: try c.decodeIfPresent(String.self, forKey: .albumArtist),
+                  genre: try c.decodeIfPresent(String.self, forKey: .genre),
+                  trackNumber: try c.decodeIfPresent(Int.self, forKey: .trackNumber),
+                  discNumber: try c.decodeIfPresent(Int.self, forKey: .discNumber),
+                  year: try c.decodeIfPresent(Int.self, forKey: .year),
+                  episode: try c.decodeIfPresent(EpisodeInfo.self, forKey: .episode),
+                  folder: try c.decodeIfPresent(FolderReference.self, forKey: .folder),
+                  artworkURL: try c.decodeIfPresent(URL.self, forKey: .artworkURL),
+                  videoSize: try c.decodeIfPresent(CGSize.self, forKey: .videoSize))
+        playlistOccurrence = try c.decodeIfPresent(PlaylistOccurrence.self, forKey: .playlistOccurrence)
+        importedFile = try c.decodeIfPresent(Bool.self, forKey: .importedFile)
+    }
+
     /// Creates an item for a local file or a URL that is not (yet) in the library.
     public init(url: URL) {
         let kind = Self.kind(of: url)
@@ -150,9 +185,35 @@ public struct MediaItem: Identifiable, Hashable, Sendable, Codable {
     public static func kind(of url: URL) -> MediaKind {
         guard url.isFileURL else { return .stream }
         let ext = url.pathExtension.lowercased()
-        if audioExtensions.contains(ext) || UTType(filenameExtension: ext)?.conforms(to: .audio) == true { return .audio }
+        if audioExtensions.contains(ext) || (audioFileExtensions.contains(ext) && !videoFileExtensions.contains(ext))
+            || UTType(filenameExtension: ext)?.conforms(to: .audio) == true { return .audio }
         return .video
     }
+
+    /// True for a file Add File puts in the library: a video or audio type of VLC's lists. Text,
+    /// images, subtitles and playlists are not media of their own (they never list under Videos).
+    public static func isLibraryMedia(_ url: URL) -> Bool {
+        guard url.isFileURL else { return false }
+        let ext = url.pathExtension.lowercased()
+        return videoFileExtensions.contains(ext) || audioFileExtensions.contains(ext)
+    }
+
+    /// VLC's `EXTENSIONS_VIDEO` (include/vlc_interface.h).
+    public static let videoFileExtensions: Set<String> = [
+        "3g2", "3gp", "3gp2", "3gpp", "amrec", "amv", "asf", "avi", "bik", "bin", "crf", "dav", "divx", "drc", "dv",
+        "dvr-ms", "evo", "f4v", "flv", "gvi", "gxf", "iso", "k3g", "m1v", "m2v", "m2t", "m2ts", "m4v", "mkv", "mov",
+        "mp2", "mp2v", "mp4", "mp4v", "mpe", "mpeg", "mpeg1", "mpeg2", "mpeg4", "mpg", "mpv2", "mts", "mtv", "mxf",
+        "mxg", "nsv", "nuv", "ogg", "ogm", "ogv", "ogx", "ps", "qt", "rec", "rm", "rmvb", "rpl", "skm", "thp", "tod",
+        "tp", "ts", "tts", "txd", "vob", "vp6", "vro", "webm", "wm", "wmv", "wtv", "xesc",
+    ]
+
+    /// VLC's `EXTENSIONS_AUDIO` (include/vlc_interface.h).
+    public static let audioFileExtensions: Set<String> = [
+        "3ga", "669", "a52", "aac", "ac3", "adt", "adts", "aif", "aifc", "aiff", "alac", "amb", "amr", "aob", "ape",
+        "au", "awb", "caf", "dts", "dsf", "dff", "flac", "it", "kar", "m4a", "m4b", "m4p", "m5p", "mid", "mka", "mlp", "mod",
+        "mpa", "mp1", "mp2", "mp3", "mpc", "mpga", "mus", "oga", "ogg", "oma", "opus", "qcp", "ra", "rmi", "s3m", "sid",
+        "spx", "tak", "thd", "tta", "voc", "vqf", "w64", "wav", "wma", "wv", "xa", "xm",
+    ]
 
     private static let audioExtensions: Set<String> = [
         "mp3", "m4a", "aac", "flac", "wav", "aiff", "aif", "ogg", "oga", "opus", "wma", "alac", "ape", "mka",
@@ -190,11 +251,12 @@ public struct MediaItem: Identifiable, Hashable, Sendable, Codable {
     }
 
     /// Key used to remember per-show presets (spec 07): the show name for episodes, otherwise the
-    /// containing folder id. Nil when the item belongs to neither.
+    /// containing folder id, otherwise the item itself (a file opened directly; live run 2: a new
+    /// preset for it was never selected because it had nowhere to be remembered).
     public var presetKey: String? {
         if let episode { return "show:" + episode.showName.lowercased() }
         if let folder { return "folder:" + folder.id }
-        return nil
+        return "media:" + id
     }
 
     /// The resume position derived from `progress` and `duration`, if any.

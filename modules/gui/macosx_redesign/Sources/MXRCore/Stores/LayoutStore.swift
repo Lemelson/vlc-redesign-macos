@@ -136,9 +136,67 @@ public struct PlayerLayout: Hashable, Sendable, Codable {
     public var top: [LayoutItem]
     public var bottom: [[LayoutItem]]
 
+    /// Items another version wrote that this one cannot read. Not shown and not part of equality;
+    /// written back so that version finds them again.
+    private var unreadable = Unreadable()
+
+    private struct Unreadable: Sendable {
+        var top: [UnreadableEntry] = []
+        /// By row of ``bottom``.
+        var rows: [Int: [UnreadableEntry]] = [:]
+        /// Rows that held only unreadable items, by their index in the file.
+        var hiddenRows: [Int: [UnreadableEntry]] = [:]
+        /// ``bottom`` is the `[[]]` placeholder because every row was hidden.
+        var placeholder = false
+    }
+
     public init(top: [LayoutItem], bottom: [[LayoutItem]]) {
         self.top = top
         self.bottom = bottom
+    }
+
+    public static func == (lhs: PlayerLayout, rhs: PlayerLayout) -> Bool { lhs.top == rhs.top && lhs.bottom == rhs.bottom }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(top)
+        hasher.combine(bottom)
+    }
+
+    private enum CodingKeys: String, CodingKey { case top, bottom }
+
+    /// Items decode one by one: a control this version does not know (saved by a newer one, or
+    /// renamed) is left out and the rest of the layout stays. A row that held only such controls is
+    /// hidden; an empty row in the file stays.
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let topList = try c.decode(LossyArray<LayoutItem>.self, forKey: .top)
+        top = topList.elements
+        unreadable.top = topList.unreadable
+        bottom = []
+        for (index, row) in try c.decode([LossyArray<LayoutItem>].self, forKey: .bottom).enumerated() {
+            if row.elements.isEmpty, !row.unreadable.isEmpty {
+                unreadable.hiddenRows[index] = row.unreadable
+                continue
+            }
+            if !row.unreadable.isEmpty { unreadable.rows[bottom.count] = row.unreadable }
+            bottom.append(row.elements)
+        }
+        if bottom.isEmpty {
+            bottom = [[]]
+            unreadable.placeholder = !unreadable.hiddenRows.isEmpty
+        }
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(LossyArray(top, unreadable: unreadable.top), forKey: .top)
+        var rows = unreadable.placeholder && bottom == [[]] ? [] : bottom.enumerated().map {
+            LossyArray($0.element, unreadable: unreadable.rows[$0.offset] ?? [])
+        }
+        for (index, entries) in unreadable.hiddenRows.sorted(by: { $0.key < $1.key }) {
+            rows.insert(LossyArray([], unreadable: entries), at: min(index, rows.count))
+        }
+        try c.encode(rows, forKey: .bottom)
     }
 
     private static func items(_ controls: [PlayerControl], prefix: String) -> [LayoutItem] {
@@ -241,12 +299,26 @@ public final class LayoutStore {
     /// The layout being edited, nil when not customizing.
     public private(set) var draft: PlayerLayout?
     @ObservationIgnored private var draftKey: (profileID: String, kind: Kind)?
-    @ObservationIgnored private let file: JSONFileStore<[String: PlayerLayout]>
+    /// The undo manager of the window that shows Customize. Each draft change registers its inverse
+    /// there, so Edit ▸ Undo / ⌘Z and Redo / ⇧⌘Z step through the session's edits (macOS editors
+    /// undo inside a session that Cancel can still discard). The session's actions are removed when
+    /// it ends, so Undo never reaches a layout that was saved or cancelled.
+    @ObservationIgnored public weak var undoManager: UndoManager? {
+        didSet { if oldValue !== undoManager { oldValue?.removeAllActions(withTarget: self) } }
+    }
+    /// Layouts decode one by one, so one unreadable layout costs only itself.
+    @ObservationIgnored private let file: JSONFileStore<LossyDictionary<PlayerLayout>>
+    /// Layouts another version wrote that this one cannot read; saved back until replaced or reset.
+    @ObservationIgnored private var unreadable: [String: JSONValue] = [:]
 
     public init(location: PersistenceLocation) {
         file = JSONFileStore(location: location, fileName: "layouts.json")
-        layouts = file.load() ?? [:]
+        let saved = file.load()
+        layouts = saved?.values ?? [:]
+        unreadable = saved?.unreadable ?? [:]
     }
+
+    private func save() { file.save(LossyDictionary(layouts, unreadable: unreadable)) }
 
     private static func key(_ profileID: String, _ kind: Kind) -> String { "\(profileID)/\(kind.rawValue)" }
 
@@ -257,15 +329,31 @@ public final class LayoutStore {
 
     /// Starts customizing (copies the saved layout into ``draft``).
     public func beginEditing(profileID: String, kind: Kind) {
+        endUndoSession()
         draft = layout(profileID: profileID, kind: kind)
         draftKey = (profileID, kind)
     }
 
-    /// Edits the draft in place.
-    public func updateDraft(_ change: (inout PlayerLayout) -> Void) {
+    /// Edits the draft in place. A change is undoable (``undoManager``) under `actionName`.
+    public func updateDraft(actionName: String? = nil, _ change: (inout PlayerLayout) -> Void) {
         guard var copy = draft else { return }
         change(&copy)
-        draft = copy
+        replaceDraft(with: copy, actionName: actionName)
+    }
+
+    /// Sets the draft and registers the way back. Run from an undo, the registration becomes the redo.
+    private func replaceDraft(with layout: PlayerLayout, actionName: String?) {
+        guard let previous = draft, previous != layout else { return }
+        draft = layout
+        guard let undoManager else { return }
+        undoManager.registerUndo(withTarget: self) { store in
+            MainActor.assumeIsolated { store.replaceDraft(with: previous, actionName: actionName) }
+        }
+        if let actionName { undoManager.setActionName(actionName) }
+    }
+
+    private func endUndoSession() {
+        undoManager?.removeAllActions(withTarget: self)
     }
 
     /// True when the draft differs from the saved layout (enables "Save").
@@ -278,28 +366,32 @@ public final class LayoutStore {
     public func commit() {
         guard let draft, let key = draftKey else { return }
         layouts[Self.key(key.profileID, key.kind)] = draft
-        file.save(layouts)
+        unreadable[Self.key(key.profileID, key.kind)] = nil
+        save()
         self.draft = nil
         draftKey = nil
+        endUndoSession()
     }
 
     /// "Cancel".
     public func cancelEditing() {
         draft = nil
         draftKey = nil
+        endUndoSession()
     }
 
     /// Forgets every layout of a deleted profile (video and music).
     public func removeLayouts(profileID: String) {
-        let keys = Kind.allCases.map { Self.key(profileID, $0) }.filter { layouts[$0] != nil }
+        let keys = Kind.allCases.map { Self.key(profileID, $0) }.filter { layouts[$0] != nil || unreadable[$0] != nil }
         guard !keys.isEmpty else { return }
-        for key in keys { layouts[key] = nil }
-        file.save(layouts)
+        for key in keys { layouts[key] = nil; unreadable[key] = nil }
+        save()
     }
 
     /// Restores the Figma default for a profile and kind.
     public func reset(profileID: String, kind: Kind) {
         layouts[Self.key(profileID, kind)] = nil
-        file.save(layouts)
+        unreadable[Self.key(profileID, kind)] = nil
+        save()
     }
 }

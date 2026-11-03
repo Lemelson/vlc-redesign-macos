@@ -70,22 +70,17 @@ final class MXRAppController: NSObject, NSApplicationDelegate, NSWindowDelegate,
         NSApp.delegate = self
         // Both Settings' Clear History and the native Clear Menu use this store.
         model.recents.onCleared = { NSDocumentController.shared.clearRecentDocuments(nil) }
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 960, height: 540),
-                              styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
-                              backing: .buffered, defer: false)
-        // D022: one 40 pt top bar holds the traffic lights; the content ignores the titlebar safe area.
-        MXRWindowControls.configure(window)
-        window.isReleasedWhenClosed = false
-        window.collectionBehavior.insert(.fullScreenPrimary)
-        window.contentMinSize = NSSize(width: 480, height: 270)
-        window.delegate = self
         let pipAction: (() -> Void)? = pictureInPicture.isAvailable ? { [weak self] in
             self?.pictureInPicture.toggle()
         } : nil
         let scene = MXRAppView(videoView: AnyView(MXRNativeVideoView(host: videoHost)),
                                onPictureInPicture: pipAction, engineVersion: bridge.vlcVersion)
             .appModel(model)
-        window.contentView = NSHostingView(rootView: scene)
+        // D022: one 40 pt top bar holds the traffic lights; the content ignores the titlebar safe area.
+        // The window keeps its 480 × 270 minimum for every resize (live run 2).
+        let window = MXRPlayerWindow.make(contentRect: NSRect(x: 0, y: 0, width: 960, height: 540),
+                                          contentView: NSHostingView(rootView: scene))
+        window.delegate = self
         window.center()
         self.window = window
         model.interface.windowControlsReserve = MXRWindowControls.leadingReserve(in: window)
@@ -121,7 +116,7 @@ final class MXRAppController: NSObject, NSApplicationDelegate, NSWindowDelegate,
                   MXRKeyRouting.shouldHandle(firstResponder: window.firstResponder,
                     hasSheet: window.attachedSheet != nil || self.model.interface.sheet != nil,
                     isCapturing: self.model.interface.isCustomizing || self.model.interface.isCapturingShortcut,
-                    panelListFocused: self.model.interface.panelListHasKeyboardFocus,
+                    listFocused: self.model.interface.listHasKeyboardFocus,
                     binding: KeyBinding(event: event)) else { return event }
             // D024: Esc closes the front-most popup before VLC's leave-fullscreen hotkey sees it.
             if event.keyCode == Self.escapeKeyCode, event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty,
@@ -362,10 +357,12 @@ final class MXRAppController: NSObject, NSApplicationDelegate, NSWindowDelegate,
     }
 
     private func open(_ urls: [URL]) {
-        // Opening files from Finder, the Dock or the window plays them in the player.
-        if model.interface.library == .full { model.interface.library = .hidden }
+        // Opening files from Finder, the Dock or the window plays them in the player. Subtitle
+        // files only join the media that plays: the library and the recents stay as they are.
+        let subtitles = AppModel.areSubtitleFiles(urls)
+        if !subtitles, model.interface.library == .full { model.interface.library = .hidden }
         model.open(urls: urls)
-        MXRNativeRecents.record(urls, model: model)
+        if !subtitles { MXRNativeRecents.record(urls, model: model) }
         showMainWindow()
     }
 

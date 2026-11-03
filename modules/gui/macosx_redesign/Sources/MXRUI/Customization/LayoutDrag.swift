@@ -23,11 +23,11 @@ public struct MXRLayoutDragPayload: Codable, Hashable, Sendable, Transferable {
         guard app.interface.isCustomizing, let draft = app.layouts.draft else { return false }
         if case .bottom(let row) = zone, !(-1...draft.bottom.count).contains(row) { return false }
         if let itemID {
-            guard draft.location(of: itemID) != nil else { return false }
-            app.layouts.updateDraft { $0.move(itemID, to: zone, at: index) }
+            guard let item = draft.allItems.first(where: { $0.id == itemID }) else { return false }
+            app.layouts.updateDraft(actionName: "Move \(item.control.title)") { $0.move(itemID, to: zone, at: index) }
         } else if let control {
             guard MXRCustomizationPalette.controls(for: draft, kind: app.layoutKind).contains(control) else { return false }
-            app.layouts.updateDraft { $0.insert(LayoutItem(control), in: zone, at: index) }
+            app.layouts.updateDraft(actionName: "Add \(control.title)") { $0.insert(LayoutItem(control), in: zone, at: index) }
         } else {
             return false
         }
@@ -46,8 +46,8 @@ public struct MXRLayoutDragPayload: Codable, Hashable, Sendable, Transferable {
     @MainActor @discardableResult
     public func remove(from app: AppModel) -> Bool {
         guard app.interface.isCustomizing, let itemID,
-              app.layouts.draft?.location(of: itemID) != nil else { return false }
-        app.layouts.updateDraft { $0.remove(itemID) }
+              let item = app.layouts.draft?.allItems.first(where: { $0.id == itemID }) else { return false }
+        app.layouts.updateDraft(actionName: "Remove \(item.control.title)") { $0.remove(itemID) }
         return true
     }
 }
@@ -101,14 +101,6 @@ enum MXRCustomizationPalette {
 
     static func overflows(rows: [[PlayerControl]], available: CGFloat) -> Bool {
         contentHeight(rows: rows) > available
-    }
-
-    /// The bottom fade of an overflowing palette `available` points tall (SD-M2): a short fade
-    /// (one label's height) over the bottom edge only, so a row that is cut there softens into
-    /// "more below" instead of ending at a hard edge, while everything above it stays at full
-    /// opacity and never reads as disabled.
-    static func fadeHeight(available: CGFloat) -> CGFloat {
-        min(available, Theme.Font.body.lineHeight * 2)
     }
 }
 
@@ -181,7 +173,11 @@ private struct MXRLayoutDraggableModifier: ViewModifier {
                 }
                 .overlay { Rectangle().fill(.clear).contentShape(.rect) }
                 .draggable(MXRLayoutDragPayload.placed(item))
+                // One element per tile, whatever the control draws inside (buttons, text, AppKit
+                // views): every tile carries the label and the move/remove actions (live run 2).
+                .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Move \(item.control.title)")
+                .accessibilityAddTraits(.isButton)
                 .mxrContextMenu(style: .contextMenu) { [app, item] in
                     MXRLayoutEditCommand.all(for: item, app: app).flatMap { command in
                         (command.separatedAbove ? [MXRMenuItem.separator] : [])

@@ -48,6 +48,27 @@ static unsigned VideoHeight(vlc_player_t *player) {
     vlc_player_Unlock(player);
     return height;
 }
+/* Live run 2: a Font Size step resized only the next cue. The core turns a text cue into a bitmap
+ * the first time it draws it (vout_subpictures.c, "last minute text rendering" replaces the text
+ * region) and redraws it only when the output size changes (substext.h), so a new
+ * "sub-text-scale" reaches only later cues. Seeking to the current time makes the subtitle
+ * decoder send the cue on screen again (the subtitle demuxer restarts at the last cue that began
+ * before the target), and freetype draws it at the new scale. Only with a subtitle track shown
+ * and a seekable input. A paused input is not sought: there the core demuxes only until the
+ * video has buffered, so the cue sometimes never came back and the position could move on
+ * (native subtitle-rerender-runtime). Returns YES when the redraw has to wait for playback. */
+static BOOL RedrawVisibleSubtitles(vlc_player_t *player) {
+    vlc_player_Lock(player);
+    enum vlc_player_state state=vlc_player_GetState(player);
+    BOOL shown=NO;
+    for(size_t i=0;i<vlc_player_GetSubtitleTrackCount(player)&&!shown;i++) shown=vlc_player_GetSubtitleTrackAt(player,i)->selected;
+    vlc_tick_t time=vlc_player_GetTime(player);
+    BOOL seekable=shown&&vlc_player_CanSeek(player)&&time!=VLC_TICK_INVALID;
+    if(seekable&&state==VLC_PLAYER_STATE_PLAYING)
+        vlc_player_SeekByTime(player,time,VLC_PLAYER_SEEK_PRECISE,VLC_PLAYER_WHENCE_ABSOLUTE);
+    vlc_player_Unlock(player);
+    return seekable&&state==VLC_PLAYER_STATE_PAUSED;
+}
 static BOOL PixelSizeMode(void) {
     if (!config_FindConfig("macosx-redesign-sub-size-mode")) return NO;
     char *mode = config_GetPsz("macosx-redesign-sub-size-mode");
@@ -70,6 +91,27 @@ static int64_t AppliedSafeInset(vlc_object_t *vout) {
         if (var_Type(object, SafeInsetVar)) return var_GetInteger(object, SafeInsetVar);
     return 0;
 }
+/* Writes one effect option to a live vout or aout.
+ * A vout maps the options of its interactive filters (adjust, sharpen, croppadd...) through
+ * proxy variables of the same name (src/misc/filter.c filter_AddProxyCallbacks): a command
+ * option forwards each value to the filter instance, any other option restarts the chain. When
+ * the chain is rebuilt, filter_DelProxyCallbacks removes those callbacks only from variables
+ * flagged VLC_VAR_ISCOMMAND, the flag filter_AddProxyCallbacks gives the variables it creates.
+ * A variable created here without that flag (before the filter was added) kept the callback of
+ * every freed filter: the next write ran TriggerFilterCallback on freed memory (the live
+ * Brightness-drag crash), and each stale restart callback rebuilt the chain again.
+ * So a missing variable is created exactly like filter_AddProxyCallbacks creates it, and a value
+ * that is already set is not written again: an unchanged option neither reaches the filter nor
+ * restarts the chain. */
+static void WriteTargetOption(vlc_object_t *target, const char *name, int type, id value) {
+    if(var_Type(target,name)==0) var_Create(target,name,type|VLC_VAR_DOINHERIT|VLC_VAR_ISCOMMAND);
+    if(type==VLC_VAR_STRING) {
+        char *current=var_GetString(target,name); BOOL same=current&&!strcmp(current,[value UTF8String]); free(current);
+        if(!same) var_SetString(target,name,[value UTF8String]);
+    } else if(type==VLC_VAR_FLOAT) { if(var_GetFloat(target,name)!=[value floatValue]) var_SetFloat(target,name,[value floatValue]); }
+    else if(type==VLC_VAR_BOOL) { if(var_GetBool(target,name)!=[value boolValue]) var_SetBool(target,name,[value boolValue]); }
+    else if(var_GetInteger(target,name)!=[value longLongValue]) var_SetInteger(target,name,[value longLongValue]);
+}
 int64_t MXRSubtitleUserMargin(vout_thread_t *vout) {
     return var_GetInteger(VLC_OBJECT(vout), "sub-margin") - AppliedSafeInset(VLC_OBJECT(vout));
 }
@@ -78,10 +120,17 @@ int64_t MXRSubtitleUserMargin(vout_thread_t *vout) {
     NSInteger _relativeSize;
     BOOL _customEqualizer;
     BOOL _pixelScaleApplied;
+    /* A size change made while paused: the cue on screen is redrawn when playback resumes. */
+    BOOL _redrawOnResume;
     /* The inset in output pixels, and the lock that orders its read-modify-write of a vout's
      * margin between main (inset or style changes) and the thread that starts a vout. */
     vlc_mutex_t _safeInsetLock;
     int64_t _safeInset;
+}
+- (void)playerStateChanged:(enum vlc_player_state)state {
+    if(state==VLC_PLAYER_STATE_PAUSED||!_redrawOnResume) return;
+    _redrawOnResume=NO;
+    if(state==VLC_PLAYER_STATE_PLAYING) RedrawVisibleSubtitles(_player);
 }
 - (BOOL)applySubtitleSizePreference {
     /* CMP-18: VLC 4 sizes subtitle text relative to the video height (freetype font size
@@ -206,11 +255,7 @@ int64_t MXRSubtitleUserMargin(vout_thread_t *vout) {
         if(type==VLC_VAR_STRING) config_PutPsz(name.UTF8String,[value UTF8String]);
         else if(type==VLC_VAR_FLOAT) config_PutFloat(name.UTF8String,[value floatValue]);
         else config_PutInt(name.UTF8String,[value longLongValue]);
-        if(target) { var_Create(target,name.UTF8String,type|VLC_VAR_DOINHERIT);
-            if(type==VLC_VAR_STRING) var_SetString(target,name.UTF8String,[value UTF8String]);
-            else if(type==VLC_VAR_FLOAT) var_SetFloat(target,name.UTF8String,[value floatValue]);
-            else if(type==VLC_VAR_BOOL) var_SetBool(target,name.UTF8String,[value boolValue]);
-            else var_SetInteger(target,name.UTF8String,[value longLongValue]); }
+        if(target) WriteTargetOption(target,name.UTF8String,type,value);
     }
 }
 - (BOOL)validateFilters:(NSDictionary *)filters error:(NSError **)error {
@@ -315,8 +360,13 @@ int64_t MXRSubtitleUserMargin(vout_thread_t *vout) {
         NSNumber *userMargin=options[@"sub-margin"]; NSMutableDictionary *voutOptions=[options mutableCopy]; [voutOptions removeObjectForKey:@"sub-margin"];
         for(size_t i=0;i<count;i++) { [self writeOptions:voutOptions target:VLC_OBJECT(vouts[i])]; if(userMargin) [self setUserSubtitleMargin:userMargin.longLongValue onVout:vouts[i]]; if(filters.count) [self writeFilters:filters option:chainOption target:VLC_OBJECT(vouts[i])]; vout_Release(vouts[i]); } free(vouts);
         if([command isEqual:MXRBridgeCommandSetSubtitleStyle]) {
-            if([args[@"sizeMode"] isEqual:@"pixels"]) [self applySubtitleSizePreference];
-            else { int size=[args[@"relativeSize"] intValue]; _relativeSize=size; _pixelScaleApplied=NO; vlc_player_Lock(_player); vlc_player_SetSubtitleTextScale(_player,size?MAX(10,MIN(500,1600/size)):100); vlc_player_Unlock(_player); }
+            BOOL resized;
+            if([args[@"sizeMode"] isEqual:@"pixels"]) resized=[self applySubtitleSizePreference];
+            else {
+                int size=[args[@"relativeSize"] intValue]; unsigned scale=size?MAX(10,MIN(500,1600/size)):100; _relativeSize=size; _pixelScaleApplied=NO;
+                vlc_player_Lock(_player); resized=vlc_player_GetSubtitleTextScale(_player)!=scale; if(resized) vlc_player_SetSubtitleTextScale(_player,scale); vlc_player_Unlock(_player);
+            }
+            if(resized) _redrawOnResume=RedrawVisibleSubtitles(_player);
         }
     }
     return YES;

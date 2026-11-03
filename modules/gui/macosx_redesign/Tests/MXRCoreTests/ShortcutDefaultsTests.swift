@@ -5,17 +5,13 @@ import XCTest
 /// D026: app shortcuts follow Mac conventions and never collide with VLC's macOS engine hotkeys,
 /// the standard menu keys or each other (M1, SD-08, CMP-14, WT-12).
 final class ShortcutDefaultsTests: XCTestCase {
-    private static let repositoryRoot = URL(fileURLWithPath: #filePath)
-        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent() // macosx_redesign
-        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent() // repository root
-
     private var appDefaults: [(id: String, binding: KeyBinding)] {
         ShortcutAction.appActions.flatMap { action in action.hotkeys.map { (action.id, $0) } }
     }
 
     /// VLC's `#if defined(__APPLE__)` hotkey defaults in `src/libvlc-module.c`.
     private func engineAppleDefaults() throws -> [String: KeyBinding] {
-        let source = try String(contentsOf: Self.repositoryRoot.appendingPathComponent("src/libvlc-module.c"), encoding: .utf8)
+        let source = try String(contentsOf: TestSourceFiles.repository("src/libvlc-module.c"), encoding: .utf8)
         let start = try XCTUnwrap(source.range(of: "#if defined(__APPLE__)\n/* Don't use the following combo's */"))
         let end = try XCTUnwrap(source.range(of: "#else /* Non Mac OS X */", range: start.upperBound..<source.endIndex))
         let block = source[start.upperBound..<end.lowerBound]
@@ -71,7 +67,7 @@ final class ShortcutDefaultsTests: XCTestCase {
 
     /// The VLC module declares the same defaults as options (`macosx-redesign-key-<id>`).
     func testModuleOptionDefaultsMatchAppActions() throws {
-        let url = Self.repositoryRoot.appendingPathComponent("modules/gui/macosx_redesign/module/MXRAppOptions.inc")
+        let url = TestSourceFiles.package("module/MXRAppOptions.inc")
         let text = try String(contentsOf: url, encoding: .utf8)
         let pattern = try NSRegularExpression(pattern: #"add_string\("macosx-redesign-key-(app-[a-z-]+)", "((?:[^"\\]|\\.)*)""#)
         var options: [String: String] = [:]

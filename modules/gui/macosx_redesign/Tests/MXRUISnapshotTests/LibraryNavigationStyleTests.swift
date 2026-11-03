@@ -162,8 +162,7 @@ final class LibraryMinimumColumnTests: XCTestCase {
     }
 
     func testEveryLocationDrawsInsideTheMinimumColumn() async throws {
-        _ = NSApplication.shared
-        NSApp.accessibilitySetValue(true, forAttribute: NSAccessibility.Attribute(rawValue: "AXManualAccessibility"))
+        enableAccessibilityTree(enhanced: false)
         // The 480 pt minimum content width (MXRAppController) without a right panel.
         let width = PlayerGeometry.compactLibraryWidth(windowWidth: Theme.Metric.Window.player.width / 4, panelOpen: false)
         XCTAssertGreaterThanOrEqual(width, LibraryGeometry.compactMinimumWidth)

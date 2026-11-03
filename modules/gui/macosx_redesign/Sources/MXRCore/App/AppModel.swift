@@ -58,7 +58,9 @@ public final class AppModel {
         chapters = ChaptersModel(backend: backends.player)
         bookmarks = BookmarksModel(player: backends.player, library: backends.library, clock: clock)
         library = LibraryModel(backend: backends.library)
-        settings = SettingsModel(backend: backends.settings, catalog: settingsCatalog)
+        // The update rows read Sparkle, not VLC (D059); every other row goes to the engine.
+        settings = SettingsModel(backend: backends.updater.map { UpdaterSettingsBackend(base: backends.settings, updater: $0) } ?? backends.settings,
+                                 catalog: settingsCatalog)
         shortcuts = ShortcutsModel(backend: backends.shortcuts)
         output = OutputModel(backend: backends.output)
         renderers = RendererModel(backend: backends.renderers)
@@ -79,10 +81,13 @@ public final class AppModel {
 
     // MARK: Opening media
 
-    /// Plays files or URLs now (Open File(s), Finder, Dock drop), replacing the queue.
+    /// Plays files or URLs now (Open File(s), Finder, Dock drop), replacing the queue. Subtitle
+    /// files alone are added to the media that plays instead (see ``areSubtitleFiles(_:)``).
     public func open(urls: [URL]) {
         guard !urls.isEmpty else { return }
-        if opensPaused {
+        if Self.areSubtitleFiles(urls) {
+            addSubtitleFiles(urls)
+        } else if opensPaused {
             do { try open(urls: urls, inputOptions: []) }
             catch { dialogs.presentError(error, title: "Unable to open media") }
         } else {
@@ -94,6 +99,25 @@ public final class AppModel {
     public func open(urls: [URL], inputOptions: [String]) throws {
         guard let backend = backends.queue as? any QueueInputOptionsBackend else { throw BackendOperationError.unsupported("Opening media with input options") }
         try backend.playNow(urls.map(MediaItem.init(url:)), startAt: 0, inputOptions: inputOptions, startPaused: opensPaused)
+    }
+
+    /// True when every URL is a subtitle file (``SubtitleMatcher/subtitleExtensions``, any case):
+    /// ``open(urls:)`` adds them as subtitle tracks rather than playing them. A set with a video
+    /// in it opens as usual.
+    public static func areSubtitleFiles(_ urls: [URL]) -> Bool {
+        !urls.isEmpty && urls.allSatisfy { SubtitleMatcher.subtitleExtensions.contains($0.pathExtension.lowercased()) }
+    }
+
+    /// Dropped or opened subtitle files: external tracks of the media that plays, the last one
+    /// selected. With nothing loaded there is no video to add them to, so nothing starts.
+    private func addSubtitleFiles(_ urls: [URL]) {
+        guard !player.isStopped else {
+            dialogs.presentError(BackendOperationError.invalidInput("Open a video first, then add the subtitle file to it."),
+                                 title: "No Subtitles Were Added")
+            return
+        }
+        urls.forEach { tracks.addExternalTrack(url: $0, kind: .subtitle) }
+        osd.showNotice(urls.count == 1 ? "Subtitles: \(urls[0].lastPathComponent)" : "Subtitles: \(urls.count) files")
     }
 
     private var opensPaused: Bool { !(backends.settings.value(for: "playlist-autostart")?.boolValue ?? true) }
@@ -218,8 +242,9 @@ public final class AppModel {
     // MARK: Commands
 
     /// Whether a command can run now (menu item enabled state). `source` is ``CommandSource/ui`` for
-    /// the window, its keys and the menu bar: behind a dialog or file panel only Quit (and Keyboard
-    /// Shortcuts from Settings) run, so a command never replaces a draft (D040). System transport
+    /// the window, its keys and the menu bar: behind a dialog or file panel only Quit runs, so a
+    /// command never replaces a draft (D040). Settings' own Edit Keyboard Shortcuts button swaps the
+    /// dialogs itself (``showKeyboardShortcuts()``); the menu bar stays grey behind Settings. System transport
     /// (media keys, Control Center, the status item) keeps working behind a dialog (D026).
     public func canPerform(_ command: AppCommand) -> Bool { canPerform(command, from: .ui) }
 
@@ -231,7 +256,6 @@ public final class AppModel {
         guard !blocksCustomization(command) else { return false }
         if isBehindModal {
             if command == .quit { return true }
-            if command == .keyboardShortcuts, case .settings = interface.sheet { return true }
             guard source == .system, command.isTransport else { return false }
             // With nothing loaded, Play would open the library behind the dialog.
             if command == .playPause { return player.media != nil || !queue.items.isEmpty }
@@ -278,11 +302,7 @@ public final class AppModel {
             let text = NSPasteboard.general.string(forType: .string) ?? ""
             let urls = text.split(whereSeparator: \.isNewline).compactMap { URL(string: String($0).trimmingCharacters(in: .whitespaces)) }
             if !urls.isEmpty { open(urls: urls) }
-        case .keyboardShortcuts:
-            if case .settings = interface.sheet {
-                interface.sheet = .settings(categoryID: settings.selectedCategoryID)
-            }
-            interface.present(.keyboardShortcuts)
+        case .keyboardShortcuts: showKeyboardShortcuts()
         case .customizePlayer: beginCustomizing()
         case .manageProfiles: interface.present(.profiles)
         case .settings: interface.present(.settings(categoryID: nil))
@@ -317,7 +337,9 @@ public final class AppModel {
         case .toggleSettingsSidebar: interface.toggleSidebar()
         case .showSubtitleTracks: interface.toggleTracks(.subtitles)
         case .showAudioTracks: interface.toggleTracks(.audio)
-        case .addBookmark: bookmarks.addAtCurrentTime()
+        case .addBookmark:
+            // Live run 2: "Bookmark added" only once the library stored it; a failure shows why.
+            bookmarks.addAtCurrentTime { [weak self] added in if added { self?.osd.actionPerformed("Bookmark added") } }
         case .addSubtitleFile: interface.request(.addSubtitleFile)
         case .favoriteCurrent:
             if let media = player.media { library.setFavorite(!media.isFavorite, for: [media]) }
@@ -337,7 +359,6 @@ public final class AppModel {
         case .toggleQueue: interface.isQueuePanelOpen ? "Show Queue" : "Hide Queue"
         case .toggleLibrary: interface.library == .compact ? "Show Library" : "Hide Library"
         case .toggleSettingsSidebar: interface.isSidebarOpen ? "Show Sidebar" : "Hide Sidebar"
-        case .addBookmark: "Bookmark added"
         default: command.title
         }
     }
@@ -375,6 +396,7 @@ public final class AppModel {
             }
         }
         queue.errorHandler = { [weak self] error in self?.dialogs.presentError(error, title: "Unable to play media") }
+        bookmarks.errorHandler = { [weak self] error in self?.dialogs.presentError(error, title: "Unable to add bookmark") }
         player.endOfItemHook = { [weak self] pause in
             self?.queue.setMediaStoppedAction(pause ? .pause : .continue)
         }
@@ -386,7 +408,7 @@ public final class AppModel {
             let runs = self.canPerform(command)
             self.perform(command)
             // D027: from a key, an app action's result pairs with "Pressed <key>" like an engine action's.
-            if keyed, runs { self.osd.actionPerformed(self.keyFeedback(after: command)) }
+            if keyed, runs, command != .addBookmark { self.osd.actionPerformed(self.keyFeedback(after: command)) }
         }
         shortcuts.engineActionOverride = { [weak self] actionID, keyed in
             // VLC's play-pause hotkey only pauses or resumes, so at the end of the media (stopped,
@@ -442,12 +464,31 @@ public final class AppModel {
         }
     }
 
+    /// Opens Keyboard Shortcuts. From Settings (its Edit Keyboard Shortcuts button) it replaces
+    /// Settings and Cancel returns to the same page; every other caller goes through
+    /// ``perform(_:)``, which keeps it off behind any dialog.
+    private func showKeyboardShortcuts() {
+        if case .settings = interface.sheet {
+            interface.sheet = .settings(categoryID: settings.selectedCategoryID)
+        }
+        interface.present(.keyboardShortcuts)
+    }
+
+    /// Sparkle's updater (D059), nil in builds without it: no menu item and no update rows then.
+    public var updater: (any UpdaterBackend)? { backends.updater }
+
+    /// App menu "Check for Updates…" and Settings "Check Now". Sparkle's window shows the result.
+    public func checkForUpdates() {
+        guard let updater = backends.updater, updater.canCheckForUpdates else { return }
+        updater.checkForUpdates()
+    }
+
     private func performSettingsAction(_ action: String) {
         switch action {
         case "clear-history":
             recents.clear()
             backends.library.clearHistory()
-        case "edit-shortcuts": perform(.keyboardShortcuts)
+        case "edit-shortcuts": showKeyboardShortcuts()
         case "reset-shortcuts": shortcuts.resetAll()
         case "reset-picture": videoEffects.update { $0.essential = EssentialVideoFilters() }
         case "open-config-folder":
@@ -459,6 +500,8 @@ public final class AppModel {
             let folder = base.appending(path: "lua/extensions", directoryHint: .isDirectory)
             let ready = (try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])) != nil
             settings.actionMessage = ready && NSWorkspace.shared.open(folder) ? "Extensions folder opened." : "The extensions folder could not be opened."
+        case "check-for-updates":
+            checkForUpdates()
         case "reset-all-settings":
             backends.settings.resetAll()
             settings.saveNow()

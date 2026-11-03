@@ -14,9 +14,7 @@ final class DialogsTests: XCTestCase {
         let selected = try XCTUnwrap(library.mediaItem(id: "ml:wand-s01e05"))
         let filename = try XCTUnwrap(URL(string: selected.mrl)?.lastPathComponent)
         app.presentNewPlaylist(media: Array(repeating: selected, count: 4))
-        _ = NSApplication.shared
-        NSApp.accessibilitySetValue(true, forAttribute: NSAccessibility.Attribute(rawValue: "AXManualAccessibility"))
-        NSApp.accessibilitySetValue(true, forAttribute: NSAccessibility.Attribute(rawValue: "AXEnhancedUserInterface"))
+        enableAccessibilityTree()
         let size = NSSize(width: 713, height: 589)
         // AX traversal and press stay offscreen: do not register this XCTest process as an app.
         let host = NSHostingView(rootView: MXRNewPlaylistView().appModel(app))

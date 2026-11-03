@@ -100,6 +100,10 @@ final class MXRNativePresentations {
         if request == .addSubtitleFile {
             panel.allowedContentTypes = ["srt", "ass", "ssa", "vtt", "sub", "idx"].compactMap { UTType(filenameExtension: $0) }
         }
+        if request == .addLibraryFiles {
+            // Only video and audio join the library (R04): VLC's own extension lists.
+            panel.allowedContentTypes = MediaItem.videoFileExtensions.union(MediaItem.audioFileExtensions).sorted().compactMap { UTType(filenameExtension: $0) }
+        }
         openPanel = panel
         window.makeKeyAndOrderFront(nil)
         panel.beginSheetModal(for: window) { [weak self, weak panel] response in

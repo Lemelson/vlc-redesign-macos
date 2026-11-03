@@ -80,10 +80,13 @@ enum LibraryMenus {
         case .folder:
             let location = app.library.location
             let isFolder: Bool = { if case .folder = location { return true }; return false }()
+            let isPlaylist: Bool = { if case .playlist = location { return true }; return false }()
             return Sections(figma: [
                 // Figma's label; the files join the library (not this folder) and the library then shows them
-                // selected under Videos or Music ▸ Songs (LibraryModel.importFiles).
-                item("Add File", .add, help: "Add files to the library. They appear under Videos or Music.") { app.interface.request(.addLibraryFiles) },
+                // selected under Videos or Music ▸ Songs. In a playlist they also join the playlist
+                // (LibraryModel.importFiles).
+                item("Add File", .add, help: isPlaylist ? "Add files to this playlist and the library."
+                                                        : "Add files to the library. They appear under Videos or Music.") { app.interface.request(.addLibraryFiles) },
                 item("Add Folder", .newFolder) { app.interface.request(.addLibraryFolder) },
                 async("Edit Subtitle Tracks", .subtitles, enabled: isFolder) {
                     app.presentAddSubtitles(media: await app.library.allMedia(at: location), scope: .folder)
@@ -119,7 +122,8 @@ enum LibraryMenus {
                     }
                 },
                 item("Add Subtitle Tracks", .subtitles) { app.presentAddSubtitles(media: [media]) },
-                item("Add Audio Tracks", .audio) { app.presentAddAudioTracks(media: [media]) },
+                // D039: songs take no audio track (as the folder and playlist menus leave them out).
+                item("Add Audio Tracks", .audio, enabled: media.kind != .audio) { app.presentAddAudioTracks(media: [media]) },
                 item("Properties & Metadata", .info) { app.interface.present(.mediaInfo(media)) },
             ]
             if case .playlist = app.library.location, media.playlistOccurrence != nil {
@@ -132,9 +136,18 @@ enum LibraryMenus {
                     catch { sheets?.fail(targets.count > 1 ? "Couldn’t Remove the Items from Playlist" : "Couldn’t Remove from Playlist", error) }
                 })
             }
-            return Sections(figma: figma, extras: [
-                async("Play Next", .next) { await MXRLibraryActions.enqueue(entry, app: app, next: true) },
-            ] + [pin(entry)].compactMap { $0 })
+            var extras = [async("Play Next", .next) { await MXRLibraryActions.enqueue(entry, app: app, next: true) }] + [pin(entry)].compactMap { $0 }
+            // Not inside a playlist: there the row's removal is Remove from Playlist, and the file would stay listed.
+            let inPlaylist: Bool = { if case .playlist = app.library.location { return true }; return false }()
+            if media.isImported, !inPlaylist {
+                // Files added with Add File leave the library the way a root folder does: after a confirmation.
+                let selected = app.library.selection.contains(entry.id) ? app.library.selectedMedia.filter(\.isImported) : []
+                let targets = selected.isEmpty ? [media] : selected
+                extras.append(item(targets.count > 1 ? "Remove \(targets.count) Files from Library…" : "Remove from Library…", .remove) {
+                    sheets?.present(.removeImports(targets))
+                })
+            }
+            return Sections(figma: figma, extras: extras)
         case .playlist(let playlist):
             let entry = LibraryEntry.playlist(playlist)
             return Sections(figma: [

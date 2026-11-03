@@ -51,6 +51,27 @@ struct MXRBarButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View { configuration.label }
 }
 
+/// Icon Wrapper 177:99 for bar buttons that are not `MXRPlayerIconButton` (the speed, HDR and zoom
+/// menus and the compact `⋯`): the `iconHover` tile behind the label while the pointer is over it, so
+/// every bar control shows the same hover and none shows a press highlight (D056).
+struct MXRBarHoverTile: ViewModifier {
+    @State private var hovered: Bool
+    @Environment(\.isEnabled) private var enabled
+    @Environment(\.mxrLayoutEditing) private var editing
+
+    /// - Parameter hovered: the state before the pointer moves (offscreen tests render it hovered).
+    init(hovered: Bool = false) { _hovered = State(initialValue: hovered) }
+
+    func body(content: Content) -> some View {
+        let box = Theme.Metric.ControlBar.iconButton
+        content
+            .frame(minHeight: box.height)
+            .background(Theme.Color.iconHover.opacity(hovered && enabled && !editing ? 1 : 0),
+                        in: .rect(cornerRadius: box.radius ?? Theme.Radius.md))
+            .onHover { hovered = $0 }
+    }
+}
+
 /// Figma Icon Wrapper 177:99: hover adds only the white 6 % radius-4 tile (`iconHover`); the glyph
 /// keeps FG/A2 in every state except active.
 struct MXRPlayerIconTile: View {
@@ -86,9 +107,10 @@ public struct MXRPlayPauseButton: View {
     }
 }
 
-/// The play/pause tile (848:1711 / 848:1713). Figma draws no hover for it; the bar's hover rule
-/// (Icon Wrapper 177:99, D048) applies to both states: the `iconHover` tile over the fill, so Play
-/// stays Accent/Main under the pointer (a ~6 % change, spec-part1 §0 "about 8 %") and Pause reacts too.
+/// The play/pause tile (848:1711 / 848:1713). Figma draws no hover for it (D056). An accent-filled
+/// button under the pointer is Accent/DIm, as the video's hovered accent button reads (14m09.8,
+/// spec-part2 "hover is Accent/Dim"), so Play darkens; Pause sits on an FG/A3 surface and takes the
+/// bar's hover rule (Icon Wrapper 177:99, D048), the `iconHover` tile over its fill.
 struct MXRPlayPauseTile: View {
     let playing: Bool
     let hovered: Bool
@@ -113,8 +135,12 @@ struct MXRPlayPauseTile: View {
                    height: box.height)
             .background {
                 ZStack {
-                    shape.fill(playing ? AnyShapeStyle(PauseButtonFill()) : AnyShapeStyle(Theme.Color.accentMain))
-                    shape.fill(Theme.Color.iconHover).opacity(hovered ? 1 : 0)
+                    if playing {
+                        shape.fill(PauseButtonFill())
+                        shape.fill(Theme.Color.iconHover).opacity(hovered ? 1 : 0)
+                    } else {
+                        shape.fill(hovered ? Theme.Color.accentDim : Theme.Color.accentMain)
+                    }
                 }
             }
             .frame(width: box.width)

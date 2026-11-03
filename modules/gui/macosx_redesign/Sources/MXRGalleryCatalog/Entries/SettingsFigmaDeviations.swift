@@ -9,7 +9,8 @@ extension SettingsGallery {
     private static func generalRows(interfaceLanguage: String, checkForUpdates: String, dialogsToggle: String) -> [FigmaDeviation] {
         [
             .removed(interfaceLanguage, decision: "D035", "Interface language (no localizations yet)"),
-            .removed(checkForUpdates, decision: "D035", "Check for updates (no updater)"),
+            // Figma's toggle is drawn as is; the two rows below it are the updater's own controls.
+            .inserted(after: checkForUpdates, height: 84, decision: "D059", "Install updates automatically and Check for updates (Check Now)"),
             .differs(node: dialogsToggle, decision: "D035", "Show confirmation and error dialogs defaults ON (VLC's behaviour)"),
         ]
     }
@@ -54,6 +55,7 @@ extension SettingsGallery {
             .removed("6571:16301", decision: "D035", "Process priority"),
             .removed("6571:16312", decision: "D035", "Rescan plugins (the plugins are sealed in the app bundle)"),
             .removed("6571:16357", decision: "D035", "Encoder (obsolete in VLC 4)"),
+            .differs(node: "6571:16408", decision: "D050", "Clock jitter's ⓘ follows its label; Figma's label alone is a fixed 104 pt box"),
         ],
         "recording": [
             .removed("6571:16501", gap: 20, decision: "D035", "Cast discovery and quality (the Casting section)"),

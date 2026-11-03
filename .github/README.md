@@ -4,9 +4,21 @@
 
 ![VLC Redesign for macOS in dark mode: the library panel, the player and the queue in one window.](media/hero-player-library-queue-dark.jpg)
 
-macOS 14+ · Apple Silicon · Swift 6 · SwiftUI + AppKit · VLC 4 engine untouched · GPL-2.0-or-later · design CC BY 4.0
+macOS 14+ · Apple silicon and Intel · Swift 6 · SwiftUI + AppKit · VLC 4 engine untouched · GPL-2.0-or-later · design CC BY 4.0
 
 > Unofficial. Not affiliated with or endorsed by VideoLAN or Juxtopposed.
+
+## Download
+
+**[Download VLC Redesign 1.0.0](https://github.com/Lemelson/vlc-redesign-macos/releases/latest)** (`VLC-Redesign-1.0.0-universal.dmg`): one file for any Mac with macOS 14 Sonoma or later, Apple silicon or Intel.
+
+<img src="media/install-dmg.jpg" width="560" alt="The disk image: drag VLC Redesign onto Applications">
+
+1. Open the DMG and drag **VLC Redesign** onto **Applications**.
+2. Open VLC Redesign from Applications.
+3. The first time, macOS asks you to confirm the app, because this build is not notarized by Apple. On macOS 14, Control-click the app and choose **Open**. On macOS 15 and later, open it once, then click **Open Anyway** in **System Settings > Privacy & Security**. The [release notes](https://github.com/Lemelson/vlc-redesign-macos/releases/latest) have the details.
+
+Updates come through the app itself (Sparkle, the updater the official VLC for Mac uses): on its second launch it asks whether to check for them automatically, and you can change that in Settings > General. It is a separate app and leaves an installed VLC untouched. The *Source code* files on the release page are the source, not the app.
 
 ## What this is
 
@@ -68,7 +80,7 @@ Figma on the left, the app on the right, same size, same Figma node.
 <sub>Library grid view.</sub>
 
 ![Global Settings: Figma (left) and the app (right).](media/compare-settings.jpg)
-<sub>Global Settings. The app leaves out the interface-language and auto-update rows on purpose; the reasons are in the [decisions log](../redesign/docs/DECISIONS.md).</sub>
+<sub>Global Settings, before 1.0. The app leaves out the interface-language row on purpose (no translations yet); the update rows came back in 1.0 with the updater. The reasons are in the [decisions log](../redesign/docs/DECISIONS.md).</sub>
 
 ## Highlights
 
@@ -101,11 +113,11 @@ Figma on the left, the app on the right, same size, same Figma node.
 
 Some limits come from the engine: no reverse playback, HDR offers Auto only, and OpenSubtitles needs your own API key.
 
-## Try it
+## Build from source
 
 It installs as a **separate app, `/Applications/VLC Redesign.app`**, next to the official VLC. The installer never touches `/Applications/VLC.app`.
 
-**You need:** an Apple Silicon Mac, Xcode 27 with the command-line tools (run `sudo xcodebuild -license accept` and `xcodebuild -runFirstLaunch` once), git, curl and python3. The build needs network access to artifacts.videolan.org, downloads.videolan.org, www.lua.org and github.com, and at least 6 GB of free disk space. The stock baseline alone takes about 30 minutes the first time; the redesign build comes after it. Do not point `VLC_PATH` at a Homebrew folder.
+**You need:** an Apple silicon Mac, Xcode 27 with the command-line tools (run `sudo xcodebuild -license accept` and `xcodebuild -runFirstLaunch` once), git, curl and python3. The build needs network access to artifacts.videolan.org, downloads.videolan.org, www.lua.org and github.com, and at least 6 GB of free disk space. The stock baseline alone takes about 30 minutes the first time; the redesign build comes after it. Do not point `VLC_PATH` at a Homebrew folder.
 
 ```sh
 # 1. Clone, and add upstream VLC as "upstream"
@@ -132,7 +144,7 @@ rm -rf VLC.app   # the stock build also makes a VLC.app; you don't need it
 "$SRC/modules/gui/macosx_redesign/tools/install-app.sh" ../redesign-build
 ```
 
-`install-app.sh` builds the bundle and checks a staged copy: its identity, that the stock interface is absent, a fresh `plugins.dat`, and `codesign --verify --deep --strict`. Then it swaps the copy into place, with rollback if anything fails. The app is ad-hoc signed and not notarized yet, so Gatekeeper may ask you to confirm the first launch.
+`install-app.sh` builds the bundle and checks a staged copy: its identity, that the stock interface is absent, a fresh `plugins.dat`, and `codesign --verify --deep --strict`. Then it swaps the copy into place, with rollback if anything fails. The app is ad-hoc signed and not notarized, so Gatekeeper may ask you to confirm the first launch. The release DMG (one universal app for Apple silicon and Intel) is made with the recipe in [`BUILD.md`](../redesign/docs/BUILD.md#release-recipe-universal-dmg-without-a-developer-id).
 
 **Tests** (from the same folder as the steps above): `make -C ../redesign-build/modules check-macosx-redesign`. After installing, `make -C ../redesign-build/modules check-macosx-redesign-app MXR_SMOKE_MEDIA=<a media file>` starts the installed app, plays the file and quits.
 
@@ -148,30 +160,27 @@ The full guide, with sanity checks and troubleshooting, is in [`redesign/docs/BU
 
 ## Status
 
-**Verified**
-- 561 of 561 Swift tests pass, none skipped, in two consecutive runs.
-- 10 of 10 native suites pass against the real engine: contracts, schema, fixtures, library, audio, media, extensions, subtitle runtime, build runtime and headless regressions.
-- In the latest Figma-parity review, judges ran 167 checks: 115 match, 33 have minor differences, 1 has a major difference (the mini player in Light), and 18 were not checked.
-- All 72 screens in the master list (S01–S72, from the video and the Figma file) are implemented. Of the 119 gallery entries, `mxr-snapshot check --all` passes 26, flags 70 for review and fails 23. Eleven of the failures are crop artefacts at the edges of the onboarding frames.
-- Agents drove the installed app on a real Mac for live acceptance. Some groups of that run are still outstanding (see below).
+**Release 1.0.0** (November 2026): one universal DMG for macOS 14+ with built-in updates. See the [release notes](https://github.com/Lemelson/vlc-redesign-macos/releases/latest).
 
-**Known issues.** These were found in live acceptance; a fix wave for them is in progress:
-- Two crashes: a fast Brightness drag in the Essential card, and playing an http:// item from its card.
-- Repeat does not loop a single item. Arrow keys don't move the library selection.
-- Convert's "Replace" does nothing. HTTP streams are not paced to real time.
-- Side panels close without a fade. The 480×270 minimum window size is not enforced.
-- Dragging a library row onto the queue may replace the queue (seen with synthetic input; not yet confirmed by hand).
+**Verified for 1.0.0**
+- 655 of 655 Swift tests pass, none skipped.
+- 9 of 9 native suites pass against the real engine: contracts, schema, library, headless regressions, audio, media, extensions, subtitle runtime and build runtime.
+- The installed universal app passes the smoke test on Apple silicon (native interface, hardware video, audio, clean exit). The Intel half was run under Rosetta on the same Mac without the window: it plays video through VideoToolbox and loads the interface. A real Intel Mac has not been tried yet.
+- Updates were tested end to end with a local test feed: 1.0.0 finds 1.0.1, checks its signature, installs it in place and relaunches; a file that does not match the signature is refused.
+- Two independent reviews: one read the code of the last fix waves, the packaging and the updater; one checked the release itself (the DMG, the update feed and its signature, this page).
+- In the last Figma-parity review, judges ran 167 checks: 115 match, 33 have minor differences, 1 has a major difference (the mini player in Light, since fixed in code), and 18 were not checked. All 72 screens in the master list (S01–S72) are implemented.
 
-**Also open**
-- Bookmarks fail silently for media outside the library.
-- The full-library mini player doesn't scale down, and its controls are hard to see in the Light theme.
-- Convert and Stream jobs mark the source as played.
-- Live acceptance is partial: three test groups never ran. Hardware checks (camera, audio CD, Chromecast, SMB) and VoiceOver and Full Keyboard Access need a person.
-- Seeking while paused hits an upstream engine bug. The app works around it; the full fix is an optional patch series (see below).
+**Fixed since the first publication**: both crashes from live acceptance (a fast Brightness drag, playing an http:// item from its card), Repeat One, arrow keys in the library, Convert's Replace, real-time pacing of HTTP streams, side panels closing without a fade, the 480×270 minimum window size, dropping library rows onto the queue, bookmarks for media outside the library, and the mini player in Light. Some of these are verified by tests only and still need a check by hand. Convert and Stream no longer mark the source as played; that fix is in the code but has no test yet.
+
+**Known limitations**
+- Not notarized by Apple: macOS asks you to confirm the app on its first launch.
+- Live acceptance after the last fix wave has not been redone. Hardware checks (camera, audio CD, Chromecast, SMB) and VoiceOver and Full Keyboard Access need a person.
+- Seeking while paused hits an upstream engine bug. The app works around it (a new subtitle size on pause shows after Play); the full fix is an optional patch series (see below).
+- "Play locally while streaming" opens the source a second time, so the local copy and the stream are not in sync.
+- A background update check that falls while a video plays is skipped until Sparkle's next scheduled check; Check Now always works.
 - Picture in Picture uses a private system route that a future macOS may break.
-- There is no signed, notarized binary yet. The name and bundle ID are provisional.
 
-The full record is in [`redesign/design/SCREENS.md`](../redesign/design/SCREENS.md), [`redesign/docs/DECISIONS.md`](../redesign/docs/DECISIONS.md) (57 decisions) and [`redesign/research/final-polish/results/`](../redesign/research/final-polish/results/).
+The full record is in [`redesign/design/SCREENS.md`](../redesign/design/SCREENS.md), [`redesign/docs/DECISIONS.md`](../redesign/docs/DECISIONS.md) (59 decisions) and [`redesign/research/final-polish/results/`](../redesign/research/final-polish/results/).
 
 ## How it was made
 
@@ -184,15 +193,15 @@ One person, Lemelson, built it in about two days, working with many AI agents in
 - **Figma-parity judges.** Each screen is rendered offscreen and compared with its Figma node, pixel by pixel, by `mxr-snapshot`.
 - **Engine tests and live acceptance.** Native test suites run against the real VLC engine. Acceptance agents drove the installed app on a real Mac.
 
-About 41k lines of Swift sources, 12k lines of Swift tests, and 9k lines of Objective-C bridge.
+About 43k lines of Swift sources, 14k lines of Swift tests, and 10k lines of Objective-C bridge.
 
 ## For VLC developers
 
 The redesign is designed to be easy to review, and easy to drop.
 
 - **Module.** `modules/gui/macosx_redesign/` builds `libmacosx_redesign_plugin.dylib` (`--intf macosx_redesign`, shortcut `mxr`). `--enable-macosx-redesign` selects it, and the build disables the stock macOS interface.
-- **Layers.** `module/` is about 9.2k lines of Objective-C that call VLC's C APIs and own the callbacks and locks, behind Foundation-only headers. `MXRVLCBackend` turns snapshots and commands into `@MainActor @Observable` models. `MXRDesign` and `MXRUI` depend only on protocols, so the same UI also runs on a mock backend. The video is VLC's own vout in a layer-backed `NSView`.
-- **Upstream touch points.** Outside the redesign folders, three build files change: `configure.ac` (+1 line), `modules/gui/Makefile.am` (+1) and `extras/package/macosx/package.mak` (+5). Three files are new: `AGENTS.md`, `CLAUDE.md` and this `.github/README.md`.
+- **Layers.** `module/` is about 9.7k lines of Objective-C that call VLC's C APIs and own the callbacks and locks, behind Foundation-only headers. `MXRVLCBackend` turns snapshots and commands into `@MainActor @Observable` models. `MXRDesign` and `MXRUI` depend only on protocols, so the same UI also runs on a mock backend. The video is VLC's own vout in a layer-backed `NSView`.
+- **Upstream touch points.** Outside the redesign folders, three build files change: `configure.ac` (+1 line), `modules/gui/Makefile.am` (+1) and `extras/package/macosx/package.mak` (+5). New files outside them: `AGENTS.md`, `CLAUDE.md` and `.github/` (this README and its images).
 - **Engine patches.** The paused-seek fix is a five-patch series in [`redesign/patches/engine`](../redesign/patches/engine/README.md). It is never applied to the tree. Setting `MXR_ENGINE_PATCHES=1` applies it to a separate copy only.
 - **How to review.** Start with [`ARCHITECTURE.md`](../redesign/docs/ARCHITECTURE.md), then `git diff 4ca4eb0c3e -- configure.ac modules/gui/Makefile.am extras/package/macosx`.
 
@@ -216,7 +225,8 @@ Start with [`AGENTS.md`](../AGENTS.md), a map of the repo for people and AI agen
 
 - **VLC:** [VideoLAN](https://www.videolan.org) and the VLC contributors. GPL-2.0-or-later ([`COPYING`](../COPYING)); libVLC is LGPL-2.1-or-later ([`COPYING.LIB`](../COPYING.LIB)).
 - **Design and mock artwork:** [Juxtopposed](https://www.youtube.com/@juxtopposed) ([video](https://www.youtube.com/watch?v=ERFeOgqk324)), from the [VLC redesign Figma file](https://www.figma.com/community/file/1691465999134370980), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The video itself is not part of this repository.
-- **Font:** [Inter](https://github.com/rsms/inter) by The Inter Project Authors, SIL Open Font License 1.1 (bundled with its license).
+- **Fonts:** [Inter](https://github.com/rsms/inter) by The Inter Project Authors and [DM Mono](https://github.com/googlefonts/dm-mono) by Colophon Foundry, SIL Open Font License 1.1 (bundled with their licenses).
+- **Updater:** [Sparkle](https://sparkle-project.org) (MIT), from VLC's contribs.
 - **This fork:** GPL-2.0-or-later.
 
 "VLC" and the cone logo are trademarks of VideoLAN. If you like VLC, consider [donating to VideoLAN](https://www.videolan.org/contribute.html). Upstream VLC's own README is [`README.md`](../README.md).

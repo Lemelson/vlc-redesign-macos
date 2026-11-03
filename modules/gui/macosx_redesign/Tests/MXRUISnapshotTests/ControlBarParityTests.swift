@@ -194,28 +194,47 @@ import XCTest
 
     // MARK: Play/pause hover and disabled controls
 
-    /// Figma has no hover for the play tile; the bar's rule (Icon Wrapper 177:99) puts the `iconHover`
-    /// tile over its fill, so Play stays Accent/Main under the pointer (no switch to Accent/DIm) and
-    /// Pause reacts as well.
-    func testPlayAndPauseHoverAddTheBarHoverTile() {
+    /// Figma has no hover for the play tile (D056). Play, an accent-filled button, is Accent/DIm under
+    /// the pointer as the video's hovered accent button reads (14m09.8); Pause, on its FG/A3 surface,
+    /// takes the bar's `iconHover` tile (Icon Wrapper 177:99).
+    func testPlayHoverIsAccentDimAndPauseHoverAddsTheBarHoverTile() {
         func fill(playing: Bool, hovered: Bool) -> (r: Int, g: Int, b: Int, a: Int) {
             let box = playing ? Theme.Metric.ControlBar.pauseButton : Theme.Metric.ControlBar.playButton
             let pixels = render(MXRPlayPauseTile(playing: playing, hovered: hovered, editing: false),
                                 size: box.size, background: .black)
             return pixels.rgba(4 * 2, pixels.height / 2) // inside the tile, left of the glyph
         }
+        func byte(_ c: Double) -> Int { Int((c * 255).rounded()) }
         let accent = Theme.Color.accentMain.value(scheme: .dark, accent: .orange)
-        let hover = Theme.Color.iconHover.value(scheme: .dark, accent: .orange)
-        func over(_ c: Double, _ h: Double) -> Int { Int(((c * (1 - hover.alpha) + h * hover.alpha) * 255).rounded()) }
+        let dim = Theme.Color.accentDim.value(scheme: .dark, accent: .orange)
         let play = fill(playing: false, hovered: true)
-        XCTAssertEqual(play.r, over(accent.red, hover.red), accuracy: 2, "hovered Play is Accent/Main under the hover tile")
-        XCTAssertEqual(play.g, over(accent.green, hover.green), accuracy: 2)
-        XCTAssertEqual(play.b, over(accent.blue, hover.blue), accuracy: 2)
+        XCTAssertEqual(play.r, byte(dim.red), accuracy: 2, "hovered Play is Accent/DIm")
+        XCTAssertEqual(play.g, byte(dim.green), accuracy: 2)
+        XCTAssertEqual(play.b, byte(dim.blue), accuracy: 2)
         let idle = fill(playing: false, hovered: false)
-        XCTAssertEqual(idle.r, Int((accent.red * 255).rounded()), accuracy: 2)
+        XCTAssertEqual(idle.r, byte(accent.red), accuracy: 2, "Play at rest is Accent/Main")
+        XCTAssertEqual(idle.g, byte(accent.green), accuracy: 2)
         let pause = fill(playing: true, hovered: false), pauseHover = fill(playing: true, hovered: true)
         XCTAssertGreaterThan(pauseHover.r + pauseHover.g + pauseHover.b, pause.r + pause.g + pause.b + 6,
                              "Pause shows the same hover as every other bar control")
+    }
+
+    /// The speed, HDR and zoom menus and the compact `⋯` hover like every bar icon (Icon Wrapper 177:99):
+    /// the `iconHover` tile appears behind the glyph, which keeps FG/A2; they had no hover at all.
+    func testBarMenuButtonsShowTheBarHoverTile() {
+        let box = Theme.Metric.ControlBar.iconButton
+        func glyph(hovered: Bool) -> Pixels {
+            render(MXRIcon(.more).frame(width: box.width).modifier(MXRBarHoverTile(hovered: hovered)),
+                   size: box.size, background: .black)
+        }
+        let idle = glyph(hovered: false), hover = glyph(hovered: true)
+        let spot = (x: 3 * 2, y: hover.height / 2)
+        XCTAssertEqual(idle.rgba(spot.x, spot.y).r, 0)
+        XCTAssertGreaterThan(hover.rgba(spot.x, spot.y).r, 8, "the hover tile appears")
+        XCTAssertEqual(brightestGlyph(hover), brightestGlyph(idle), accuracy: 3, "hover keeps the glyph colour")
+        let disabled = render(MXRIcon(.more).frame(width: box.width).modifier(MXRBarHoverTile(hovered: true)).disabled(true),
+                              size: box.size, background: .black)
+        XCTAssertEqual(disabled.rgba(spot.x, spot.y).r, 0, "an unavailable menu shows no hover")
     }
 
     /// An unavailable bar control draws at Figma's disabled opacity (Player-6 I856:2587;848:1877, 30 %).

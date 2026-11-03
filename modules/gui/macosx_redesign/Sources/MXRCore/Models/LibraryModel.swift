@@ -344,9 +344,32 @@ public final class LibraryModel {
     /// "Add File": imports the files, then shows where they are listed (Videos, or Music ▸ Songs) with
     /// them selected, so the user sees what was added wherever the menu was opened.
     /// A mixed import shows the videos and says where the songs went (``importNotice``).
+    /// Opened from a playlist's ⋯ menu, the files also join that playlist, which stays shown
+    /// (live run 2: they only joined the library).
+    /// Files that are not video or audio, or that the library cannot read, are left out; the others
+    /// still join, and one ``LibraryImportError`` then names the ones left out.
     public func importFiles(urls: [URL]) async throws {
-        let imported = try await backend.importFiles(urls: urls)
+        let media = urls.filter(MediaItem.isLibraryMedia)
+        var imported: [MediaItem] = []
+        var refused = Set(urls.filter { !MediaItem.isLibraryMedia($0) }.map(\.absoluteString))
+        if !media.isEmpty {
+            do { imported = try await backend.importFiles(urls: media) }
+            catch let error as LibraryImportError {
+                imported = error.imported
+                refused.formUnion(error.rejected.map(\.absoluteString))
+            }
+        }
+        let rejected = urls.filter { refused.contains($0.absoluteString) }
+        try await showImported(imported)
+        if !rejected.isEmpty { throw LibraryImportError(imported: imported, rejected: rejected) }
+    }
+    private func showImported(_ imported: [MediaItem]) async throws {
         guard !imported.isEmpty else { return }
+        if case .playlist(let playlistID) = location {
+            try await backend.appendToPlaylist(id: playlistID, mediaIDs: imported.map(\.id))
+            reload(keepingLoaded: true)
+            return
+        }
         let songs = imported.filter { $0.kind == .audio }
         let root: LibraryLocation = songs.count == imported.count ? .songs : .videos
         pendingSelection = (root, Set(imported.filter { (root == .songs) == ($0.kind == .audio) }.map { LibraryEntry.media($0).id }))
@@ -391,6 +414,13 @@ public final class LibraryModel {
     public func addFolder(_ url: URL) { backend.addFolder(url: url) }
     /// "Remove from Library" for an indexed root folder (entry point).
     public func removeFolder(_ folder: LibraryFolder) { backend.removeFolder(id: folder.id) }
+    /// "Remove from Library" for files added with Add File (``MediaItem/isImported``); the files stay on disk.
+    public func removeImported(_ media: [MediaItem]) async throws {
+        let ids = media.filter(\.isImported).map(\.id)
+        guard !ids.isEmpty else { return }
+        try await backend.removeImportedMedia(ids: ids)
+        selection.subtract(media.map { LibraryEntry.media($0).id })
+    }
     /// Folder menu "Resync" (nil = everything).
     public func rescan(_ folderID: String? = nil) { backend.rescan(folderID: folderID) }
 

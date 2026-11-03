@@ -45,8 +45,8 @@ final class SubtitleCueAdapterTests: XCTestCase {
     var arguments: [String: Any] = [:]
     var loggedErrors: [Error] = []
     var reportedErrors: [Error] = []
-    func snapshot(for service: MXRBridgeService) -> [String: Any] { let service = service.rawValue; return [:] }
-    func perform(_ command: MXRBridgeCommand, service: MXRBridgeService, arguments: [String: Any]) throws { let command = command.rawValue; let service = service.rawValue;}
+    func snapshot(for service: MXRBridgeService) -> [String: Any] { return [:] }
+    func perform(_ command: MXRBridgeCommand, service: MXRBridgeService, arguments: [String: Any]) throws {}
     func request(_ request: MXRBridgeRequest, service: MXRBridgeService, arguments: [String: Any]) async throws -> [String: Any] { let request = request.rawValue; let service = service.rawValue;
         operation = request; self.service = service; self.arguments = arguments
         if let failure { throw failure }

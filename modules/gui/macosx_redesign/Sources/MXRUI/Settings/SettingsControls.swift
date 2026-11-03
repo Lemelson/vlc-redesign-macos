@@ -300,18 +300,24 @@ struct SettingsSlider: View {
         return steps >= 2 && steps <= 20 ? Int(steps) + 1 : 11
     }
 
-    /// Where scale label `index` of `count` is drawn under a track `width` wide with `ticks` ticks:
-    /// the tick at the same fraction of the scale (ticks run between the track's 2 pt insets and are
-    /// 2 pt wide), centred. The end labels start and end there when every tick has a label
-    /// (3062:13083, the speed scale), and at the track's edges when only some do (3176:16483).
+    /// Where scale label `index` of `count` is drawn under a track `width` wide with `ticks` ticks.
+    /// Figma spreads equal label boxes space-between across the track. With a label on every tick
+    /// (3062:13083, the speed scale) the boxes are 26 pt between two 18 pt end frames, the end
+    /// labels starting and ending 2 pt in, at the first and last tick; with labels on some ticks
+    /// (3176:16483) the end labels sit on the track's edges and the others under their ticks.
     static func labelAnchor(index: Int, count: Int, width: CGFloat, ticks: Int) -> (x: CGFloat, alignment: Alignment) {
-        let inset = Theme.Spacing.gap2, tick = Theme.Spacing.gap2
         guard count > 1 else { return (width / 2, .center) }
-        let edge = count == ticks ? inset : 0
-        if index == 0 { return (edge, .leading) }
-        if index == count - 1 { return (width - edge, .trailing) }
-        let fraction = CGFloat(index) / CGFloat(count - 1)
-        return (inset + tick / 2 + fraction * (width - inset * 2 - tick), .center)
+        let everyTick = count == ticks, inset = Theme.Spacing.gap2
+        if index == 0 { return (everyTick ? inset : 0, .leading) }
+        if index == count - 1 { return (width - (everyTick ? inset : 0), .trailing) }
+        guard everyTick else {
+            // Under the tick at the same fraction of the scale (ticks are 2 pt wide, 2 pt in).
+            let tick = Theme.Spacing.gap2, fraction = CGFloat(index) / CGFloat(count - 1)
+            return (inset + tick / 2 + fraction * (width - inset * 2 - tick), .center)
+        }
+        let end = Theme.Metric.SettingsDetail.scaleEndLabelWidth, box = Theme.Metric.SettingsDetail.scaleLabelWidth
+        let gap = (width - end * 2 - box * CGFloat(count - 2)) / CGFloat(count - 1)
+        return (end + gap * CGFloat(index) + box * (CGFloat(index) - 0.5), .center)
     }
 
     var body: some View {
@@ -337,15 +343,19 @@ struct SettingsSlider: View {
                         }
                     }.padding(.horizontal, Theme.Spacing.gap2)
                     .blendMode(colorScheme == .dark ? .screen : .normal)
+                    // Centred on the fill's end (3056:10875: fill 2…18, thumb 14…22), not on the
+                    // fraction of the whole width, which put it 2 pt short at low values.
                     RoundedRectangle(cornerRadius: Theme.Radius.md).fill(Theme.Color.accentDim)
                         .frame(width: Theme.Spacing.gap8, height: Theme.Metric.iconSize)
-                        .offset(x: min(max(0, width * fraction - Theme.Spacing.gap4), width - Theme.Spacing.gap8))
+                        .offset(x: min(max(0, Theme.Spacing.gap2 + (width - Theme.Spacing.gap4) * fraction - Theme.Spacing.gap4),
+                                       width - Theme.Spacing.gap8))
                 }
                 // 3056:10875 keeps its 24-point thumb centered over a 16-point range.
                 .frame(height: compactScale ? Theme.Spacing.gap16 : Theme.Metric.iconSize)
                 .contentShape(Rectangle())
                 .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
-                    let raw = range.lowerBound + min(max(drag.location.x / width, 0), 1) * (range.upperBound - range.lowerBound)
+                    let along = (drag.location.x - Theme.Spacing.gap2) / max(1, width - Theme.Spacing.gap4)
+                    let raw = range.lowerBound + min(max(along, 0), 1) * (range.upperBound - range.lowerBound)
                     value = min(max((raw / step).rounded() * step, range.lowerBound), range.upperBound)
                 })
             }.frame(height: compactScale ? Theme.Spacing.gap16 : Theme.Metric.iconSize)
@@ -383,6 +393,8 @@ struct SettingsSlider: View {
 struct SettingsSecondaryValueEditor: View {
     let row: SettingsRow
     let isSelected: Bool
+    /// Under its label in a narrow column: as wide as the choice instead of its design width.
+    var fillsWidth = false
     @Environment(SettingsModel.self) private var settings
     @Environment(\.settingsControlWidth) private var controlWidth
     @State private var text = ""
@@ -404,10 +416,11 @@ struct SettingsSecondaryValueEditor: View {
             }
         }
         .mxrTextStyle(Theme.Font.body).foregroundStyle(Theme.Color.fgA2)
-        .opacity(isSelected ? 1 : 0.4) // I3176:16574;3176:16554 disabled value opacity.
+        .opacity(isSelected ? 1 : Theme.Metric.SettingsDetail.unselectedValueOpacity)
         .padding(.leading, Theme.Spacing.gap12).padding(.trailing, Theme.Metric.SettingsDetail.inputTrailingPadding)
-        .frame(width: controlWidth >= Theme.Metric.SettingsDetail.controlWidth ? Theme.Metric.SettingsDetail.secondaryInputWidth : controlWidth / 2,
+        .frame(width: fillsWidth ? nil : controlWidth >= Theme.Metric.SettingsDetail.controlWidth ? Theme.Metric.SettingsDetail.secondaryInputWidth : controlWidth / 2,
                height: Theme.Metric.SettingsDetail.controlInnerHeight)
+        .frame(maxWidth: fillsWidth ? .infinity : nil)
         .background(Theme.Color.bgB2, in: .rect(cornerRadius: Theme.Radius.xs))
         .overlay { if invalid { RoundedRectangle(cornerRadius: Theme.Radius.xs).strokeBorder(Theme.Color.accentMain) } }
         .onAppear { reload() }

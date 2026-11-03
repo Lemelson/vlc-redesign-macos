@@ -79,18 +79,11 @@ int main(void)
         require([options containsObject:@"sout-keep"] && [options containsObject:@"no-sout-audio"] &&
                 [options containsObject:@"sout-video"] && [options containsObject:@"no-sout-spu"],
                 @"each new streaming input receives all current inclusion and keep values");
-        NSString *displayChain = [options.firstObject substringFromIndex:6]; // sout=#
-        name = NULL; chain = NULL;
-        next = config_ChainCreate(&name, &chain, displayChain.UTF8String);
-        require(name && strcmp(name, "duplicate") == 0, @"explicit chain duplicates local playback");
-        BOOL foundDisplay = NO, foundStream = NO;
-        for (config_chain_t *option = chain; option; option = option->p_next) {
-            if (strcmp(option->psz_name, "dst") != 0 || !option->psz_value) continue;
-            foundDisplay |= strcmp(option->psz_value, "display") == 0;
-            foundStream |= strcmp(option->psz_value, [definition[@"sout"] UTF8String] + 1) == 0;
-        }
-        require(foundDisplay && foundStream, @"VLC parser preserves both original stream and display branches");
-        free(name); free(next); config_ChainDestroy(chain);
+        /* Live run 2: a duplicate chain is never paced (duplicate answers no IS_SYNCHRONOUS), so
+         * the local copy plays on a player of its own and the stream keeps its own chain. */
+        require([options.firstObject isEqual:[@"sout=" stringByAppendingString:definition[@"sout"]]],
+                @"playing locally never wraps the stream in a duplicate chain");
+        require(MXROutputPlaysLocally(definition, flags), @"a stream with Play locally on plays its source locally");
         NSMutableDictionary *changed = [flags mutableCopy];
         changed[@"sout-audio"] = @YES; changed[@"sout-video"] = @NO; changed[@"sout-spu"] = @YES;
         changed[@"sout-display"] = @NO; changed[@"sout-keep"] = @NO;
@@ -98,12 +91,14 @@ int main(void)
         require([options containsObject:@"sout-audio"] && [options containsObject:@"no-sout-video"] &&
                 [options containsObject:@"sout-spu"] && [options containsObject:@"no-sout-keep"],
                 @"next job replaces every cached inclusion flag");
-        require([options.firstObject isEqual:[@"sout=" stringByAppendingString:definition[@"sout"]]], @"display off restores original output chain");
+        require([options.firstObject isEqual:[@"sout=" stringByAppendingString:definition[@"sout"]]], @"display off keeps the original output chain");
+        require(!MXROutputPlaysLocally(definition, changed), @"Play locally off plays nothing locally");
         NSDictionary *conversion = MXRCreateOutputDefinition(args, &error);
         options = MXROutputOptions(conversion, flags);
         require([options containsObject:@"no-sout-keep"], @"conversion closes its file even when streaming keep is enabled");
         require([options.firstObject isEqual:[@"sout=" stringByAppendingString:conversion[@"sout"]]],
                 @"conversion never duplicates to a local display: it runs faster than real time and must not claim a video window");
+        require(!MXROutputPlaysLocally(conversion, flags), @"a conversion never plays a local copy");
         for (NSString *profile in @[@"audio", @"aac", @"wav"]) {
             NSMutableDictionary *audioArgs = [args mutableCopy]; audioArgs[@"profile"] = profile;
             NSArray *audioOptions = MXROutputOptions(MXRCreateOutputDefinition(audioArgs, &error), changed);

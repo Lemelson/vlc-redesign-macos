@@ -13,8 +13,8 @@
     // ───────────────────────────── App ─────────────────────────────
     { id: "general", group: "app", sidebar: "General", title: "Global Settings", icon: "preferences",
       sections: [
-        // D035: "Interface language" (no localizations yet) and "Check for updates" (no updater in
-        // this build) are not shown; every row here changes something.
+        // D035: "Interface language" (no localizations yet) is not shown; every row here changes something.
+        // The update rows read Sparkle, not VLC (D059), and are hidden in a build without it.
         { title: "Appearance", rows: [
           { option: "macosx-redesign-theme", control: "segmented", label: "Theme", apply: { live: "instance" },
             choices: [["dark", "Dark"], ["light", "Light"], ["system", "System"]], mock: "dark" },
@@ -26,6 +26,16 @@
           { option: "macosx-redesign-show-errors", control: "toggle", label: "Show confirmation and error dialogs",
             info: "When a file can't be opened, VLC explains why in a dialog. Off shows the problem briefly over the video instead. Questions that need an answer, such as passwords, always appear.",
             mock: true },
+          // 3046:9901. Sparkle asks on the second launch; until then this reads off.
+          { option: "updater-automatic-checks", control: "toggle", label: "Check for updates automatically",
+            info: "Once a day VLC Redesign asks github.com whether a newer version is out. Only the app's version and your macOS version are sent, nothing about what you play.",
+            mock: false },
+          { option: "updater-automatic-installs", control: "toggle", label: "Install updates automatically",
+            info: "Downloads a new version in the background and installs it the next time you quit VLC Redesign.",
+            enabledWhen: { option: "updater-automatic-checks", equals: true }, mock: false },
+          { action: "check-for-updates", control: "button", label: "Check for updates", buttonTitle: "Check Now",
+            info: "Asks github.com now and shows what it found. Also in the app menu.",
+            enabledWhen: { option: "updater-can-check", equals: true } },
         ]},
         { title: "Diagnostics", rows: [
           { option: "macosx-redesign-developer-mode", control: "toggle", label: "Developer mode",

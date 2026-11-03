@@ -8,6 +8,7 @@
 #include <vlc_input_item.h>
 #include <vlc_playlist.h>
 #include <vlc_aout.h>
+#include <vlc_vout.h>
 #include <vlc_configuration.h>
 #include <vlc_modules.h>
 #include <stdatomic.h>
@@ -102,7 +103,7 @@ int main(int argc,const char *argv[])
         /* Settings > General > Additional command line options (macosx-redesign-extra-args): split
          * like a shell, applied like src/config/cmdline.c as variables the engine's objects inherit. */
         require([MXRSplitCommandLineOptions(@"--a 'b c'  \"d\\\"e\" f\\ g") isEqual:(@[@"--a",@"b c",@"d\"e",@"f g"])],@"options split like a shell");
-        NSUInteger applied = MXRApplyCommandLineOptions(VLC_OBJECT(vlc),
+        NSUInteger applied = MXRApplyInterfaceCommandLineOptions(VLC_OBJECT(intf),
             @"--sub-margin 12 --rate=1.5 --video-title-show --no-osd --rt-priority --definitely-not-an-option=1 positional --input-title-format");
         require(applied == 4,[NSString stringWithFormat:@"four real options applied, obsolete/unknown/positional/valueless skipped (%lu)",(unsigned long)applied]);
         require(var_InheritInteger(intf,"sub-margin") == 12,@"an integer option reaches objects created by the engine");
@@ -111,6 +112,21 @@ int main(int argc,const char *argv[])
         require(!var_InheritBool(intf,"osd"),@"--no-<name> switches a boolean off");
         require(var_Type(vlc,"rt-priority") == 0,@"an obsolete option creates nothing");
         require(config_GetInt("sub-margin") == 0,@"the options never write the saved configuration");
+        {
+            /* Live run 2: the player and its dummy vout exist before the interface opens and keep
+             * their own copies, and the main vout is created under the dummy (src/input/resource.c). */
+            vout_thread_t *dummy = vlc_player_vout_Hold(player);
+            require(dummy != NULL,@"the player has its dummy vout");
+            require(var_GetInteger(dummy,"sub-margin") == 12,@"the dummy vout's own sub-margin follows the option");
+            vlc_object_t *video = vlc_object_create(VLC_OBJECT(dummy),sizeof(vlc_object_t));
+            var_Create(video,"sub-margin",VLC_VAR_INTEGER | VLC_VAR_DOINHERIT);
+            require(var_GetInteger(video,"sub-margin") == 12,@"a vout created under the dummy vout inherits the option");
+            vlc_object_delete(video);
+            vlc_object_t *playerObject = vlc_object_parent(VLC_OBJECT(dummy));
+            require(var_GetFloat(playerObject,"rate") == 1.5f,@"the player's own rate follows the option");
+            var_SetInteger(dummy,"sub-margin",0); var_SetFloat(playerObject,"rate",1.f);
+            vout_Release(dummy);
+        }
         var_Destroy(vlc,"sub-margin"); var_Destroy(vlc,"rate"); var_Destroy(vlc,"osd");
         var_SetBool(vlc,"video-title-show",false);
         MXRAudioPreferenceServices *helper = [[MXRAudioPreferenceServices alloc] initWithPlayer:player];

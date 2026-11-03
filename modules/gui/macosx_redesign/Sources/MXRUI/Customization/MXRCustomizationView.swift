@@ -1,3 +1,4 @@
+import AppKit
 import MXRCore
 import MXRDesign
 import SwiftUI
@@ -25,7 +26,8 @@ public struct MXRCustomizationView: View {
         .clipShape(RoundedRectangle(cornerRadius: Theme.Metric.Customization.panel.radius ?? Theme.Radius.lg))
         .customizationShadow(Theme.Effect.menuShadow,
                              cornerRadius: Theme.Metric.Customization.panel.radius ?? Theme.Radius.lg)
-        .onExitCommand { app.endCustomizing(save: false) }
+        // Edit ▸ Undo / ⌘Z steps back through this session's edits; Cancel still discards them all.
+        .background { MXRWindowUndoManagerReader { app.layouts.undoManager = $0 } }
     }
 
     private var header: some View {
@@ -74,6 +76,7 @@ public struct MXRCustomizationView: View {
                                 .mxrKeyboardFocusable(cornerRadius: Theme.Radius.lg) // no system focus ring (C1, D028)
                                 .accessibilityElement(children: .ignore)
                                 .accessibilityLabel(control.title)
+                                .accessibilityAddTraits(.isButton)
                                 .accessibilityHint("Drag to a player bar to add this control")
                                 .accessibilityAction(named: "Add to control bar") {
                                     _ = MXRLayoutDragPayload.tile(control).place(in: .bottom(0),
@@ -86,22 +89,12 @@ public struct MXRCustomizationView: View {
             .frame(width: gridWidth, alignment: .leading)
             .padding(Theme.Metric.Customization.body.padding.edgeInsets)
         }
-        // SD-M2: when the tiles do not fit, the palette still uses all its height, the last visible
-        // row fades out at the bottom edge (no hard-cut labels, no dead band) and the scroll
-        // indicator stays visible, so it is clear that more tiles follow.
+        // When the tiles do not fit (a compact window), the palette uses all its height and ends at a
+        // divider above the footer, like every scrolling dialog body (S65, D035): the row cut there
+        // reads as scrolled content, and the scroll indicator stays visible.
         .scrollIndicators(overflows ? .visible : .automatic)
         .scrollIndicatorsFlash(onAppear: overflows)
-        .mask {
-            if overflows {
-                VStack(spacing: 0) {
-                    Rectangle()
-                    LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
-                        .frame(height: MXRCustomizationPalette.fadeHeight(available: height))
-                }
-            } else {
-                Rectangle()
-            }
-        }
+        .overlay(alignment: .bottom) { if overflows { DialogDivider() } }
         .frame(height: height)
         .contentShape(Rectangle())
         .overlay {
@@ -118,7 +111,10 @@ public struct MXRCustomizationView: View {
 
     private var footer: some View {
         HStack {
+            // Esc is Cancel, as in every macOS dialog with a Cancel button. A key equivalent reaches
+            // the button wherever the keyboard focus is, so Esc works right after the dialog opens.
             MXRCustomizationButton(title: "Cancel") { app.endCustomizing(save: false) }
+                .keyboardShortcut(.cancelAction)
             Spacer()
             MXRCustomizationButton(title: "Save", primary: true, enabled: app.layouts.hasChanges) {
                 app.endCustomizing(save: true)
@@ -185,6 +181,26 @@ struct MXRCustomizationButton: View {
         // Figma's disabled Save uses luminosity blend + 50% opacity (6587:18977).
         let luminosity = value.red * 0.3 + value.green * 0.59 + value.blue * 0.11
         return Theme.RGBA(red: luminosity, green: luminosity, blue: luminosity).color
+    }
+}
+
+/// Hands the hosting window's undo manager (the one Edit ▸ Undo talks to) to the layout store.
+private struct MXRWindowUndoManagerReader: NSViewRepresentable {
+    let onChange: @MainActor (UndoManager?) -> Void
+
+    func makeNSView(context: Context) -> ReaderView { ReaderView() }
+    func updateNSView(_ view: ReaderView, context: Context) {
+        view.onChange = onChange
+        onChange(view.window?.undoManager)
+    }
+    static func dismantleNSView(_ view: ReaderView, coordinator: ()) { view.onChange?(nil) }
+
+    final class ReaderView: NSView {
+        var onChange: (@MainActor (UndoManager?) -> Void)?
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            onChange?(window?.undoManager)
+        }
     }
 }
 

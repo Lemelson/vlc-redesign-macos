@@ -85,29 +85,36 @@ struct MXRDialogFrame: View {
     let container: CGSize
     let engineVersion: String?
 
-    /// The space a dialog may take, centred in the window. Vertically it keeps the top bar's height
-    /// clear at both edges, so a shrunk dialog never runs under the traffic lights (S48 compact) and
-    /// stays centred; a design-size dialog in a 1080 window (867 pt Settings) is unaffected.
+    /// Kept clear above a dialog: the top bar plus a panel inset, the gap the floating panels keep
+    /// below the top bar (S48 compact; live run 2 measured Settings, Convert and Properties flush
+    /// against the top bar in a 960×540 window). Below it a panel inset is enough: a dialog may
+    /// cover the control bar, as it does at its design size.
+    static var topClearance: CGFloat { Theme.Metric.topBarHeight + Theme.Metric.panelInset }
+
+    /// The space a dialog may take. A design-size dialog in a 1080 window (867 pt Settings) is
+    /// unaffected.
     static func available(in container: CGSize) -> CGSize {
         CGSize(width: max(0, container.width - Theme.Metric.panelInset * 2),
-               height: max(0, container.height - max(Theme.Metric.topBarHeight, Theme.Metric.panelInset) * 2))
+               height: max(0, container.height - topClearance - Theme.Metric.panelInset))
     }
 
     var body: some View {
         let available = Self.available(in: container)
         let preferred = sheet.preferredSize
-        Group {
-            if sheet == .profiles {
-                content.frame(maxHeight: min(preferred.height, available.height))
-            } else if case .mediaInfo = sheet {
-                // As tall as its content (S65), at most the window.
-                content.frame(width: min(preferred.width, available.width)).frame(maxHeight: min(preferred.height, available.height))
-            } else {
-                content.frame(width: min(preferred.width, available.width), height: min(preferred.height, available.height))
+        DialogPlacement(topClearance: Self.topClearance) {
+            Group {
+                if sheet == .profiles {
+                    content.frame(maxHeight: min(preferred.height, available.height))
+                } else if case .mediaInfo = sheet {
+                    // As tall as its content (S65), at most the window.
+                    content.frame(width: min(preferred.width, available.width)).frame(maxHeight: min(preferred.height, available.height))
+                } else {
+                    content.frame(width: min(preferred.width, available.width), height: min(preferred.height, available.height))
+                }
             }
+            .mxrShadow(Theme.Effect.menuShadow)
+            .background { DialogKeyLoopGuard() }
         }
-        .mxrShadow(Theme.Effect.menuShadow)
-        .background { DialogKeyLoopGuard() }
     }
 
     @ViewBuilder
@@ -126,6 +133,25 @@ struct MXRDialogFrame: View {
         case .onboarding: MXROnboardingView()
         case .profiles: MXRProfilesView()
         case .mediaInfo(let media): MXRMediaInfoView(media: media)
+        }
+    }
+}
+
+/// Centres the dialog in the window, then moves it down just enough to keep `topClearance` above
+/// it: a short window never puts a dialog against or under the top bar, and every dialog that
+/// fits stays exactly centred, as in the video.
+struct DialogPlacement: Layout {
+    let topClearance: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        proposal.replacingUnspecifiedDimensions()
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        for subview in subviews {
+            let size = subview.sizeThatFits(ProposedViewSize(bounds.size))
+            let top = max(bounds.midY - size.height / 2, bounds.minY + topClearance)
+            subview.place(at: CGPoint(x: bounds.midX, y: top), anchor: .top, proposal: ProposedViewSize(size))
         }
     }
 }

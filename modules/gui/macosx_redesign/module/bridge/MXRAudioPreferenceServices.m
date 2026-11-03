@@ -8,6 +8,7 @@
 #include <vlc_charset.h>
 #include <vlc_modules.h>
 #include <vlc_aout.h>
+#include <vlc_vout.h>
 #include "../../../../../src/audio_output/aout_internal.h"
 #include "../../../../../src/config/configuration.h"
 #include "../../../../audio_filter/equalizer_presets.h"
@@ -390,7 +391,50 @@ NSArray<NSString *> *MXRSplitCommandLineOptions(NSString *text)
     return words;
 }
 
+/* Sets one option on `object`. With `create`, the variable is created first (the instance);
+ * without, only an object that already holds its own copy is changed. */
+static void SetCommandLineOption(vlc_object_t *object, const char *name, const module_config_t *item,
+                                 NSString *value, BOOL on, BOOL create)
+{
+    int type = CONFIG_CLASS(item->i_type);
+    int varType = type == CONFIG_ITEM_STRING ? VLC_VAR_STRING : type == CONFIG_ITEM_INTEGER ? VLC_VAR_INTEGER
+                : type == CONFIG_ITEM_FLOAT ? VLC_VAR_FLOAT : VLC_VAR_BOOL;
+    if (!create && (var_Type(object, name) & VLC_VAR_CLASS) != varType) return;
+    switch (type) {
+        case CONFIG_ITEM_STRING:
+            if (create) var_Create(object, name, VLC_VAR_STRING);
+            var_SetString(object, name, value.UTF8String);
+            break;
+        case CONFIG_ITEM_INTEGER:
+            if (create) {
+                var_Create(object, name, VLC_VAR_INTEGER);
+                var_Change(object, name, VLC_VAR_SETMINMAX,
+                           (vlc_value_t){ .i_int = item->min.i }, (vlc_value_t){ .i_int = item->max.i });
+            }
+            var_SetInteger(object, name, strtoll(value.UTF8String, NULL, 0));
+            break;
+        case CONFIG_ITEM_FLOAT:
+            if (create) {
+                var_Create(object, name, VLC_VAR_FLOAT);
+                var_Change(object, name, VLC_VAR_SETMINMAX,
+                           (vlc_value_t){ .f_float = item->min.f }, (vlc_value_t){ .f_float = item->max.f });
+            }
+            var_SetFloat(object, name, vlc_atof_c(value.UTF8String));
+            break;
+        case CONFIG_ITEM_BOOL:
+            if (create) var_Create(object, name, VLC_VAR_BOOL);
+            var_SetBool(object, name, on);
+            break;
+    }
+}
+
 NSUInteger MXRApplyCommandLineOptions(vlc_object_t *object, NSString *text)
+{
+    return MXRApplyCommandLineOptionsWithEarlierObjects(object, NULL, 0, text);
+}
+
+NSUInteger MXRApplyCommandLineOptionsWithEarlierObjects(vlc_object_t *object, vlc_object_t *const *earlier,
+                                                        size_t earlierCount, NSString *text)
 {
     NSArray<NSString *> *words = MXRSplitCommandLineOptions(text ?: @"");
     NSUInteger applied = 0;
@@ -429,39 +473,44 @@ NSUInteger MXRApplyCommandLineOptions(vlc_object_t *object, NSString *text)
             }
             value = words[++index];
         }
+        if (type != CONFIG_ITEM_STRING && type != CONFIG_ITEM_INTEGER && type != CONFIG_ITEM_FLOAT
+            && type != CONFIG_ITEM_BOOL)
+            continue;
+        BOOL on = !negated;
+        if (type == CONFIG_ITEM_BOOL && value != nil)
+            on = !([value isEqualToString:@"0"] || [value caseInsensitiveCompare:@"false"] == NSOrderedSame
+                   || [value caseInsensitiveCompare:@"no"] == NSOrderedSame);
         const char *psz_name = name.UTF8String;
-        switch (type) {
-            case CONFIG_ITEM_STRING:
-                var_Create(object, psz_name, VLC_VAR_STRING);
-                var_SetString(object, psz_name, value.UTF8String);
-                break;
-            case CONFIG_ITEM_INTEGER:
-                var_Create(object, psz_name, VLC_VAR_INTEGER);
-                var_Change(object, psz_name, VLC_VAR_SETMINMAX,
-                           (vlc_value_t){ .i_int = item->min.i }, (vlc_value_t){ .i_int = item->max.i });
-                var_SetInteger(object, psz_name, strtoll(value.UTF8String, NULL, 0));
-                break;
-            case CONFIG_ITEM_FLOAT:
-                var_Create(object, psz_name, VLC_VAR_FLOAT);
-                var_Change(object, psz_name, VLC_VAR_SETMINMAX,
-                           (vlc_value_t){ .f_float = item->min.f }, (vlc_value_t){ .f_float = item->max.f });
-                var_SetFloat(object, psz_name, vlc_atof_c(value.UTF8String));
-                break;
-            case CONFIG_ITEM_BOOL: {
-                BOOL on = !negated;
-                if (value != nil)
-                    on = !([value isEqualToString:@"0"] || [value caseInsensitiveCompare:@"false"] == NSOrderedSame
-                           || [value caseInsensitiveCompare:@"no"] == NSOrderedSame);
-                var_Create(object, psz_name, VLC_VAR_BOOL);
-                var_SetBool(object, psz_name, on);
-                break;
-            }
-            default:
-                continue;
-        }
+        SetCommandLineOption(object, psz_name, item, value, on, YES);
+        /* The player and its dummy vout and aout exist before the interface opens, and each
+         * inherited its own copy of some options then (the main vout is created under the dummy
+         * vout, src/input/resource.c). Their copies shadow the instance's, so they get the value
+         * too (live run 2: --sub-margin had no visible effect). */
+        for (size_t i = 0; i < earlierCount; ++i)
+            if (earlier[i] != NULL) SetCommandLineOption(earlier[i], psz_name, item, value, on, NO);
         msg_Dbg(object, "additional option --%s applied", psz_name);
         ++applied;
     }
+    return applied;
+}
+
+NSUInteger MXRApplyInterfaceCommandLineOptions(vlc_object_t *intf, NSString *text)
+{
+    vlc_object_t *instance = VLC_OBJECT(vlc_object_instance(intf));
+    vlc_playlist_t *playlist = vlc_intf_GetMainPlaylist((intf_thread_t *)intf);
+    vlc_player_t *player = playlist ? vlc_playlist_GetPlayer(playlist) : NULL;
+    vout_thread_t *vout = player ? vlc_player_vout_Hold(player) : NULL;
+    audio_output_t *aout = player ? vlc_player_aout_Hold(player) : NULL;
+    /* The aout, the dummy vout, then the dummy's parents up to the instance: the player. */
+    vlc_object_t *earlier[8] = { aout ? VLC_OBJECT(aout) : NULL };
+    size_t count = 1;
+    for (vlc_object_t *object = vout ? VLC_OBJECT(vout) : NULL;
+         object != NULL && object != instance && count < ARRAY_SIZE(earlier);
+         object = vlc_object_parent(object))
+        earlier[count++] = object;
+    NSUInteger applied = MXRApplyCommandLineOptionsWithEarlierObjects(instance, earlier, count, text);
+    if (vout) vout_Release(vout);
+    if (aout) aout_Release(aout);
     return applied;
 }
 
@@ -470,7 +519,7 @@ void MXRApplyStartupCommandLineOptions(vlc_object_t *intf)
     char *saved = config_GetPsz("macosx-redesign-extra-args");
     if (saved != NULL && saved[0] != '\0') {
         NSString *text = [NSString stringWithUTF8String:saved];
-        if (text != nil) MXRApplyCommandLineOptions(VLC_OBJECT(vlc_object_instance(intf)), text);
+        if (text != nil) MXRApplyInterfaceCommandLineOptions(intf, text);
     }
     free(saved);
 }

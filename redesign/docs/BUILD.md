@@ -20,7 +20,8 @@ M="$SRC/modules/gui/macosx_redesign"
 ```
 
 There is exactly one installed copy of the app, `/Applications/VLC Redesign.app`
-(`org.example.vlc-redesign.codex`). Never run or replace `/Applications/VLC.app`, and
+(`io.github.lemelson.vlc-redesign`, D058; `install-app.sh` also replaces an install that still carries the
+pre-1.0 id `org.example.vlc-redesign.codex`). Never run or replace `/Applications/VLC.app`, and
 never leave another VLC bundle (a build-dir `VLC.app`, a stock test clone) behind.
 
 1. **Build and install** (the only way to produce the app), with the app closed:
@@ -314,10 +315,16 @@ curl -sIL "$VLC_PREBUILT_CONTRIBS_URL" | grep -E '^HTTP|content-length'
 mkdir -p "$BUILD" && cd "$BUILD"
 export VLC_FORCE_KERNELVERSION=19
 export VLC_PREBUILT_CONTRIBS_URL=…                       # from §3
-export VLC_CONFIGURE_ARGS="--disable-macosx --disable-ncurses --enable-macosx-redesign"
-# optional: --with-macosx-redesign-bundle-id=<id>   (placeholder default until DECISIONS D010)
+export VLC_CONFIGURE_ARGS="--disable-macosx --disable-ncurses --enable-macosx-redesign \
+  --with-macosx-redesign-bundle-id=io.github.lemelson.vlc-redesign"
 "$SRC/extras/package/macosx/build.sh" -a aarch64 -j 10
 ```
+
+(corrected 2026-11-03 for release 1.0, D058) The bundle id is `io.github.lemelson.vlc-redesign`, configure's
+default; the flag stays in the recipe so the id is visible. `install-app.sh` and `package-dmg.sh` refuse any
+other id (an installed app with the pre-1.0 id `org.example.vlc-redesign.codex` may still be replaced). A
+build configured with the old id must be reconfigured: `rm "$BUILD/Makefile"` and rerun `build.sh` with the
+flag (an incremental rebuild). The Intel build needs one more flag, see §8 "Release recipe".
 
 (corrected 2026-10-14 after build) `--disable-ncurses` is required with the prebuilt contribs (§3, the
 `ncursesw.pc` SDK path). **Stock baseline** (no module; used for the first build and for side-by-side
@@ -531,6 +538,113 @@ Local builds are signed ad hoc by `make VLC.app` (`package.mak:92-93` → `codes
    Never ship VideoLAN's feed or keys (`share/Info.plist.in:60-65`).
 5. The product name and icon need a decision first (D010). GPL obligations: publish the source of the exact build.
 
+### Release recipe (universal DMG without a Developer ID)
+
+Until D012 has a Developer ID, a release is the ad-hoc-signed app in a DMG, as other unofficial players ship.
+One DMG serves Apple silicon and Intel (D058): two engine builds from the same clean checkout, merged.
+The app's version is `modules/gui/macosx_redesign/VERSION` (`app-bundle-hook.sh` writes it to
+`CFBundleShortVersionString`/`CFBundleVersion`; the engine's own version moves to `MXREngineVersion` and About
+shows it as "VLC engine …").
+
+```sh
+export VLC_FORCE_KERNELVERSION=19
+ID=io.github.lemelson.vlc-redesign
+# 1. arm64 (§4)
+mkdir -p "$SRC/../build/codex-arm64" && cd "$SRC/../build/codex-arm64"
+VLC_PREBUILT_CONTRIBS_URL=https://artifacts.videolan.org/vlc/macos-arm64/vlc-contrib-aarch64-apple-darwin19-4ca4eb0c3e3d1181a48f1e216f4324c6e2670ef7.tar.zst VLC_CONFIGURE_ARGS="--disable-macosx --disable-ncurses --enable-macosx-redesign --with-macosx-redesign-bundle-id=$ID"   "$SRC/extras/package/macosx/build.sh" -a aarch64 -j 10
+# 2. x86_64: same recipe, Intel contribs, and an engine deployment target of 11.0 (see below)
+mkdir -p "$SRC/../build/codex-x86_64" && cd "$SRC/../build/codex-x86_64"
+VLC_PREBUILT_CONTRIBS_URL=https://artifacts.videolan.org/vlc/macos-x86_64/vlc-contrib-x86_64-apple-darwin19-4ca4eb0c3e3d1181a48f1e216f4324c6e2670ef7.tar.zst VLC_CONFIGURE_ARGS="--disable-macosx --disable-ncurses --enable-macosx-redesign --with-macosx-redesign-bundle-id=$ID --with-macosx-version-min=11.0"   "$SRC/extras/package/macosx/build.sh" -a x86_64 -j 10
+# 3. merge: lipo every Mach-O pair, re-sign ad hoc, verify (writes <out>/VLC Redesign.app)
+python3 "$M/tools/make-universal.py" ../codex-arm64/VLC.app VLC.app "$SRC/../build/universal"   --cachegen "$SRC/../build/codex-x86_64/bin/vlc-cache-gen"
+# 4. install that app the safe way (a copy; the source app stays), then 5. the DMG
+rm -rf "$SRC/../build/codex-arm64/VLC.app" "$SRC/../build/codex-x86_64/VLC.app"   # no stray VLC bundles (AGENTS.md)
+"$M/tools/install-app.sh" --app "$SRC/../build/universal/VLC Redesign.app"
+"$M/tools/package-dmg.sh" "$SRC/../build/release"   # → VLC-Redesign-<version>-universal.dmg + .sha256
+```
+
+- `build.sh` ends with `make VLC.app`, so both build dirs hold a `VLC.app` (`build.sh` does not delete it);
+  delete both after step 3. The x86_64 build is a cross build (Rosetta is needed only to run its
+  `vlc-cache-gen`; an arm64 `bin/vlc-cache-gen` works too, plugins.dat has the same layout).
+- `--with-macosx-version-min=11.0` on Intel [verified 2026-11-03]: with Xcode 27's SDK, x86_64 code that links
+  CoreMedia for macOS < 10.15 gets a dependency on `@rpath/libswiftCoreMedia.dylib` (the toolchain's
+  back-deployment copy, which the app does not ship). With `build.sh`'s default 10.13, avcodec, swscale,
+  postproc, soxr, chromaprint, cvpx and both VideoToolbox plugins then fail to load on Intel. arm64 is not
+  affected (its minimum is already 11.0). Later `--with-macosx-version-min` wins over `build.sh`'s, and the
+  module's Swift code always targets 14.0. `make-universal.py` refuses any slice that links `@rpath/libswift*`.
+- `make-universal.py` requires the same file set and identical non-code files in both apps, with two listed
+  exceptions: plugins built for one architecture only (`libdeinterlace_aarch64/sve`, `libdeinterlace_x86`,
+  `libi420_rgb_sse2`; SIMD variants of portable plugins) are left out, because the other architecture would
+  try to load them and log "incompatible architecture" on every launch, and files VideoLAN's per-architecture contrib builders package
+  differently (Sparkle.framework resources, libbluray `.jar`s, the skins2 `.vlt`) are taken from arm64. Then it
+  signs in `codesign.sh`'s order through `finalize-app.py` (fresh `plugins.dat`), and checks `lipo -archs`,
+  `finalize-app.py --verify-only` and `codesign --verify --deep --strict`.
+- Intel slice without an Intel Mac (no GUI, private `HOME` so no user data is touched):
+  `HOME=$(mktemp -d) arch -x86_64 "…/VLC Redesign.app/Contents/MacOS/VLC" -I dummy --ignore-config
+  --no-media-library --vout dummy --aout dummy --play-and-exit --stop-time 3 -vv clip.mp4`.
+- `package-dmg.sh` never rebuilds or re-signs. It verifies the app (identity, redesign plugin,
+  `finalize-app.py --verify-only`), names the DMG after its version and architectures, and lays out the
+  volume: the app, an `Applications` link, `Read Me First.txt` (`tools/dmg-first-launch.txt`: unofficial,
+  install, first launch on macOS 14 and on 15+, source commit), `.background/background.tiff` (1x + 2x),
+  `.VolumeIcon.icns` (the app icon, with the custom-icon flag on the volume) and `.DS_Store`. The Finder window
+  (640×480 content, no toolbar or sidebar, 96 pt icons: app left, Applications right on one light card,
+  Read Me First.txt with a "First launch?" hint on a second card) is the checked-in template
+  `Resources/dmg/DS_Store`, so no Finder automation runs at release time. It builds a read-write image
+  (`hdiutil create` retried up to 5 times on "Resource busy"), sets the volume flags, converts it to UDZO, then
+  mounts the result read-only and verifies the app and the layout inside again.
+- The window's design: `Resources/dmg/layout.json` (sizes, positions, texts, token names).
+  `swift tools/gen-dmg-background.swift` redraws `background.png`/`background@2x.png` from it and the design
+  tokens; `tools/gen-dmg-layout.py` rewrites `DS_Store` (it mounts a scratch volume named "VLC Redesign" for the
+  picture's alias and bookmark, so `/Volumes/VLC Redesign` must be free) and `--check` compares the template
+  with `layout.json` (run by `package-dmg.sh` and the tests), including that every item and its label lie
+  inside a card. Change layout.json, run both, commit all four.
+- Finder draws icon labels in dark text on a picture background, in Dark appearance too (seen 2026-11-03,
+  macOS 27): every item must sit on a light card. Window bounds in the `.DS_Store` count from the bottom left
+  of the screen and include the title bar (`titleBarHeight`).
+- Check the window only with a mount that stays off the owner's screen (`hdiutil attach -nobrowse`); for the
+  one real screenshot, `open` the DMG, capture the window (`screencapture -o -l <id>`), detach at once.
+- After the DMG: the updater's tool writes `appcast.xml` from it; `package-dmg.sh` keeps Sparkle and the
+  `SU*` Info.plist keys as the app carries them.
+- It refuses a checkout with uncommitted changes, because the DMG names `HEAD` as the source of the build
+  (`MXR_DMG_ALLOW_DIRTY=1` only for local test images). Build public releases from the `publish` worktree,
+  whose commits exist on GitHub, and attach the DMG to a release on the tag of that commit.
+- First launch of an unnotarized app on macOS 15 and later: Control-click → Open no longer bypasses
+  Gatekeeper. Users click Done, then System Settings → Privacy & Security → Open Anyway, or run
+  `xattr -dr com.apple.quarantine "/Applications/VLC Redesign.app"`.
+- The bundle id is settled (D058): settings, the library and profiles live under it, so changing it again
+  would lose every user's data.
+- Tests (part of `check-macosx-redesign`): `tools/test-package-dmg.py` builds real images from a fake bundle;
+  `tools/test-make-universal.py` merges tiny real arm64/x86_64 bundles; `tools/test-install-app.py` covers
+  `--app` and the pre-1.0 id.
+
+### Publishing an update (Sparkle, D059)
+
+Every release from 1.0.0 on carries Sparkle with our feed (`Resources/update-feed.json` →
+`SUFeedURL`/`SUPublicEDKey`). The app reads `releases/latest/download/appcast.xml`, so a release is
+shipped to users the moment a non-prerelease GitHub release carries both files:
+
+```sh
+"$M/tools/make-appcast.py" "$DMG" --version <x.y.z> \
+    --key "$SRC/../build/publish-tools/sparkle-ed25519-private.key" --out appcast.xml
+gh release create v<x.y.z> "$DMG" "$DMG.sha256" appcast.xml --repo Lemelson/vlc-redesign-macos ...
+```
+
+- `make-appcast.py` mounts the DMG read-only, refuses an app whose `SUPublicEDKey`/`SUFeedURL` are not ours or a
+  private key that does not match `publicEDKey`, signs the whole DMG with Ed25519 (CryptoKit, compiled from
+  `tools/sparkle-ed25519.swift`; nothing is downloaded) and writes one item: `sparkle:version` =
+  `CFBundleVersion`, length, signature, minimum macOS, and the release page `releases/tag/v<x.y.z>` as release
+  notes (`--notes notes.html` puts short notes inline and the page behind "Version History").
+- Upload the DMG under the exact file name the appcast names; never replace it after publishing (the
+  signature and length are of that file). The tag defaults to `v<version>` (`--tag` otherwise).
+- A prerelease or draft is not "latest", so it ships nothing; keep test builds there.
+- The private key never enters git or a log. Without it no update can be signed and every user would
+  have to download the next version by hand; keep an offline backup. `tools/test-make-appcast.py` uses a
+  throwaway key.
+- Local test: `--download-base http://127.0.0.1:<port>`, serve the folder with `python3 -m http.server`, and
+  point a test app at it with `defaults write <bundle id> SUFeedURL http://127.0.0.1:<port>/appcast.xml`
+  (delete it afterwards with `defaults delete <bundle id> SUFeedURL`).
+- Tests: `tools/test-make-appcast.py` (part of `check-macosx-redesign`) signs with a throwaway key.
+
 ---
 
 ## 9. Gallery app and previews (no VLC build)
@@ -586,7 +700,8 @@ distribution/debugging questions:
 
 ## Installing the app (single copy)
 
-See path 1 at the top: `tools/install-app.sh [build-dir]` is the only supported way. The
+See path 1 at the top: `tools/install-app.sh [build-dir]` is the only supported way;
+`tools/install-app.sh --app <universal app>` installs a prebuilt (universal) app the same way (§8). The
 redesign's icon (flat Figma cone on dark chrome) is
 `modules/gui/macosx_redesign/Resources/AppIcon.icns`, generated by `tools/gen-app-icon.swift`
 and copied into the bundle by `tools/app-bundle-hook.sh`.

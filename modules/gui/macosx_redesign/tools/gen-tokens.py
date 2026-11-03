@@ -672,7 +672,7 @@ def emit_metrics(w, metrics):
     w.line("/// Icon artwork size (all Figma icons are 24×24).")
     w.line("public static let iconSize: CGFloat = %s" % num(metrics["menus"]["menuIcon"]))
     w.line()
-    skip = {"meta", "radius", "spacing", "stroke", "effects", "standardHeights", "standardWidths"}
+    skip = {"meta", "radius", "spacing", "stroke", "effects", "standardHeights", "standardWidths", "macWindowControls"}
     first = True
     for key, group in metrics.items():
         if key in skip:
@@ -683,6 +683,39 @@ def emit_metrics(w, metrics):
             w.line()
         first = False
         emit_group(w, key, group)
+    w.close()
+    w.level -= 1
+    w.line("}")
+
+
+def emit_mac_window_controls(w, colors, metrics):
+    """Theme.MacWindowControls: AppKit's window buttons for pictures of the window (D022), from
+    colors.json and metrics.json `macWindowControls` (platform values, not Figma)."""
+    paints = colors.get("macWindowControls")
+    geometry = metrics.get("macWindowControls")
+    if not paints or not geometry:
+        fail("colors.json and metrics.json need a macWindowControls section")
+    w.line()
+    w.line("// MARK: - macOS window controls")
+    w.line()
+    w.line("extension Theme {")
+    w.level += 1
+    w.line("/// %s" % doc(geometry.get("note", "")))
+    w.line("/// %s" % doc(paints.get("note", "")))
+    w.open("public enum MacWindowControls")
+    for key in ("diameter", "spacing", "leadingInset"):
+        if not isinstance(geometry.get(key), (int, float)):
+            fail("metrics.json macWindowControls.%s is missing" % key)
+        w.line("public static let %s: CGFloat = %s" % (key, num(geometry[key])))
+    w.line("/// Right edge of the zoom button, from the window's leading edge.")
+    w.line("public static var trailingEdge: CGFloat { leadingInset + 3 * diameter + 2 * spacing }")
+    for key in ("close", "minimize", "zoom", "edge"):
+        paint = paints.get(key)
+        if not isinstance(paint, dict) or "hex" not in paint:
+            fail("colors.json macWindowControls.%s is missing" % key)
+        if key == "edge":
+            w.line("/// The buttons' hairline edge over each colour.")
+        w.line("public static let %s = %s" % (key, rgba(paint["hex"], paint.get("alpha", 1))))
     w.close()
     w.level -= 1
     w.line("}")
@@ -707,6 +740,7 @@ def generate():
     emit_colors(w, colors)
     emit_typography(w, typo)
     emit_metrics(w, metrics)
+    emit_mac_window_controls(w, colors, metrics)
     return w.text()
 
 

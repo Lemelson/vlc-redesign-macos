@@ -10,11 +10,13 @@ import tempfile
 import unittest
 
 TOOLS = Path(__file__).resolve().parent
-IDENTITY = 'org.example.vlc-redesign.codex'
+IDENTITY = 'io.github.lemelson.vlc-redesign'
+LEGACY_IDENTITY = 'org.example.vlc-redesign.codex'
 
 
 class InstallationTests(unittest.TestCase):
-    def run_install(self, failure='', running=False, source_identity=IDENTITY, config_log=None, lock_pid=None):
+    def run_install(self, failure='', running=False, source_identity=IDENTITY, config_log=None, lock_pid=None,
+                    installed_identity=IDENTITY, prebuilt=False):
         with tempfile.TemporaryDirectory(prefix='mxr-install-contract-') as temporary:
             root = Path(temporary)
             tools = root / 'tools'
@@ -41,7 +43,7 @@ class InstallationTests(unittest.TestCase):
                     plistlib.dump({'CFBundleIdentifier': identity}, target)
             destination = applications / 'VLC Redesign.app'
             personal = applications / 'VLC.app'
-            bundle(destination, IDENTITY, 'old-install')
+            bundle(destination, installed_identity, 'old-install')
             bundle(personal, 'org.videolan.vlc', 'personal-vlc')
             bundle(template, source_identity, 'new-install')
             def tool(name, body):
@@ -52,9 +54,11 @@ class InstallationTests(unittest.TestCase):
             tool('xcrun', 'print("/fake-sdk")\n')
             tool('autoconf', '')
             tool('automake', '')
-            tool('make', 'if "VLC.app" in sys.argv:\n shutil.copytree(os.environ["TEMPLATE"], pathlib.Path(sys.argv[sys.argv.index("-C")+1])/"VLC.app")\n')
+            tool('make', 'with open(os.environ["EVENTS"],"a") as f: f.write("make "+" ".join(sys.argv[1:])+"\\n")\nif "VLC.app" in sys.argv:\n shutil.copytree(os.environ["TEMPLATE"], pathlib.Path(sys.argv[sys.argv.index("-C")+1])/"VLC.app")\n')
             tool('ditto', 'shutil.copytree(sys.argv[1],sys.argv[2],symlinks=True)\n')
-            tool('osascript', 'with open(os.environ["EVENTS"],"a") as f: f.write("osascript "+" ".join(sys.argv[1:])+"\\n")\nprint("true" if os.getenv("RUNNING")=="1" or (os.getenv("RUNNING")=="later" and pathlib.Path(os.environ["EVENTS"]).read_text().count("osascript ")>1) else "false")\n')
+            # Running when RUNNING=1, when RUNNING names the queried id, or (RUNNING=later) from the
+            # second idle check on; each check asks once per identity.
+            tool('lsappinfo', 'with open(os.environ["EVENTS"],"a") as f: f.write("lsappinfo "+" ".join(sys.argv[1:])+"\\n")\nr=os.getenv("RUNNING")\nif r=="1" or sys.argv[-1]=="bundleid="+r or (r=="later" and pathlib.Path(os.environ["EVENTS"]).read_text().count("lsappinfo ")>2): print(\'ASN:0x0-0x1-"VLC Redesign":\')\n')
             plist = tool('plist', 'with open(sys.argv[-1],"rb") as f: print(plistlib.load(f)["CFBundleIdentifier"])\n')
             register = tool('register', 'sys.exit(7 if os.getenv("FAIL")=="register" else 0)\n')
             tool('codesign', 'sys.exit(7 if os.getenv("FAIL")=="sign" or (os.getenv("FAIL")=="verify" and "--verify" in sys.argv) else 0)\n')
@@ -74,9 +78,13 @@ class InstallationTests(unittest.TestCase):
             script = script.replace('/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister', register)
             (tools / 'install-app.sh').write_text(script)
             shutil.copyfile(TOOLS / 'finalize-app.py', tools / 'finalize-app.py')
-            env = dict(os.environ, FAIL=failure, RUNNING='later' if running == 'later' else '1' if running else '0', TEMPLATE=str(template), EVENTS=str(log))
-            result = subprocess.run(['/bin/sh', str(tools / 'install-app.sh'), str(build)], env=env,
+            running = running if isinstance(running, str) else '1' if running else '0'
+            env = dict(os.environ, FAIL=failure, RUNNING=running, TEMPLATE=str(template), EVENTS=str(log),
+                       PATH=f'{fakebin}:{os.environ["PATH"]}')
+            arguments = ['--app', str(template)] if prebuilt else [str(build)]
+            result = subprocess.run(['/bin/sh', str(tools / 'install-app.sh'), *arguments], env=env,
                                     capture_output=True, text=True, timeout=30)
+            self.prebuilt_kept = (template / 'new-install').exists()
             return (result, (destination / 'old-install').exists(), (destination / 'new-install').exists(),
                     (personal / 'personal-vlc').read_text(), list(applications.glob('.vlc-redesign-install*')),
                     log.read_text() if log.exists() else '')
@@ -147,6 +155,61 @@ class InstallationTests(unittest.TestCase):
         self.assertEqual(personal, 'personal-vlc')
         self.assertEqual(stages, [])
         self.assertNotIn('to quit', events)
+
+
+    def test_install_of_the_pre_release_identity_is_replaced(self):
+        result, old, new, personal, stages, _ = self.run_install(installed_identity=LEGACY_IDENTITY)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse(old)
+        self.assertTrue(new)
+        self.assertEqual(personal, 'personal-vlc')
+        self.assertEqual(stages, [])
+
+    def test_pre_release_identity_is_never_installed(self):
+        result, old, new, _, stages, _ = self.run_install(source_identity=LEGACY_IDENTITY)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('unexpected application identity', result.stderr)
+        self.assertTrue(old)
+        self.assertFalse(new)
+        self.assertEqual(stages, [])
+
+    def test_install_of_another_identity_is_not_replaced(self):
+        for identity in ('org.example.vlc-redesign', 'org.videolan.vlc'):
+            with self.subTest(identity=identity):
+                result, old, new, _, stages, _ = self.run_install(installed_identity=identity)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('unexpected application identity', result.stderr)
+                self.assertTrue(old)
+                self.assertFalse(new)
+                self.assertEqual(stages, [])
+
+    def test_running_pre_release_install_is_not_replaced(self):
+        result, old, new, _, stages, _ = self.run_install(installed_identity=LEGACY_IDENTITY,
+                                                          running=LEGACY_IDENTITY)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('close VLC Redesign', result.stderr)
+        self.assertTrue(old)
+        self.assertFalse(new)
+
+    def test_prebuilt_universal_app_is_installed_without_building_and_kept(self):
+        result, old, new, personal, stages, events = self.run_install(prebuilt=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse(old)
+        self.assertTrue(new)
+        self.assertTrue(self.prebuilt_kept, 'the source app of --app is copied, never moved or removed')
+        self.assertNotIn('make ', events)
+        self.assertEqual(personal, 'personal-vlc')
+        self.assertEqual(stages, [])
+
+    def test_prebuilt_app_with_wrong_identity_or_failing_signature_is_refused(self):
+        for options in ({'source_identity': LEGACY_IDENTITY}, {'failure': 'verify'}):
+            with self.subTest(**options):
+                result, old, new, _, stages, _ = self.run_install(prebuilt=True, **options)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertTrue(old)
+                self.assertFalse(new)
+                self.assertTrue(self.prebuilt_kept)
+                self.assertEqual(stages, [])
 
 
 if __name__ == '__main__':

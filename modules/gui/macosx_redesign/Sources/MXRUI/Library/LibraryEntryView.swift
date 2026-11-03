@@ -104,6 +104,14 @@ struct LibraryEntryView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(width: size.width, alignment: .leading)
+        .background {
+            // Selection (Figma draws none for cards): the list rows' BG/A2 fill behind the whole card,
+            // so a click and the arrow keys show where they are (live run 2; D044).
+            if selected {
+                RoundedRectangle(cornerRadius: LibraryGeometry.gridRadius + Theme.Spacing.gap8).fill(Theme.Color.bgA2)
+                    .padding(-Theme.Spacing.gap8)
+            }
+        }
         .overlay(alignment: .topTrailing) { more.padding(Theme.Spacing.gap8).frame(height: size.height, alignment: .top) }
     }
 

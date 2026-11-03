@@ -87,7 +87,33 @@ public final class PresetStore {
     private struct Snapshot: Codable {
         var presets: [PlaybackPreset]
         var assignments: [String: String]
+        /// Presets another version wrote that this one cannot read; saved back in place.
+        var unreadablePresets: [UnreadableEntry]
+
+        init(presets: [PlaybackPreset], assignments: [String: String], unreadablePresets: [UnreadableEntry]) {
+            self.presets = presets
+            self.assignments = assignments
+            self.unreadablePresets = unreadablePresets
+        }
+
+        private enum CodingKeys: String, CodingKey { case presets, assignments }
+
+        /// Presets decode one by one, so one unreadable preset costs only itself.
+        init(from decoder: any Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            let list = try c.decode(LossyArray<PlaybackPreset>.self, forKey: .presets)
+            presets = list.elements
+            unreadablePresets = list.unreadable
+            assignments = try c.decodeIfPresent([String: String].self, forKey: .assignments) ?? [:]
+        }
+
+        func encode(to encoder: any Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            try c.encode(LossyArray(presets, unreadable: unreadablePresets), forKey: .presets)
+            try c.encode(assignments, forKey: .assignments)
+        }
     }
+    @ObservationIgnored private var unreadablePresets: [UnreadableEntry] = []
 
     /// Loads presets from `location` (in memory: starts with only the default preset).
     public init(location: PersistenceLocation) {
@@ -95,6 +121,7 @@ public final class PresetStore {
         if let snapshot = file.load() {
             presets = [.default] + snapshot.presets.filter { $0.id != PlaybackPreset.defaultID }
             assignments = snapshot.assignments
+            unreadablePresets = snapshot.unreadablePresets
         }
     }
 
@@ -213,6 +240,6 @@ public final class PresetStore {
     }
 
     private func persist() {
-        file.save(Snapshot(presets: customPresets, assignments: assignments))
+        file.save(Snapshot(presets: customPresets, assignments: assignments, unreadablePresets: unreadablePresets))
     }
 }

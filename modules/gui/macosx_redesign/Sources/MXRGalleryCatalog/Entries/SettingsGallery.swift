@@ -133,8 +133,13 @@ final class SettingsGallery: NSObject, GalleryProvider {
                 let extensions = ExtensionsModel(backend: UnavailableExtensionOperationsPreview(base: mock.extensions, onDemandID: "run-once"))
                 return MXRSettingsView().environment(extensions).appModel(app)
             },
+            // The Hotkey fields of Toggle fullscreen, Stop, Next and Previous show VLC's macOS defaults
+            // (⌘F, ⌘., ⌘→, ⌘←; src/libvlc-module.c __APPLE__) where Figma spells the Windows keys F, S, N, P.
             GalleryEntry(id: "S64.KeyboardShortcuts/default", title: "Keyboard Shortcuts", size: Theme.Metric.Dialogs.keyboardShortcuts.size,
-                         figmaNode: "2437:14832", screens: ["S64"], renderEngine: .hostingView) {
+                         figmaNode: "2437:14832", screens: ["S64"], renderEngine: .hostingView,
+                         figmaDeviations: ["6338:14145", "6338:14181", "6338:14188", "6338:14195"].map {
+                             .differs(node: $0, decision: "D026", "VLC's macOS default key with Mac glyphs; Figma shows the Windows key")
+                         }) {
                 MXRKeyboardShortcutsView().appModel(AppModel.mock(.idle))
             },
             // The shipping state: VLC has no global hotkeys on macOS (D035), so the column is absent.
@@ -151,8 +156,11 @@ final class SettingsGallery: NSObject, GalleryProvider {
             },
             GalleryEntry(id: "S64.KeyboardShortcuts/edited-conflict", title: "Keyboard Shortcuts — Draft conflict", size: Theme.Metric.Dialogs.keyboardShortcuts.size,
                          screens: ["S64"], renderEngine: .hostingView) {
+                // Play/Pause takes Toggle fullscreen's current key (⌘F with VLC's macOS defaults), so
+                // both rows are outlined and Reassign is offered.
                 let app = AppModel.mock(.idle)
-                app.shortcuts.setBinding(KeyBinding(key: "f"), for: "play-pause")
+                let clash = app.shortcuts.actions.first { $0.id == "toggle-fullscreen" }?.hotkeys.first
+                app.shortcuts.setBinding(clash ?? KeyBinding(key: "f", modifiers: .command), for: "play-pause")
                 return MXRKeyboardShortcutsView().appModel(app)
             },
             GalleryEntry(id: "S64.KeyboardShortcuts/search", title: "Keyboard Shortcuts — Search", size: Theme.Metric.Dialogs.keyboardShortcuts.size,

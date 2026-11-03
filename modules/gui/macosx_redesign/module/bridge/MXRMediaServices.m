@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <vlc_common.h>
 #include <vlc_interface.h>
 #include <vlc_input_item.h>
@@ -59,6 +60,27 @@ static int MXROpenExtensionDirectory(NSURL *userDirectory, BOOL create, NSError 
     if (directory < 0 && error != NULL)
         *error = MXRMediaError(errno, @"VLC's user extension folder cannot be opened safely. Check its permissions and directory links.");
     return directory;
+}
+
+/* What VLC's Lua extension manager would load from the user extension folder: the name, size and
+ * modification time of every script in it, sorted; nil when the folder cannot be opened. */
+static NSArray<NSString *> *MXRUserExtensionFolderSignature(NSURL *userDirectory)
+{
+    int directory = MXROpenExtensionDirectory(userDirectory, NO, NULL);
+    if (directory < 0) return nil;
+    DIR *listing = fdopendir(directory);
+    if (listing == NULL) { close(directory); return nil; }
+    NSMutableArray<NSString *> *entries = [NSMutableArray array];
+    for (struct dirent *entry; (entry = readdir(listing)) != NULL;) {
+        NSString *name = [NSString stringWithUTF8String:entry->d_name];
+        if (![@[@"lua", @"luac"] containsObject:name.pathExtension]) continue;
+        struct stat info;
+        if (fstatat(dirfd(listing), entry->d_name, &info, AT_SYMLINK_NOFOLLOW) != 0) continue;
+        [entries addObject:[NSString stringWithFormat:@"%@ %lld %ld.%09ld", name, (long long)info.st_size,
+                            (long)info.st_mtimespec.tv_sec, info.st_mtimespec.tv_nsec]];
+    }
+    closedir(listing); /* closes `directory` */
+    return [entries sortedArrayUsingSelector:@selector(compare:)];
 }
 
 static BOOL MXRUserExtension(NSString *path, int directory, struct stat *info)
@@ -209,19 +231,24 @@ NSDictionary *MXRCreateOutputDefinition(NSDictionary *arguments, NSError **error
     return definition;
 }
 
-/* Snapshot policy on every new job, never inherit cached output-player variables.
- * Explicit # chains bypass VLC's sout-display URL shorthand, so duplicate before
- * transcoding: local playback receives the original elementary streams. "Play locally
- * while streaming" is for streams only: a conversion runs faster than real time
+/* "Play locally while streaming" is for streams only: a conversion runs faster than real time
  * (clock-synchro=0), so a local copy of it would be unwatchable. */
+BOOL MXROutputPlaysLocally(NSDictionary *definition, NSDictionary<NSString *, NSNumber *> *settings)
+{
+    return [definition[@"mode"] isEqual:@"stream"] && [settings[@"sout-display"] boolValue];
+}
+
+/* Snapshot policy on every new job, never inherit cached output-player variables.
+ * The chain never duplicates to a local display (live run 2: an HTTP stream sent 52 s of media
+ * in 4 s). The input paces a stream only when its chain reports a synchronous output
+ * (src/input/input.c, sout_StreamIsSynchronous): standard/udp/rtp do, but duplicate answers no
+ * control query (modules/stream_out/duplicate.c), so a `#duplicate{dst=display,...}` input ran
+ * as fast as the encoder could go while only its local display kept time. The local copy is
+ * played by a player of its own instead (MXROutputPlaysLocally, -startLocalCopy:). */
 NSArray<NSString *> *MXROutputOptions(NSDictionary *definition, NSDictionary<NSString *, NSNumber *> *settings)
 {
     NSString *chain = definition[@"sout"];
     BOOL stream = [definition[@"mode"] isEqual:@"stream"];
-    if (stream && [settings[@"sout-display"] boolValue]) {
-        NSString *destination = [chain hasPrefix:@"#"] ? [chain substringFromIndex:1] : chain;
-        chain = [NSString stringWithFormat:@"#duplicate{dst=display,dst=%@}", MXRQuoted(destination)];
-    }
     BOOL keep = stream && [settings[@"sout-keep"] boolValue];
     NSMutableArray *options = [NSMutableArray arrayWithObjects:[@"sout=" stringByAppendingString:chain],
                                keep ? @"sout-keep" : @"no-sout-keep", @"no-sout-display", nil];
@@ -363,6 +390,8 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
     vlc_player_t *_mainPlayer;
     vlc_playlist_t *_outputPlaylist;
     vlc_player_t *_outputPlayer;
+    /* "Play locally while streaming": the stream's source, played beside the job (main thread). */
+    vlc_playlist_t *_localCopyPlaylist;
     vlc_player_listener_id *_outputListener;
     vlc_player_listener_id *_mainListener;
     dispatch_queue_t _serviceQueue;
@@ -377,6 +406,9 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
     extensions_manager_t *_extensions; /* extension queue only */
     dispatch_source_t _extensionPoll;
     NSArray *_extensionStates; /* extension queue */
+    /* The user extension folder as the loaded manager read it (extension queue): a script added
+     * in Finder appears on the next list without a relaunch (live run 2). */
+    NSArray<NSString *> *_extensionFolderSignature;
     NSArray *_moduleRecords; /* extension queue */
     NSDictionary *_extensionSnapshot; /* immutable main-thread cache */
     NSMutableArray<NSValue *> *_discoveries; /* serial service queue only */
@@ -413,7 +445,10 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
         _hasRendererModule |= module_provides(modules[i], "renderer_discovery");
     }
     module_list_free(modules);
-    _outputPlaylist = vlc_playlist_New(VLC_OBJECT(vlc_object_instance(intf)), VLC_PLAYLIST_PREPARSING_DISABLED, 1, 0);
+    /* Parented to the interface, not the instance: the player saves media-library playback state
+     * (history, progress) only for players whose parent is the instance (src/player/medialib.c,
+     * vlc_player_UpdateMLStates), so Convert and Stream jobs never mark their source as played. */
+    _outputPlaylist = vlc_playlist_New(VLC_OBJECT(intf), VLC_PLAYLIST_PREPARSING_DISABLED, 1, 0);
     if (_outputPlaylist != NULL) {
         _outputPlayer = vlc_playlist_GetPlayer(_outputPlaylist);
         /* A player is a VLC object (src/player/player.h: `obj` comes first); vlc_player.h
@@ -425,6 +460,16 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
         vlc_playlist_SetMediaStoppedAction(_outputPlaylist, VLC_PLAYLIST_MEDIA_STOPPED_STOP);
         _outputListener = vlc_player_AddListener(_outputPlayer, &MXROutputCallbacks, (__bridge void *)self);
         vlc_playlist_Unlock(_outputPlaylist);
+    }
+    _localCopyPlaylist = vlc_playlist_New(VLC_OBJECT(intf), VLC_PLAYLIST_PREPARSING_DISABLED, 1, 0);
+    if (_localCopyPlaylist != NULL) {
+        /* Its window is an auxiliary one too, never the main player surface. */
+        vlc_object_t *localObject = (vlc_object_t *)(void *)vlc_playlist_GetPlayer(_localCopyPlaylist);
+        var_Create(localObject, MXR_AUXILIARY_VIDEO_VAR, VLC_VAR_BOOL);
+        var_SetBool(localObject, MXR_AUXILIARY_VIDEO_VAR, true);
+        vlc_playlist_Lock(_localCopyPlaylist);
+        vlc_playlist_SetMediaStoppedAction(_localCopyPlaylist, VLC_PLAYLIST_MEDIA_STOPPED_STOP);
+        vlc_playlist_Unlock(_localCopyPlaylist);
     }
     vlc_player_Lock(_mainPlayer);
     _mainListener = vlc_player_AddListener(_mainPlayer, &MXRMainCallbacks, (__bridge void *)self);
@@ -445,7 +490,7 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
 
 - (void)dealloc
 {
-    assert(_outputListener == NULL && _mainListener == NULL && _outputPlaylist == NULL && _extensions == NULL);
+    assert(_outputListener == NULL && _mainListener == NULL && _outputPlaylist == NULL && _localCopyPlaylist == NULL && _extensions == NULL);
 }
 
 - (void)changed:(MXRBridgeService)service
@@ -532,6 +577,7 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
     for (NSString *name in @[@"sout-display", @"sout-keep", @"sout-audio", @"sout-video", @"sout-spu"])
         settings[name] = @(config_GetInt(name.UTF8String) != 0);
     NSMutableArray *options = [MXROutputOptions(definition, settings) mutableCopy];
+    NSMutableArray *localOptions = MXROutputPlaysLocally(definition, settings) ? [NSMutableArray arrayWithObject:@"sout="] : nil;
     if ([definition[@"mode"] isEqual:@"convert"]) [options addObjectsFromArray:@[@"no-sout-transcode-audio-sync", @"clock-jitter=0", @"clock-synchro=0"]];
     id inputOptions = arguments[@"inputOptions"];
     if (inputOptions != nil) {
@@ -542,6 +588,7 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
             if ([normalized hasPrefix:@"sout"] || [normalized hasPrefix:@"no-sout"])
                 { *error = MXRMediaError(EINVAL, @"Input options cannot override the output configuration."); return nil; }
             [options addObject:normalized];
+            [localOptions addObject:normalized];
         }
     }
     for (NSString *option in options)
@@ -568,8 +615,31 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
         [self changed:MXRBridgeServiceOutput];
         return nil;
     }
+    if (localOptions != nil) [self startLocalCopy:definition[@"sourceURL"] options:localOptions];
     [self changed:MXRBridgeServiceOutput];
     return @{@"job": [job.record copy]};
+}
+
+/* Plays the stream's source on the local-copy player, started with the job and stopped with it. */
+- (void)startLocalCopy:(NSString *)url options:(NSArray<NSString *> *)options
+{
+    if (_localCopyPlaylist == NULL) return;
+    input_item_t *media = input_item_New(url.UTF8String, "VLC local copy");
+    if (media == NULL) return;
+    for (NSString *option in options) input_item_AddOption(media, option.UTF8String, VLC_INPUT_OPTION_TRUSTED);
+    vlc_playlist_Lock(_localCopyPlaylist);
+    vlc_playlist_Clear(_localCopyPlaylist);
+    if (vlc_playlist_InsertOne(_localCopyPlaylist, 0, media) == VLC_SUCCESS) vlc_playlist_PlayAt(_localCopyPlaylist, 0);
+    vlc_playlist_Unlock(_localCopyPlaylist);
+    input_item_Release(media);
+}
+- (void)stopLocalCopy
+{
+    if (_localCopyPlaylist == NULL) return;
+    vlc_playlist_Lock(_localCopyPlaylist);
+    vlc_playlist_Stop(_localCopyPlaylist);
+    vlc_playlist_Clear(_localCopyPlaylist);
+    vlc_playlist_Unlock(_localCopyPlaylist);
 }
 
 - (void)outputState:(enum vlc_player_state)state media:(input_item_t *)media
@@ -577,6 +647,7 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
     if (atomic_load(&_shutDown) || _activeJob == nil) return;
     if (state == VLC_PLAYER_STATE_PLAYING && media == _activeJob.media) _activeJob.record[@"state"] = @"running";
     if (state == VLC_PLAYER_STATE_STOPPED) {
+        [self stopLocalCopy];
         MXROutputJob *job = _activeJob;
         BOOL natural = !job.cancelRequested && job.ended && job.reason != VLC_PLAYER_MEDIA_STOPPING_ERROR &&
                        job.reason != VLC_PLAYER_MEDIA_STOPPING_USER;
@@ -655,6 +726,7 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
     /* An unavailable user directory must not prevent stock extensions from loading. */
     int directory = MXROpenExtensionDirectory(_extensionUserDirectory, YES, NULL);
     if (directory >= 0) close(directory);
+    _extensionFolderSignature = MXRUserExtensionFolderSignature(_extensionUserDirectory);
     _extensions = vlc_object_create(vlc_object_instance(_intf), sizeof(*_extensions));
     if (_extensions != NULL) {
         _extensions->player = _mainPlayer;
@@ -684,6 +756,15 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
     }
     *error = MXRMediaError(ENOTSUP, @"VLC could not load its Lua extension manager.");
     return NO;
+}
+- (BOOL)anyExtensionActive
+{
+    BOOL active = NO;
+    vlc_mutex_lock(&_extensions->lock);
+    for (int i = 0; i < _extensions->extensions.i_size && !active; ++i)
+        active = extension_IsActivated(_extensions, ARRAY_VAL(_extensions->extensions, i));
+    vlc_mutex_unlock(&_extensions->lock);
+    return active;
 }
 - (void)unloadExtensions
 {
@@ -867,6 +948,13 @@ static const struct vlc_player_cbs MXRMainCallbacks = {
         return result;
     }
     if ([request isEqual:MXRBridgeRequestRescan]) { [self unloadExtensions]; _moduleRecords = nil; }
+    /* The Extensions page and menu list on open. VLC reads the user folder only when its manager
+     * loads, so a changed folder reloads the manager, unless an extension runs: reloading would
+     * deactivate it, and the new script shows on a later list. */
+    if ([request isEqual:MXRBridgeRequestList] && _extensions != NULL && ![self anyExtensionActive]) {
+        NSArray *folder = MXRUserExtensionFolderSignature(_extensionUserDirectory);
+        if (folder != _extensionFolderSignature && ![folder isEqual:_extensionFolderSignature]) [self unloadExtensions];
+    }
     if (![self loadExtensions:error]) return nil;
     if ([@[MXRBridgeRequestList, MXRBridgeRequestRescan] containsObject:request]) return [self extensionCatalog];
     if ([request isEqual:MXRBridgeRequestInstallExtension]) return [self installExtension:arguments error:error];
@@ -1074,6 +1162,7 @@ static NSString *MXRRendererIdentifier(vlc_renderer_item_t *item)
         _outputListener = NULL;
         vlc_playlist_Unlock(_outputPlaylist);
     }
+    [self stopLocalCopy];
     if (_mainListener != NULL) {
         vlc_player_Lock(_mainPlayer);
         vlc_player_RemoveListener(_mainPlayer, _mainListener);
@@ -1094,6 +1183,7 @@ static NSString *MXRRendererIdentifier(vlc_renderer_item_t *item)
             vlc_playlist_Delete(self->_outputPlaylist);
             self->_outputPlaylist = NULL; self->_outputPlayer = NULL;
         }
+        if (self->_localCopyPlaylist != NULL) { vlc_playlist_Delete(self->_localCopyPlaylist); self->_localCopyPlaylist = NULL; }
         if (self->_abandonedPartial != nil) unlink(self->_abandonedPartial.fileSystemRepresentation);
     });
 }

@@ -77,7 +77,7 @@ else
 fi
 cd "$mxr_destination"
 "$mxr_engine_source/configure" --prefix=/ --disable-macosx --enable-macosx-redesign \
-    --with-macosx-redesign-bundle-id=org.example.vlc-redesign.codex \
+    --with-macosx-redesign-bundle-id=io.github.lemelson.vlc-redesign \
     --with-macosx-redesign-app-name='VLC Redesign' --disable-ncurses \
     --disable-macosx-ui-shaders --enable-merge-ffmpeg --enable-osx-notifications \
     --enable-flac --enable-theora --enable-shout --enable-twolame --enable-libass \

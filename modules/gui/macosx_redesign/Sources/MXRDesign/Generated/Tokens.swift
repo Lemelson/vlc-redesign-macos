@@ -179,7 +179,7 @@ extension Theme {
         public static let bgB1Transparent = ThemeColor(.bgB1Transparent)
         /// `Dark/BG/B2` #090909@1 · `Light/BG/B2` #DEDEDE@1.
         public static let bgB2 = ThemeColor(.bgB2)
-        /// `Dark/BG/B2 Transparent` #000000@0.8. Light has no such style; the dark value is used. Defined but never used in the file; intended for modal scrims (spec-part2 token table).
+        /// `Dark/BG/B2 Transparent` #000000@0.8. Light has no such style; the dark value is used. Defined but never used in the file; intended for modal scrims (spec-part2 token table). The product draws no scrim (D035 amendment, owner question open), so nothing uses it.
         public static let bgB2Transparent = ThemeColor(.bgB2Transparent)
         /// `Dark/Divider/Bright` #373737@1 · `Light/Divider/Bright` #9B9B9B@1.
         public static let dividerBright = ThemeColor(.dividerBright)
@@ -1138,5 +1138,24 @@ extension Theme {
             public static let keycapModifierGap: CGFloat = 4
             // keycap: note: compactInset 1902:7078, bindingGap 1902:7144, modifierGap 1904:7197
         }
+    }
+}
+
+// MARK: - macOS window controls
+
+extension Theme {
+    /// Not Figma: where AppKit puts the window buttons in the player's compact unified toolbar, measured from the shipping-window render (12 pt buttons 8 pt apart, the first 13 pt from the edge, centred in the 40 pt bar). Colours in colors.json macWindowControls.
+    /// Not Figma: AppKit's own window buttons (D022), for pictures of the player window that cannot hold the real ones (onboarding player preview, S70; Figma 1902:3670 draws Windows controls there). The colours of an active window's close, minimise and zoom buttons, and their hairline edge. The real window always uses AppKit's buttons (MXRWindowControls).
+    public enum MacWindowControls {
+        public static let diameter: CGFloat = 12
+        public static let spacing: CGFloat = 8
+        public static let leadingInset: CGFloat = 13
+        /// Right edge of the zoom button, from the window's leading edge.
+        public static var trailingEdge: CGFloat { leadingInset + 3 * diameter + 2 * spacing }
+        public static let close = Theme.RGBA(hex: 0xFF5F57, alpha: 1)
+        public static let minimize = Theme.RGBA(hex: 0xFEBC2E, alpha: 1)
+        public static let zoom = Theme.RGBA(hex: 0x28C840, alpha: 1)
+        /// The buttons' hairline edge over each colour.
+        public static let edge = Theme.RGBA(hex: 0x000000, alpha: 0.12)
     }
 }

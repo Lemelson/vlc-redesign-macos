@@ -152,6 +152,11 @@ public final class InterfaceModel {
     public var isCapturingShortcut = false
     /// A queue or bookmark row has keyboard focus: its list keys bypass VLC's hotkeys (``FocusedListKeys``).
     public var panelListHasKeyboardFocus = false
+    /// The library list or grid has keyboard focus: its arrows, Return and Delete stay with it.
+    public var libraryListHasKeyboardFocus = false
+    /// A SwiftUI list (library, queue, bookmarks) has the keyboard; the window key monitor and bare
+    /// menu equivalents let ``FocusedListKeys`` through to it.
+    public var listHasKeyboardFocus: Bool { panelListHasKeyboardFocus || libraryListHasKeyboardFocus }
     public var isCustomizing = false
     public var sheet: AppSheet?
     public var fileRequest: FileRequest?
@@ -316,7 +321,11 @@ public final class InterfaceModel {
     /// (`fit` is false). A panel opened over the library makes the library yield (it closes and
     /// remembers to come back); opening the library while a panel is open (`libraryOpened`) closes
     /// the panel instead, so the sidebar toggle never switches a library nobody can see.
+    ///
+    /// Hide UI is a pure view toggle (D055): while it is on nothing is reconciled, so a library that
+    /// yielded keeps its promise across ⌘\ off and on (it returns when the panel closes).
     public func reconcileLibraryAndPanel(fit: Bool, libraryOpened: Bool = false) {
+        guard !isUIHidden else { return }
         if library == .full { libraryYieldedToPanel = false; return }
         if !fit && library == .compact && rightPanel != nil {
             if libraryOpened {
@@ -330,7 +339,7 @@ public final class InterfaceModel {
         }
         if libraryYieldedToPanel && (rightPanel == nil || fit) {
             libraryYieldedToPanel = false
-            if library == .hidden && !isUIHidden { library = .compact }
+            if library == .hidden { library = .compact }
         }
     }
 

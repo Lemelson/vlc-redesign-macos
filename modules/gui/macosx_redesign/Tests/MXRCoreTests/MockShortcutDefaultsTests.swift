@@ -9,14 +9,9 @@ import XCTest
 /// shows. The real engine reports its `#if defined(__APPLE__)` defaults (D026, D030).
 @MainActor
 final class MockShortcutDefaultsTests: XCTestCase {
-    private static let libvlcModule = URL(fileURLWithPath: #filePath)
-        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent() // macosx_redesign
-        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent() // repository root
-        .appendingPathComponent("src/libvlc-module.c")
-
     /// `key-<id>` → its macOS default bindings, read from VLC's source.
     private func engineMacDefaults() throws -> [String: [KeyBinding]] {
-        let source = try String(contentsOf: Self.libvlcModule, encoding: .utf8)
+        let source = try String(contentsOf: TestSourceFiles.repository("src/libvlc-module.c"), encoding: .utf8)
         let start = try XCTUnwrap(source.range(of: "#if defined(__APPLE__)\n/* Don't use the following combo's */"))
         let end = try XCTUnwrap(source.range(of: "#else /* Non Mac OS X */", range: start.upperBound..<source.endIndex))
         let block = String(source[start.upperBound..<end.lowerBound])

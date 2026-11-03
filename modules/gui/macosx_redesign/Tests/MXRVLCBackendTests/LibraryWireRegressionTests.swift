@@ -39,6 +39,29 @@ final class LibraryWireRegressionTests: XCTestCase {
         XCTAssertEqual(transport.arguments["urls"] as? [String], [url.absoluteString])
         XCTAssertTrue(transport.commands.isEmpty)
     }
+    func testPartialImportReturnsTheAddedFilesWithTheRejectedOnes() async throws {
+        let transport = LibraryWireTransport()
+        let good = URL(fileURLWithPath: "/tmp/LibraryWireGood.mp4"), bad = URL(fileURLWithPath: "/tmp/LibraryWireGone.mp4")
+        transport.response = ["media": [["id": "ml:5", "url": good.absoluteString, "title": "Good", "kind": "video", "isExternal": true, "isImported": true]],
+                              "rejected": [bad.absoluteString]]
+        let backend = VLCLibraryBackend(transport: transport)
+        do {
+            try await backend.importFiles(urls: [good, bad])
+            XCTFail("the rejected file is reported")
+        } catch let error as LibraryImportError {
+            XCTAssertEqual(error.imported.map(\.id), ["ml:5"])
+            XCTAssertTrue(error.imported[0].isImported, "an import carries its Remove from Library flag")
+            XCTAssertEqual(error.rejected, [bad])
+        }
+    }
+    func testRemoveImportedMediaSendsTheIDs() async throws {
+        let transport = LibraryWireTransport()
+        let backend = VLCLibraryBackend(transport: transport)
+        try await backend.removeImportedMedia(ids: ["ml:5", "ml:6"])
+        XCTAssertEqual(transport.requestName, "removeImportedMedia")
+        XCTAssertEqual(transport.arguments["mediaIDs"] as? [String], ["ml:5", "ml:6"])
+        XCTAssertFalse(VLCWire.media(["id": "ml:7", "url": "file:///tmp/Scanned.mp4"])?.isImported ?? true, "scanned media is not an import")
+    }
 }
 
 @MainActor
@@ -46,11 +69,12 @@ private final class LibraryWireTransport: VLCServiceTransport {
     var capabilities: [String: Any] { [:] }
     var requestName: String?
     var arguments: [String: Any] = [:]
+    var response: [String: Any] = [:]
     var commands: [String] = []
-    func snapshot(for service: MXRBridgeService) -> [String: Any] { let service = service.rawValue; return [:] }
-    func perform(_ command: MXRBridgeCommand, service: MXRBridgeService, arguments: [String: Any]) throws { let command = command.rawValue; let service = service.rawValue; commands.append(command) }
-    func request(_ request: MXRBridgeRequest, service: MXRBridgeService, arguments: [String: Any]) async throws -> [String: Any] { let request = request.rawValue; let service = service.rawValue;
-        requestName = request; self.arguments = arguments; return [:]
+    func snapshot(for service: MXRBridgeService) -> [String: Any] { return [:] }
+    func perform(_ command: MXRBridgeCommand, service: MXRBridgeService, arguments: [String: Any]) throws { let command = command.rawValue; commands.append(command) }
+    func request(_ request: MXRBridgeRequest, service: MXRBridgeService, arguments: [String: Any]) async throws -> [String: Any] { let request = request.rawValue;
+        requestName = request; self.arguments = arguments; return response
     }
     func addListener(_ owner: AnyObject, handler: @escaping @MainActor (MXRBridgeService) -> Void) {}
     func log(_ error: Error) {}

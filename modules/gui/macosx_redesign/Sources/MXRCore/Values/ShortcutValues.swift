@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import Foundation
 
 /// Modifier keys of a binding, in VLC's vocabulary (`KEY_MODIFIER_*`).
@@ -87,7 +88,9 @@ public struct KeyBinding: Hashable, Sendable, Codable, CustomStringConvertible {
     public var description: String { vlcString }
 
     /// Converts a key-down event, using the characters ignoring modifiers (VLC semantics).
-    /// Returns nil for pure modifier presses.
+    /// A non-ASCII character (ЙЦУКЕН, Greek, Hebrew...) is replaced by the key's character in the
+    /// current ASCII-capable layout, so the physical F key is "f" on a Russian layout too, as VLC's
+    /// bindings and the recorder expect. Returns nil for pure modifier presses.
     @MainActor
     public init?(event: NSEvent) {
         guard event.type == .keyDown || event.type == .keyUp else { return nil }
@@ -111,7 +114,34 @@ public struct KeyBinding: Hashable, Sendable, Codable, CustomStringConvertible {
             self.init(key: "F\(scalar.value - 0xF704 + 1)", modifiers: modifiers)
             return
         }
+        if !first.isASCII, let latin = Self.asciiLayoutCharacter(event.keyCode)?.lowercased().first,
+           latin.isASCII, !latin.isWhitespace, !latin.isNewline {
+            self.init(key: String(latin), modifiers: modifiers)
+            return
+        }
         self.init(key: String(first), modifiers: modifiers)
+    }
+
+    /// The character a virtual key code gives without modifiers in the current ASCII-capable
+    /// keyboard layout. Replaceable so tests can feed a non-Latin layout without a live keyboard.
+    @MainActor
+    public static var asciiLayoutCharacter: @MainActor (UInt16) -> String? = currentASCIICapableLayoutCharacter
+
+    @MainActor
+    private static func currentASCIICapableLayoutCharacter(_ keyCode: UInt16) -> String? {
+        guard let source = TISCopyCurrentASCIICapableKeyboardLayoutInputSource()?.takeRetainedValue(),
+              let property = TISGetInputSourceProperty(source, kTISPropertyUnicodeKeyLayoutData) else { return nil }
+        let layoutData = Unmanaged<CFData>.fromOpaque(property).takeUnretainedValue()
+        guard let bytes = CFDataGetBytePtr(layoutData) else { return nil }
+        var deadKeyState: UInt32 = 0
+        var length = 0
+        var characters = [UniChar](repeating: 0, count: 4)
+        let status = bytes.withMemoryRebound(to: UCKeyboardLayout.self, capacity: 1) { layout in
+            UCKeyTranslate(layout, keyCode, UInt16(kUCKeyActionDown), 0, UInt32(LMGetKbdType()),
+                           OptionBits(kUCKeyTranslateNoDeadKeysMask), &deadKeyState, characters.count, &length, &characters)
+        }
+        guard status == noErr, length > 0 else { return nil }
+        return String(utf16CodeUnits: characters, count: length)
     }
 
     /// Virtual key codes of keys with VLC names.
@@ -233,5 +263,25 @@ public enum MenuKeyEquivalentPolicy {
         }
         if binding.modifiers.contains(.command) { return true }
         return !hasModal && !isEditing
+    }
+}
+
+/// Whether the main window's key monitor may run `binding` as a VLC hotkey before the focused view
+/// sees it (D026, G-03). The monitor runs ahead of the responder chain, so every key it takes is lost
+/// to the view with the keyboard.
+public enum WindowKeyPolicy {
+    /// - Parameters:
+    ///   - hasSheet: a dialog or sheet is open; its own key loop gets every key.
+    ///   - isCapturing: Customize Player or the shortcut recorder is listening.
+    ///   - isEditing: a text field or focused native control has the keyboard.
+    ///   - listFocused: a SwiftUI list or grid (library, queue, bookmarks) has keyboard focus. The
+    ///     window's first responder is then still the hosting view, so ``FocusedListKeys`` must be
+    ///     let through for the list's own handlers: ↓ moves the selection instead of VLC's
+    ///     nav-down volume step.
+    public static func monitorHandles(_ binding: KeyBinding?, hasSheet: Bool, isCapturing: Bool,
+                                      isEditing: Bool, listFocused: Bool) -> Bool {
+        guard !hasSheet, !isCapturing else { return false }
+        if listFocused, let binding, FocusedListKeys.contains(binding) { return false }
+        return !isEditing
     }
 }

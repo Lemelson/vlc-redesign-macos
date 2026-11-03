@@ -82,9 +82,11 @@ final class VLCDialogBackend: DialogBackend {
         self.transport = transport
         transport.addListener(self) { [weak self] service in if service == .dialogs || service == .operationError { self?.reload() } }
     }
-    func postLogin(id: UInt64, username: String, password: String, store: Bool) { transport.command(.postLogin, service: .dialogs, arguments: ["id": String(id), "username": username, "password": password, "store": store]) }
-    func postAction(id: UInt64, action: Int) { transport.command(.postAction, service: .dialogs, arguments: ["id": String(id), "action": action]) }
-    func dismiss(id: UInt64) { transport.command(.dismiss, service: .dialogs, arguments: ["id": String(id)]) }
+    // The bridge reads ids as NSNumber (unsignedLongLongValue); a String id raised an ObjC
+    // exception inside a MainActor task, which corrupted Swift executor tracking (live crash).
+    func postLogin(id: UInt64, username: String, password: String, store: Bool) { transport.command(.postLogin, service: .dialogs, arguments: ["id": NSNumber(value: id), "username": username, "password": password, "store": store]) }
+    func postAction(id: UInt64, action: Int) { transport.command(.postAction, service: .dialogs, arguments: ["id": NSNumber(value: id), "action": action]) }
+    func dismiss(id: UInt64) { transport.command(.dismiss, service: .dialogs, arguments: ["id": NSNumber(value: id)]) }
     private func reload() {
         guard let presenter else { return }
         let state = transport.snapshot(for: .dialogs)

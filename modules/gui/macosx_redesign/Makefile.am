@@ -35,7 +35,8 @@ libmacosx_redesign_plugin_la_SOURCES = \
 	$(MXR_DIR)/module/bridge/MXRDiscoveryServices.m \
 	$(MXR_DIR)/module/bridge/MXRSubtitleCueServices.m \
 	$(MXR_DIR)/module/bridge/MXREffectsServices.m \
-	$(MXR_DIR)/module/bridge/MXRPlatformServices.m
+	$(MXR_DIR)/module/bridge/MXRPlatformServices.m \
+	$(MXR_DIR)/module/bridge/MXRUpdaterBridge.m
 MXR_FLAGS = -mmacosx-version-min=$(MXR_MIN_MACOS) \
 	-I$(srcdir)/$(MXR_DIR)/module \
 	-I$(srcdir)/$(MXR_DIR)/Sources/MXRBridgeAPI/include
@@ -47,11 +48,16 @@ libmacosx_redesign_plugin_la_LDFLAGS = $(AM_LDFLAGS) $(gui_RPATH) \
 	-Wl,-force_load,$(abs_builddir)/$(MXR_SWIFT_LIB) \
 	-L$(MXR_SDK_PATH)/usr/lib/swift -L$(MXR_SWIFT_TOOLCHAIN_LIBDIR) \
 	-Wl,-rpath,/usr/lib/swift \
-	-Wl,-framework,AppKit,-framework,SwiftUI,-framework,AVKit \
+	-Wl,-framework,AppKit,-framework,SwiftUI,-framework,AVKit,-framework,Carbon \
 	-Wl,-weak_framework,MediaPlayer \
 	-Wl,-framework,AVFoundation,-framework,QuartzCore,-framework,CoreVideo \
 	-Wl,-framework,CoreMedia,-framework,AudioToolbox,-framework,CoreGraphics,-framework,CoreText
 EXTRA_libmacosx_redesign_plugin_la_DEPENDENCIES = $(MXR_SWIFT_LIB)
+if HAVE_SPARKLE
+# Updates (D059). package.mak copies and codesign.sh signs Contents/Frameworks/Sparkle.framework;
+# the plugin sits in Contents/Frameworks/plugins, and vlc-cache-gen loads it outside the app.
+libmacosx_redesign_plugin_la_LDFLAGS += -Wl,-framework,Sparkle -Wl,-rpath,@loader_path/..
+endif
 
 if ENABLE_MACOSX_REDESIGN
 gui_PLUGINS += libmacosx_redesign_plugin.la
@@ -70,11 +76,14 @@ check-macosx-redesign: check-macosx-redesign-generated check-macosx-redesign-nat
 	python3 "$(srcdir)/$(MXR_DIR)/tools/test-build-contracts.py"
 	python3 "$(srcdir)/$(MXR_DIR)/tools/test-finalize-app.py"
 	python3 "$(srcdir)/$(MXR_DIR)/tools/test-install-app.py"
+	python3 "$(srcdir)/$(MXR_DIR)/tools/test-package-dmg.py"
+	python3 "$(srcdir)/$(MXR_DIR)/tools/test-make-universal.py"
 	python3 "$(srcdir)/$(MXR_DIR)/tools/test-schema-drift.py"
 	python3 "$(srcdir)/$(MXR_DIR)/tools/test-swift-results.py"
 	python3 "$(srcdir)/$(MXR_DIR)/tools/test-native-runtime-isolation.py"
 	python3 "$(srcdir)/$(MXR_DIR)/tools/test-native-diagnostics.py"
 	python3 "$(srcdir)/$(MXR_DIR)/tools/test-screens-doc.py"
+	python3 "$(srcdir)/$(MXR_DIR)/tools/test-make-appcast.py"
 
 .PHONY: check-macosx-redesign check-macosx-redesign-generated check-macosx-redesign-native
 check-macosx-redesign-generated:
@@ -113,4 +122,4 @@ MXR_TOOL_FILES = $(shell cd "$(srcdir)" && find $(MXR_DIR)/tools -type f ! -path
 MXR_GENERATOR_INPUT_FILES = $(shell cd "$(srcdir)" && find ../redesign/design/tokens ../redesign/design/figma/icons-svg ../redesign/patches/engine -type f 2>/dev/null)
 EXTRA_DIST += $(MXR_GENERATOR_INPUT_FILES) $(MXR_SWIFT_FILES) $(MXR_SWIFT_TEST_FILES) $(MXR_NATIVE_FILES) \
 	$(MXR_RESOURCE_FILES) $(MXR_TOOL_FILES) \
-	$(MXR_DIR)/Package.swift $(MXR_DIR)/configure.m4
+	$(MXR_DIR)/Package.swift $(MXR_DIR)/configure.m4 $(MXR_DIR)/VERSION

@@ -11,17 +11,19 @@ enum PlayerCanvasStyle: Equatable {
     /// Player - hide UI (3328:11554) and the auto-hidden window (03m53.6): the whole window inside a
     /// uniform 10 pt frame; bars overlay the video when revealed.
     case thinFrame
-    /// Fullscreen and Customize (2107:5604): the canvas fills the window and the bars overlay it.
+    /// Fullscreen: the canvas fills the window and the bars overlay it.
     case fullBleed
-    /// Player - Light (2425:13624): the canvas runs under the translucent bars, edge to edge, while
-    /// the picture stays between the pinned bars, so a theme never moves or rescales the video and
-    /// the bottom of the picture (subtitles) is never under the control bar (D055).
+    /// Player - Light (2425:13624) and Customize (2107:5604): the canvas runs under the translucent
+    /// bars, edge to edge, while the picture stays between the pinned bars, so a theme never moves
+    /// or rescales the video and the bottom of the picture (subtitles) is never under the control
+    /// bar (D055). Customize's picture ends at its new-row band (y 40…972 in 2107:5604), so opening
+    /// it never crops a fitted picture under the bars (live run 2).
     case underBars
 
     static func resolve(fullscreen: Bool, uiHidden: Bool, customizing: Bool, light: Bool,
                         autoHidesInWindow: Bool) -> PlayerCanvasStyle {
         if fullscreen { return .fullBleed }
-        if customizing { return .fullBleed }
+        if customizing { return .underBars }
         if uiHidden || autoHidesInWindow { return .thinFrame }
         return light ? .underBars : .framed
     }
@@ -39,9 +41,12 @@ enum PlayerCanvasStyle: Equatable {
     }
 
     /// Where the picture sits inside the canvas (the canvas rect is ``insets(controlHeight:)``).
+    /// Under the bars it keeps Player-6's picture rect (6586:17371: y 41, 10 pt from the sides, down
+    /// to the control bar), so Light and Dark fit the same video to the same rect at every aspect
+    /// ratio (D055; live run 2 measured Light 1 pt higher and 2.5 pt wider).
     func pictureInsets(controlHeight: CGFloat) -> Theme.Insets {
         guard self == .underBars else { return .zero }
-        return Theme.Insets(top: Theme.Metric.Window.topBar.height, leading: 0, bottom: controlHeight, trailing: 0)
+        return PlayerCanvasStyle.framed.insets(controlHeight: controlHeight)
     }
 
     /// The picture's insets from the window edges.

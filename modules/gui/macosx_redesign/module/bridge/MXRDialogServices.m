@@ -72,7 +72,7 @@ static NSAttributedString *ExtensionRichText(NSString *text, CGFloat size) {
     NSMutableAttributedString *rich = [[NSMutableAttributedString alloc] initWithHTML:data documentAttributes:NULL];
     if (rich == nil) return [[NSAttributedString alloc] initWithString:text attributes:@{NSFontAttributeName:base}];
     NSRange all = NSMakeRange(0, rich.length);
-    [rich enumerateAttribute:NSFontAttributeName inRange:all options:0 usingBlock:^(NSFont *font, NSRange range, BOOL *stop) {
+    [rich enumerateAttribute:NSFontAttributeName inRange:all options:0 usingBlock:^(NSFont *font, NSRange range, BOOL *stop) { (void)stop;
         NSFontDescriptorSymbolicTraits traits = font.fontDescriptor.symbolicTraits & (NSFontDescriptorTraitBold | NSFontDescriptorTraitItalic);
         NSFont *mapped = [NSFont fontWithDescriptor:[base.fontDescriptor fontDescriptorWithSymbolicTraits:traits] size:size] ?: base;
         [rich addAttribute:NSFontAttributeName value:mapped range:range];
@@ -143,7 +143,7 @@ static NSAttributedString *ExtensionRichText(NSString *text, CGFloat size) {
 }
 - (void)popUpChanged:(NSPopUpButton *)popup {
     NSInteger index = popup.indexOfSelectedItem;
-    [self write:@(popup.tag) with:^(extension_dialog_t *dialog, extension_widget_t *widget) {
+    [self write:@(popup.tag) with:^(extension_dialog_t *dialog, extension_widget_t *widget) { (void)dialog;
         NSInteger i = 0;
         for (struct extension_widget_value_t *value = widget->p_values; value != NULL; value = value->p_next, i++) value->b_selected = i == index;
     }];
@@ -151,7 +151,7 @@ static NSAttributedString *ExtensionRichText(NSString *text, CGFloat size) {
 - (void)textChanged:(NSNotification *)notification {
     NSTextField *field = notification.object;
     NSString *text = field.stringValue;
-    [self write:@(field.tag) with:^(extension_dialog_t *dialog, extension_widget_t *widget) {
+    [self write:@(field.tag) with:^(extension_dialog_t *dialog, extension_widget_t *widget) { (void)dialog;
         free(widget->psz_text); widget->psz_text = strdup(text.UTF8String);
     }];
 }
@@ -196,7 +196,7 @@ static NSAttributedString *ExtensionRichText(NSString *text, CGFloat size) {
             MXRExtensionList *list = [MXRExtensionList new];
             __weak MXRExtensionDialogWindow *weakSelf = self;
             list.selectionChanged = ^(NSIndexSet *rows) {
-                [weakSelf write:@(tag) with:^(extension_dialog_t *dialog, extension_widget_t *engine) {
+                [weakSelf write:@(tag) with:^(extension_dialog_t *dialog, extension_widget_t *engine) { (void)dialog;
                     NSUInteger i = 0;
                     for (struct extension_widget_value_t *value = engine->p_values; value != NULL; value = value->p_next, i++) value->b_selected = [rows containsIndex:i];
                 }];
@@ -261,7 +261,7 @@ static NSAttributedString *ExtensionRichText(NSString *text, CGFloat size) {
             list.selectionChanged = nil; /* reflecting the engine's selection is not a user change */
             list.values = values; [table reloadData];
             NSMutableIndexSet *rows = [NSMutableIndexSet indexSet];
-            [values enumerateObjectsUsingBlock:^(NSDictionary *value, NSUInteger i, BOOL *stop) { if ([value[@"selected"] boolValue]) [rows addIndex:i]; }];
+            [values enumerateObjectsUsingBlock:^(NSDictionary *value, NSUInteger i, BOOL *stop) { (void)stop; if ([value[@"selected"] boolValue]) [rows addIndex:i]; }];
             [table selectRowIndexes:rows byExtendingSelection:NO];
             list.selectionChanged = changed;
             break;
@@ -415,7 +415,10 @@ static NSAttributedString *ExtensionRichText(NSString *text, CGFloat size) {
     return @{@"dialogs":result,@"requests":result};
 }
 - (BOOL)performCommand:(MXRBridgeCommand)command arguments:(NSDictionary *)args error:(NSError **)error {
-    uint64_t id=[args[@"id"] unsignedLongLongValue]; [_lock lock]; MXRDialogRecord *record=nil;
+    /* Never message an id of unknown type: an ObjC exception here unwinds through Swift tasks. */
+    id rawID=args[@"id"]; uint64_t id=[rawID isKindOfClass:NSNumber.class]?[rawID unsignedLongLongValue]
+        :[rawID isKindOfClass:NSString.class]?strtoull([rawID UTF8String],NULL,10):0;
+    [_lock lock]; MXRDialogRecord *record=nil;
     for(MXRDialogRecord *r in _records) if(r.identifier==id) { record=r; break; }
     BOOL supported=[command isEqual:MXRBridgeCommandPostLogin]||[command isEqual:MXRBridgeCommandPostAction]||[command isEqual:MXRBridgeCommandDismiss];
     if(!record||!supported||_stopped) { [_lock unlock]; if(error) *error=[NSError errorWithDomain:@"MXRVLCBridge" code:5 userInfo:@{NSLocalizedDescriptionKey:@"This dialog is no longer available."}]; return NO; }

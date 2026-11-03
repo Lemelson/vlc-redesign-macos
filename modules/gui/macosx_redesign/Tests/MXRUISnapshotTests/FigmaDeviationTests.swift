@@ -91,6 +91,29 @@ final class FigmaDeviationTests: XCTestCase {
         XCTAssertEqual(brokenCrop.verdict, .fail, brokenCrop.report())
     }
 
+    /// D059: General draws Figma's "Check for updates automatically" and adds two update rows
+    /// below it. Without the insert the rows below are 84 pt off and the page fails; with it they
+    /// are compared where the product draws them, and only the added band (plus the strip pushed
+    /// out of the frame) is left out.
+    @MainActor
+    func testInsertedRowsMoveTheFigmaRowsBelowThemDown() throws {
+        let index: FigmaIndex
+        do { index = try FigmaIndex.load(paths: GalleryPaths.locate()) } catch { throw XCTSkip("Figma data not available: \(error)") }
+        let entry = try XCTUnwrap(GalleryCatalog.entry(id: "S48.Settings/general"))
+        XCTAssertTrue(entry.figmaDeviations.contains { if case .inserted = $0.kind { true } else { false } })
+        XCTAssertFalse(entry.figmaDeviations.contains { $0.node == "3046:9901" && $0.decision == "D035" },
+                       "the Figma update toggle is drawn again, not removed")
+        let render = try GalleryRenderer.render(entry, scale: 1)
+        let reference = try index.reference(for: try XCTUnwrap(entry.figmaNode), scale: 1)
+        let withoutInsert = entry.figmaDeviations.filter { if case .inserted = $0.kind { false } else { true } }
+        let raw = try index.applying(withoutInsert, render: render, reference: reference)
+        XCTAssertEqual(ImageComparator.compare(raw.render, raw.reference, scale: 1, makeImages: false).0.verdict, .fail)
+        let adjusted = try index.applying(entry.figmaDeviations, render: render, reference: reference)
+        let comparison = ImageComparator.compare(adjusted.render, adjusted.reference, scale: 1, makeImages: false).0
+        XCTAssertNotEqual(comparison.verdict, .fail, comparison.report())
+        XCTAssertGreaterThanOrEqual(adjusted.excludedPixels - raw.excludedPixels, 784 * 84, "the added band is left out")
+    }
+
     /// A deviation does not hide a regression elsewhere: a wrong block drawn into the render
     /// outside every declared area still fails the check.
     @MainActor

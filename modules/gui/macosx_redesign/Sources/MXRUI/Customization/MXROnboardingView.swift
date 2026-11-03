@@ -160,8 +160,8 @@ public struct MXROnboardingView: View {
         let selected = app.appearance.theme == theme
         return Button { app.appearance.setTheme(theme) } label: {
             VStack(spacing: O.themesLabelGap) {
-                RoundedRectangle(cornerRadius: O.themesFillRadius)
-                    .fill(themeFill(theme))
+                themeFill(theme)
+                    .clipShape(RoundedRectangle(cornerRadius: O.themesFillRadius))
                     .padding(box.padding.edgeInsets)
                     .frame(width: box.width, height: box.height)
                     .overlay {
@@ -179,15 +179,22 @@ public struct MXROnboardingView: View {
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
-    private func themeFill(_ theme: ThemePreference) -> AnyShapeStyle {
+    @ViewBuilder
+    private func themeFill(_ theme: ThemePreference) -> some View {
         let stops = Theme.Gradient.onboardingSystemTile
         switch theme {
-        case .light: return AnyShapeStyle(stops[0].color.color)
-        case .dark: return AnyShapeStyle(stops[1].color.color)
+        case .light: Rectangle().fill(stops[0].color.color)
+        case .dark: Rectangle().fill(stops[1].color.color)
         case .system:
-            return AnyShapeStyle(LinearGradient(stops: stops.map { .init(color: $0.color.color, location: $0.location) },
-                startPoint: UnitPoint(x: O.systemGradientStartX, y: O.systemGradientStartY),
-                endPoint: UnitPoint(x: O.systemGradientEndX, y: O.systemGradientEndY)))
+            // 1902:3991's hard split, drawn as a filled half (a gradient's hard stop is not
+            // antialiased and stair-steps along the diagonal).
+            ZStack {
+                Rectangle().fill(stops[1].color.color)
+                MXRHalfPlane(start: UnitPoint(x: O.systemGradientStartX, y: O.systemGradientStartY),
+                             end: UnitPoint(x: O.systemGradientEndX, y: O.systemGradientEndY),
+                             location: stops[0].location)
+                    .fill(stops[0].color.color)
+            }
         }
     }
 
@@ -270,23 +277,17 @@ public struct MXROnboardingView: View {
     }
 
     private func keycaps(_ binding: KeyBinding, compact: Bool) -> some View {
-        let caps = binding.onboardingKeycaps(pairedWithAnother: compact)
-        let inset = compact || caps.count > 2 ? O.keycapCompactInset : O.keycapHorizontalInset
-        return HStack(spacing: O.keycapModifierGap) {
-            ForEach(Array(caps.enumerated()), id: \.offset) { _, key in
-                // A keycap never truncates its glyphs (the Mac defaults are wider than Figma's keys).
-                Text(key).mxrTextStyle(.onboardingBody).foregroundStyle(Theme.Color.fg1)
-                    .lineLimit(1).fixedSize()
-                    .padding(.horizontal, inset + O.keycapStroke)
-                    .frame(minHeight: O.shortcutColumnsRowHeight)
-                    .background(Theme.Color.bgA3, in: RoundedRectangle(cornerRadius: O.keycapRadius))
-                    .overlay(RoundedRectangle(cornerRadius: O.keycapRadius)
-                        .strokeBorder(Theme.Color.dividerBright, lineWidth: O.keycapStroke))
-                    .compositingGroup()
-                    .customizationShadow(Theme.Effect.keycapShadow,
-                                         cornerRadius: O.keycapRadius)
-            }
-        }
+        // One keycap per binding on every row (S71 uses one style), the shortcut written as a Mac menu
+        // writes it. A keycap never truncates its glyphs (the Mac defaults are wider than Figma's keys).
+        Text(binding.onboardingKeycap).mxrTextStyle(.onboardingBody).foregroundStyle(Theme.Color.fg1)
+            .lineLimit(1).fixedSize()
+            .padding(.horizontal, (compact ? O.keycapCompactInset : O.keycapHorizontalInset) + O.keycapStroke)
+            .frame(minHeight: O.shortcutColumnsRowHeight)
+            .background(Theme.Color.bgA3, in: RoundedRectangle(cornerRadius: O.keycapRadius))
+            .overlay(RoundedRectangle(cornerRadius: O.keycapRadius)
+                .strokeBorder(Theme.Color.dividerBright, lineWidth: O.keycapStroke))
+            .compositingGroup()
+            .customizationShadow(Theme.Effect.keycapShadow, cornerRadius: O.keycapRadius)
     }
 
     private var footer: some View {
@@ -324,6 +325,42 @@ public struct MXROnboardingView: View {
         .padding(.leading, step == .appearance ? O.footerSwatchesLeading : O.footerLeading)
         .padding(.trailing, O.footerTrailing)
         .padding(.bottom, O.footerBottom)
+    }
+}
+
+/// The part of a rect on the `start` side of a linear gradient's isoline at `location`: where a
+/// two-stop hard-split gradient from `start` to `end` draws its first colour.
+struct MXRHalfPlane: Shape {
+    let start: UnitPoint
+    let end: UnitPoint
+    let location: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        let p0 = CGPoint(x: rect.minX + start.x * rect.width, y: rect.minY + start.y * rect.height)
+        let p1 = CGPoint(x: rect.minX + end.x * rect.width, y: rect.minY + end.y * rect.height)
+        let d = CGPoint(x: p1.x - p0.x, y: p1.y - p0.y)
+        let m = CGPoint(x: p0.x + d.x * location, y: p0.y + d.y * location)
+        // Signed distance along the gradient axis; the first colour is where it is negative.
+        func side(_ p: CGPoint) -> CGFloat { (p.x - m.x) * d.x + (p.y - m.y) * d.y }
+        let corners = [CGPoint(x: rect.minX, y: rect.minY), CGPoint(x: rect.maxX, y: rect.minY),
+                       CGPoint(x: rect.maxX, y: rect.maxY), CGPoint(x: rect.minX, y: rect.maxY)]
+        var polygon: [CGPoint] = []
+        for (index, a) in corners.enumerated() {
+            let b = corners[(index + 1) % corners.count]
+            let sa = side(a), sb = side(b)
+            if sa <= 0 { polygon.append(a) }
+            if (sa < 0) != (sb < 0), sa != sb {
+                let t = sa / (sa - sb)
+                polygon.append(CGPoint(x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t))
+            }
+        }
+        var path = Path()
+        if let first = polygon.first {
+            path.move(to: first)
+            polygon.dropFirst().forEach { path.addLine(to: $0) }
+            path.closeSubpath()
+        }
+        return path
     }
 }
 
@@ -409,17 +446,15 @@ struct MXROnboardingShortcut: Identifiable {
 }
 
 extension KeyBinding {
-    /// Onboarding keycaps (S71, D026): Mac glyphs in the Mac order ⌃ ⌥ ⇧ ⌘. A row's only binding
-    /// shows one keycap per key, as Figma 1902:6770 does ("⌘" "L"); when two bindings share a row
-    /// (Previous / Next) each binding is one keycap ("⌥⌘←"), the way Mac menus write a shortcut, so
-    /// VLC's macOS defaults (⌥⌘← / ⌥⌘→) fit the row.
-    func onboardingKeycaps(pairedWithAnother: Bool) -> [String] {
-        var labels: [String] = []
-        if modifiers.contains(.control) { labels.append("⌃") }
-        if modifiers.contains(.option) { labels.append("⌥") }
-        if modifiers.contains(.shift) { labels.append("⇧") }
-        if modifiers.contains(.command) { labels.append("⌘") }
-        labels.append(Self.displayName(forKey: key))
-        return pairedWithAnother ? [labels.joined()] : labels
+    /// An onboarding keycap (S71, D026): the whole binding in one keycap with Mac glyphs in the Mac
+    /// order ⌃ ⌥ ⇧ ⌘ ("⌘F", "⌥⌘←"), the way Mac menus write a shortcut. Every row uses this one style,
+    /// so VLC's macOS defaults fit a row with two bindings as well as a row with one.
+    var onboardingKeycap: String {
+        var label = ""
+        if modifiers.contains(.control) { label += "⌃" }
+        if modifiers.contains(.option) { label += "⌥" }
+        if modifiers.contains(.shift) { label += "⇧" }
+        if modifiers.contains(.command) { label += "⌘" }
+        return label + Self.displayName(forKey: key)
     }
 }

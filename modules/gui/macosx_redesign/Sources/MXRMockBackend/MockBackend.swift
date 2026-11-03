@@ -51,6 +51,7 @@ public final class MockBackend {
     public let mediaSources: MockMediaSources
     public let output: MockOutput
     public let renderers: MockRenderers
+    public let updater: MockUpdater
 
     /// Builds the backends in the given scenario.
     public init(scenario: Scenario = .playingEpisode, clock: ClockMode = .frozen, settingsCatalog: SettingsCatalog = .bundled) {
@@ -69,6 +70,7 @@ public final class MockBackend {
         mediaSources = MockMediaSources()
         output = MockOutput()
         renderers = MockRenderers()
+        updater = MockUpdater()
         queue.onMediaFinished = { [weak library] id in
             library?.recordProgress(mediaID: id, progress: 1, finished: true)
         }
@@ -85,7 +87,8 @@ public final class MockBackend {
     public var backends: Backends {
         Backends(player: player, clock: player, queue: queue, library: library, mediaSources: mediaSources, settings: settings,
                  shortcuts: shortcuts, dialogs: dialogs, extensions: extensions, thumbnails: thumbnails, osd: osd,
-                 capabilities: scenario == .emptyLibrary ? BackendCapabilities.all : .all, output: output, renderers: renderers)
+                 capabilities: scenario == .emptyLibrary ? BackendCapabilities.all : .all, output: output, renderers: renderers,
+                 updater: updater)
     }
 
     /// An `AppModel` over these backends, in memory, with app stores seeded like the Figma file

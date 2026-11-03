@@ -62,8 +62,12 @@ final class LibraryGallery: NSObject, GalleryProvider {
                 if id == "S40.Library/home" {
                     (app.backends.library as? MockLibrary)?.useFigmaHomePlaylists()
                     (app.backends.library as? MockLibrary)?.useFigmaHomeFolders()
+                    (app.backends.library as? MockLibrary)?.useFigmaCompactHomeProgress()
                     app.library.navigate(to: .videos)
                 }
+                // S35 (858:5294, key frame 12m28.4) lists only the seeded Podcasts and Radio; the shared
+                // mock's saved "TV Channels" stream is for Home's Latest Streams (gallery-only, D030).
+                if id == "S35.Library/network" { (app.backends.library as? MockLibrary)?.useFigmaNetworkStreams() }
                 app.library.navigate(to: location)
                 if location == .home { app.library.reload() }
                 app.interface.library = .compact
@@ -193,6 +197,15 @@ final class LibraryGallery: NSObject, GalleryProvider {
                 let app = AppModel.mock(.pausedEpisode)
                 app.interface.isMiniPlayerQueueExpanded = true
                 return MXRMiniPlayerDock(videoView: miniVideo).appModel(app)
+            },
+            // Live run 2: at 680 pt the 391 pt card covered most of the grid. Not designed (Figma draws
+            // only the 1920 pt window); the card keeps to a third of the library there.
+            GalleryEntry(id: "S45.Library/narrow-window", title: "Library · Mini player in a 680 pt window", size: CGSize(width: 680, height: 383 - Theme.Metric.Window.topBar.height), screens: ["S45", "S46"], renderEngine: .hostingView) {
+                let app = AppModel.mock(.pausedEpisode)
+                app.library.navigate(to: .folder(MockMediaID.theWandS01Folder))
+                app.library.fullViewMode = .grid
+                app.interface.library = .full
+                return ZStack { MXRLibraryView(); MXRMiniPlayerDock(videoView: miniVideo) }.appModel(app)
             },
             GalleryEntry(id: "S47.Library/search", title: "Library · Search results", size: CGSize(width: Theme.Metric.Window.player.width, height: Theme.Metric.Library.fullWindowNavColumn.height), screens: ["S47"], renderEngine: .hostingView) {
                 let app = AppModel.mock(.idle)

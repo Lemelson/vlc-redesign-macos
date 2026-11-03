@@ -13,16 +13,15 @@ final class AppGallery: NSObject, GalleryProvider {
                   node: "247:445", screens: ["S01"], canonicalTitle: true,
                   deviations: [.differs(node: "I491:1928;1908:7389", outset: 14, decision: "D048",
                                         "head at the labelled 00:02:10; Figma draws it at 00:01:53"),
-                               .differs(node: "247:464", decision: "D022",
-                                        "Figma's right group ends with Windows minimise, maximise and close; the Mac window keeps only the fullscreen button there")]),
+                              ] + ShippingGallery.macRightGroup(minimize: "247:466", maximize: "247:467", fullscreen: "247:468")),
             scene("S72.App/light", title: "Complete player · Light", scenario: .playingEpisode,
                   node: "2425:13624", screens: ["S72"], light: true, library: .compact,
                   deviations: [.differs(node: "I2425:13645;1908:7389", outset: 14, decision: "D048",
                                         "head at the labelled 00:02:10; Figma draws it at 00:01:53"),
                                .differs(node: "I2425:13645;3603:12304", decision: "D049",
                                         "Light accent fills use Light/Accent/Main; the frame's play button keeps Dark/Accent/Main"),
-                               .differs(node: "2425:13640", decision: "D022",
-                                        "Figma's right group ends with Windows minimise, maximise and close; the Mac window keeps only the fullscreen button there")]),
+                              ] + ShippingGallery.macRightGroup(minimize: "2425:13641", maximize: "2425:13642", fullscreen: "2425:13643")
+                    + ShippingGallery.playerLightCanvas),
             scene("S43.App/home", title: "Full library", scenario: .idle,
                   node: "6261:15078", screens: ["S43"], library: .full),
             scene("S44.App/grid", title: "Full library · S01 grid", scenario: .idle,
@@ -43,7 +42,8 @@ final class AppGallery: NSObject, GalleryProvider {
             scene("S06.App/hidden", title: "Video only", scenario: .pausedEpisode,
                   node: "3328:11554", screens: ["S06"], hidden: true),
             scene("S66.App/customization", title: "Customization over the player", scenario: .playingEpisode,
-                  node: "2107:5604", screens: ["S66"], customizing: true),
+                  node: "2107:5604", screens: ["S66"], customizing: true,
+                  deviations: ShippingGallery.pictureSideStrips(controlRows: MXRPlayerMetrics.customizeControlRows)),
         ]
     }
 

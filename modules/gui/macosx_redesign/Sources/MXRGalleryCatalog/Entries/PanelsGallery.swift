@@ -23,7 +23,8 @@ final class PanelsGallery: NSObject, GalleryProvider {
                 MXRTrackPopoverView(tab: .video).appModel(AppModel.mock(.playingEpisode))
             },
             GalleryEntry(id: "S17.Sidebar/playback", title: "Playback sidebar", size: sidebar, figmaNode: "5187:24308", screens: ["S17"],
-                         notes: "Rows follow the complete list at 09m17.5 (Show Waveform and Show Metadata replace the Figma crop's Show Statistics). Reverse is shown unavailable with an ⓘ (D014: Core plays forward only).", renderEngine: .hostingView) {
+                         notes: "Rows follow the complete list at 09m17.5 (Show Waveform and Show Metadata replace the Figma crop's Show Statistics). Reverse is shown unavailable with an ⓘ (D014: Core plays forward only).", renderEngine: .hostingView,
+                         figmaDeviations: playbackRowDeviations) {
                 let app = sidebarApp()
                 // 5187:24308 shows the timeline toggle usable: play the episode's external .srt
                 // subtitle, whose cue times the timeline can read (CMP-17), rather than an embedded one.
@@ -37,7 +38,9 @@ final class PanelsGallery: NSObject, GalleryProvider {
                 return MXRMetadataOverlayView().appModel(app).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
             },
             GalleryEntry(id: "S20.Presets/open", title: "Preset list", size: CGSize(width: presetListWidth, height: presetListHeight), figmaNode: "2372:8838", screens: ["S20"],
-                         notes: "Figma's presets: New first, saved presets with ⋯, the current Default Preset last and checked.", renderEngine: .hostingView) {
+                         notes: "Figma's presets: New first, saved presets with ⋯, the current Default Preset last and checked.", renderEngine: .hostingView,
+                         figmaDeviations: [.differs(node: "I2372:8840;2107:5930", outset: 1, decision: "D033",
+                                                    "\"New Custom Preset\" as in video 07m58.9; Figma says \"New Preset\"")]) {
                 MXRSidebarPresetList().appModel(presetApp()).frame(maxHeight: .infinity, alignment: .bottom)
             },
             GalleryEntry(id: "S18.Sidebar/video", title: "Video sidebar", size: sidebar, figmaNode: "498:2965", screens: ["S18"], renderEngine: .hostingView) {
@@ -148,6 +151,27 @@ final class PanelsGallery: NSObject, GalleryProvider {
         catalog.categories.append(.init(id: "panel-filter-fixture", group: .media, sidebar: "Video filters", title: "Video filters", icon: "video", sections: [.init(title: "Options", rows: rows)]))
         return MockBackend(scenario: .playingEpisode, settingsCatalog: catalog).makeAppModel(clockTicks: false)
     }
+    /// D033 (09m17.5): Show Waveform takes Show Statistics' row and Show Metadata is a row Figma's
+    /// crop does not have, so Reverse and everything below sit one 52 pt toggle row lower; Reverse is
+    /// unavailable with an ⓘ (D014). Rows 5187:24490…24539 of 5187:24330 (at y 51).
+    private static let playbackRowDeviations: [FigmaDeviation] = {
+        let row: CGFloat = 52, width = Theme.Metric.SidePanels.settingsSidebar.size.width
+        let metadataTop: CGFloat = 51 + 114, reverseTop = metadataTop + row
+        return [
+            // The label of row 5187:24490 (y 51 + 62), left of its toggle.
+            .differs(CGRect(x: 0, y: 51 + 62, width: width - 100, height: row), decision: "D033", "Show Waveform on Seekbar in Show Statistics' place"),
+            .differs(CGRect(x: 0, y: metadataTop, width: width, height: row), decision: "D033", "Show Metadata, a row of the final list"),
+            // D033 (accepted) lists Reverse in the final rows; it is unavailable per D014 (partially
+            // resolved, so not citable on its own).
+            .differs(CGRect(x: 0, y: reverseTop, width: width, height: row), decision: "D033", "Reverse, one row lower, unavailable with an ⓘ (D014)"),
+        ] + ["5187:24532", "5187:24514", "5187:24539"].map {
+            .moved(node: $0, by: CGSize(width: 0, height: row), decision: "D033", "one row lower under Show Metadata")
+        } + [
+            // 5187:24557 sits 2.4 pt right of its own "1" tick (5187:24552); the product centres the
+            // thumb on the tick of its value, as 804:1299 and 607:1136 do.
+            .differs(CGRect(x: 169.6, y: 421 + row - 1, width: 12.4, height: 26), decision: "D054", "Speed thumb on the 1× tick"),
+        ]
+    }()
     /// The filter cards' component sets, each open variant on its own (360 pt wide, Figma height),
     /// plus the closed bar they share.
     @MainActor private static func filterCardEntries() -> [Any] {
@@ -174,20 +198,43 @@ final class PanelsGallery: NSObject, GalleryProvider {
     }
     /// D054: where an open card's Figma thumb disagrees with its own label, the product puts the
     /// thumb at the label's value in the VLC module's range; Compressor's "FM5" is a typo of RMS and
-    /// Stereo Widener's 0–1 factors carry no "%". Only those sliders and labels are left out.
+    /// Stereo Widener's 0–1 factors carry no "%". Only the span between the two thumbs (the thumb and
+    /// the end of the fill) and those labels are left out; the rest of each slider is compared.
     private static let filterCardDeviations: [MXRFilterCard: [FigmaDeviation]] = [
         .compressor: [
             .differs(node: "536:1543", outset: 2, decision: "D054", "\"RMS / Peak\", Figma's \"FM5\" is a typo of VLC's option"),
-        ] + [("536:1545", "RMS / Peak 0.2 of 0–1"), ("536:1604", "Attack 25 ms of 1.5–400 ms"), ("536:1622", "Release 100 ms of 2–800 ms"),
-             ("536:1654", "Ratio 4 : 1 of 1–20"), ("536:1670", "Knee 5 dB of 1–10 dB"), ("536:1686", "Makeup 7 dB of 0–24 dB")].map {
-            FigmaDeviation.differs(node: $0.0, outset: 1, decision: "D054", "thumb at \($0.1) (compressor.c); Figma's is illustrative")
+        ] + compressorThumbs.map {
+            thumbSpan(rowY: $0.rowY, figmaThumbX: $0.figmaX, fraction: $0.fraction, "thumb at \($0.value) (compressor.c); Figma's is illustrative")
         },
         .stereoWidener: [
-            .differs(node: "612:1236", outset: 1, decision: "D054", "Delay thumb at 20 ms of 1–100 ms (stereo_widen.c); Figma's 26 % is illustrative"),
+            thumbSpan(rowY: 90, figmaThumbX: 99, fraction: 19.0 / 99, "Delay thumb at 20 ms of 1–100 ms (stereo_widen.c); Figma's 26 % is illustrative"),
         ] + ["612:1256", "612:1276", "612:1296"].map {
             FigmaDeviation.differs(node: $0, outset: 2, decision: "D054", "a 0–1 factor (stereo_widen.c), no \"%\"")
         },
+        .essential: [
+            // 539:885 at 153 on tick 3 of 7 (32 × 3/7 = 13.7); radius 14 of 0–32 is centred 2.75 pt
+            // further right on the ticked track (2 + 14/32 × 324 − 4, row at x 16).
+            .differs(CGRect(x: 152, y: 545, width: 13, height: 26), decision: "D054", "Banding Removal Radius 14: VLC's integer radius, not Figma's tick"),
+        ],
+        .equalizer: [
+            thumbSpan(rowY: 104, figmaThumbX: 281, fraction: 32.0 / 40, "Preamp thumb at 12 dB of −20…20 dB (equalizer.c); Figma's 83 % is illustrative"),
+        ],
     ]
+    /// Compressor rows (536:1514): row top, Figma's thumb x, the value's fraction of VLC's range.
+    private static let compressorThumbs: [(rowY: CGFloat, figmaX: CGFloat, fraction: Double, value: String)] = [
+        (90, 63, 0.2, "RMS / Peak 0.2 of 0–1"), (166, 40, (25 - 1.5) / 398.5, "Attack 25 ms of 1.5–400 ms"),
+        (242, 66, 98.0 / 798, "Release 100 ms of 2–800 ms"), (318, 217, 19.0 / 30, "Threshold −11 dB of −30–0 dB"),
+        (394, 114, 3.0 / 19, "Ratio 4 : 1 of 1–20"), (470, 172, 4.0 / 9, "Knee 5 dB of 1–10 dB"),
+        (546, 120, 7.0 / 24, "Makeup 7 dB of 0–24 dB"),
+    ]
+    /// The span of an open card's slider row (top at `rowY`, Figma 536:1545 geometry: the row starts
+    /// 16 pt in, the 8 pt thumb travels 2 pt inside the 328 pt track) between Figma's thumb at
+    /// `figmaThumbX` and the product's at `fraction` of the range, 1 pt outset.
+    private static func thumbSpan(rowY: CGFloat, figmaThumbX: CGFloat, fraction: Double, _ reason: String) -> FigmaDeviation {
+        let productX = 16 + 2 + CGFloat(fraction) * 316
+        let minX = min(productX, figmaThumbX) - 1, maxX = max(productX, figmaThumbX) + 8 + 1
+        return .differs(CGRect(x: minX, y: rowY - 1, width: maxX - minX, height: 26), decision: "D054", reason)
+    }
     /// Figma's illustrative values where they differ from VLC's defaults: Banding Removal Radius 14
     /// and Film Grain Variance 2 (539:885, 536:1919), threshold sliders at 50 of 0–255 (614:1483's thumb
     /// at 64 pt: 2 + 50/255 of the 316 pt travel; Figma shows no number), Cartoon

@@ -35,8 +35,8 @@ private final class SettingsAuditBridge: VLCServiceTransport {
         if service == "shortcuts" { return ["actions": [["id": "play-pause", "hotkeys": [binding]]]] }
         return [:]
     }
-    func perform(_ command: MXRBridgeCommand, service: MXRBridgeService, arguments: [String: Any]) throws { let command = command.rawValue; let service = service.rawValue; if command == "save" { saves += 1 } }
-    func request(_ request: MXRBridgeRequest, service: MXRBridgeService, arguments: [String: Any]) async throws -> [String: Any] { let request = request.rawValue; let service = service.rawValue; return [:] }
+    func perform(_ command: MXRBridgeCommand, service: MXRBridgeService, arguments: [String: Any]) throws { let command = command.rawValue; if command == "save" { saves += 1 } }
+    func request(_ request: MXRBridgeRequest, service: MXRBridgeService, arguments: [String: Any]) async throws -> [String: Any] { return [:] }
     func addListener(_ owner: AnyObject, handler: @escaping @MainActor (MXRBridgeService) -> Void) { events.add(owner, handler: handler) }
     func log(_ error: Error) {}
     func report(_ error: Error) { errors.append(error) }

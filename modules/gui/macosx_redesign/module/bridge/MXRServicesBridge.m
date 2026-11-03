@@ -259,6 +259,8 @@ static MXRBridgeService TopicService(MXRTopic topic) {
 - (void)changed:(MXRBridgeService)service;
 - (void)scheduleTopics:(unsigned)topics;
 - (void)queueModeChanged:(bool)persist;
+- (void)noteEngineStoppedAction:(int)value;
+- (void)refreshNextMedia:(vlc_playlist_t *)playlist;
 - (void)storeBuffering:(float)value;
 - (void)applyStoppedAction:(NSInteger)value;
 - (void)applyCurrentMediaChanged;
@@ -403,12 +405,15 @@ static bool PutIntIfChanged(const char *name, int64_t value) {
 static void QueueRepeat(vlc_playlist_t *p, enum vlc_playlist_playback_repeat value, void *data) {
     bool changed = PutIntIfChanged("loop", value == VLC_PLAYLIST_PLAYBACK_REPEAT_ALL);
     changed |= PutIntIfChanged("repeat", value == VLC_PLAYLIST_PLAYBACK_REPEAT_CURRENT);
+    [Bridge(data) refreshNextMedia:p];
     [Bridge(data) queueModeChanged:changed];
 }
 static void QueueOrder(vlc_playlist_t *p, enum vlc_playlist_playback_order value, void *data) {
+    [Bridge(data) refreshNextMedia:p];
     [Bridge(data) queueModeChanged:PutIntIfChanged("random", value == VLC_PLAYLIST_PLAYBACK_ORDER_RANDOM)];
 }
 static void QueueStopAction(vlc_playlist_t *p, enum vlc_playlist_media_stopped_action value, void *data) {
+    [Bridge(data) noteEngineStoppedAction:value];
     __weak MXRServicesBridge *bridge = Bridge(data);
     dispatch_async(dispatch_get_main_queue(), ^{ [bridge applyStoppedAction:value]; });
 }
@@ -432,10 +437,13 @@ static const struct vlc_player_aout_cbs AudioCallbacks = {.on_volume_changed = A
  * jump to a seek still in flight). The timer reports it on_seek, synchronously on the thread that
  * seeks (before input_ControlPush), under the timer lock. The hotkeys module runs key-action on
  * the caller's thread, so the report of a jump triggered from main arrives on main while
- * triggerAction is still inside var_SetInteger; it is taken there and only there. Chapter keys and
- * the seek bar seek on main outside that call and never count. A plain arrow has no synchronous
- * seek: the core jumps later on the input thread (vlc_player_input_NavigationFallback); main-thread
- * seeks never fill its slot, only the next input-thread report does. Updates are not used. */
+ * triggerAction is still inside var_SetInteger; it is taken there and only there. The seek bar
+ * and other main-thread seeks run outside that call and are ignored. A chapter key seeks inside
+ * it and is recorded too, but its OSD is "Next/Previous chapter": the recorded target is read only
+ * when MXRHotkeyFeedback asks for it (MXRFeedbackAwaitSeek: jumps and arrows). A plain arrow has
+ * no synchronous seek: the core jumps later on the input thread
+ * (vlc_player_input_NavigationFallback); main-thread seeks never fill its slot, only the next
+ * input-thread report does. Updates are not used. */
 static void SeekFeedbackUpdate(const struct vlc_player_timer_point *value, void *data) {}
 static void SeekFeedbackSeek(const struct vlc_player_timer_point *value, void *data) {
     if (value == NULL || value->ts == VLC_TICK_INVALID) return;
@@ -470,6 +478,9 @@ static int SnapshotFile(vlc_object_t *object, const char *name, vlc_value_t old,
     NSUInteger _saveGeneration;
     BOOL _savePending;
     NSInteger _stoppedAction;
+    /* The playlist's stop action as its listener last reported it (under the playlist lock),
+     * -1 until the listener's initial state arrives. */
+    int _engineStoppedAction;
     NSNumber *_pendingVolume;
     NSNumber *_acceptedVolume;
     BOOL _pauseAtEnd;
@@ -496,9 +507,10 @@ static int SnapshotFile(vlc_object_t *object, const char *name, vlc_value_t old,
     /* The seek target reported while a hotkey action runs on main (triggerAction). */
     BOOL _capturingHotkeySeek, _hotkeySeekReported;
     vlc_tick_t _hotkeySeekTime, _hotkeySeekLength;
-    /* Arrow jumps the input thread has not reported yet, in order, and when they stop waiting. */
-    NSUInteger _navigationSeeksPending;
-    CFTimeInterval _navigationSeekDeadline;
+    /* Arrow jumps the input thread has not reported yet, oldest first: direction, the time when
+     * the key was handled, and when each stops waiting. */
+    struct { int direction; vlc_tick_t from; CFTimeInterval deadline; } _pendingArrows[8];
+    NSUInteger _pendingArrowCount;
     bool _secondarySubtitleControl;
     NSString *_titleShownForURL;
     /* External files: added this session, and library subtitle mappings of the current media */
@@ -531,6 +543,7 @@ static int SnapshotFile(vlc_object_t *object, const char *name, vlc_value_t old,
     var_AddCallback(instance, "snapshot-file", SnapshotFile, (__bridge void *)self);
     _snapshotCallback = YES;
     vlc_playlist_Lock(_playlist);
+    _engineStoppedAction = -1;
     _queueListener = vlc_playlist_AddListener(_playlist, &QueueCallbacks, (__bridge void *)self, true);
     _playerListener = vlc_player_AddListener(_player, &PlayerCallbacks, (__bridge void *)self);
     vlc_playlist_Unlock(_playlist);
@@ -600,6 +613,7 @@ static int SnapshotFile(vlc_object_t *object, const char *name, vlc_value_t old,
     dispatch_group_t group = dispatch_group_create();
     dispatch_queue_t workers = dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0);
     [services enumerateKeysAndObjectsUsingBlock:^(NSString *name, id service, BOOL *stop) {
+        (void)stop;
         if (service == NSNull.null) return;
         dispatch_group_async(group, workers, ^{
             os_signpost_id_t step = os_signpost_id_generate(log);
@@ -648,6 +662,16 @@ static int SnapshotFile(vlc_object_t *object, const char *name, vlc_value_t old,
 
 #pragma mark Engine state (main thread)
 
+- (void)noteEngineStoppedAction:(int)value { _engineStoppedAction = value; }
+/* Live run 2: Repeat turned on while the only item played did not loop it. The core chooses the
+ * player's next media when an item starts, the queue changes or the stop action is set
+ * (vlc_playlist_UpdateNextMedia), but not when repeat or order change (src/playlist/control.c),
+ * so the item ended as if Repeat were off. Setting the unchanged stop action again is the public
+ * call that makes the core choose it again. Under the playlist lock, from its listener, so every
+ * path is covered: our queue commands, the Repeat setting, a VLC hotkey. */
+- (void)refreshNextMedia:(vlc_playlist_t *)playlist {
+    if (_engineStoppedAction >= 0) vlc_playlist_SetMediaStoppedAction(playlist, (enum vlc_playlist_media_stopped_action)_engineStoppedAction);
+}
 - (void)applyStoppedAction:(NSInteger)value { if (!_shutDown) { _stoppedAction = value; [self scheduleTopics:MXRTopicQueueState | MXRTopicSettings]; } }
 - (void)applyCurrentMediaChanged {
     if (_shutDown) return;
@@ -659,6 +683,7 @@ static int SnapshotFile(vlc_object_t *object, const char *name, vlc_value_t old,
     if (_shutDown) return;
     if (state == VLC_PLAYER_STATE_STOPPING || state == VLC_PLAYER_STATE_STOPPED) { _restorePrompt = nil; _restoreURL = nil; }
     [self applyPendingVolume];
+    [_effects playerStateChanged:(enum vlc_player_state)state];
     if (state == VLC_PLAYER_STATE_PLAYING || state == VLC_PLAYER_STATE_PAUSED) [self attachLibrarySubtitles];
     [self scheduleTopics:MXRTopicState];
 }
@@ -747,12 +772,39 @@ static NSString *FeedbackSeekTarget(vlc_tick_t time, vlc_tick_t length) {
     return FeedbackPosition(time, length);
 }
 - (void)navigationSeekReportedAt:(vlc_tick_t)time length:(vlc_tick_t)length {
-    /* Main, from an input-thread on_seek: the oldest pending arrow's target. */
-    if (_shutDown || _navigationSeeksPending == 0) return;
-    if (CACurrentMediaTime() > _navigationSeekDeadline) { _navigationSeeksPending = 0; return; }
-    _navigationSeeksPending--;
+    /* Main, from an input-thread on_seek: the oldest pending arrow's target. Expired arrows go first;
+     * a seek the other way (an A-B loop's jump back to A) is not the arrow's and leaves it waiting. */
+    if (_shutDown) return;
+    CFTimeInterval now = CACurrentMediaTime();
+    NSUInteger expired = 0;
+    while (expired < _pendingArrowCount && now > _pendingArrows[expired].deadline) expired++;
+    [self dropPendingArrows:expired];
+    if (_pendingArrowCount == 0) return;
+    int direction = _pendingArrows[0].direction; vlc_tick_t from = _pendingArrows[0].from;
+    if (from != VLC_TICK_INVALID && (direction > 0 ? time < from : time > from)) return;
+    [self dropPendingArrows:1];
     NSString *text = FeedbackSeekTarget(time, length);
     if (text) [self postFeedback:text];
+}
+- (void)dropPendingArrows:(NSUInteger)count {
+    count = MIN(count, _pendingArrowCount);
+    memmove(_pendingArrows, _pendingArrows + count, (_pendingArrowCount - count) * sizeof(_pendingArrows[0]));
+    _pendingArrowCount -= count;
+}
+/* An arrow becomes a jump only when nothing else takes it (vlc_player_input_NavigationFallback):
+ * not when a video output's viewpoint can turn (360°), and not in a menu or interactive title,
+ * whose demux handles the arrows itself (DVD and Blu-ray menus). Such an arrow waits for no report. */
+static bool ArrowWillJump(vlc_player_t *player) {
+    size_t count = 0; bool viewpoint = false;
+    vout_thread_t **vouts = vlc_player_vout_HoldAll(player, &count);
+    for (size_t i = 0; vouts && i < count; i++) { viewpoint |= var_GetBool(vouts[i], "viewpoint-changeable"); vout_Release(vouts[i]); }
+    free(vouts);
+    if (viewpoint) return false;
+    vlc_player_Lock(player);
+    const struct vlc_player_title *title = vlc_player_GetSelectedTitle(player);
+    bool menu = title && (title->flags & (VLC_PLAYER_TITLE_MENU | VLC_PLAYER_TITLE_INTERACTIVE));
+    vlc_player_Unlock(player);
+    return !menu;
 }
 - (BOOL)triggerAction:(NSString *)name error:(NSError **)error {
     vlc_action_id_t action = vlc_actions_get_id([@"key-" stringByAppendingString:name ?: @""].UTF8String);
@@ -769,9 +821,11 @@ static NSString *FeedbackSeekTarget(vlc_tick_t time, vlc_tick_t length) {
          * (a negative jump size) shows nothing rather than the next unrelated seek. */
         if (_hotkeySeekReported) {
             text = FeedbackSeekTarget(_hotkeySeekTime, _hotkeySeekLength);
-        } else if (action == ACTIONID_NAV_LEFT || action == ACTIONID_NAV_RIGHT) {
-            _navigationSeeksPending++;
-            _navigationSeekDeadline = CACurrentMediaTime() + 1.0;
+        } else if ((action == ACTIONID_NAV_LEFT || action == ACTIONID_NAV_RIGHT) && ArrowWillJump(_player)) {
+            if (_pendingArrowCount == sizeof(_pendingArrows) / sizeof(_pendingArrows[0])) [self dropPendingArrows:1];
+            vlc_player_Lock(_player); vlc_tick_t from = vlc_player_GetTime(_player); vlc_player_Unlock(_player);
+            _pendingArrows[_pendingArrowCount++] = (typeof(_pendingArrows[0])){
+                .direction = action == ACTIONID_NAV_RIGHT ? 1 : -1, .from = from, .deadline = CACurrentMediaTime() + 1.0 };
         }
         await = MXRFeedbackAwaitNone;
     }

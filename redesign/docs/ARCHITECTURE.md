@@ -24,8 +24,8 @@ Engine corrections from D020 are optional patches under
 
 ## 1. Identity and resources
 
-The installed development app is `/Applications/VLC Redesign.app`, identity
-`org.example.vlc-redesign.codex`. The personal `/Applications/VLC.app` must never
+The installed app is `/Applications/VLC Redesign.app`, identity
+`io.github.lemelson.vlc-redesign` (D058; installs made before 1.0 used `org.example.vlc-redesign.codex`). The personal `/Applications/VLC.app` must never
 be launched, replaced, or used for data. VLC's Darwin directories derive from the
 running bundle ID: preferences, media-library data and caches are therefore
 separate. A build-tree launcher can use the stock pseudo-bundle: do not use it
@@ -33,7 +33,8 @@ for a user-data smoke test.
 
 `tools/app-bundle-hook.sh` receives four arguments: app, build directory, bundle
 ID and app name. It validates the GUI plugin/resources, installs the own icon,
-rewrites identity/minimum OS, and removes stock nib and update-feed keys.
+rewrites identity/minimum OS, removes the stock nib keys and replaces VideoLAN's update feed
+with ours (`Resources/update-feed.json`, D059).
 `tools/install-app.sh` is the supported build/install entry point. Resource
 lookup in the plugin disables `Bundle.module` fallback and reads the packaged
 `MacOSXRedesign_MXRCore.bundle` and `MacOSXRedesign_MXRDesign.bundle`.

@@ -336,6 +336,10 @@ final class OutputForm {
     private(set) var target = ConversionDestination()
     /// A destination VLC reported as existing, waiting for Replace or Cancel.
     private(set) var replaceCandidate: URL?
+    /// Whether the Replace alert is up. SwiftUI sets it to false when the alert goes away, before
+    /// it runs the chosen button, so dismissing decides nothing: Replace or Cancel does, with
+    /// ``replaceCandidate`` still in place.
+    var isAskingToReplace = false
     private(set) var format = OutputFormat.all[0].id
     private(set) var streamKind: StreamDestination = .http
     var host = StreamDestination.http.defaultHost
@@ -443,17 +447,23 @@ final class OutputForm {
         } catch OutputError.destinationExists(let url) {
             // A name the save panel never confirmed (a new format, or a second conversion): ask.
             replaceCandidate = url
+            isAskingToReplace = true
         } catch { self.error = error.localizedDescription }
     }
 
     /// Replace in the alert: VLC may overwrite that file, and the job starts.
     func replace(in output: OutputModel) async {
-        if let replaceCandidate { target.confirmReplacing(replaceCandidate) }
-        replaceCandidate = nil
+        guard let replaceCandidate else { return }
+        target.confirmReplacing(replaceCandidate)
+        keepExistingFile()
         await startOrStop(in: output)
     }
 
-    func keepExistingFile() { replaceCandidate = nil }
+    /// Cancel in the alert: the file stays and nothing starts.
+    func keepExistingFile() {
+        replaceCandidate = nil
+        isAskingToReplace = false
+    }
 
     // MARK: Private
 
@@ -527,7 +537,7 @@ private struct OutputMediaForm: View {
             }
             .padding(Theme.Metric.Dialogs.dialogBody.padding)
         }
-        .alert(replaceTitle, isPresented: Binding(get: { form.replaceCandidate != nil }, set: { if !$0 { form.keepExistingFile() } })) {
+        .alert(replaceTitle, isPresented: $form.isAskingToReplace) {
             Button("Replace", role: .destructive) { run { await form.replace(in: output) } }
             Button("Cancel", role: .cancel) { form.keepExistingFile() }
         } message: {

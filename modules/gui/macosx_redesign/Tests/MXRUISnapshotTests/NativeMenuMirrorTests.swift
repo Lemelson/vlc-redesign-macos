@@ -10,6 +10,9 @@ import XCTest
 /// AppKit's autoenabling cannot override, and open menus that follow their models.
 @MainActor
 final class NativeMenuMirrorTests: XCTestCase {
+    /// Whether a dialog blocks the menus; changed after the mirror captured its reader.
+    @MainActor final class Gate { var blocked = false }
+
     @Observable final class Rows {
         var title = "A"
         var count = 1
@@ -19,9 +22,9 @@ final class NativeMenuMirrorTests: XCTestCase {
     /// AppKit's autoenabling enables every row with a submenu; the mirror's disabled submenu
     /// (Speed at a fixed rate, Audio Device with no devices) must stay disabled through updates.
     func testDisabledSubmenuRowStaysDisabledThroughAppKitUpdates() throws {
-        var blocked = false
+        let gate = Gate()
         var ran = 0
-        let mirror = MXRNativeMenuMirror(isBlocked: { blocked })
+        let mirror = MXRNativeMenuMirror(isBlocked: { gate.blocked })
         let menu = NSMenu(title: "Audio")
         mirror.mirror(menu) {
             MXRMenuItem.submenu("Speed", isEnabled: false) { MXRMenuItem("1×") {} }
@@ -40,7 +43,7 @@ final class NativeMenuMirrorTests: XCTestCase {
         XCTAssertEqual(ran, 1, "only the enabled row runs")
 
         // Behind a dialog every row waits (D040), also the enabled submenu.
-        blocked = true
+        gate.blocked = true
         mirror.menuNeedsUpdate(menu)
         menu.update()
         XCTAssertEqual(menu.items.map(\.isEnabled), [false, false, false, false])

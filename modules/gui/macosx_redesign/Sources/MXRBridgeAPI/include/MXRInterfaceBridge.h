@@ -13,6 +13,7 @@
 
 #import "MXRPlayerBridge.h"
 #import "MXRVideoOutput.h"
+#import "MXRUpdaterBridge.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -35,6 +36,8 @@ NS_SWIFT_UI_ACTOR
 
 @property (nonatomic, readonly) MXRPlayerBridge *player;
 @property (nonatomic, readonly) MXRServicesBridge *services;
+/// App updates (Sparkle); nil when the plugin was built without Sparkle.
+@property (nonatomic, readonly, nullable) MXRUpdaterBridge *updater;
 
 /// Provides the surfaces VLC renders video into. Weak; set it before returning from
 /// `MXRSwiftStart`, or the first video output fails.

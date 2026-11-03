@@ -2,30 +2,48 @@
 # Build, verify a disposable replacement, then install one VLC Redesign.app.
 # Refuses a running redesign application; never quits it or touches personal VLC.
 # Usage: tools/install-app.sh [build-dir]
+#        tools/install-app.sh --app prebuilt.app   (e.g. the universal app of make-universal.py;
+#                                                 installs a copy, never rebuilds or removes it)
 set -eu
 mxr_source=$(cd "$(dirname "$0")/../../../.." && pwd)
-mxr_build=${1:-$(cd "$mxr_source/../build/codex-arm64" && pwd)}
-mxr_build=$(cd "$mxr_build" && pwd -P)
+mxr_prebuilt=
+if [ "${1:-}" = --app ]; then
+    test "$#" -eq 2 || { echo "usage: $0 --app prebuilt.app" >&2; exit 2; }
+    test -d "$2" || { echo "no application at $2" >&2; exit 1; }
+    mxr_prebuilt=$(cd "$(dirname "$2")" && pwd -P)/$(basename "$2")
+else
+    mxr_build=${1:-$(cd "$mxr_source/../build/codex-arm64" && pwd)}
+    mxr_build=$(cd "$mxr_build" && pwd -P)
+fi
 mxr_dest="/Applications/VLC Redesign.app"
 mxr_parent=$(dirname "$mxr_dest")
-mxr_identity=org.example.vlc-redesign.codex
+mxr_identity=io.github.lemelson.vlc-redesign
+# The placeholder id of installs made before 1.0 (D058): such an install may be replaced, but a
+# replacement must carry the release id.
+mxr_legacy_identity=org.example.vlc-redesign.codex
 mxr_stage=
 mxr_backup=
 mxr_installed=0
 mxr_owned_build=0
 mxr_lock="$mxr_parent/.vlc-redesign-install.lock"
 
+# bundle_identity app [legacy]: the app carries the release id (or, with "legacy", the pre-1.0 one).
 bundle_identity() {
     test ! -L "$1" || { echo "refusing a symlinked application: $1" >&2; return 1; }
-    test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$1/Contents/Info.plist")" = "$mxr_identity" || {
-        echo "refusing unexpected application identity: $1" >&2; return 1;
-    }
+    mxr_found=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$1/Contents/Info.plist") || mxr_found=
+    test "$mxr_found" = "$mxr_identity" && return 0
+    test "${2:-}" = legacy && test "$mxr_found" = "$mxr_legacy_identity" && return 0
+    echo "refusing unexpected application identity: $1" >&2
+    return 1
 }
 require_idle() {
-    mxr_running=$(osascript -e 'application id "org.example.vlc-redesign.codex" is running') || {
-        echo "unable to establish whether VLC Redesign is running" >&2; return 1;
-    }
-    test "$mxr_running" = false || { echo "close VLC Redesign before installing" >&2; return 1; }
+    # lsappinfo, unlike AppleScript's `application id`, also answers for an id that was never installed.
+    for mxr_running_id in "$mxr_identity" "$mxr_legacy_identity"; do
+        mxr_running=$(lsappinfo find "bundleid=$mxr_running_id") || {
+            echo "unable to establish whether VLC Redesign is running" >&2; return 1;
+        }
+        test -z "$mxr_running" || { echo "close VLC Redesign before installing" >&2; return 1; }
+    done
 }
 rename_exact() {
     # Unlike mv, rename never nests the source inside an unexpectedly existing directory.
@@ -71,6 +89,7 @@ take_lock() {
     }
 }
 
+build_app() {
 # Same toolchain environment as configure (build-native.sh): autoconf records it in
 # config.log as one "PATH: <dir>/" line per directory, in order.
 test -f "$mxr_build/config.log" || { echo "$mxr_build is not a configured build (no config.log)" >&2; exit 1; }
@@ -86,25 +105,33 @@ done
 export SDKROOT="$(xcrun --sdk macosx --show-sdk-path)"
 export MACOSX_DEPLOYMENT_TARGET=10.13
 export CLANG_MODULE_CACHE_PATH="$mxr_build/module-cache"
+}
+
+if [ -z "$mxr_prebuilt" ]; then build_app; fi
 require_idle
-if [ -e "$mxr_dest" ] || [ -L "$mxr_dest" ]; then bundle_identity "$mxr_dest"; fi
+if [ -e "$mxr_dest" ] || [ -L "$mxr_dest" ]; then bundle_identity "$mxr_dest" legacy; fi
 take_lock || exit 1
 trap cleanup 0
 trap 'exit 1' HUP INT TERM
-# Never remove a stock/foreign or symlinked build bundle to force regeneration.
-if [ -e "$mxr_build/VLC.app" ] || [ -L "$mxr_build/VLC.app" ]; then bundle_identity "$mxr_build/VLC.app"; fi
-make -C "$mxr_build" -j8
-rm -rf "$mxr_build/VLC.app"
-make -C "$mxr_build" VLC.app
-bundle_identity "$mxr_build/VLC.app"
-test -f "$mxr_build/VLC.app/Contents/Frameworks/plugins/libmacosx_redesign_plugin.dylib" || {
+if [ -n "$mxr_prebuilt" ]; then
+    mxr_app=$mxr_prebuilt
+else
+    # Never remove a stock/foreign or symlinked build bundle to force regeneration.
+    if [ -e "$mxr_build/VLC.app" ] || [ -L "$mxr_build/VLC.app" ]; then bundle_identity "$mxr_build/VLC.app" legacy; fi
+    make -C "$mxr_build" -j8
+    rm -rf "$mxr_build/VLC.app"
+    make -C "$mxr_build" VLC.app
+    mxr_app="$mxr_build/VLC.app"
+fi
+bundle_identity "$mxr_app"
+test -f "$mxr_app/Contents/Frameworks/plugins/libmacosx_redesign_plugin.dylib" || {
     echo "replacement is missing the redesign interface" >&2; exit 1;
 }
-mxr_owned_build=1
+if [ -z "$mxr_prebuilt" ]; then mxr_owned_build=1; fi
 mxr_stage=$(mktemp -d "$mxr_parent/.vlc-redesign-install.XXXXXX")
 mxr_backup="$mxr_stage/previous.app"
 mxr_replacement="$mxr_stage/replacement.app"
-ditto "$mxr_build/VLC.app" "$mxr_replacement"
+ditto "$mxr_app" "$mxr_replacement"
 bundle_identity "$mxr_replacement"
 # `make VLC.app` already signed plugins, generated plugins.dat and sealed the bundle
 # (extras/package/macosx/codesign.sh); ditto preserved that. Verify, do not re-sign.
@@ -112,7 +139,7 @@ python3 "$(dirname "$0")/finalize-app.py" --verify-only "$mxr_replacement"
 # The owner can resume work while a build runs. Check again immediately before swapping.
 require_idle
 if [ -e "$mxr_dest" ] || [ -L "$mxr_dest" ]; then
-    bundle_identity "$mxr_dest"
+    bundle_identity "$mxr_dest" legacy
     rename_exact "$mxr_dest" "$mxr_backup"
 fi
 rename_exact "$mxr_replacement" "$mxr_dest"

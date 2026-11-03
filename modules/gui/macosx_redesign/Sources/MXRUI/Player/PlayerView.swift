@@ -70,14 +70,13 @@ public struct MXRPlayerView: View {
         .clipShape(.rect(cornerRadius: style.cornerRadius))
     }
 
-    /// BG/B2 behind the picture; in Light (D055) the bands under the pinned bars are the dark base
-    /// their translucent material is drawn for (D046), so the bars read Player - Light's #ABABAA.
+    /// BG/B2 behind the picture; in Light (D055) the canvas around the picture rect (under the pinned
+    /// bars and beside the picture) is the dark base the bars' translucent material is drawn for
+    /// (D046), so the bars read Player - Light's #ABABAA and the video's edges run to the window's.
     private var canvasFill: some View {
-        let bands = style.pictureInsets(controlHeight: controlHeight)
-        return VStack(spacing: 0) {
-            Rectangle().fill(MXRBackdropBase()).frame(height: bands.top)
+        Rectangle().fill(MXRBackdropBase()).overlay {
             Rectangle().fill(Theme.Color.bgB2)
-            Rectangle().fill(MXRBackdropBase()).frame(height: bands.bottom)
+                .padding(style.pictureInsets(controlHeight: controlHeight).edgeInsets)
         }
     }
 }
@@ -146,19 +145,38 @@ public struct MXRContinueWatchingToast: View {
     }
 }
 
-private struct ContinueButtonStyle: ButtonStyle {
+struct ContinueButtonStyle: ButtonStyle {
     /// Figma's 146 pt, or (short, compressed) the label with the button's own side padding; a
     /// compressed button gives up width, truncating, instead of overflowing the toast.
     var width: MXRContinueWatchingToast.ContinueButtonWidth = .figma
+
+    /// Accent/Main at rest; Accent/DIm under the pointer (key frame 14m09.8 shows the button
+    /// darkened under the cursor) and while pressed.
+    static func fill(pressed: Bool, hovered: Bool) -> ThemeColor {
+        pressed || hovered ? Theme.Color.accentDim : Theme.Color.accentMain
+    }
+
     func makeBody(configuration: Configuration) -> some View {
-        let box = Theme.Metric.Dialogs.resumeContinueButton
-        configuration.label.mxrTextStyle(Theme.Font.button).foregroundStyle(Theme.Color.fgB1)
-            .lineLimit(1).truncationMode(.tail)
-            .padding(.horizontal, width == .figma ? 0 : box.padding.leading)
-            .frame(minWidth: width == .figma ? box.width : 0, maxWidth: box.width)
-            .frame(height: box.height)
-            .background(configuration.isPressed ? Theme.Color.accentDim : Theme.Color.accentMain,
-                        in: .rect(cornerRadius: box.radius ?? Theme.Radius.lg))
+        Label(configuration: configuration, width: width)
+    }
+
+    private struct Label: View {
+        let configuration: Configuration
+        let width: MXRContinueWatchingToast.ContinueButtonWidth
+        @State private var hovered = false
+
+        var body: some View {
+            let box = Theme.Metric.Dialogs.resumeContinueButton
+            configuration.label.mxrTextStyle(Theme.Font.button).foregroundStyle(Theme.Color.fgB1)
+                .lineLimit(1).truncationMode(.tail)
+                .padding(.horizontal, width == .figma ? 0 : box.padding.leading)
+                .frame(minWidth: width == .figma ? box.width : 0, maxWidth: box.width)
+                .frame(height: box.height)
+                .background(ContinueButtonStyle.fill(pressed: configuration.isPressed, hovered: hovered),
+                            in: .rect(cornerRadius: box.radius ?? Theme.Radius.lg))
+                .contentShape(.rect)
+                .onHover { hovered = $0 }
+        }
     }
 }
 

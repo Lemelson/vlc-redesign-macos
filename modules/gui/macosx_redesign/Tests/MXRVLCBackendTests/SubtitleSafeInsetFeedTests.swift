@@ -6,6 +6,9 @@ import XCTest
 /// Areas C-bridge open minor / critic P2: the subtitle safe inset was sent only when the
 /// covered points or the video size changed, so a resize or a move to a screen with another
 /// backing scale kept stale pixels. The window below is never ordered in.
+/// The backing scale a test changes after the feed captured its reader.
+@MainActor private final class ScaleBox { var value: Double; init(_ value: Double) { self.value = value } }
+
 @MainActor
 final class SubtitleSafeInsetFeedTests: XCTestCase {
     private func makeWindow(_ size: CGSize) -> (NSWindow, NSView) {
@@ -34,16 +37,16 @@ final class SubtitleSafeInsetFeedTests: XCTestCase {
 
     func testABackingScaleChangeResendsTheSameInsetAtTheNewScale() {
         let (window, view) = makeWindow(CGSize(width: 800, height: 450))
-        var scale = 2.0
+        let scale = ScaleBox(2)
         var sent: [(Double, Double)] = []
-        let feed = SubtitleSafeInsetFeed(view: view, backingScale: { _ in scale }) { points, backing in sent.append((points, backing)) }
+        let feed = SubtitleSafeInsetFeed(view: view, backingScale: { _ in scale.value }) { points, backing in sent.append((points, backing)) }
         defer { feed.invalidate() }
         feed.update(covered: 60, videoSize: CGSize(width: 1920, height: 1080))
-        scale = 1
+        scale.value = 1
         NotificationCenter.default.post(name: NSWindow.didChangeBackingPropertiesNotification, object: window)
         XCTAssertEqual(sent.map(\.0), [60, 60])
         XCTAssertEqual(sent.map(\.1), [2, 1], "a move to a 1x screen sends 1x pixels")
-        scale = 2
+        scale.value = 2
         let other = makeWindow(CGSize(width: 100, height: 100)).0
         NotificationCenter.default.post(name: NSWindow.didChangeScreenNotification, object: other)
         XCTAssertEqual(sent.count, 2, "another window's screen change is not the video view's")

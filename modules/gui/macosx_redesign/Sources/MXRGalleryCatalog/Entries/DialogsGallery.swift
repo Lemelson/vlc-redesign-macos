@@ -91,7 +91,7 @@ final class DialogsGallery: NSObject, GalleryProvider {
                 return MXRStreamView().appModel(mock.makeAppModel())
             },
             GalleryEntry(id: "S65.About/default", title: "About VLC Redesign", size: Theme.Metric.Dialogs.newPlaylist.size, screens: ["S65"], renderEngine: .hostingView) {
-                MXRAboutView().appModel(AppModel.mock(.idle))
+                MXRAboutView(version: "4.0.0-dev", appVersion: "1.0.0").appModel(AppModel.mock(.idle))
             },
             GalleryEntry(id: "S65.MediaInfo/episode", title: "Properties & Metadata", size: MXRMediaInfoView.maximumSize, screens: ["S65"], renderEngine: .hostingView) {
                 let app = AppModel.mock(.playingEpisode)

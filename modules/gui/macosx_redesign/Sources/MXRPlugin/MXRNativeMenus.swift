@@ -47,7 +47,7 @@ final class MXRNativeMenus: NSObject, NSMenuDelegate, NSMenuItemValidation {
             return MXRKeyRouting.shouldPerformMenuEquivalent(event, firstResponder: keyWindow?.firstResponder,
                                                              isCapturing: self.model.interface.isCapturingShortcut,
                                                              hasModal: hasModal,
-                                                             panelListFocused: self.model.interface.panelListHasKeyboardFocus)
+                                                             listFocused: self.model.interface.listHasKeyboardFocus)
         }
         build()
         observeCommands()
@@ -56,6 +56,10 @@ final class MXRNativeMenus: NSObject, NSMenuDelegate, NSMenuItemValidation {
     private func build() {
         let app = addMenu(MXRAppController.appName)
         add(.about, to: app)
+        // Like the stock VLC app menu (D059); a build without Sparkle has no updater and no item.
+        if model.updater != nil {
+            app.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates(_:)), keyEquivalent: "").target = self
+        }
         app.addItem(.separator())
         add(.settings, to: app)
         add(.keyboardShortcuts, to: app)
@@ -213,6 +217,7 @@ final class MXRNativeMenus: NSObject, NSMenuDelegate, NSMenuItemValidation {
         model.library.searchFieldRequested = true
         onShowWindow()
     }
+    @objc private func checkForUpdates(_ sender: NSMenuItem) { model.checkForUpdates() }
     @objc private func openHelp(_ sender: NSMenuItem) {
         if let url = Self.helpURL { NSWorkspace.shared.open(url) }
     }
@@ -231,6 +236,7 @@ final class MXRNativeMenus: NSObject, NSMenuDelegate, NSMenuItemValidation {
     }
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(checkForUpdates(_:)) { return model.updater?.canCheckForUpdates == true }
         if menuItem.action == #selector(toggleFullScreen(_:)) { return model.canPerform(.toggleFullscreen) }
         if menuItem.action == #selector(togglePictureInPicture(_:)) {
             menuItem.state = model.player.isPictureInPicture ? .on : .off

@@ -348,7 +348,7 @@ private struct PlaybackSidebarContent: View {
                 PanelChoice(id: value.rawValue, title: value.title) { player.setAudioVisualization(value) }
             }, height: PanelMetric.dropdownSize.height)
             .padding(.bottom, PanelSpace.xl) // 5187:24514
-            VStack(spacing: 0) {
+            VStack(spacing: Theme.Spacing.gap10) { // 5187:24539 item spacing between the field row and the slider
                 PanelFieldRow(title: "Speed", value: String(format: "%gx", player.rate), commit: { text in
                     if let value = panelNumber(text.replacingOccurrences(of: "x", with: "")) { player.setRate(value) }
                 }, height: PanelMetric.compactFieldRowHeight, style: .filled) // 5187:24540/24542

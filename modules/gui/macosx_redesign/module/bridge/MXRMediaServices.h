@@ -27,6 +27,9 @@ NS_ASSUME_NONNULL_BEGIN
 /// Builds and validates VLC sout syntax, without opening the source or writing a file.
 FOUNDATION_EXPORT NSDictionary * _Nullable MXRCreateOutputDefinition(NSDictionary *arguments, NSError **error);
 
+/// Whether a job plays its source locally beside the output ("Play locally while streaming").
+FOUNDATION_EXPORT BOOL MXROutputPlaysLocally(NSDictionary *definition, NSDictionary<NSString *, NSNumber *> *settings);
+
 /// Trusted options for a new output input, from a fresh engine configuration snapshot.
 FOUNDATION_EXPORT NSArray<NSString *> *MXROutputOptions(NSDictionary *definition, NSDictionary<NSString *, NSNumber *> *settings);
 

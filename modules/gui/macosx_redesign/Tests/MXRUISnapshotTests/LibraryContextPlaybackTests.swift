@@ -37,9 +37,7 @@ final class LibraryContextPlaybackTests: XCTestCase {
 
     @MainActor
     private func pressPlay<V: View>(in view: V) async throws {
-        _ = NSApplication.shared
-        NSApp.accessibilitySetValue(true, forAttribute: NSAccessibility.Attribute(rawValue: "AXManualAccessibility"))
-        NSApp.accessibilitySetValue(true, forAttribute: NSAccessibility.Attribute(rawValue: "AXEnhancedUserInterface"))
+        enableAccessibilityTree()
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 265, height: 584), styleMask: .borderless, backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         Self.retainedWindows.append(window)

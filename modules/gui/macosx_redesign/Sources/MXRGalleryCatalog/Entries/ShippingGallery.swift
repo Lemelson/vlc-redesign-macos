@@ -24,6 +24,8 @@ final class ShippingGallery: NSObject, GalleryProvider {
                    node: "2425:13624", screens: ["S72", "S28"], light: true,
                    notes: "D053: the pinned Light bars are BG/A3 Transparent over the frame's #2D2B29 video base, Figma's #ABABAA (D043 superseded). D032/D044: watched rows are dimmed and the playing row is the accent, as in 11m57.",
                    configure: { app in
+                       // Media fixture: the list thumbnails are Figma's own artwork, as in S72.App/light.
+                       (app.backends.thumbnails as? MockThumbnails)?.usesFigmaListArtwork = true
                        app.library.navigate(to: .folder(MockMediaID.theWandS01Folder))
                        app.interface.library = .compact
                    }, media: figmaPlayerLight,
@@ -31,7 +33,7 @@ final class ShippingGallery: NSObject, GalleryProvider {
                                          "head at the labelled 00:02:10; Figma draws it at 00:01:53"),
                                 .differs(node: "I2425:13645;3603:12304", decision: "D049",
                                          "Light accent fills use Light/Accent/Main; the frame's play button keeps Dark/Accent/Main"),
-                                ] + macTopBar(leftGroup: "2425:13627", minimize: "2425:13641", maximize: "2425:13642", fullscreen: "2425:13643")),
+                                ] + playerLightCanvas + macTopBar(leftGroup: "2425:13627", minimize: "2425:13641", maximize: "2425:13642", fullscreen: "2425:13643")),
             window("S05.Window/top-reveal", title: "Shipping window · always auto-hide, pointer near the top",
                    scenario: .playingEpisode, screens: ["S05"], autoHide: true) { app in
                 app.interface.isTopBarVisible = true; app.interface.isControlBarVisible = false
@@ -86,9 +88,8 @@ final class ShippingGallery: NSObject, GalleryProvider {
             }, media: figmaCustomize7),
             window("S05.Window/fullscreen", title: "Shipping window · fullscreen with both bars", scenario: .pausedEpisode,
                    screens: ["S05"],
-                   notes: "Fullscreen composition in the titled host: the video fills the screen and the bars overlay it; the traffic lights are hidden because macOS shows them only in its own fullscreen titlebar with the menu bar. The menu-bar reveal and notch safe area need the live window.") { app in
-                app.player.setFullscreen(true)
-            },
+                   notes: "Fullscreen composition in the titled host: the video fills the screen and the bars overlay it; the traffic lights are hidden because macOS shows them only in its own fullscreen titlebar with the menu bar. The menu-bar reveal and notch safe area need the live window.",
+                   configure: { app in app.player.setFullscreen(true) }, media: figmaPlayer6),
             // D055: the pointer at the top edge brings macOS's menu bar and titlebar strip (not drawn
             // here: a 24 pt menu bar and the 28 pt titlebar with the traffic lights); the top bar shows
             // right below them.
@@ -113,7 +114,7 @@ final class ShippingGallery: NSObject, GalleryProvider {
             },
             window("S12.Window/continue-minimum", title: "Shipping window · resume toast at the 480 pt minimum with the compact library",
                    scenario: .continueWatching, screens: ["S12", "S27"],
-                   notes: "D051: the video area is narrower than the actions-only toast, so the Continue button truncates.",
+                   notes: "D051: the video area is narrower than the actions-only toast, so the button reads VLC's short \"Continue\" and hugs it.",
                    size: CGSize(width: Theme.Metric.Window.player.width / 4, height: Theme.Metric.Window.player.height / 4)) { app in
                 app.interface.library = .compact
             },
@@ -152,6 +153,38 @@ final class ShippingGallery: NSObject, GalleryProvider {
         }
     }
 
+    /// Player - Light (2425:13624) states the product draws differently, shared by S72.Window/light and
+    /// S72.App/light: the playing E04 row (D051: the accent title and the dimmed thumbnail with the
+    /// accent play glyph, as in 11m57.0, where Figma's static list draws it like a watched row) and the
+    /// canvas beside the picture (D055: the picture keeps Player-6's rect, 10 pt from the sides, and the
+    /// flat video base fills the strip where Figma's full-window media vignette continues).
+    static var playerLightCanvas: [FigmaDeviation] {
+        // The other rows' labels: Figma greys E05–E15 and keeps E01–E03 full; 11m57.0 dims the watched rows.
+        let labels = (["16226"] + (16228...16237).map(String.init)).map { "I2425:13646;6784:\($0);2404:9181" }
+            + (16238...16240).map { "I2425:13646;6784:\($0);2404:9152" }
+        return labels.map {
+            .differs(node: $0, outset: 1, decision: "D051", "watched rows are dimmed and unwatched ones full strength (11m57.0); Figma's template greys the others")
+        } + [
+            .differs(node: "I2425:13646;6131:13646", outset: 1, decision: "D051",
+                     "the current folder crumb is at full strength (11m57.0); Figma dims it"),
+            .differs(node: "I2425:13646;6784:16241", outset: 2, decision: "D051",
+                     "the playing E04 row is the accent with the play glyph on its dimmed thumbnail (11m57.0); Figma draws it like a watched row"),
+        ] + pictureSideStrips(controlRows: 1)
+    }
+
+    /// D055: where the canvas runs under the bars (Light, Customize) the picture keeps Player-6's rect,
+    /// 10 pt from the window's sides, and the flat video base fills the strips beside it where Figma's
+    /// full-window media vignette continues.
+    static func pictureSideStrips(controlRows: Int) -> [FigmaDeviation] {
+        let window = Theme.Metric.Window.self
+        let frame = window.videoArea.padding.trailing
+        let height = window.player.height - window.topBar.height - CGFloat(controlRows) * Theme.Metric.ControlBar.bar.height
+        return [0, window.player.width - frame].map { x in
+            .differs(CGRect(x: x, y: window.topBar.height, width: frame, height: height), decision: "D055",
+                     "the picture keeps Player-6's rect; beside it the canvas is the flat video base, not Figma's media vignette")
+        }
+    }
+
     /// D022 (D055 bullet "S01.Window/shipping top bar"): the Mac top bar against Figma's Windows one.
     /// The left group is compared where the product draws it, after the traffic lights (it moves by
     /// the lights' reserve, as `MXRTopBar` lays it out); minimise and maximise are not on a Mac; the
@@ -163,9 +196,17 @@ final class ShippingGallery: NSObject, GalleryProvider {
         return [
             .moved(node: leftGroup, by: CGSize(width: shift, height: 0), decision: "D022",
                    "the native traffic lights lead the top bar and the left group follows them"),
+        ] + macRightGroup(minimize: minimize, maximize: maximize, fullscreen: fullscreen)
+    }
+
+    /// D022: the right end of the top bar on a Mac. Minimise and maximise are not there, and the
+    /// fullscreen button takes the place of Windows' close, where it is compared pixel for pixel.
+    /// The S*.App entries (no native titlebar, so no traffic lights) use this part alone.
+    static func macRightGroup(minimize: String, maximize: String, fullscreen: String) -> [FigmaDeviation] {
+        [
             .differs(node: minimize, decision: "D022", "Windows minimise: the Mac window has its traffic lights instead"),
             .differs(node: maximize, decision: "D022", "Windows maximise: the Mac window has its traffic lights instead"),
-            .moved(node: fullscreen, by: CGSize(width: bar.windowControlCell.width, height: 0), decision: "D022",
+            .moved(node: fullscreen, by: CGSize(width: Theme.Metric.Window.windowControlCell.width, height: 0), decision: "D022",
                    "with no Windows close, the fullscreen button ends the bar"),
         ]
     }

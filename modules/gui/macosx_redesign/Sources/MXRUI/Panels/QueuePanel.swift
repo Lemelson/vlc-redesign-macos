@@ -36,7 +36,10 @@ public struct MXRQueuePanelView: View {
     @FocusState private var bookmarkEditorFocused: Bool
     @FocusState private var focusedQueueItem: QueueItem.ID?
     @FocusState private var focusedBookmark: Bookmark.ID?
-    @State private var isDropTargeted = false
+    /// Where a drag over the list would land (a queue index), shown as the "•••" row.
+    @State private var dropIndex: Int?
+    @State private var listViewportHeight: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showsSort = false
     /// The key of the last sort run from this panel; the engine has no persistent sort order.
     @State private var lastSortKey: QueueSortKey?
@@ -92,21 +95,33 @@ public struct MXRQueuePanelView: View {
             ScrollView {
                 VStack(spacing: PanelMetric.gap) {
                     ForEach(Array(queue.items.enumerated()), id: \.element.id) { index, item in
+                        // 20m21.4: the drop point opens a dim "•••" row where the item will land.
+                        if dropIndex == index { QueueInsertionPlaceholder() }
                         QueuePanelRow(item: item, selected: queue.selection.contains(item.id), current: queue.isCurrent(item),
                                       keyboardFocused: focusedQueueItem == item.id,
+                                      isFirst: index == 0, isLast: index == queue.items.count - 1,
                                       select: { flags in select(item, modifiers: flags) }, play: { queue.play(item) }, remove: { queue.remove([item.id]) },
                                       addToPlaylist: addToPlaylistMenu(for: item),
-                                      moveUp: { move(item, direction: -1) }, moveDown: { move(item, direction: 1) },
-                                      drop: { acceptDrop($0, at: index) })
+                                      moveUp: { move(item, direction: -1) }, moveDown: { move(item, direction: 1) })
                             .focused($focusedQueueItem, equals: item.id)
                     }
+                    if dropIndex != nil && dropIndex == queue.items.count && !queue.isEmpty { QueueInsertionPlaceholder() }
                     if queue.isEmpty { empty("Queue is empty", detail: "Drop media here or add files.") }
-                    Spacer(minLength: PanelSpace.xl)
-                        .frame(maxWidth: .infinity).contentShape(Rectangle())
-                        .onDrop(of: [.plainText, .url], isTargeted: $isDropTargeted) { acceptDrop($0, at: queue.items.count) }
-                        .overlay(alignment: .top) { if isDropTargeted { QueueInsertionPlaceholder() } }
-                }.padding(.horizontal, PanelSpace.xl)
+                }
+                .padding(.horizontal, PanelSpace.xl)
+                .padding(.bottom, PanelSpace.xl)
+                // Live run 2: the 12 pt gaps between rows and the space under the last row had no drop
+                // target, so a library row dropped there fell through to the window's open-and-play
+                // drop and replaced the queue. One target covers the whole list area and inserts at
+                // the row boundary nearest the pointer.
+                .frame(maxWidth: .infinity, minHeight: listViewportHeight, alignment: .top)
+                .contentShape(Rectangle())
+                .onDrop(of: [.url, .plainText], delegate: QueueListDropDelegate(
+                    count: queue.items.count, target: $dropIndex,
+                    animation: reduceMotion ? nil : .easeOut(duration: MXRPopupMotion.insertion),
+                    accept: { PanelQueueInteraction.acceptDrop($0, at: $1, queue: queue) }))
             }.scrollIndicators(.hidden)
+            .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { listViewportHeight = $0 }
             .onDeleteCommand { queue.removeSelection() }
             .onMoveCommand { direction in
                 let ids = queue.items.map(\.id)
@@ -207,7 +222,8 @@ public struct MXRQueuePanelView: View {
                                 .frame(width: PanelMetric.chapterNumberWidth, alignment: .leading) // 6321:14070
                             Text(chapter.name).lineLimit(1)
                             Spacer(minLength: 0)
-                            Text(chapter.time.formatted(.hoursMinutesSeconds))
+                            // 6321:14071: the time is FG/A3, dimmer than the name (15m16.7).
+                            Text(chapter.time.formatted(.hoursMinutesSeconds)).foregroundStyle(Theme.Color.fgA3)
                         }
                         .foregroundStyle(Theme.Color.fgA2)
                         .padding(.horizontal, PanelSpace.xs)
@@ -244,35 +260,38 @@ public struct MXRQueuePanelView: View {
               let destination = PanelQueueInteraction.moveDestination(index: index, count: queue.items.count, direction: direction) else { return }
         queue.move([item.id], to: destination)
     }
-    private func acceptDrop(_ providers: [NSItemProvider], at index: Int) -> Bool {
-        let providers = providers.filter { $0.hasItemConformingToTypeIdentifier(UTType.url.identifier) || $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) }
-        guard !providers.isEmpty else { return false }
-        Task { @MainActor in
-            var media: [MediaItem] = []
-            for provider in providers {
-                let type = provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) ? UTType.fileURL.identifier : (provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) ? UTType.url.identifier : UTType.plainText.identifier)
-                let data: Data? = await withCheckedContinuation { continuation in
-                    provider.loadDataRepresentation(forTypeIdentifier: type) { data, _ in continuation.resume(returning: data) }
-                }
-                guard let data, let text = String(data: data, encoding: .utf8) else { continue }
-                // A multi-row library drag carries one URL per line.
-                for line in text.split(whereSeparator: \.isNewline) {
-                    switch PanelDropPayload(text: String(line)) {
-                    case .queueItem(let id): queue.move([id], to: index)
-                    case .url(let url): media.append(MediaItem(url: url))
-                    case nil: continue
-                    }
-                }
-            }
-            if !media.isEmpty { queue.insert(media, at: index) }
-        }
-        return true
-    }
     private func empty(_ title: String, detail: String) -> some View {
         VStack(spacing: Theme.Spacing.gap8) {
             Text(title).foregroundStyle(Theme.Color.fgA2)
             Text(detail).mxrTextStyle(Theme.Font.caption).foregroundStyle(Theme.Color.fgA3)
         }.frame(maxWidth: .infinity).padding(.vertical, PanelSpace.xl)
+    }
+}
+
+/// The queue list's one drop target: library rows, files, URLs and queue rows (reorder) land at the
+/// row boundary under the pointer; the "•••" row previews it.
+private struct QueueListDropDelegate: DropDelegate {
+    let count: Int
+    @Binding var target: Int?
+    let animation: Animation?
+    let accept: ([NSItemProvider], Int) -> Bool
+
+    func validateDrop(info: DropInfo) -> Bool { info.hasItemsConforming(to: [.url, .plainText]) }
+    func dropEntered(info: DropInfo) { track(info) }
+    func dropUpdated(info: DropInfo) -> DropProposal? { track(info); return nil }
+    func dropExited(info: DropInfo) { withAnimation(animation) { target = nil } }
+    func performDrop(info: DropInfo) -> Bool {
+        let index = index(of: info)
+        withAnimation(animation) { target = nil }
+        return accept(info.itemProviders(for: [.url, .plainText]), index)
+    }
+    private func index(of info: DropInfo) -> Int {
+        PanelQueueInteraction.dropIndex(atY: info.location.y, count: count, rowHeight: Theme.Metric.SidePanels.listRow.height,
+                                        gap: PanelMetric.gap, placeholder: target)
+    }
+    private func track(_ info: DropInfo) {
+        let index = index(of: info)
+        if index != target { withAnimation(animation) { target = index } }
     }
 }
 
@@ -291,15 +310,14 @@ private struct QueuePanelRow: View {
     let selected: Bool
     let current: Bool
     let keyboardFocused: Bool
+    let isFirst: Bool
+    let isLast: Bool
     let select: (NSEvent.ModifierFlags) -> Void
     let play: @MainActor () -> Void
     let remove: @MainActor () -> Void
     let addToPlaylist: MXRMenuItem
     let moveUp: @MainActor () -> Void
     let moveDown: @MainActor () -> Void
-    let drop: ([NSItemProvider]) -> Bool
-    @State private var isTargeted = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var rowContent: some View {
         HStack(spacing: Theme.Spacing.gap10) {
             // 463:849 → 463:417 neutral drag handle; the current item shows the outline ▷ in orange (20m21.4).
@@ -342,17 +360,14 @@ private struct QueuePanelRow: View {
     var body: some View {
         selectableRow
         .onDrag { NSItemProvider(object: "mxr-queue:\(item.id)" as NSString) }
-        .onDrop(of: [.plainText, .url], isTargeted: $isTargeted.animation(reduceMotion ? nil : .easeOut(duration: MXRPopupMotion.insertion)), perform: drop)
-        // 20m21.4: the drop point opens a dim "•••" row where the item will land.
-        .padding(.top, isTargeted ? Theme.Metric.SidePanels.listRow.height + PanelMetric.gap : 0)
-        .overlay(alignment: .top) { if isTargeted { QueueInsertionPlaceholder() } }
         .mxrContextMenu {
-            PanelQueueInteraction.rowMenu(play: play, addToPlaylist: addToPlaylist, moveUp: moveUp, moveDown: moveDown, remove: remove)
+            PanelQueueInteraction.rowMenu(play: play, addToPlaylist: addToPlaylist, moveUp: isFirst ? nil : moveUp,
+                                          moveDown: isLast ? nil : moveDown, remove: remove)
         }
         .accessibilityElement(children: .combine).accessibilityAddTraits(.isButton)
         .accessibilityAction(named: "Play", play).accessibilityAction(named: "Select") { select([]) }
-        .accessibilityAction(named: "Move Up", moveUp)
-        .accessibilityAction(named: "Move Down", moveDown)
+        .accessibilityAction(named: "Move Up") { if !isFirst { moveUp() } }
+        .accessibilityAction(named: "Move Down") { if !isLast { moveDown() } }
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
@@ -369,12 +384,59 @@ private struct PanelRowFocusRing: View {
 
 /// Shared by pointer, keyboard and accessibility entry points.
 enum PanelQueueInteraction {
-    /// A queue row's right-click menu.
+    /// A queue row's right-click menu. A `nil` move (the first row's Move Up, the last row's Move
+    /// Down, both for a single item) is listed disabled (live run 2).
     @MainActor static func rowMenu(play: @escaping @MainActor () -> Void, addToPlaylist: MXRMenuItem,
-                                   moveUp: @escaping @MainActor () -> Void, moveDown: @escaping @MainActor () -> Void,
+                                   moveUp: (@MainActor () -> Void)?, moveDown: (@MainActor () -> Void)?,
                                    remove: @escaping @MainActor () -> Void) -> [MXRMenuItem] {
-        [MXRMenuItem("Play", action: play), addToPlaylist, MXRMenuItem("Move Up", action: moveUp),
-         MXRMenuItem("Move Down", action: moveDown), MXRMenuItem("Remove from Queue", action: remove)]
+        [MXRMenuItem("Play", action: play), addToPlaylist,
+         MXRMenuItem("Move Up", isEnabled: moveUp != nil) { moveUp?() },
+         MXRMenuItem("Move Down", isEnabled: moveDown != nil) { moveDown?() },
+         MXRMenuItem("Remove from Queue", action: remove)]
+    }
+    /// Inserts dropped library rows, files and URLs at `index`, or moves a dragged queue row there.
+    /// Returns at once; the providers load asynchronously (`completion` runs after the insert).
+    @MainActor @discardableResult
+    static func acceptDrop(_ providers: [NSItemProvider], at index: Int, queue: QueueModel,
+                           completion: (@MainActor () -> Void)? = nil) -> Bool {
+        let providers = providers.filter { $0.hasItemConformingToTypeIdentifier(UTType.url.identifier) || $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) }
+        guard !providers.isEmpty else { return false }
+        Task { @MainActor in
+            var media: [MediaItem] = []
+            for provider in providers {
+                let type = provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) ? UTType.fileURL.identifier : (provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) ? UTType.url.identifier : UTType.plainText.identifier)
+                let data: Data? = await withCheckedContinuation { continuation in
+                    provider.loadDataRepresentation(forTypeIdentifier: type) { data, _ in continuation.resume(returning: data) }
+                }
+                guard let data, let text = String(data: data, encoding: .utf8) else { continue }
+                // A multi-row library drag carries one URL per line.
+                for line in text.split(whereSeparator: \.isNewline) {
+                    switch PanelDropPayload(text: String(line)) {
+                    case .queueItem(let id): queue.move([id], to: index)
+                    case .url(let url): media.append(MediaItem(url: url))
+                    case nil: continue
+                    }
+                }
+            }
+            if !media.isEmpty { queue.insert(media, at: index) }
+            completion?()
+        }
+        return true
+    }
+    /// The queue index a drop at `y` (list content coordinates) inserts at: the row boundary nearest
+    /// the pointer, with rows `rowHeight` tall and `gap` apart. While the "•••" placeholder is shown
+    /// at `placeholder`, it occupies one row slot there, and a pointer over it keeps that index.
+    static func dropIndex(atY y: CGFloat, count: Int, rowHeight: CGFloat, gap: CGFloat, placeholder: Int?) -> Int {
+        let pitch = rowHeight + gap
+        var y = y
+        if let placeholder, placeholder <= count {
+            let top = CGFloat(placeholder) * pitch
+            if y >= top - gap / 2 && y < top + rowHeight + gap / 2 { return placeholder }
+            if y >= top + rowHeight { y -= pitch }
+        }
+        // Before the first row whose middle is below the pointer.
+        let index = Int(((y - rowHeight / 2) / pitch).rounded(.up))
+        return min(max(index, 0), count)
     }
     /// D-07: the queue row's "Add to Playlist" is the shared submenu of the library, mini player and
     /// player menus. A row inside a multi-row selection adds the whole selection, in queue order.

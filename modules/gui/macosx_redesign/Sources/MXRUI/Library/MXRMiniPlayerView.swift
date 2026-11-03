@@ -12,6 +12,8 @@ public struct MXRMiniPlayerView: View {
     @Environment(\.mxrLibraryPreviewHover) private var previewHover
     let videoView: AnyView
     let maximumHeight: CGFloat?
+    /// The card's width: Figma's 391 pt (970:3090), narrower in a small window (``MXRMiniPlayerDock``).
+    var width: CGFloat = Theme.Metric.Miniplayer.collapsed.width
     /// Moves the card (the dock passes its corner-snapping drag); nil keeps the card fixed.
     var cardDrag: AnyGesture<DragGesture.Value>?
     /// ✕: stops playback and hides the card (the dock decides how).
@@ -25,9 +27,11 @@ public struct MXRMiniPlayerView: View {
         self.videoView = videoView; self.maximumHeight = maximumHeight
     }
 
-    init(videoView: AnyView, maximumHeight: CGFloat?, cardDrag: AnyGesture<DragGesture.Value>?, close: (() -> Void)?) {
-        self.videoView = videoView; self.maximumHeight = maximumHeight; self.cardDrag = cardDrag; self.close = close
+    init(videoView: AnyView, maximumHeight: CGFloat?, width: CGFloat = Theme.Metric.Miniplayer.collapsed.width,
+         cardDrag: AnyGesture<DragGesture.Value>?, close: (() -> Void)?) {
+        self.videoView = videoView; self.maximumHeight = maximumHeight; self.width = width; self.cardDrag = cardDrag; self.close = close
     }
+    private var layout: MiniPlayerLayout { MiniPlayerLayout(width: width) }
 
     private var overlayVisible: Bool { videoHovered || previewHover == MXRLibraryPreview.miniPlayer }
     /// Playback reached the end of the queue: Figma's replay variant (1919:9515).
@@ -42,7 +46,11 @@ public struct MXRMiniPlayerView: View {
                     if ended { Rectangle().fill(Theme.Color.bgA2) }
                     else if player.isAudioOnly { MXRMediaArtwork() }
                     else { videoView }
-                    if overlayVisible || ended { overlayControls }
+                    // Over the picture the controls keep the Dark styles in both themes: Figma's hover
+                    // overlay (975:4333) is white on the scrimmed video, and Light FG/1 is near-black
+                    // there (S46 Light parity). The ended variant sits on the scheme's own BG/A2 fill.
+                    if overlayVisible && !ended { overlayControls.environment(\.colorScheme, .dark) }
+                    else if ended { overlayControls }
                 }
                 .frame(width: videoSize.width, height: videoSize.height)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.lg))
@@ -90,11 +98,11 @@ public struct MXRMiniPlayerView: View {
                     }
                     Spacer(minLength: 0)
                     LibraryIconButton(icon: .lists, label: showsQueue ? "Collapse queue" : "Expand queue", active: showsQueue,
-                                      enabled: queueHeight >= Self.minimumQueueHeight) {
+                                      enabled: queueHeight >= MiniPlayerLayout.minimumQueueHeight) {
                         ui.isMiniPlayerQueueExpanded.toggle()
                     }
                     .frame(width: Theme.Metric.ControlBar.iconButton.width)
-                    .help(queueHeight >= Self.minimumQueueHeight ? "Show or hide the queue" : "Make the window taller to expand the queue")
+                    .help(queueHeight >= MiniPlayerLayout.minimumQueueHeight ? "Show or hide the queue" : "Make the window taller to expand the queue")
                 }.frame(height: Theme.Metric.Library.thumb.height)
             }
             .padding(Theme.Metric.Miniplayer.infoBlock.padding)
@@ -103,7 +111,7 @@ public struct MXRMiniPlayerView: View {
             .modifier(OptionalCardDrag(gesture: cardDrag))
         }
         .padding(Theme.Metric.Miniplayer.collapsed.padding)
-        .frame(width: Theme.Metric.Miniplayer.collapsed.width)
+        .frame(width: width)
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.xxl))
         .background {
             RoundedRectangle(cornerRadius: Theme.Radius.xxl).fill(Theme.Color.bgA3)
@@ -132,19 +140,19 @@ public struct MXRMiniPlayerView: View {
             }
             .padding(Theme.Spacing.gap16)
             GeometryReader { video in
-            HStack(spacing: LibraryGeometry.miniTransportGap) {
-                MiniOverlayButton(icon: .previous, label: "Previous", size: LibraryGeometry.miniTransportIcon, enabled: queue.hasPrevious) { queue.previous() }
-                    .frame(width: LibraryGeometry.miniTransportCell.width, height: LibraryGeometry.miniTransportCell.height)
+            HStack(spacing: LibraryGeometry.miniTransportGap * layout.scale) {
+                MiniOverlayButton(icon: .previous, label: "Previous", size: LibraryGeometry.miniTransportIcon * layout.scale, enabled: queue.hasPrevious) { queue.previous() }
+                    .frame(width: LibraryGeometry.miniTransportCell.width * layout.scale, height: LibraryGeometry.miniTransportCell.height * layout.scale)
                 if ended {
-                    MiniOverlayButton(icon: .replay, label: "Play again", size: LibraryGeometry.miniTransportIcon) {
+                    MiniOverlayButton(icon: .replay, label: "Play again", size: LibraryGeometry.miniTransportIcon * layout.scale) {
                         if let item = queue.currentItem ?? queue.items.first { queue.play(item) } else { player.play() }
                     }
                 } else {
                     MiniOverlayButton(icon: player.isPlaying ? .pause : .play, label: player.isPlaying ? "Pause" : "Play",
-                                      size: LibraryGeometry.miniTransportIcon) { player.togglePlayPause() }
+                                      size: LibraryGeometry.miniTransportIcon * layout.scale) { player.togglePlayPause() }
                 }
-                MiniOverlayButton(icon: .next, label: "Next", size: LibraryGeometry.miniTransportIcon, enabled: queue.hasNext) { queue.next() }
-                    .frame(width: LibraryGeometry.miniTransportCell.width, height: LibraryGeometry.miniTransportCell.height)
+                MiniOverlayButton(icon: .next, label: "Next", size: LibraryGeometry.miniTransportIcon * layout.scale, enabled: queue.hasNext) { queue.next() }
+                    .frame(width: LibraryGeometry.miniTransportCell.width * layout.scale, height: LibraryGeometry.miniTransportCell.height * layout.scale)
             }
             .position(x: video.size.width * LibraryGeometry.miniTransportCenter.x / LibraryGeometry.miniVideoSize.width,
                       y: video.size.height * LibraryGeometry.miniTransportCenter.y / LibraryGeometry.miniVideoSize.height)
@@ -153,40 +161,32 @@ public struct MXRMiniPlayerView: View {
     }
 
     private var videoSize: CGSize {
-        let naturalHeight = LibraryGeometry.miniVideoSize.height
-        return CGSize(width: LibraryGeometry.miniVideoSize.width,
-                      height: videoBlockHeight >= LibraryGeometry.miniExpandedVideoBlock ? naturalHeight : min(naturalHeight, max(0, videoBlockHeight - LibraryGeometry.miniSeekHeight - Theme.Metric.Miniplayer.videoBlock.gap)))
+        let naturalHeight = layout.video.height
+        return CGSize(width: layout.video.width,
+                      height: videoBlockHeight >= layout.naturalVideoBlockThreshold ? naturalHeight : min(naturalHeight, max(0, videoBlockHeight - LibraryGeometry.miniSeekHeight - Theme.Metric.Miniplayer.videoBlock.gap)))
     }
 
     private var queueHeight: CGFloat {
         guard let maximumHeight else { return Theme.Metric.Miniplayer.queue.height }
-        if maximumHeight >= Theme.Metric.Miniplayer.expanded.height { return Theme.Metric.Miniplayer.queue.height }
-        let roomWithNaturalVideo = maximumHeight - Theme.Metric.Miniplayer.collapsed.height - Theme.Metric.Miniplayer.collapsed.gap
-        let roomWithReducedVideo = maximumHeight - Self.minimumExpandedHeight + Self.minimumQueueHeight
-        guard roomWithReducedVideo >= Self.minimumQueueHeight else { return 0 }
-        return min(Theme.Metric.Miniplayer.queue.height, max(Self.minimumQueueHeight, roomWithNaturalVideo))
+        if maximumHeight >= layout.expandedHeight { return Theme.Metric.Miniplayer.queue.height }
+        let roomWithNaturalVideo = maximumHeight - layout.collapsedHeight - Theme.Metric.Miniplayer.collapsed.gap
+        let roomWithReducedVideo = maximumHeight - layout.minimumExpandedHeight + MiniPlayerLayout.minimumQueueHeight
+        guard roomWithReducedVideo >= MiniPlayerLayout.minimumQueueHeight else { return 0 }
+        return min(Theme.Metric.Miniplayer.queue.height, max(MiniPlayerLayout.minimumQueueHeight, roomWithNaturalVideo))
     }
-    private var showsQueue: Bool { ui.isMiniPlayerQueueExpanded && queueHeight >= Self.minimumQueueHeight }
+    private var showsQueue: Bool { ui.isMiniPlayerQueueExpanded && queueHeight >= MiniPlayerLayout.minimumQueueHeight }
     private var videoBlockHeight: CGFloat {
-        let naturalHeight = showsQueue ? Theme.Metric.Miniplayer.expanded.height : Theme.Metric.Miniplayer.collapsed.height
+        let naturalHeight = showsQueue ? layout.expandedHeight : layout.collapsedHeight
         let limit = min(maximumHeight ?? naturalHeight, naturalHeight)
         let reduced = limit - Theme.Metric.Miniplayer.infoBlock.height - Theme.Metric.Miniplayer.collapsed.gap
             - Theme.Metric.Miniplayer.collapsed.padding.top - Theme.Metric.Miniplayer.collapsed.padding.bottom
             - (showsQueue ? queueHeight + Theme.Metric.Miniplayer.collapsed.gap : 0)
-        return max(LibraryGeometry.miniSeekHeight, min(Theme.Metric.Miniplayer.videoBlock.height, reduced))
+        return max(LibraryGeometry.miniSeekHeight, min(layout.videoBlockHeight, reduced))
     }
-    // Keep its 50pt title, 64pt tools header and one 32pt row visible in constrained windows.
-    private static var minimumQueueHeight: CGFloat {
-        Theme.Metric.SidePanels.tabStrip.height * 2 + Theme.Spacing.gap14 + Theme.Spacing.gap2 + Theme.Metric.Library.thumb.height
-    }
-    private static var minimumExpandedHeight: CGFloat {
-        Theme.Metric.Miniplayer.videoBlock.height / 2 + Theme.Metric.Miniplayer.infoBlock.height
-            + Theme.Metric.Miniplayer.collapsed.gap * 2 + Theme.Metric.Miniplayer.collapsed.padding.top
-            + Theme.Metric.Miniplayer.collapsed.padding.bottom + minimumQueueHeight
-    }
-    static func fittingHeight(expanded: Bool, available: CGFloat) -> CGFloat {
-        let expandedFits = expanded && available >= minimumExpandedHeight
-        return min(available, expandedFits ? Theme.Metric.Miniplayer.expanded.height : Theme.Metric.Miniplayer.collapsed.height)
+    static func fittingHeight(expanded: Bool, available: CGFloat, width: CGFloat = Theme.Metric.Miniplayer.collapsed.width) -> CGFloat {
+        let layout = MiniPlayerLayout(width: width)
+        let expandedFits = expanded && available >= layout.minimumExpandedHeight
+        return min(available, expandedFits ? layout.expandedHeight : layout.collapsedHeight)
     }
 
     private var queueSection: some View {
@@ -253,6 +253,43 @@ public struct MXRMiniPlayerView: View {
         .frame(height: queueHeight)
         .onAppear { app.library.loadPlaylistsIfNeeded() }
     }
+}
+
+/// The mini player's geometry at a card width. At Figma's 391 pt (970:3090 / 970:3092) every value is
+/// the token; a narrower card keeps the 8 pt padding, info block and queue, and shrinks the 16:9 video
+/// (and the transport over it) with its width.
+struct MiniPlayerLayout {
+    let width: CGFloat
+    /// Video width over Figma's 375 pt.
+    var scale: CGFloat { video.width / LibraryGeometry.miniVideoSize.width }
+    var video: CGSize {
+        let w = max(0, width - Theme.Metric.Miniplayer.collapsed.padding.leading - Theme.Metric.Miniplayer.collapsed.padding.trailing)
+        return CGSize(width: w, height: w / LibraryGeometry.miniVideoAspect)
+    }
+    /// What the video is short of Figma's 210.94 pt; every block above it loses the same.
+    private var videoShortfall: CGFloat { LibraryGeometry.miniVideoSize.height - video.height }
+    var videoBlockHeight: CGFloat { Theme.Metric.Miniplayer.videoBlock.height - videoShortfall }
+    var naturalVideoBlockThreshold: CGFloat { LibraryGeometry.miniExpandedVideoBlock - videoShortfall }
+    var collapsedHeight: CGFloat { Theme.Metric.Miniplayer.collapsed.height - videoShortfall }
+    var expandedHeight: CGFloat { Theme.Metric.Miniplayer.expanded.height - videoShortfall }
+    // Keep its 50pt title, 64pt tools header and one 32pt row visible in constrained windows.
+    static var minimumQueueHeight: CGFloat {
+        Theme.Metric.SidePanels.tabStrip.height * 2 + Theme.Spacing.gap14 + Theme.Spacing.gap2 + Theme.Metric.Library.thumb.height
+    }
+    var minimumExpandedHeight: CGFloat {
+        videoBlockHeight / 2 + Theme.Metric.Miniplayer.infoBlock.height
+            + Theme.Metric.Miniplayer.collapsed.gap * 2 + Theme.Metric.Miniplayer.collapsed.padding.top
+            + Theme.Metric.Miniplayer.collapsed.padding.bottom + Self.minimumQueueHeight
+    }
+    /// The docked card's width in a library `available` wide: Figma's 391 pt is a fifth of its
+    /// 1920 pt frame. A smaller window keeps the card to a third of the library (live run 2: at 680 pt
+    /// the 391 pt card covered most of the grid), down to the width its info row still reads at.
+    static func dockedWidth(available: CGFloat) -> CGFloat {
+        let natural = Theme.Metric.Miniplayer.collapsed.width
+        return min(natural, max(minimumWidth, available / 3), max(0, available - Theme.Spacing.gap6 * 2))
+    }
+    /// Title, chip and queue button still share the info row: a Home card's width (200 pt).
+    static var minimumWidth: CGFloat { LibraryGeometry.squareCard }
 }
 
 @MainActor enum LibraryQueueDrop {
@@ -406,10 +443,10 @@ public struct MXRMiniPlayerDock: View {
 
     public var body: some View {
         GeometryReader { geometry in
-            let width = Theme.Metric.Miniplayer.collapsed.width
+            let width = MiniPlayerLayout.dockedWidth(available: geometry.size.width)
             let margin = Theme.Spacing.gap6 // S45 970:3588 docks at 1523,735 within 1920×1080: 6pt inset.
             let availableHeight = max(0, geometry.size.height - margin * 2)
-            let height = MXRMiniPlayerView.fittingHeight(expanded: ui.isMiniPlayerQueueExpanded, available: availableHeight)
+            let height = MXRMiniPlayerView.fittingHeight(expanded: ui.isMiniPlayerQueueExpanded, available: availableHeight, width: width)
             let x = leading ? margin + width / 2 : geometry.size.width - margin - width / 2
             let y = top ? margin + height / 2 : geometry.size.height - margin - height / 2
             let drag = DragGesture(minimumDistance: Theme.Spacing.gap8)
@@ -423,7 +460,7 @@ public struct MXRMiniPlayerDock: View {
                     if reduceMotion { action() } else { withAnimation(.easeOut(duration: 0.2), action) }
                 }
             if dismissedMediaID == nil || dismissedMediaID != player.media?.id {
-                MXRMiniPlayerView(videoView: videoView, maximumHeight: availableHeight, cardDrag: AnyGesture(drag)) {
+                MXRMiniPlayerView(videoView: videoView, maximumHeight: availableHeight, width: width, cardDrag: AnyGesture(drag)) {
                     dismissedMediaID = player.media?.id
                     player.stop()
                 }

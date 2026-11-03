@@ -56,7 +56,11 @@ public enum MXRPlayerMetrics {
     /// Player - customize* (2107:5604 …, key frames 19m12.4/19m26.3): edit mode always shows two
     /// control-bar rows (972–1080); a one-row layout gets an empty band above the bar, the slot a
     /// dragged item fills to start a new row.
-    static let customizeControlRows = 2
+    public static let customizeControlRows = 2
+    /// The player window's smallest content size (480 × 270): a quarter of Figma's 1920 × 1080 player,
+    /// where the top bar, a control row and the compact library at its minimum still fit (D019, D057).
+    public static let windowMinimumContentSize = CGSize(width: Theme.Metric.Window.player.width / 4,
+                                                        height: Theme.Metric.Window.player.height / 4)
     /// VLC's `mouse-hide-timeout` default: the pointer hides over video after one second (WT-11).
     static let cursorHideDelay = 1.0
 }

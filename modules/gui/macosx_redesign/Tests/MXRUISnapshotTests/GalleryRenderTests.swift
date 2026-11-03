@@ -173,6 +173,25 @@ final class GalleryRenderTests: XCTestCase {
         XCTAssertGreaterThan(left.r, (inside.r + 14) / 2, "ring clipped at the left edge")
     }
 
+    /// A whole Onboarding frame (1902:6770, box starting between render pixels) is opaque BG/B1 up
+    /// to its box edges, as Figma's vector is: the bilinear shift would leave its first and last rows
+    /// and columns partly transparent and darkened by the shadow outside the box, a 1090×7 pt strip
+    /// that turned every S69–S71 verdict into FAIL (critic P2).
+    @MainActor
+    func testWholeFrameCropKeepsItsFillAtTheBoxEdges() throws {
+        let crop = try figmaIndex().reference(for: "1902:6770")
+        XCTAssertTrue(crop.isSubpixelShifted)
+        let w = crop.image.width, h = crop.image.height
+        let inside = Self.pixel(crop.image, x: w / 2, y: h / 2)
+        for (x, y) in [(w / 2, 0), (w / 2, h - 1), (0, h / 2), (w - 1, h / 2)] {
+            let edge = Self.pixel(crop.image, x: x, y: y)
+            XCTAssertEqual(edge.a, 255, "edge pixel (\(x), \(y)) is opaque")
+            XCTAssertEqual(edge.r, inside.r, accuracy: 1, "edge pixel (\(x), \(y)) is the frame fill")
+        }
+        // A rounded corner stays open: the corner pixel is not filled in.
+        XCTAssertLessThan(Self.pixel(crop.image, x: 0, y: 0).a, 128)
+    }
+
     /// A node inside a hidden layer (not hidden itself) is flagged: Figma renders nothing there.
     @MainActor
     func testHiddenAncestorIsWarned() throws {

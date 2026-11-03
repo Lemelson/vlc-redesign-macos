@@ -399,7 +399,9 @@ struct PanelTextField: View {
         _draft = State(initialValue: value)
     }
     var body: some View {
-        TextField(title, text: $draft)
+        // The row's label names the field; an empty value reads "None" in FG/A4 rather than the
+        // label again, which filled the field like a value (engine options, "Video filter chain").
+        TextField(title, text: $draft, prompt: Text("None").foregroundStyle(Theme.Color.fgA4))
             .textFieldStyle(.plain)
             .mxrTextStyle(font)
             .foregroundStyle(style == .filled && !focused ? Theme.Color.fgA3 : Theme.Color.fgA2)
@@ -569,14 +571,19 @@ struct PanelDropdownRow: View {
     let selected: String
     let choices: [PanelChoice]
     var height = PanelMetric.wideRowHeight
+    /// The label's one-line width: a long label (an engine option's "Video post-processing")
+    /// narrows the dropdown instead of wrapping beside it.
+    @State private var labelWidth: CGFloat = 0
     var body: some View {
         GeometryReader { geometry in
             HStack {
-            Text(title).foregroundStyle(Theme.Color.fgA3)
+            Text(title).foregroundStyle(Theme.Color.fgA3).lineLimit(1)
+                .background { Text(title).fixedSize().hidden().onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { labelWidth = $0 } }
             Spacer(minLength: PanelSpace.xs)
             PanelDropdown(title: title, selected: selected, choices: choices)
                 .frame(width: max(PanelMetric.dropdownMinimumWidth,
-                                  min(PanelMetric.dropdownSize.width, geometry.size.width - PanelMetric.dropdownLabelReserve)))
+                                  min(PanelMetric.dropdownSize.width, geometry.size.width - PanelMetric.dropdownLabelReserve,
+                                      geometry.size.width - PanelSpace.xs - PanelSpace.xl - labelWidth)))
         }.padding(.leading, PanelSpace.xs).frame(height: height)
         }.frame(height: height)
     }
@@ -622,6 +629,7 @@ struct PanelSlider: View {
     /// 614:1472/673:1606 (Colors, Color Threshold off): a disabled slider keeps its label and track
     /// but draws the fill in BG/A1 and the thumb in FG/A3.
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.colorScheme) private var colorScheme
     var tickFractions: [Double] {
         if let stops { return stops > 2 ? (1..<(stops - 1)).map { Double($0) / Double(stops - 1) } : [] }
         guard ticks, labels.count > 2 else { return [] }
@@ -641,12 +649,14 @@ struct PanelSlider: View {
                         .frame(width: fill.width, height: PanelMetric.sliderTrackHeight - PanelMetric.sliderInset * 2)
                         .offset(x: fill.minX)
                     // 536:1986 / 804:1287: the `degrees` frame screen-blends its BG/Accent Dark marks,
-                    // so a tick reads lighter on the empty track and warmer on the fill.
+                    // so a tick reads lighter on the empty track and warmer on the fill. Light (no
+                    // Figma frame) mirrors it with multiply: a darker mark on the light track, a deeper
+                    // one on the fill; screen made the Light tick paler than the track (D054).
                     ForEach(tickFractions, id: \.self) { tick in
                         Capsule().fill(Theme.Color.bgAccentDark)
                             .frame(width: PanelMetric.sliderTickSize.width, height: PanelMetric.sliderTickSize.height)
                             .offset(x: layout.tickCenter(tick) - PanelMetric.sliderTickSize.width / 2)
-                    }.blendMode(.screen)
+                    }.blendMode(colorScheme == .light ? .multiply : .screen)
                     RoundedRectangle(cornerRadius: Theme.Radius.md).fill(isEnabled ? Theme.Color.accentDim : Theme.Color.fgA3)
                         .frame(width: PanelMetric.sliderHandleSize.width, height: PanelMetric.sliderHandleSize.height)
                         .offset(x: layout.thumbX(progress))
@@ -655,7 +665,9 @@ struct PanelSlider: View {
                 .contentShape(Rectangle())
                 .gesture(DragGesture(minimumDistance: 0).onChanged { gesture in
                     let next = range.lowerBound + layout.fraction(atX: gesture.location.x) * (range.upperBound - range.lowerBound)
-                    value = min(max((next / step).rounded() * step, range.lowerBound), range.upperBound)
+                    let stepped = min(max((next / step).rounded() * step, range.lowerBound), range.upperBound)
+                    // A pointer move within one step is not a new value: no write reaches the engine.
+                    if stepped != value { value = stepped }
                 })
             }.frame(height: trackHeight + Self.thumbOverhang)
             if !labels.isEmpty {

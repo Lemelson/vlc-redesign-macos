@@ -161,13 +161,15 @@ public struct Backends {
     public let osd: any OSDBackend
     public let output: (any OutputBackend)?
     public let renderers: (any RendererBackend)?
+    /// Sparkle (D059); nil in builds without it.
+    public let updater: (any UpdaterBackend)?
     public let quitHandler: (@MainActor () -> Void)?
     public let capabilities: BackendCapabilities
 
     public init(player: any PlayerBackend, clock: any PlaybackClockSource, queue: any PlayQueueBackend, library: any LibraryBackend,
                 mediaSources: any MediaSourceBackend, settings: any SettingsBackend, shortcuts: any ShortcutsBackend,
                 dialogs: any DialogBackend, extensions: any ExtensionsBackend, thumbnails: any ThumbnailBackend,
-                osd: any OSDBackend, capabilities: BackendCapabilities, output: (any OutputBackend)? = nil, renderers: (any RendererBackend)? = nil, quitHandler: (@MainActor () -> Void)? = nil) {
+                osd: any OSDBackend, capabilities: BackendCapabilities, output: (any OutputBackend)? = nil, renderers: (any RendererBackend)? = nil, updater: (any UpdaterBackend)? = nil, quitHandler: (@MainActor () -> Void)? = nil) {
         self.player = player
         self.clock = clock
         self.queue = queue
@@ -182,6 +184,7 @@ public struct Backends {
         self.capabilities = capabilities
         self.output = output
         self.renderers = renderers
+        self.updater = updater
         self.quitHandler = quitHandler
     }
 }

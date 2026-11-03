@@ -180,6 +180,17 @@ int main(void) {
         NSDictionary *first=[[again[@"entries"] firstObject] objectForKey:@"media"];
         CHECK([first[@"artworkURL"] length]>0,@"a video in the library carries its persisted thumbnail URL");
 
+        /* Bookmarks on a file opened directly, outside every library folder (live run 2: ⌘B stored nothing). */
+        NSString *loose=[root stringByAppendingPathComponent:@"outside/Loose Clip.mp4"];
+        Video(loose,@"Loose Clip");
+        NSString *looseMRL=[NSURL fileURLWithPath:loose].absoluteString;
+        error=nil; NSDictionary *added=Request(library,@"addBookmark",@{@"mediaID":looseMRL,@"time":@(2000000),@"name":@"Loose Clip 1"},&error);
+        CHECK(error==nil&&[added[@"bookmark"][@"time"] longLongValue]==2000000,@"a bookmark on media outside the library is stored (%@)",error.localizedDescription?:@"ok");
+        NSArray *marks=Request(library,@"bookmarks",@{@"mediaID":looseMRL},nil)[@"bookmarks"];
+        CHECK(marks.count==1&&[marks.firstObject[@"name"] isEqual:@"Loose Clip 1"],@"and listed for that file by its MRL: %@",marks);
+        error=nil; Request(library,@"removeBookmark",@{@"mediaID":looseMRL,@"id":marks.firstObject[@"id"]?:@""},&error);
+        CHECK(error==nil&&[Request(library,@"bookmarks",@{@"mediaID":looseMRL},nil)[@"bookmarks"] count]==0,@"and removed again");
+
         [library shutdown]; [library finishShutdown];
         libvlc_InternalCleanup(instance); libvlc_InternalDestroy(instance);
         [NSFileManager.defaultManager removeItemAtPath:root error:nil];

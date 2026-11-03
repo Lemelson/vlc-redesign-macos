@@ -159,6 +159,7 @@ MXRBridgeRequest const MXRBridgeRequestRemoveBookmark = @"removeBookmark";
 MXRBridgeRequest const MXRBridgeRequestRemoveExtension = @"removeExtension";
 MXRBridgeRequest const MXRBridgeRequestRemoveFolder = @"removeFolder";
 MXRBridgeRequest const MXRBridgeRequestRemoveFromPlaylist = @"removeFromPlaylist";
+MXRBridgeRequest const MXRBridgeRequestRemoveImportedMedia = @"removeImportedMedia";
 MXRBridgeRequest const MXRBridgeRequestRemoveNetworkStream = @"removeNetworkStream";
 MXRBridgeRequest const MXRBridgeRequestRenameBookmark = @"renameBookmark";
 MXRBridgeRequest const MXRBridgeRequestRenameNetworkStream = @"renameNetworkStream";

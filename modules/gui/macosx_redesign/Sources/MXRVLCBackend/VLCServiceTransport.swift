@@ -90,6 +90,7 @@ enum VLCWire {
         item.year = (value["year"] as? NSNumber)?.intValue
         let width = value.double("width"), height = value.double("height")
         if width > 0, height > 0 { item.videoSize = CGSize(width: width, height: height) }
+        if value.bool("isImported") { item.importedFile = true }
         return item
     }
     static func scalar(_ value: Any?, type: SettingOptionType? = nil) -> SettingValue? {

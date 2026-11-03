@@ -1,0 +1,153 @@
+{
+ "status": "partial",
+ "summary": "E-library fixes. LIVE BLOCKER, root cause found. Playing an http Network item did not crash because of a .help tooltip on a freed responder. The real cause: every dismiss, postAction and postLogin of an engine dialog raised an NSInvalidArgumentException inside a MainActor task. VLCDialogBackend sent the dialog id as a String, and -[MXRDialogServices performCommand:] calls unsignedLongLongValue on it, which NSString does not implement. The unified log at 08:52:08 shows the exception, thrown from -[MXRDialogServices performCommand:arguments:error:] ← VLCDialogBackend.dismiss ← MXRNativePresentations.refresh. AppKit swallowed it; the crash report notes \"SOME_OTHER_THREAD_SWALLOWED_AT_LEAST_ONE_EXCEPTION\". The unwind left Swift's executor tracking pointing at a dead frame. The next MainActor.assumeIsolated, here from the tooltip timer's hit-test, crashed reading identity 0x1e. Fixed on both sides: Swift now sends NSNumber, and the bridge reads the id by type, so a bad id gives an NSError, never an exception. A headless engine probe and a Swift regression test both fail without the fix. Also fixed: the Light mini-player over-video controls (S46 major), the mini player scaling with the window, the breadcrumb dropping the current folder, '1 items' counts, Add File inside a playlist, D039 (Add Audio Tracks disabled for songs), the S35 and S40 fixtures, and the grid-card selection fill. Convert/Stream no longer record watch state: the output playlist is now parented to the interface, and an engine probe proved the rule. Arrow keys: D-menus did the routing part in parallel (libraryListHasKeyboardFocus, set in MXRLibraryView), and I kept it. The view-level test with real key events could not be built. SwiftUI focus and gestures do not respond to synthetic NSEvents in a window that is never ordered on screen; I tried 6 ways (listed in notFixed).",
+ "fixed": [
+  "LIVE BLOCKER http Network play crash: root cause is a dialog-id type mismatch (String vs NSNumber), which raised an ObjC exception inside a MainActor task, which corrupted Swift executor tracking, which then crashed the TooltipBridge hit-test in MainActor.assumeIsolated. Fixed in VLCServiceBackends.swift (NSNumber ids) and MXRDialogServices.m (id read by type, no exception). Evidence: `log show` 08:52:08 NSInvalidArgumentException backtrace; probe ../build/evidence/final6/fix/E-library/crash/probe-output.txt (before: 'string id: EXCEPTION NSInvalidArgumentException' FAIL; after: PASS); Swift test DialogBridgeArgumentTests fails without the fix (revert-check.txt).",
+  "PARITY MAJOR S46 mini player hover in Light: the over-video controls now render in the Dark scheme (white), and the ended variant keeps the native scheme. Test testMiniPlayerOverVideoControlsAreLightInBothThemes: ✕ brightest 22 without the fix, >200 with it. Render: build/evidence/final6/fix/E-library/mini/check-light/side-by-side.png",
+  "LIVE MAJOR full-library mini player does not scale: MiniPlayerLayout.dockedWidth keeps the 391 pt card from a 1173 pt library up; smaller libraries get a third of the width, floor 200 pt. The 16:9 video and the transport shrink with the card, and the designed size is unchanged. New gallery entry S45.Library/narrow-window; render mini/narrow-680-after.png (vs live w680-home.png). Recorded in the D044 amendment.",
+  "LIVE minor breadcrumb at ~680 pt showed only '…': the bare '…' choice is removed, and the current crumb middle-truncates with layout priority. Test testNarrowBreadcrumbKeepsTheCurrentFolder fails without the fix (labels only ['Enclosing folders']).",
+  "Library polish (1) Network/playlist/folder cards read '1 items': fixed with singular counts (LibraryEntry.count); test fails without the fix.",
+  "Library polish (3) grid cards show no selection: the BG/A2 selection fill now covers the whole card (D044 amendment).",
+  "Library polish (7) Playlist ⋯ ▸ Add File only added to the library: LibraryModel.importFiles now also appends to the shown playlist and stays on it; the help text is updated. Test fails without the fix (it navigated to Videos).",
+  "CRITIC P2 D039 vs file menu: Add Audio Tracks is disabled for .audio media; test fails without the fix.",
+  "CRITIC P2 / verifier open: D032 amendment corrected. Sampled values are #8F8F8F unwatched and #6B6B6B watched; the current crumb is fgA2, not fg1; it now says the header Dark styles also apply in the full window.",
+  "J-media-io/E-library Convert and Stream marked the source as played: the output playlist (MXRMediaServices.m) is now parented to the interface, not the instance. vlc_player_UpdateMLStates saves ML state only for players parented to the instance. Engine probe mlparent/result.txt: interface-parented last_played=-1, instance-parented last_played set, PASS.",
+  "Arrow keys in the library grid and compact list (LIVE MAJOR): the monitor now lets FocusedListKeys through while the library list has the keyboard (InterfaceModel.libraryListHasKeyboardFocus, set from MXRLibraryView; written by D-menus in parallel in my file, kept). Policy test WindowKeyPolicyTests (D-menus).",
+  "Parity S35 Network fixture listed 3 streams: gallery-only MockLibrary.useFigmaNetworkStreams; check is now 2 items like 858:5294 (s35/side-by-side.png).",
+  "Parity S40 Continue Watching bar lengths: gallery-only MockLibrary.useFigmaCompactHomeProgress (6/4/7 pt); the progress regions are gone from the check (s40/report.txt)."
+ ],
+ "notFixed": [
+  {
+   "id": "View-level arrow-key test with real key events",
+   "why": "Synthetic NSEvents never reach SwiftUI focus or gestures in a window that is never ordered on screen. I tried window.sendEvent and NSApp.sendEvent mouse clicks, an isKeyWindow override, host.display() before the hit-test, AX focus on the HostingScrollView, and Tab with AppleKeyboardUIMode in the argument domain (NSApp.isFullKeyboardAccessEnabled stays false). D-menus also tried and deleted a similar test. Coverage stays with the monitor-policy test (WindowKeyPolicyTests) plus the live recheck."
+  },
+  {
+   "id": "Drag library row onto queue replaced the queue",
+   "why": "My drag payload is correct: one row is an NSURL (file or http), several rows are newline-separated URL text, and both are accepted by LibraryQueueDrop and by G-panels' new QueueListDropDelegate (.url/.plainText). The drop target and its priority over the window-wide open-and-play drop belong to G-panels, which is editing QueuePanel.swift now."
+  },
+  {
+   "id": "Library polish (2) Continue Watching order / '5 items' with 4 cards",
+   "why": "The order is the engine's vlc_ml_list_video_history (last_played_date DESC). The out-of-order S01E03 came from the Convert/Stream history bug, now fixed. Home's 'N items' is the library's media count (knownMediaCount), not the number of cards: intended."
+  },
+  {
+   "id": "Library polish (4) titlebar chip 'Videos' on Recent/Playlists",
+   "why": "The chip names the playing media's place (MXRControlTitles, A-01, key frame 14m09.8), not the library location. It is in B-controls/A-window files and works as designed."
+  },
+  {
+   "id": "Library polish (5) subtitles cut under the compact library; (8) resume toast placement",
+   "why": "D055 subtitles bullet is an owner call (A-window). The resume toast is PlayerView (not mine)."
+  },
+  {
+   "id": "Library polish (6) sort dot on the default sort",
+   "why": "Not reproduced from the evidence (compact-recent.png shows no dot). hasCustomSort compares against the per-category default (D044)."
+  },
+  {
+   "id": "Light compact crumb FG/A2 instead of FG/1 (live minor)",
+   "why": "Figma 2425:13624 draws the current crumb 'S01' (I2425:13646;6131:13646) with FG/A2. Light FG/A2 = #2E2E2E is per D032; the decision text that said fg1 was the error and is corrected. Row tint per page follows Figma (compact Home rows FG/A3 1106:5633, media rows FG/A1)."
+  },
+  {
+   "id": "S46 hover REVIEW (seek row 1 pt, glyphs 0.7 pt)",
+   "why": "The remaining regions are card-edge resampling (the frame crop starts at 0.38 px) and icon rasterization. Not changed."
+  },
+  {
+   "id": "S28 minimum panel 'Th…p4'",
+   "why": "Undesigned 216 pt width (D044 narrow panel). Keeping the filename tail needs a width-aware truncation mode; left for a later pass."
+  },
+  {
+   "id": "S72 D051 figmaDeviation on the thumbnail (critic P1)",
+   "why": "The entries are in ShippingGallery.swift/AppGallery.swift (A-window)."
+  },
+  {
+   "id": "Bookmarks for media not in the ML (G-panels/E-library major)",
+   "why": "The bookmark command and OSD are G-panels' (bookmark backend/QueueAndLibraryBackends path not changed this wave). Not reached in time."
+  }
+ ],
+ "filesChanged": [
+  "modules/gui/macosx_redesign/Sources/MXRVLCBackend/VLCServiceBackends.swift",
+  "modules/gui/macosx_redesign/module/bridge/MXRDialogServices.m",
+  "modules/gui/macosx_redesign/module/bridge/MXRMediaServices.m",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Library/MXRMiniPlayerView.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibraryNavigation.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibraryEntryView.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibraryPopup.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Library/LibrarySupport.swift",
+  "modules/gui/macosx_redesign/Sources/MXRCore/Models/LibraryModel.swift",
+  "modules/gui/macosx_redesign/Sources/MXRMockBackend/MockLibrary.swift",
+  "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/Entries/LibraryGallery.swift",
+  "modules/gui/macosx_redesign/Tests/MXRVLCBackendTests/DialogBridgeArgumentTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/LibraryLiveRun2Tests.swift",
+  "redesign/docs/DECISIONS.md"
+ ],
+ "editsOutsideOwnership": [
+  "Sources/MXRVLCBackend/VLCServiceBackends.swift (VLCDialogBackend: 3 dialog ids sent as NSNumber instead of String; crash root cause)",
+  "module/bridge/MXRDialogServices.m (performCommand reads the id by type; 3 lines)",
+  "module/bridge/MXRMediaServices.m (output playlist parented to VLC_OBJECT(intf) instead of the instance, so Convert/Stream do not write ML history; 1 line + comment). J-media-io is editing this file in parallel (extension folder signature); my edit is a single separate line."
+ ],
+ "decisionsWritten": [
+  "D032 amendment corrected (E-library): sampled values #8F8F8F/#6B6B6B, current crumb fgA2 not fg1, header Dark styles also in the full window",
+  "D044: narrow compact panel bullet updated (the current crumb always stays, middle-truncated)",
+  "D044 amendment (E-library, 2026-10-17) · accepted (agent, 2026-10-17): selected grid cards draw the BG/A2 fill; mini player width rule in small windows; over-video controls white in Light"
+ ],
+ "ownerDecisions": [
+  "D044 amendment (agent, 2026-10-17): grid-card selection fill (Figma has no selected card)",
+  "D044 amendment (agent, 2026-10-17): docked mini player keeps to a third of a library narrower than 1173 pt (min 200 pt); Figma only draws 1920 pt",
+  "D032 amendment correction (agent, 2026-10-17): compact current crumb stays Light FG/A2 (#2E2E2E), not FG/1 as the live triage expected; Figma uses FG/A2"
+ ],
+ "evidence": [
+  "../build/evidence/final6/fix/E-library/crash/probe-output.txt (+ probe.m, run.sh, MXRDialogServices.before.m)",
+  "../build/evidence/final6/fix/E-library/mlparent/result.txt (+ probe.m)",
+  "../build/evidence/final6/fix/E-library/revert-check.txt (new tests fail with fixes reverted)",
+  "../build/evidence/final6/fix/E-library/mini/check-light/side-by-side.png, mini/check-dark/report.txt, mini/narrow-680-after.png, mini/short-window-960-after.png",
+  "../build/evidence/final6/fix/E-library/s35/side-by-side.png, s40/report.txt",
+  "Unified log: /usr/bin/log show --start '2026-10-17 08:52:08' --end '2026-10-17 08:52:09' --predicate 'process == \"VLC\"' shows the NSInvalidArgumentException backtrace through MXRDialogServices performCommand",
+  "Isolated run (pkg copy): MXRUISnapshotTests.Library*, MiniPlayer*, GalleryRenderTests, DialogBridgeArgumentTests: 0 failures; swift build of the main tree is clean"
+ ],
+ "liveChecks": [
+  {
+   "id": "E-http-network-crash",
+   "steps": "python3 -m http.server in ../build/media. Library ▸ Network ▸ Open Network Stream http://127.0.0.1:8000/Test%20Show%20S01E01.mp4, Save. Right-click the card ▸ Play; hover cards and the mini player for 10 s. Relaunch and repeat. Also trigger any engine dialog (e.g. an unreachable http URL) and dismiss it.",
+   "expect": "Playback starts with no crash and no new ~/Library/Logs/DiagnosticReports/VLC-*.ips; `log show --predicate 'process == \"VLC\"'` shows no NSInvalidArgumentException from MXRDialogServices."
+  },
+  {
+   "id": "E-arrow-keys",
+   "steps": "Full library ▸ Recent (grid) and a folder grid: click a card, press ↓ → ↑ ←, then ⇧↓. Repeat in the compact list while a video plays.",
+   "expect": "The selection moves (grid cards show the BG/A2 selection fill) and scrolls into view; no volume or seek OSD; ⇧ extends; Space still pauses."
+  },
+  {
+   "id": "E-mini-scale",
+   "steps": "Play S01E03, View ▸ Go Home, resize the window to 1300, 960, 680 and 480 pt wide.",
+   "expect": "The mini card is 391 pt at ≥1173 pt library width and a third of the width below that (≥200 pt). The grid and sidebar labels stay readable; transport controls fit inside the video on hover."
+  },
+  {
+   "id": "E-mini-light-hover",
+   "steps": "Light theme, full library with a playing video, hover the mini player.",
+   "expect": "✕, ↗ and ⏮ ▶ ⏭ are white over the dimmed video, as in Dark."
+  },
+  {
+   "id": "E-breadcrumb-680",
+   "steps": "Compact library at 680 pt window width, inside zz-live Show Collection ▸ Season One With A Really Quite Long Folder Name.",
+   "expect": "'… ▸ Season One…Name' (middle-truncated); the '…' menu lists the parents."
+  },
+  {
+   "id": "E-convert-history",
+   "steps": "Note last_played_date of an unwatched item in ml.db, Convert it and Stream it, check again and look at Home.",
+   "expect": "No change in last_played_date/playcount and no new Continue Watching tile."
+  },
+  {
+   "id": "E-playlist-add-file",
+   "steps": "Open a playlist, ⋯ ▸ Add File, choose a file.",
+   "expect": "The file is appended to that playlist, which stays shown (and it is also in the library)."
+  },
+  {
+   "id": "E-song-audio-tracks",
+   "steps": "Right-click a song in Music ▸ Songs.",
+   "expect": "Add Audio Tracks is disabled; on a video it is enabled."
+  },
+  {
+   "id": "E-network-count",
+   "steps": "Network category with a 1-item stream card in grid view.",
+   "expect": "Subtitle reads '1 item'."
+  }
+ ],
+ "notesForOthers": "C-bridge: any ObjC exception in a bridge call made from a Swift task (MXRServicesBridge performCommand/request) is swallowed by AppKit. It corrupts Swift executor tracking and later crashes far away in MainActor.assumeIsolated (the TooltipBridge stack). Consider wrapping -[MXRServicesBridge performCommand:service:arguments:error:] in @try/@catch that converts the exception to an NSError, so this class of bug fails loudly at its source. J-media-io: MXRMediaServices.m output playlist is now vlc_playlist_New(VLC_OBJECT(intf), …) (one line, see the comment). It does not touch your extension-signature edits. Note that the tone playlist in MXRAudioServices.m is still instance-parented, which only matters if it ever plays an ML file. G-panels: the library drag payload is an NSURL (one row) or newline-separated URL text (several rows); your QueueListDropDelegate (.url/.plainText) accepts both. The queue-replace symptom is drop-target priority over the window open-and-play drop. D-menus: you edited MXRLibraryView (libraryListHasKeyboardFocus). I kept it and removed my duplicate view test (synthetic focus does not work offscreen). A-window: the S72 D051 deviation is still yours. Integrator: the test target was intermittently broken by other areas (QueueDropLiveFindingsTests MediaItem.url, WindowLiveRun2Tests CGSize Hashable on macOS 14, PlayerView ContinueButtonStyle). My suites were verified in an isolated copy."
+}

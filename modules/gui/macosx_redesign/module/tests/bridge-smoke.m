@@ -23,11 +23,17 @@ extern void libvlc_InternalDestroy(libvlc_int_t *);
 #endif
 @interface MXRServicesBridge (RestoreSmoke)
 - (void)applyRestoreQueryForURL:(NSString *)url;
+- (void)navigationSeekReportedAt:(vlc_tick_t)time length:(vlc_tick_t)length;
 @end
 static void Require(BOOL condition,NSString *message) { if(!condition) { fprintf(stderr,"FAIL: %s\n",message.UTF8String); exit(1); } }
 static void ConsumeAudio(void *opaque,const void *data,unsigned samples,int64_t pts) { VLC_UNUSED(opaque); VLC_UNUSED(data); VLC_UNUSED(samples); VLC_UNUSED(pts); }
 static _Atomic(float) RequestedOutputVolume;
 static int ApplyOutputVolume(void *opaque,float volume,bool mute) { VLC_UNUSED(opaque); VLC_UNUSED(mute); atomic_store(&RequestedOutputVolume,volume); return 0; }
+/* Inputs the player made current: a looping item becomes current again without leaving PLAYING. */
+static atomic_int StartedInputs;
+static void CountStartedInput(vlc_player_t *player,input_item_t *media,void *data) { VLC_UNUSED(player); VLC_UNUSED(data); if(media) atomic_fetch_add(&StartedInputs,1); }
+static const struct vlc_player_cbs StartedInputCallbacks={.on_current_media_changed=CountStartedInput};
+static NSString *FeedbackText(vlc_tick_t time,vlc_tick_t length) { char a[MSTRTIME_MAX_SIZE],b[MSTRTIME_MAX_SIZE]; vlc_tick_to_str(a,time-VLC_TICK_0); vlc_tick_to_str(b,length); return [NSString stringWithFormat:@"%s / %s",a,b]; }
 static NSString *ItemOption(input_item_t *item,NSString *name) {
     NSString *value=nil; NSString *prefix=[name stringByAppendingString:@"="]; vlc_mutex_lock(&item->lock);
     for(int i=0;i<item->i_options;i++) { const char *raw=item->ppsz_options[i]; if(*raw==':') raw++; NSString *option=[NSString stringWithUTF8String:raw]; if([option hasPrefix:prefix]) { Require(item->optflagv[i]&VLC_INPUT_OPTION_TRUSTED,@"privacy option is trusted by the input"); value=[option substringFromIndex:prefix.length]; } }
@@ -283,6 +289,18 @@ int main(int argc,const char **argv) {
                 NSDate *arrowShown=[NSDate dateWithTimeIntervalSinceNow:1];
                 while(![[bridge snapshotForService:@"osd"][@"text"] isEqual:arrowExpected]&&arrowShown.timeIntervalSinceNow>0) [NSRunLoop.mainRunLoop runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
                 Require([[bridge snapshotForService:@"osd"][@"text"] isEqual:arrowExpected],[NSString stringWithFormat:@"the arrow's OSD shows its own target %@, not %@",arrowExpected,[bridge snapshotForService:@"osd"][@"text"]]);
+                /* Another input-thread seek while an arrow waits (an A-B loop's jump back to A, or any
+                 * seek after an arrow a DVD menu took) is not the arrow's: a seek back is reported
+                 * before a right arrow's own jump and must not take its slot (B-controls verify open). */
+                vlc_player_Lock(engine); vlc_player_SeekByTime(engine,start,VLC_PLAYER_SEEK_PRECISE,VLC_PLAYER_WHENCE_ABSOLUTE); vlc_player_Unlock(engine);
+                NSUInteger beforeArrow=[[bridge snapshotForService:@"osd"][@"serial"] unsignedIntegerValue];
+                Require([bridge performCommand:@"trigger" service:@"shortcuts" arguments:@{@"id":@"nav-right"} error:&error],@"arrow hotkey before an unrelated input seek");
+                [bridge navigationSeekReportedAt:VLC_TICK_0 length:length];
+                Require(![[bridge snapshotForService:@"osd"][@"text"] isEqual:FeedbackText(VLC_TICK_0,length)],@"a seek back is not shown as a right arrow's target");
+                NSString *ownTarget=FeedbackText(start+vlc_tick_from_sec(1),length);
+                NSDate *ownShown=[NSDate dateWithTimeIntervalSinceNow:1];
+                while([[bridge snapshotForService:@"osd"][@"serial"] unsignedIntegerValue]==beforeArrow&&ownShown.timeIntervalSinceNow>0) [NSRunLoop.mainRunLoop runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+                Require([[bridge snapshotForService:@"osd"][@"serial"] unsignedIntegerValue]>beforeArrow&&[[bridge snapshotForService:@"osd"][@"text"] isEqual:ownTarget],[NSString stringWithFormat:@"after an unrelated seek back the arrow still shows its own target %@, not %@",ownTarget,[bridge snapshotForService:@"osd"][@"text"]]);
                 config_PutInt("short-jump-size",10);
                 /* Fullscreen keys name what happened, like every other hotkey (D027; areas C-bridge
                  * open minor). Uses the hotkeys interface created above. */
@@ -294,6 +312,41 @@ int main(int argc,const char **argv) {
                 NSUInteger serial=[[bridge snapshotForService:@"osd"][@"serial"] unsignedIntegerValue];
                 Require([bridge performCommand:@"trigger" service:@"shortcuts" arguments:@{@"id":@"leave-fullscreen"} error:&error],@"Esc in a window");
                 Require([[bridge snapshotForService:@"osd"][@"serial"] unsignedIntegerValue]==serial,@"Esc in a window shows no fullscreen text");
+            }
+            /* Live run 2: Repeat turned on while the only queued item plays did not loop it. The
+             * core picks the next media when an item starts and when the queue or the stop action
+             * changes, not when repeat or order changes (src/playlist/control.c), so the item
+             * ended as if Repeat were off. Both modes are turned on mid-item, as in the window. */
+            {
+                vlc_playlist_Lock(playlist); vlc_playlist_Stop(playlist); vlc_playlist_Unlock(playlist);
+                Require(waitState(VLC_PLAYER_STATE_STOPPED,5)==VLC_PLAYER_STATE_STOPPED,@"the previous media stops before the repeat fixture");
+                Require([bridge performCommand:@"setMediaStoppedAction" service:@"queue" arguments:@{@"value":@"continue"} error:&error],@"continue after each item");
+                Require([bridge performCommand:@"setRepeatMode" service:@"queue" arguments:@{@"value":@0} error:&error],@"repeat off before the item starts");
+                vlc_player_Lock(engine); vlc_player_listener_id *startedListener=vlc_player_AddListener(engine,&StartedInputCallbacks,NULL); vlc_player_Unlock(engine);
+                Require(startedListener!=NULL,@"count started inputs");
+                for(NSNumber *mode in @[@2,@1]) {
+                    Require([bridge performCommand:@"playNow" service:@"queue" arguments:@{@"items":@[@{@"url":audioURL}],@"index":@0} error:&error],@"play the only queue item");
+                    Require(waitState(VLC_PLAYER_STATE_PLAYING,5)==VLC_PLAYER_STATE_PLAYING,@"the only queue item plays");
+                    vlc_tick_t length=VLC_TICK_INVALID; NSDate *known=[NSDate dateWithTimeIntervalSinceNow:3];
+                    do { [NSRunLoop.mainRunLoop runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+                         vlc_player_Lock(engine); length=vlc_player_GetLength(engine); vlc_player_Unlock(engine);
+                    } while(length==VLC_TICK_INVALID&&known.timeIntervalSinceNow>0);
+                    Require(length>VLC_TICK_FROM_MS(1500),@"the repeat fixture has a known length");
+                    Require([bridge performCommand:@"setRepeatMode" service:@"queue" arguments:@{@"value":mode} error:&error],@"turn repeat on while the item plays");
+                    int startedBefore=atomic_load(&StartedInputs);
+                    vlc_player_Lock(engine); vlc_player_SeekByTime(engine,VLC_TICK_0+length-VLC_TICK_FROM_MS(500),VLC_PLAYER_SEEK_PRECISE,VLC_PLAYER_WHENCE_ABSOLUTE); vlc_player_Unlock(engine);
+                    /* Looping starts the item's input again and plays it; without repeat the player rests STOPPED. */
+                    enum vlc_player_state state=VLC_PLAYER_STATE_PLAYING; BOOL looped=NO; NSDate *until=[NSDate dateWithTimeIntervalSinceNow:4];
+                    do { [NSRunLoop.mainRunLoop runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+                         vlc_player_Lock(engine); state=vlc_player_GetState(engine); vlc_player_Unlock(engine);
+                         looped=atomic_load(&StartedInputs)>startedBefore&&state==VLC_PLAYER_STATE_PLAYING;
+                    } while(!looped&&until.timeIntervalSinceNow>0);
+                    Require(looped,[NSString stringWithFormat:@"repeat mode %@ turned on mid-item restarts the only queue item at its end (state %d, inputs started %d)",mode,state,atomic_load(&StartedInputs)-startedBefore]);
+                }
+                vlc_player_Lock(engine); vlc_player_RemoveListener(engine,startedListener); vlc_player_Unlock(engine);
+                Require([bridge performCommand:@"setRepeatMode" service:@"queue" arguments:@{@"value":@0} error:&error],@"repeat off after the fixture");
+                vlc_playlist_Lock(playlist); vlc_playlist_Stop(playlist); vlc_playlist_Unlock(playlist);
+                Require(waitState(VLC_PLAYER_STATE_STOPPED,5)==VLC_PLAYER_STATE_STOPPED,@"the repeat fixture stops");
             }
 #if __has_include("MXRAudioServices.h")
             __block BOOL waveformDone=NO; __block NSDictionary *waveform=nil; __block NSError *waveformError=nil;

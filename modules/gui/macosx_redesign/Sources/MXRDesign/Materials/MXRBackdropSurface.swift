@@ -42,12 +42,12 @@ public extension View {
 /// The tint resolves through the SwiftUI environment (scheme, accent, contrast).
 /// AppKit controls the material's blur kernel; it does not expose Figma's fixed background-blur
 /// radius. Figma composes the tint over the blurred content only, and this surface is meant for
-/// chrome over dark content (the video, or a dialog scrim), so the material keeps a dark base in
+/// chrome over dark content (the video, or the dark canvas), so the material keeps a dark base in
 /// both color schemes (D046): a light `aqua` base would replace that content under the light tint
 /// and make light chrome far lighter than `Player - Light` (bars #ABABAA, panel #C2C2C1). Those
 /// values are the tint over that frame's #2D2B29 video; over a bright video the surface takes on
 /// some of the video's colour, as Figma's background blur does (D053).
-/// A surface that is not over the video or a scrim (a native `.sheet`, a dialog body) must not use
+/// A surface that is not over the video (a native `.sheet`, a dialog body) must not use
 /// it directly in Light: the dark base would turn it mid grey (#A7A7A7). Use the dialog surface
 /// (`MXRDialogSurface` in MXRUI), which fills Light with the tint's `opaqueCounterpart`.
 /// Native-window visual verification remains necessary. Keep this live view out of

@@ -37,6 +37,11 @@ class SchemaDriftTests(unittest.TestCase):
         self.assertTrue(self.gate.validate([], self.policy, {'audio'}))
         self.assertEqual(self.gate.validate([], {'options': [], 'absent': {'audio': 'Not built for this configuration'}}, {'audio'}), [])
 
+    def test_updater_rows_are_not_engine_options(self):
+        mapped = self.gate.mapped_options()
+        self.assertFalse({name for name in mapped if name.startswith('updater-')})
+        self.assertIn('file-logging', mapped)
+
 
 if __name__ == '__main__':
     unittest.main()

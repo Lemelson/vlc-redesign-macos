@@ -504,6 +504,8 @@ static void LibraryEvent(void *data,const vlc_ml_event_t *event) {
      * position is a progress; a watched item draws a full line from playCount. */
     if(media->f_progress>0&&media->f_progress<1) d[@"progress"]=@(media->f_progress);
     if(external) d[@"isExternal"]=@YES;
+    /* Files added with Add File can be removed from the library again (R04). */
+    if(external&&[self.store[@"importedMedia"] containsObject:LID(media->i_id)]) d[@"isImported"]=@YES;
     NSString *art=Thumbnail(media->thumbnails);
     if(media->i_subtype==VLC_ML_MEDIA_SUBTYPE_ALBUMTRACK) {
         NSString *artist=[self artist:media->album_track.i_artist_id],*genre=[self genre:media->album_track.i_genre_id];
@@ -745,17 +747,40 @@ static NSArray *MediaEntries(NSArray *media) {
     p.b_desc=[sort hasSuffix:@"Descending"]||[sort isEqual:@"newestFirst"];
     return p;
 }
-/* Watched sorts keep the title order inside each group (key frame 20m14.8s:
+/* The sorts -params:search: answers with VLC_ML_SORTING_ALPHA. */
+static BOOL TitleSort(NSString *sort) {
+    for(NSString *prefix in @[@"artist",@"album",@"trackNumber",@"discNumber",@"uri"]) if([sort hasPrefix:prefix]) return NO;
+    return ![sort isEqual:@"newestFirst"]&&![sort isEqual:@"oldestFirst"];
+}
+/* The engine orders titles with SQLite's NOCASE collation: "Episode 10" before
+ * "Episode 2", and only ASCII case folded. Title sorts are redone here the way the
+ * Finder sorts names, on lists fetched whole (R03); ties keep the engine order.
+ * Watched sorts keep the title order inside each group (key frame 20m14.8s:
  * E05…E15, then the watched E01…E04). */
 static NSArray *SortedMedia(NSMutableArray *media,NSString *sort) {
-    BOOL unwatchedFirst=[sort isEqual:@"unwatchedFirst"],watchedFirst=[sort isEqual:@"watchedFirst"];
-    if(!unwatchedFirst&&!watchedFirst) return media;
+    if(!TitleSort(sort)) return media;
+    BOOL unwatchedFirst=[sort isEqual:@"unwatchedFirst"],watchedFirst=[sort isEqual:@"watchedFirst"],descending=[sort hasSuffix:@"Descending"];
     [media sortWithOptions:NSSortStable usingComparator:^NSComparisonResult(NSDictionary *a,NSDictionary *b){
-        BOOL wa=[a[@"playCount"] unsignedIntValue]>0,wb=[b[@"playCount"] unsignedIntValue]>0;
-        if(wa==wb) return NSOrderedSame;
-        return (wa==watchedFirst)?NSOrderedAscending:NSOrderedDescending;
+        if(unwatchedFirst||watchedFirst) {
+            BOOL wa=[a[@"playCount"] unsignedIntValue]>0,wb=[b[@"playCount"] unsignedIntValue]>0;
+            if(wa!=wb) return (wa==watchedFirst)?NSOrderedAscending:NSOrderedDescending;
+        }
+        NSComparisonResult result=NaturalCompare(a[@"title"],b[@"title"]);
+        return descending?-result:result;
     }];
     return media;
+}
+/* Albums, artists and genres listed whole: a title sort is redone in the
+ * Finder's order like SortedMedia ("Vol. 2" before "Vol. 10"); other sorts keep
+ * the engine order. */
+static NSMutableArray *SortedCollections(NSMutableArray *entries,NSString *sort,NSString *key) {
+    if(!TitleSort(sort)) return entries;
+    BOOL descending=[sort hasSuffix:@"Descending"];
+    [entries sortWithOptions:NSSortStable usingComparator:^NSComparisonResult(NSDictionary *a,NSDictionary *b){
+        NSComparisonResult result=NaturalCompare(a[key],b[key]);
+        return descending?-result:result;
+    }];
+    return entries;
 }
 /* Imported root rows do not pass through an ML sorted query. Sort their
  * available metadata before page slicing; folders remain in their own group.
@@ -850,7 +875,8 @@ static NSArray *SortedImportedMedia(NSArray *media,NSString *sort,NSDictionary *
 }
 /* Explicit file imports remain library members even before their first play.
  * They are typed at import (the interface classifies the file); one bridged
- * snapshot serves every root page until the library changes. */
+ * snapshot serves every root page until the library changes. An import whose
+ * file is gone is hidden, not forgotten: a disconnected drive brings it back. */
 - (NSArray *)importedMedia {
     [self dropQueryCachesIfDirty];
     if(_importedCache) return _importedCache;
@@ -858,6 +884,8 @@ static NSArray *SortedImportedMedia(NSArray *media,NSString *sort,NSDictionary *
     for(NSString *identifier in self.store[@"importedMedia"]) {
         vlc_ml_media_t *media=vlc_ml_get_media(_ml,NumberID(identifier)); if(!media) continue;
         NSDictionary *item=[self media:media]; vlc_ml_media_release(media);
+        NSURL *url=[NSURL URLWithString:item[@"url"]];
+        if(url.isFileURL&&![NSFileManager.defaultManager fileExistsAtPath:url.path]) continue;
         if([item[@"isExternal"] boolValue]) [items addObject:item];
     }
     _importedCache=[items copy]; return _importedCache;
@@ -954,19 +982,19 @@ static NSDictionary *Link(NSString *kind,NSString *title,NSString *icon) {
         NSMutableArray *entries=[NSMutableArray array];
         vlc_ml_album_list_t *list=vlc_ml_list_albums(_ml,p); if(!list) { *error=LE(@"VLC could not read the albums."); return nil; }
         for(size_t i=0;i<list->i_nb_items;i++) [entries addObject:[self albumEntry:&list->p_items[i]]];
-        vlc_ml_album_list_release(list); return entries;
+        vlc_ml_album_list_release(list); return SortedCollections(entries,sort,@"title");
     }
     if([kind isEqual:@"artists"]) {
         NSMutableArray *entries=[NSMutableArray array];
         vlc_ml_artist_list_t *list=vlc_ml_list_artists(_ml,p,false); if(!list) { *error=LE(@"VLC could not read the artists."); return nil; }
         for(size_t i=0;i<list->i_nb_items;i++) if(list->p_items[i].i_id>2) [entries addObject:[self artistEntry:&list->p_items[i]]];
-        vlc_ml_artist_list_release(list); return entries;
+        vlc_ml_artist_list_release(list); return SortedCollections(entries,sort,@"name");
     }
     if([kind isEqual:@"genres"]) {
         NSMutableArray *entries=[NSMutableArray array];
         vlc_ml_genre_list_t *list=vlc_ml_list_genres(_ml,p); if(!list) { *error=LE(@"VLC could not read the genres."); return nil; }
         for(size_t i=0;i<list->i_nb_items;i++) { vlc_ml_genre_t *g=&list->p_items[i]; [entries addObject:@{@"type":@"genre",@"id":LID(g->i_id),@"name":LS(g->psz_name),@"trackCount":@(g->i_nb_tracks)}]; }
-        vlc_ml_genre_list_release(list); return entries;
+        vlc_ml_genre_list_release(list); return SortedCollections(entries,sort,@"name");
     }
     if([kind isEqual:@"folder"]) {
         int64_t n=NumberID(identifier);
@@ -995,10 +1023,11 @@ static NSDictionary *Link(NSString *kind,NSString *title,NSString *icon) {
     NSInteger offset=MAX(0,[query[@"offset"] integerValue]),limit=MAX(0,[query[@"limit"] integerValue]);
     [self dropQueryCachesIfDirty];
     NSString *cacheKey=[NSString stringWithFormat:@"%@/%@/%@/%@",kind,identifier?:@"",sort,search];
-    /* Plain collection queries can page in the engine. Watched ordering and
-     * composite folder pages use one queue-owned current-query snapshot. */
+    /* Plain collection queries can page in the engine. Watched ordering, title
+     * sorts (re-sorted by SortedMedia) and composite folder pages use one
+     * queue-owned current-query snapshot. History keeps its own order. */
     BOOL watched=[sort isEqual:@"watchedFirst"]||[sort isEqual:@"unwatchedFirst"];
-    if(limit>0&&!watched&&[@[@"album",@"artist",@"genre",@"show",@"recent"] containsObject:kind]) {
+    if(limit>0&&!watched&&(!TitleSort(sort)||[kind isEqual:@"recent"])&&[@[@"album",@"artist",@"genre",@"show",@"recent"] containsObject:kind]) {
         size_t total=0; int64_t n=NumberID(identifier);
         if([kind isEqual:@"album"]) total=vlc_ml_count_album_tracks(_ml,&p,n);
         else if([kind isEqual:@"artist"]) total=vlc_ml_count_artist_tracks(_ml,&p,n);
@@ -1221,11 +1250,19 @@ static NSDictionary *Crumb(NSString *title,NSString *kind,NSString *identifier) 
     if([request isEqual:MXRBridgeRequestBreadcrumb]) return @{@"crumbs":[self breadcrumb:args[@"location"]?:@{@"kind":@"home"}]};
     atomic_store(&_queryDirty,true);
     int ret=VLC_SUCCESS; NSDictionary *result=@{};
-    int64_t mediaID=[self resolveMedia:args[@"mediaID"] import:NO],id=NumberID(args[@"id"]);
+    /* A bookmark on media outside the library (a file opened directly) adds it as external media,
+     * as VLC's history does; without it the bookmark had no media to belong to (live run 2). */
+    int64_t mediaID=[self resolveMedia:args[@"mediaID"] import:[request isEqual:MXRBridgeRequestAddBookmark]],id=NumberID(args[@"id"]);
     if([request isEqual:MXRBridgeRequestBookmarks]) return @{@"bookmarks":[self bookmarks:mediaID]};
     if([request isEqual:MXRBridgeRequestAddBookmark]) {
         int64_t ms=[args[@"time"] longLongValue]/1000; if(!mediaID||ms<0) ret=VLC_EINVAL;
-        else { ret=vlc_ml_media_add_bookmark(_ml,mediaID,ms); if(ret==VLC_SUCCESS) ret=vlc_ml_media_update_bookmark(_ml,mediaID,ms,[args[@"name"] UTF8String],""); }
+        else {
+            ret=vlc_ml_media_add_bookmark(_ml,mediaID,ms);
+            /* modules/misc/medialibrary/medialibrary.cpp answers VLC_ML_MEDIA_ADD_BOOKMARK with VLC_EGENERIC
+             * also when it stored the bookmark (both branches return it): the stored bookmark is the result. */
+            if(ret!=VLC_SUCCESS) for(NSDictionary *b in [self bookmarks:mediaID]) if([b[@"time"] longLongValue]==ms*1000) ret=VLC_SUCCESS;
+            if(ret==VLC_SUCCESS) ret=vlc_ml_media_update_bookmark(_ml,mediaID,ms,[args[@"name"] UTF8String],"");
+        }
         result=@{@"bookmark":@{@"id":[NSString stringWithFormat:@"%lld",(long long)ms],@"mediaID":LID(mediaID),@"name":args[@"name"]?:@"",@"time":@(ms*1000)}};
     } else if([request isEqual:MXRBridgeRequestRenameBookmark]) ret=mediaID?vlc_ml_media_update_bookmark(_ml,mediaID,[args[@"id"] longLongValue],[args[@"name"] UTF8String],""):VLC_EINVAL;
     else if([request isEqual:MXRBridgeRequestRemoveBookmark]) ret=mediaID?vlc_ml_media_remove_bookmark(_ml,mediaID,[args[@"id"] longLongValue]):VLC_EINVAL;
@@ -1242,17 +1279,22 @@ static NSDictionary *Crumb(NSString *title,NSString *kind,NSString *identifier) 
     }
     else if([request isEqual:MXRBridgeRequestClearHistory]) ret=vlc_ml_clear_history(_ml,VLC_ML_HISTORY_TYPE_GLOBAL);
     else if([request isEqual:MXRBridgeRequestImportFiles]) {
+        /* Each file joins on its own: the ones that are missing, not files, unreadable
+         * or refused by the media library come back as "rejected" (R04). */
         NSArray *urls=args[@"urls"];
         if(![urls isKindOfClass:NSArray.class]||!urls.count) ret=VLC_EINVAL;
-        for(NSString *value in (ret==VLC_SUCCESS?urls:@[])) {
-            NSURL *url=[value isKindOfClass:NSString.class]?[NSURL URLWithString:value]:nil; BOOL directory=NO;
-            if(!url.isFileURL||![NSFileManager.defaultManager fileExistsAtPath:url.path isDirectory:&directory]||directory||![NSFileManager.defaultManager isReadableFileAtPath:url.path]) ret=VLC_EINVAL;
-        }
-        NSArray *kinds=[args[@"kinds"] isKindOfClass:NSArray.class]&&[args[@"kinds"] count]==urls.count?args[@"kinds"]:nil;
-        NSMutableArray *importedItems=[NSMutableArray array];
+        NSArray *kinds=ret==VLC_SUCCESS&&[args[@"kinds"] isKindOfClass:NSArray.class]&&[args[@"kinds"] count]==urls.count?args[@"kinds"]:nil;
+        NSMutableArray *importedItems=[NSMutableArray array],*rejected=[NSMutableArray array];
         if(ret==VLC_SUCCESS) for(NSUInteger i=0;i<urls.count;i++) {
-            int64_t media=[self resolveMedia:urls[i] import:YES];
-            if(!media) { ret=VLC_EGENERIC; break; }
+            NSString *value=[urls[i] isKindOfClass:NSString.class]?urls[i]:nil;
+            NSURL *url=value?[NSURL URLWithString:value]:nil; BOOL directory=NO;
+            BOOL readable=url.isFileURL&&[NSFileManager.defaultManager fileExistsAtPath:url.path isDirectory:&directory]&&!directory&&[NSFileManager.defaultManager isReadableFileAtPath:url.path];
+            int64_t media=readable?[self resolveMedia:value import:YES]:0;
+            if(!media) { if(value) [rejected addObject:value]; continue; }
+            NSMutableArray *imported=self.store[@"importedMedia"];
+            if(![imported containsObject:LID(media)]) {
+                [imported addObject:LID(media)]; self.store[@"importDates"][LID(media)]=@(NSDate.date.timeIntervalSince1970);
+            }
             vlc_ml_media_t *record=vlc_ml_get_media(_ml,media);
             /* VLC types a file only when it parses it; until then use the interface's classification. */
             if(record&&record->i_type==VLC_ML_MEDIA_TYPE_UNKNOWN&&kinds) {
@@ -1263,13 +1305,20 @@ static NSDictionary *Crumb(NSString *title,NSString *kind,NSString *identifier) 
                 }
             }
             if(record) { [importedItems addObject:[self media:record]]; vlc_ml_media_release(record); }
-            NSMutableArray *imported=self.store[@"importedMedia"];
-            if(![imported containsObject:LID(media)]) {
-                [imported addObject:LID(media)]; self.store[@"importDates"][LID(media)]=@(NSDate.date.timeIntervalSince1970);
-            }
         }
-        if(ret==VLC_SUCCESS) { [self saveStore]; result=@{@"media":importedItems}; }
+        if(ret==VLC_SUCCESS) { [self saveStore]; result=@{@"media":importedItems,@"rejected":rejected}; }
         [self markStale];
+    }
+    else if([request isEqual:MXRBridgeRequestRemoveImportedMedia]) {
+        /* Remove from Library for files added with Add File: they leave the import list.
+         * Their media-library record stays (history, bookmarks), as for a file opened directly. */
+        NSArray *identifiers=args[@"mediaIDs"];
+        if(![identifiers isKindOfClass:NSArray.class]||!identifiers.count) ret=VLC_EINVAL;
+        for(NSString *identifier in ret==VLC_SUCCESS?identifiers:@[]) {
+            int64_t media=[self resolveMedia:identifier import:NO]; if(!media) continue;
+            [self.store[@"importedMedia"] removeObject:LID(media)]; [self.store[@"importDates"] removeObjectForKey:LID(media)];
+        }
+        if(ret==VLC_SUCCESS) [self saveStore];
     }
     else if([request isEqual:MXRBridgeRequestAddFolder]) { ret=vlc_ml_add_folder(_ml,[args[@"url"] UTF8String]); [self markStale]; }
     else if([request isEqual:MXRBridgeRequestRemoveFolder]) { vlc_ml_folder_t *f=vlc_ml_get_folder(_ml,id); if(!f) ret=VLC_EINVAL; else { ret=vlc_ml_remove_folder(_ml,f->psz_mrl); vlc_ml_folder_release(f); } [self markStale]; }

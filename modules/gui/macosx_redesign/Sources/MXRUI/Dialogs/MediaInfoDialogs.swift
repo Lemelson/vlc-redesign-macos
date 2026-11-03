@@ -61,7 +61,7 @@ public struct MXRMediaInfoView: View {
     }
 
     /// A readable location: a file as its path (~ for the home folder), anything else decoded.
-    static func location(of mrl: String) -> String {
+    nonisolated static func location(of mrl: String) -> String {
         guard let url = URL(string: mrl) else { return mrl }
         if url.isFileURL { return (url.path as NSString).abbreviatingWithTildeInPath }
         return url.absoluteString.removingPercentEncoding ?? mrl
@@ -77,8 +77,25 @@ public struct MXRMediaInfoView: View {
 }
 
 public struct MXRAboutView: View {
+    /// Said wherever the app names itself (Info.plist, DMG, release page): the owner's 1.0 decision (D058).
+    public static let unofficialNotice = "Unofficial build. Not affiliated with or endorsed by VideoLAN."
+    /// The engine credit; the years follow VLC's own `COPYRIGHT_YEARS` (configure.ac).
+    public static let engineCopyright = "VLC media player and its engine are © 1996–2026 VLC authors and VideoLAN. This interface uses VLC’s unmodified playback engine."
+
+    /// The app's own version first, then the engine it runs on, so neither is mistaken for the other.
+    public static func versionLines(app: String?, engine: String?) -> [String] {
+        [app.map { "Version \($0)" }, engine.map { "VLC engine \($0)" }].compactMap { $0 }
+    }
+
     private let version: String?
-    public init(version: String? = nil) { self.version = version }
+    private let appVersion: String?
+    /// `version` is the engine's (`VLC_Version()`); `appVersion` defaults to the bundle's
+    /// `CFBundleShortVersionString`, which `tools/app-bundle-hook.sh` sets from the module's `VERSION`.
+    public init(version: String? = nil,
+                appVersion: String? = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) {
+        self.version = version
+        self.appVersion = appVersion
+    }
 
     public var body: some View {
         DialogShell(title: "About VLC Redesign") {
@@ -87,15 +104,15 @@ public struct MXRAboutView: View {
                     MXRIcon(.vlc, size: Theme.Metric.panelSectionHeaderHeight)
                     VStack(alignment: .leading, spacing: Theme.Spacing.gap8) {
                         Text("VLC Redesign").mxrTextStyle(Theme.Font.dialogSectionTitle).foregroundStyle(Theme.Color.fg2)
-                        if let version {
-                            Text("VLC \(version)").mxrTextStyle(Theme.Font.body).foregroundStyle(Theme.Color.fgA2)
+                        ForEach(Self.versionLines(app: appVersion, engine: version), id: \.self) { line in
+                            Text(line).mxrTextStyle(Theme.Font.body).foregroundStyle(Theme.Color.fgA2)
                         }
-                        Text("An unofficial native macOS interface for VLC media player.")
+                        Text(Self.unofficialNotice)
                             .mxrTextStyle(Theme.Font.dialogHint).foregroundStyle(Theme.Color.fgA3)
                     }
                 }
                 DialogDivider()
-                Text("VLC media player is developed by VideoLAN and its contributors. This interface uses VLC’s unmodified playback engine.")
+                Text(Self.engineCopyright)
                     .mxrTextStyle(Theme.Font.dialogHint).foregroundStyle(Theme.Color.fgA1)
                 Text("Design by Juxtopposed, adapted from “I Redesigned VLC After 25 Years.” The design is licensed under Creative Commons Attribution 4.0 (CC BY 4.0).")
                     .mxrTextStyle(Theme.Font.dialogHint).foregroundStyle(Theme.Color.fgA1)

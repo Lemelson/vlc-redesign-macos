@@ -101,7 +101,8 @@ final class CustomizationGallery: NSObject, GalleryProvider {
         return (0..<2).map { column in
             let x = o.shortcutColumnsLeading + CGFloat(column) * (o.shortcutColumnsColumnWidth + o.shortcutColumns.gap) + keys
             return .differs(CGRect(x: x, y: top, width: min(width, MXROnboardingView.preferredSize.width - x),
-                                   height: o.shortcutColumns.height), decision: "D026",
+                                   // the last row's keycap "3D" shadow (0, 6) hangs below the columns
+                                   height: o.shortcutColumns.height + Theme.Effect.keycapShadow.y), decision: "D026",
                             "keycaps are VLC's macOS default bindings with Mac glyphs; Figma shows the Windows keys")
         }
     }

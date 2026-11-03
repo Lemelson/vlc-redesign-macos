@@ -1,0 +1,93 @@
+{
+ "status": "done",
+ "summary": "D-menus fixed every item on its work list at the root cause, and each fix has a regression test. All six D-menus suites and the menu, modal and settings suites I ran pass in the shared tree: 70 tests, 0 failures (tests-shared.log). In an isolated package copy I undid each fix and the matching new test failed (revert.log, 14 failures).\n1. Keyboard Shortcuts… stayed enabled behind Settings. Cause: canPerform had an exception for .keyboardShortcuts while Settings was open, and the menu bar's enabled state and action both read canPerform. The exception is removed. Settings' own Edit Keyboard Shortcuts button now calls a private showKeyboardShortcuts(), so it still swaps the two dialogs and Cancel returns to Settings.\n2. Renderer wording. Both menus now say \"Local\": Figma's Render dropdown (Frame 117) uses that word, and VLC's Qt renderer menu says \"<Local>\". It is one constant, MXRPlayerMenus.localRendererTitle, which the Video sidebar's Render dropdown also reads.\n3. Library arrow keys lowered the volume. Cause: the window key monitor runs before SwiftUI. With a SwiftUI list focused, the first responder is still the hosting view, and only queue and bookmark focus were reported. So bare ↓ ran VLC's nav-down, a volume step. Fix: the monitor's gate is now a testable MXRCore policy, WindowKeyPolicy.monitorHandles. InterfaceModel gains libraryListHasKeyboardFocus and listHasKeyboardFocus (queue or library). MXRLibraryView reports its FocusState. Both the key monitor and the menu-bar key-equivalent gate read the combined flag.\n4. The repo-marker loop (critic P2) is real: from an executable directory, deletingLastPathComponent() keeps producing '/../..'. The search is now GalleryPaths.ancestor(of:containing:): it standardizes the parent and stops at '/'.\n5. The engine-default tests no longer depend on #filePath. A new TestSourceFiles helper finds package files next to the tests, and finds src/libvlc-module.c through $MXR_REPO_ROOT or the directories above the package. In a copy outside the repo they now skip with a reason instead of failing.\n6. Areas verifier minor: the bar's speed/HDR/zoom text menus and the compact ⋯ used .buttonStyle(.plain), which dims on press. They now use MXRBarButtonStyle (D028: no press highlight). No automated test; it is a live check.",
+ "fixed": [
+  "LIVE minor D-disabled-submenus: App ▸ and Help ▸ Keyboard Shortcuts… are now grey behind Settings and their action does nothing there. Removed the canPerform exception in AppModel.swift. Settings' Edit Keyboard Shortcuts button uses a new private showKeyboardShortcuts(). Test: Tests/MXRCoreTests/KeyboardShortcutsBehindSettingsTests.swift (2 tests). Its menu-bar test fails when the exception is restored (revert.log).",
+  "LIVE minor renderer wording: the right-click ▸ Playback ▸ Renderer menu said 'This Mac', the Video sidebar 'Local'. Both now read the shared MXRPlayerMenus.localRendererTitle = \"Local\" (Figma Frame 117; VLC Qt '<Local>'). Test: Tests/MXRUISnapshotTests/RendererWordingTests.swift, which fails with 'This Mac'.",
+  "LIVE E-arrow-keys, key-routing part (with E-library): ↓ in the focused compact list ran VLC's nav-down, which lowers the volume. New WindowKeyPolicy in ShortcutValues.swift. InterfaceModel gains libraryListHasKeyboardFocus and listHasKeyboardFocus. MXRLibraryView mirrors its listFocused FocusState into the flag (onChange, cleared onDisappear). MXRAppController's monitor and MXRNativeMenus read listHasKeyboardFocus. MXRKeyRouting now delegates to the policy. Test: Tests/MXRCoreTests/WindowKeyPolicyTests.swift, which fails 9 assertions when listHasKeyboardFocus ignores library focus.",
+  "Critic P2 / verifier open #1: the GalleryPaths.locate marker search never ended. The executable-directory start reproduces it ('/../../..' forever). The loop is now in GalleryPaths.ancestor(of:containing:), which standardizes the parent and stops at '/'. Test: Tests/MXRUISnapshotTests/GalleryPathsLocateTests.swift. The search runs on a separate thread with a 10 s wait; with the old loop it fails on the timeout instead of hanging.",
+  "Verifier open #2: ShortcutDefaultsTests and MockShortcutDefaultsTests no longer use #filePath to reach src/libvlc-module.c and module/MXRAppOptions.inc. They use the new Tests/MXRCoreTests/TestSourceFiles.swift. In an isolated copy: before the change, 3 tests failed with 'no such file'. After it, MXRAppOptions.inc is found inside the package; the 2 tests that need libvlc-module.c skip with a reason, and pass with MXR_REPO_ROOT set.",
+  "Areas verifier minor (PlayerMenus.swift:474/:515): the speed/HDR/zoom bar menus and the compact ⋯ now use MXRBarButtonStyle instead of .plain, so there is no press dimming (D028/D056)."
+ ],
+ "notFixed": [
+  {
+   "id": "E-arrow-keys, real-NSEvent hosting test",
+   "why": "Not possible offscreen: a window that is never ordered on screen cannot become key. isKeyWindow stayed false even with a canBecomeKey subclass, so SwiftUI ignored the synthetic mouse clicks and Tab, and FocusState never changed. I tried mouse events, Tab, and setting AX focus on the row; none worked. E-library's own Tests/MXRUISnapshotTests/LibraryKeyRoutingTests.swift, which uses my WindowKeyPolicy and listHasKeyboardFocus API, fails 15 assertions for the same reason. The model and policy level is covered by WindowKeyPolicyTests, and the real-window check is in liveChecks."
+  },
+  {
+   "id": "C4 right panels close with no fade-out (G-panels / D-menus)",
+   "why": "The ⋯ menu, right-click menu and dialog fade out correctly; those are the D-menus presenters. The three right panels that vanish (track popover, sidebar, queue) are G-panels views, not D-menus files."
+  },
+  {
+   "id": "S11 native menu bar / modal checks (parity not-checked)",
+   "why": "These need the real window and menu bar, and this wave runs no live UI. They are in liveChecks."
+  },
+  {
+   "id": "Press-dimming fix in the bar menus: no automated test",
+   "why": "SwiftUI's pressed state cannot be driven offscreen, for the same key-window reason. Covered by a live check."
+  }
+ ],
+ "filesChanged": [
+  "modules/gui/macosx_redesign/Sources/MXRCore/App/AppModel.swift",
+  "modules/gui/macosx_redesign/Sources/MXRCore/Values/ShortcutValues.swift",
+  "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRKeyRouting.swift",
+  "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRNativeMenus.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerMenus.swift",
+  "modules/gui/macosx_redesign/Sources/MXRCore/Models/InterfaceModel.swift",
+  "modules/gui/macosx_redesign/Sources/MXRPlugin/MXRAppController.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Library/MXRLibraryView.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Panels/EffectsSidebars.swift",
+  "modules/gui/macosx_redesign/Sources/MXRGalleryCatalog/GalleryCatalog.swift",
+  "modules/gui/macosx_redesign/Tests/MXRCoreTests/KeyboardShortcutsBehindSettingsTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRCoreTests/WindowKeyPolicyTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRCoreTests/TestSourceFiles.swift",
+  "modules/gui/macosx_redesign/Tests/MXRCoreTests/ShortcutDefaultsTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRCoreTests/MockShortcutDefaultsTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/RendererWordingTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/GalleryPathsLocateTests.swift"
+ ],
+ "editsOutsideOwnership": [
+  "Sources/MXRCore/Models/InterfaceModel.swift: added libraryListHasKeyboardFocus (stored) and listHasKeyboardFocus (computed), 5 lines next to panelListHasKeyboardFocus.",
+  "Sources/MXRPlugin/MXRAppController.swift: in the key monitor's shouldHandle call, 'panelListFocused: …panelListHasKeyboardFocus' became 'listFocused: …listHasKeyboardFocus' (1 line).",
+  "Sources/MXRUI/Library/MXRLibraryView.swift (E-library): after .focused($listFocused), added onChange to mirror FocusState into libraryListHasKeyboardFocus and onDisappear to clear it (plus a comment).",
+  "Sources/MXRUI/Panels/EffectsSidebars.swift: the two 'Local' literals of the Render dropdown now read MXRPlayerMenus.localRendererTitle.",
+  "Sources/MXRGalleryCatalog/GalleryCatalog.swift: the GalleryPaths.locate loop moved into a new static ancestor(of:containing:) that stops at '/' (critic item explicitly assigned to D-menus).",
+  "Tests/MXRCoreTests/ShortcutDefaultsTests.swift, MockShortcutDefaultsTests.swift: the #filePath repository paths were replaced with TestSourceFiles (assigned in work list (e))."
+ ],
+ "decisionsWritten": [],
+ "ownerDecisions": [],
+ "evidence": [
+  "../build/evidence/final6/fix/D-menus/tests-shared.log: shared tree. MXRUISnapshotTests 31/31 (GalleryPathsLocate, RendererWording, MenuAuditRegression, NativeMenuMirror, PopupMenu, AppSubmenuPlacement, SubtitleDelayMenuShortcut). MXRCoreTests 39/39 (KeyboardShortcutsBehindSettings, WindowKeyPolicy, ShortcutDefaults, MockShortcutDefaults, ModalIsolation, SettingsWorkflow). GalleryPathsLocateTests was later rerun after a Swift 6 capture fix: 2/2.",
+  "../build/evidence/final6/fix/D-menus/revert.log: isolated copy with every fix undone. KeyboardShortcutsBehindSettings fails (sheet became keyboardShortcuts). WindowKeyPolicy fails 9 assertions. RendererWording fails ('This Mac'). GalleryPathsLocate times out (XCTWaiter .timedOut). The old #filePath tests fail with 'no such file'. With the fixes, the same copy passes 13/13 with MXR_REPO_ROOT and skips the 2 repo-only tests without it.",
+  "Repro of the marker loop: from Bundle.main.executableURL's directory, the old loop yields '/../../../../..' forever; the new loop stops at '/' after 9 steps.",
+  "swift build --build-tests: no warnings or errors in any file I changed. Fixed one capture warning in GalleryPathsLocateTests."
+ ],
+ "liveChecks": [
+  {
+   "id": "LC-D-kbs-behind-settings",
+   "steps": "Open Settings (⌘,). Open the App menu and the Help menu. Then click Settings ▸ Controls ▸ Edit Keyboard Shortcuts, then Cancel.",
+   "expect": "Keyboard Shortcuts… is grey in both menus and choosing it does nothing. The in-dialog Edit Keyboard Shortcuts button still replaces Settings, and Cancel returns to the Controls page."
+  },
+  {
+   "id": "LC-D-renderer-wording",
+   "steps": "Right-click the video ▸ Playback ▸ Renderer. Then open the Video sidebar and its Render dropdown.",
+   "expect": "Both name the local output 'Local', it is checked when nothing is cast, and both end with 'Discover Cast Devices'."
+  },
+  {
+   "id": "LC-E-arrow-keys-routing",
+   "steps": "Play a video with the compact library open in list mode. Click a row, then press ↓ twice and ↑ once. Switch to the full library grid (3+ columns), click a card, and press ↓ ↑ ← →, Shift+↓ and Return. Then click the video, or press Esc to clear the selection, and press ⌘↓.",
+   "expect": "The selection moves one row or card per press and scrolls into view. The volume bar never changes while the list or grid has focus, and Return opens or plays the selection. Space still plays/pauses and ⌘↓ still lowers the volume. Note whether a bare ↓ after clicking the video goes back to VLC's nav-down, which steps the volume."
+  },
+  {
+   "id": "LC-D-bar-menu-press",
+   "steps": "Hold the mouse down on the Speed, HDR and Zoom text controls in the control bar, and on the compact bar's ⋯.",
+   "expect": "No dimming while the button is held (D028). The menu opens on release, as before."
+  },
+  {
+   "id": "LC-D-S11-menubar",
+   "steps": "Open every menu-bar menu during playback. Then open a dialog (e.g. About) and use the media keys.",
+   "expect": "The menus are App/File/Edit/View/Playback/Audio/Video/Window/Help with no tab items. The shortcut glyphs match the ⋯ and right-click cards. View has Enter Full Screen ⌘F and Video has no Full Screen row. Behind the dialog every row is grey and the media keys still work."
+  }
+ ],
+ "notesForOthers": "E-library: your Tests/MXRUISnapshotTests/LibraryKeyRoutingTests.swift currently fails 15 assertions in the shared tree. A window never ordered on screen cannot become key, so SwiftUI drops synthetic mouse clicks and Tab and FocusState never changes. I tried a canBecomeKey subclass, timestamps and eventNumbers, Tab, and setting AX focus; none worked. Please make it skip with a reason or move it to a live check, otherwise the integrator's full run goes red. The routing side is in place: WindowKeyPolicy.monitorHandles (MXRCore/Values/ShortcutValues.swift), InterfaceModel.libraryListHasKeyboardFocus and listHasKeyboardFocus, and MXRLibraryView mirrors listFocused into the flag (my edit after .focused($listFocused)). Integrator: new test files are KeyboardShortcutsBehindSettingsTests, WindowKeyPolicyTests and TestSourceFiles (MXRCoreTests), plus RendererWordingTests and GalleryPathsLocateTests (MXRUISnapshotTests). Isolated package copies should set MXR_REPO_ROOT; otherwise the libvlc-module.c tests now skip instead of failing, and GalleryPaths throws instead of hanging. G-panels: the C4 close fade (track popover, sidebar and queue vanish without fade-out) is yours; the ⋯ and right-click presenters already fade out."
+}

@@ -269,7 +269,7 @@ static NSURL *MXRWaveformCacheFile(NSString *key, BOOL create)
 {
     NSURL *caches = [NSFileManager.defaultManager URLForDirectory:NSCachesDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:NO error:NULL];
     if (caches == nil) return nil;
-    NSURL *directory = [[caches URLByAppendingPathComponent:@"org.example.vlc-redesign" isDirectory:YES] URLByAppendingPathComponent:@"Waveforms" isDirectory:YES];
+    NSURL *directory = [[caches URLByAppendingPathComponent:@"io.github.lemelson.vlc-redesign" isDirectory:YES] URLByAppendingPathComponent:@"Waveforms" isDirectory:YES];
     if (create) [NSFileManager.defaultManager createDirectoryAtURL:directory withIntermediateDirectories:YES attributes:nil error:NULL];
     NSData *text = [key dataUsingEncoding:NSUTF8StringEncoding];
     unsigned char digest[CC_SHA256_DIGEST_LENGTH];

@@ -11,9 +11,7 @@ final class DialogIsolationTests: XCTestCase {
     @MainActor
     func testContentBehindADialogLeavesTheAccessibilityTree() async throws {
         let app = AppModel.mock(.idle)
-        _ = NSApplication.shared
-        NSApp.accessibilitySetValue(true, forAttribute: NSAccessibility.Attribute(rawValue: "AXManualAccessibility"))
-        NSApp.accessibilitySetValue(true, forAttribute: NSAccessibility.Attribute(rawValue: "AXEnhancedUserInterface"))
+        enableAccessibilityTree()
         let behind = Color.clear.frame(width: 200, height: 20)
             .mxrKeyboardFocusable()
             .accessibilityElement().accessibilityLabel("Seek marker behind the dialog")

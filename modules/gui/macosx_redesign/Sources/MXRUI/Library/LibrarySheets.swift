@@ -14,6 +14,8 @@ final class LibrarySheetCenter {
         case deletePlaylist(Playlist)
         case removeStream(NetworkStream)
         case removeFolder(LibraryFolder)
+        /// Files added with Add File (``MediaItem/isImported``).
+        case removeImports([MediaItem])
         case info(title: String, lines: [String])
         case failure(title: String, message: String)
 
@@ -24,6 +26,7 @@ final class LibrarySheetCenter {
             case .deletePlaylist(let p): "delete-playlist:" + p.id
             case .removeStream(let s): "remove-stream:" + s.id
             case .removeFolder(let f): "remove-folder:" + f.id
+            case .removeImports(let media): "remove-imports:" + media.map(\.id).joined(separator: ",")
             case .info(let title, _): "info:" + title
             case .failure(let title, _): "failure:" + title
             }
@@ -74,6 +77,7 @@ struct LibrarySheetView: View {
         case .deletePlaylist: "Delete Playlist"
         case .removeStream: "Remove Stream"
         case .removeFolder: "Remove Folder from Library"
+        case .removeImports(let media): media.count > 1 ? "Remove Files from Library" : "Remove File from Library"
         case .info(let title, _): title
         case .failure(let title, _): title
         }
@@ -90,6 +94,9 @@ struct LibrarySheetView: View {
             message("“\(stream.name)” will be removed from Network. You can add the address again at any time.")
         case .removeFolder(let folder):
             message("“\(folder.name)” will no longer be scanned and its media leave the library. The files stay on disk.")
+        case .removeImports(let media):
+            message(media.count == 1 ? "“\(media[0].listTitle)” will leave the library. The file stays on disk."
+                                     : "\(media.count) files will leave the library. The files stay on disk.")
         case .info(_, let lines):
             VStack(alignment: .leading, spacing: Theme.Spacing.gap10) {
                 ForEach(Array(lines.enumerated()), id: \.offset) { _, line in message(line) }
@@ -115,7 +122,7 @@ struct LibrarySheetView: View {
     private var saveTitle: String {
         switch sheet {
         case .deletePlaylist: "Delete"
-        case .removeStream, .removeFolder: "Remove"
+        case .removeStream, .removeFolder, .removeImports: "Remove"
         default: "Save"
         }
     }
@@ -127,6 +134,7 @@ struct LibrarySheetView: View {
         case .deletePlaylist(let playlist): { run { try await app.library.deletePlaylist(playlist) } }
         case .removeStream(let stream): { run { try await app.library.removeNetworkStream(stream) } }
         case .removeFolder(let folder): { app.library.removeFolder(folder); close() }
+        case .removeImports(let media): { run { try await app.library.removeImported(media) } }
         case .info, .failure: nil
         }
     }

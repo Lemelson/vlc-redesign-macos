@@ -81,7 +81,7 @@ private final class CountingSettingsBridge: VLCServiceTransport {
         values[name] = arguments["value"]
         emit("settings:" + name) // what MXRServicesBridge reports after config_Put*
     }
-    func request(_ request: MXRBridgeRequest, service: MXRBridgeService, arguments: [String: Any]) async throws -> [String: Any] { let request = request.rawValue; let service = service.rawValue; return [:] }
+    func request(_ request: MXRBridgeRequest, service: MXRBridgeService, arguments: [String: Any]) async throws -> [String: Any] { return [:] }
     func addListener(_ owner: AnyObject, handler: @escaping @MainActor (MXRBridgeService) -> Void) { events.add(owner, handler: handler) }
     func emit(_ service: String) { events.send(MXRBridgeService(rawValue: service)) }
     func log(_ error: Error) {}

@@ -11,6 +11,10 @@ extension Theme.Metric {
         // 3176:16465 slider row; 3176:16469 slider wrapper; 3176:16496 stacked row.
         static let sliderHeight: CGFloat = 57
         static let sliderLabelHeight: CGFloat = 15
+        // 3062:13083 speed scale: 18 pt end frames (3062:13084, 3062:13092) and 26 pt label boxes
+        // (3062:13086…13091), spread space-between across the track.
+        static let scaleEndLabelWidth: CGFloat = 18
+        static let scaleLabelWidth: CGFloat = 26
         static let stackedRowHeight: CGFloat = 98
         // 3176:16518 numeric row and 6575:17174 extension toolbar.
         static let inputRowHeight: CGFloat = 48
@@ -21,6 +25,8 @@ extension Theme.Metric {
         static let extensionsCatalogButtonWidth: CGFloat = 185
         // I3176:16574;3176:16553 startup volume input; 3191:18739 color swatch.
         static let secondaryInputWidth: CGFloat = 182
+        // I3176:16574;3176:16554: the value of the unselected second choice.
+        static let unselectedValueOpacity = 0.4
         static let colorSwatchSize: CGFloat = 22
         static let colorSwatchStroke: CGFloat = 1.5
         // 536:1013 toggle: the label cell (536:1010) sits 3 pt in from the edge and 3 pt from the knob

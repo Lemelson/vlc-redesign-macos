@@ -40,8 +40,8 @@ final class MediaSourceRefreshTests: XCTestCase {
     var requests: [Request] = []
     var failure: Error?
     let capabilities: [String: Any] = ["mediaSources": true]
-    func snapshot(for service: MXRBridgeService) -> [String: Any] { let service = service.rawValue; return [:] }
-    func perform(_ command: MXRBridgeCommand, service: MXRBridgeService, arguments: [String: Any]) throws { let command = command.rawValue; let service = service.rawValue;}
+    func snapshot(for service: MXRBridgeService) -> [String: Any] { return [:] }
+    func perform(_ command: MXRBridgeCommand, service: MXRBridgeService, arguments: [String: Any]) throws {}
     func request(_ request: MXRBridgeRequest, service: MXRBridgeService, arguments: [String: Any]) async throws -> [String: Any] { let request = request.rawValue; let service = service.rawValue;
         requests.append(Request(name: request, service: service, arguments: arguments))
         if let failure { throw failure }

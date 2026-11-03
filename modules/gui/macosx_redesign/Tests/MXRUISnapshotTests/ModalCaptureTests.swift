@@ -53,4 +53,20 @@ final class ModalCaptureTests: XCTestCase {
         XCTAssertEqual(captured, [KeyBinding(key: "p", modifiers: [.command, .shift])])
         window.close()
     }
+
+    /// R01: on a Russian layout the recorder stores the Latin letter of the key and ⌘Q (⌘Й) still quits.
+    func testRussianLayoutRecordsLatinLetterAndLeavesCommandQToTheApp() {
+        let saved = KeyBinding.asciiLayoutCharacter
+        defer { KeyBinding.asciiLayoutCharacter = saved }
+        KeyBinding.asciiLayoutCharacter = { [3: "f", 12: "q"][$0] }
+        let (window, responder) = recordingWindow()
+        var captured: [KeyBinding?] = []
+        responder.capture = { captured.append($0) }
+        XCTAssertFalse(window.performKeyEquivalent(with: key(12, "й", [.command], in: window)))
+        XCTAssertFalse(window.performKeyEquivalent(with: key(12, "Й", [.command, .shift], in: window)))
+        XCTAssertTrue(captured.isEmpty, "⌘Й is ⌘Q and is never recorded (D026)")
+        XCTAssertTrue(window.performKeyEquivalent(with: key(3, "А", [.shift], in: window)))
+        XCTAssertEqual(captured, [KeyBinding(key: "f", modifiers: .shift)])
+        window.close()
+    }
 }

@@ -57,18 +57,32 @@ final class SettingsDialogsPolishTests: XCTestCase {
         XCTAssertLessThan(pixels.luminance(at: CGPoint(x: 480, y: 540)), 200, "the dialog itself is drawn")
     }
 
-    func testShrunkDialogStaysBelowTheTopBar() throws {
-        // S48.App/settings-compact: in a 960×540 window Settings ran from y 20, under the traffic lights.
+    /// The rows the dialog body covers in column x 480 (the dark body, not its soft shadow).
+    private func dialogRows(_ sheet: AppSheet, in size: CGSize) throws -> (top: CGFloat, bottom: CGFloat) {
         let app = AppModel.mock(.playingEpisode)
-        app.interface.present(.settings(categoryID: "controls"))
-        let size = CGSize(width: 960, height: 540)
+        app.interface.present(sheet)
         let pixels = try draw(Color.white.mxrDialogPresentation().appModel(app), size: size)
-        // The dark dialog body, not its soft shadow.
-        let firstDialogRow = (0..<Int(size.height)).first { pixels.luminance(at: CGPoint(x: 480, y: CGFloat($0))) < 100 }
-        let lastDialogRow = (0..<Int(size.height)).last { pixels.luminance(at: CGPoint(x: 480, y: CGFloat($0))) < 100 }
-        let top = try XCTUnwrap(firstDialogRow), bottom = try XCTUnwrap(lastDialogRow)
-        XCTAssertGreaterThanOrEqual(CGFloat(top), Theme.Metric.topBarHeight - 1, "the dialog starts below the 40 pt top bar")
-        XCTAssertEqual(CGFloat(top) + CGFloat(bottom), size.height - 1, accuracy: 3, "and stays centred")
+        let rows = (0..<Int(size.height)).filter { pixels.luminance(at: CGPoint(x: size.width / 2, y: CGFloat($0))) < 100 }
+        return (CGFloat(try XCTUnwrap(rows.first)), CGFloat(try XCTUnwrap(rows.last)) + 1)
+    }
+
+    func testShrunkDialogStaysBelowTheTopBar() throws {
+        // S48.App/settings-compact: in a 960×540 window Settings ran from y 20, under the traffic lights;
+        // live run 2: in the real window Settings, Convert and Properties then started exactly at the
+        // top bar's bottom edge (y 40), with no panel inset between.
+        let compact = CGSize(width: 960, height: 540)
+        let clearance = Theme.Metric.topBarHeight + Theme.Metric.panelInset
+        let settings = try dialogRows(.settings(categoryID: "controls"), in: compact)
+        XCTAssertEqual(settings.top, clearance, accuracy: 1, "Settings starts a panel inset below the 40 pt top bar")
+        XCTAssertEqual(settings.bottom, compact.height - Theme.Metric.panelInset, accuracy: 1, "and fills the window down to a panel inset")
+        // Open Disc (432 pt) still gets its full design height (live run 2: about 713×434).
+        let disc = try dialogRows(.openDisc, in: compact)
+        XCTAssertGreaterThanOrEqual(disc.top, clearance - 1, "Open Disc keeps the same gap below the top bar")
+        XCTAssertEqual(disc.bottom - disc.top, AppSheet.openDisc.preferredSize.height, accuracy: 1, "at its design height")
+        // A dialog that fits stays exactly centred, as in the video (S48.App/settings at 1080).
+        let tall = CGSize(width: 1920, height: 1080)
+        let centred = try dialogRows(.settings(categoryID: "controls"), in: tall)
+        XCTAssertEqual(centred.top + centred.bottom, tall.height, accuracy: 2, "centred in a 1080 window")
     }
 
     // MARK: Dialog buttons (critic P1, D045)
@@ -117,22 +131,101 @@ final class SettingsDialogsPolishTests: XCTestCase {
         }
     }
 
-    func testScaleLabelsStandUnderTheirTicks() {
-        // 3062:13083 (Default playback speed, 320 pt, a label on each of 8 ticks): "1" is centred under
-        // its tick at x 137.4, the first label starts at the first tick and the last ends at the last.
-        let width: CGFloat = 320
-        let one = SettingsSlider.labelAnchor(index: 3, count: 8, width: width, ticks: 8)
-        XCTAssertEqual(one.x, 137.4, accuracy: 0.5)
-        XCTAssertEqual(one.alignment, .center)
-        XCTAssertEqual(SettingsSlider.labelAnchor(index: 0, count: 8, width: width, ticks: 8).x, Theme.Spacing.gap2)
-        XCTAssertEqual(SettingsSlider.labelAnchor(index: 0, count: 8, width: width, ticks: 8).alignment, .leading)
-        XCTAssertEqual(SettingsSlider.labelAnchor(index: 7, count: 8, width: width, ticks: 8).x, width - Theme.Spacing.gap2)
-        XCTAssertEqual(SettingsSlider.labelAnchor(index: 7, count: 8, width: width, ticks: 8).alignment, .trailing)
+    func testScaleLabelsStandUnderTheirTicks() throws {
+        // 3062:13083 (Default playback speed, 320 pt, a label on each of 8 ticks): Figma spreads 26 pt
+        // label boxes space-between two 18 pt end frames, so "0.5" is centred at x 49.3, "1" at 137.9
+        // and "1.75" at 270.7; "0.25" starts 2 pt in and "2" ends 2 pt before the end. Measured on the
+        // drawn ink against Figma's render (critic P2: "0.5" and "1.75" sat 1.4 pt off when the labels
+        // were centred on the tick spacing).
+        let labels = ["0.25", "0.5", "0.75", "1", "1.25", "1.5", "1.75", "2"]
+        let size = CGSize(width: 320, height: 57)
+        let slider = SettingsSlider(value: .constant(1), range: 0.25...2, step: 0.25, ticks: 8, labels: labels, label: "Speed")
+        let pixels = try draw(slider.background(Color.black), size: size, scale: 2)
+        let band = (Int(size.height - Theme.Spacing.gap4 - Theme.Metric.SettingsDetail.sliderLabelHeight) * 2)..<(Int(size.height - Theme.Spacing.gap4) * 2)
+        let inked = (0..<Int(size.width * 2)).filter { x in
+            band.contains { y in pixels.luminance(at: CGPoint(x: CGFloat(x) / 2, y: CGFloat(y) / 2)) > 40 }
+        }
+        // Runs of inked columns; a label's glyphs are never 5 pt apart, two labels always are.
+        var runs: [(first: Int, last: Int)] = []
+        for x in inked {
+            if let last = runs.last, x - last.last <= 10 { runs[runs.count - 1].last = x } else { runs.append((x, x)) }
+        }
+        XCTAssertEqual(runs.count, labels.count, "every label is drawn on its own")
+        guard runs.count == labels.count else { return }
+        // The ink of each label in Figma's own render (Settings - playback.png at 2×, same threshold).
+        // Left edges are compared only where the label does not start with "1": Figma rasterizes the
+        // 1's thin flag below the threshold.
+        let figmaLeft: [CGFloat] = [2.5, 41, 82, 138, 173.5, 221.5, 262.5, 311.5]
+        let figmaRight: [CGFloat] = [26.5, 57.5, 105, 139, 193, 233.5, 281, 317]
+        for (i, text) in labels.enumerated() {
+            XCTAssertEqual(CGFloat(runs[i].last + 1) / 2, figmaRight[i], accuracy: 0.75, "\(text) ends where Figma's does")
+            if !text.hasPrefix("1") {
+                XCTAssertEqual(CGFloat(runs[i].first) / 2, figmaLeft[i], accuracy: 0.75, "\(text) starts where Figma's does")
+            }
+        }
         // 3176:16483 (Maximum volume, 3 labels on 7 ticks): the ends sit on the track's edges, the
         // middle label in the middle.
+        let width: CGFloat = 320
         XCTAssertEqual(SettingsSlider.labelAnchor(index: 0, count: 3, width: width, ticks: 7).x, 0)
         XCTAssertEqual(SettingsSlider.labelAnchor(index: 2, count: 3, width: width, ticks: 7).x, width)
         XCTAssertEqual(SettingsSlider.labelAnchor(index: 1, count: 3, width: width, ticks: 7).x, width / 2, accuracy: 0.01)
+    }
+
+    func testGeneralAccentSwatchesFollowTheThemeLikeOnboarding() throws {
+        // Critic P2 / D049: Settings › General drew the dark swatch hex #D37918 in Light while the
+        // onboarding swatches draw Light/Accent/Main. The selected (orange) swatch sits at 722,178.
+        for (id, scheme) in [("S48.Settings/general", ColorScheme.dark), ("S48.Settings/general-light", .light)] {
+            let entry = try XCTUnwrap(GalleryCatalog.entry(id: id))
+            let pixels = Pixels(image: try GalleryRenderer.render(entry, scale: 1, environment: GalleryEnvironment(colorScheme: scheme)))
+            let rgba = Theme.Color.accentMain.value(scheme: scheme, accent: .orange, contrast: .standard)
+            let expected = (Int((rgba.red * 255).rounded()), Int((rgba.green * 255).rounded()), Int((rgba.blue * 255).rounded()))
+            XCTAssertTrue(pixels.near(CGPoint(x: 722, y: 178), expected, tolerance: 3),
+                          "\(scheme): the orange swatch is \(pixels.rgb(at: CGPoint(x: 722, y: 178))), Accent/Main is \(expected)")
+        }
+    }
+
+    func testNarrowStartupVolumeKeepsToItsColumn() throws {
+        // S48.Settings/narrow (480 pt, Audio): keeping "Always starts at:" beside its value grew the
+        // stacked control to 228 pt, past the 180 pt column, and wrapped "Startup volume" (F-settings
+        // verifier). The control now starts where the dropdowns above it start.
+        let entry = try XCTUnwrap(GalleryCatalog.entry(id: "S48.Settings/narrow"))
+        let pixels = Pixels(image: try GalleryRenderer.render(entry, scale: 1))
+        func isAccentFill(_ x: Int, _ y: Int) -> Bool {
+            let c = pixels.rgb(at: CGPoint(x: x, y: y)); return c.0 - c.2 > 25 && c.0 < 120
+        }
+        // The selected "Remember last volume" choice: the first row with its accent fill below the
+        // Maximum volume slider (its scale labels end at y 360).
+        let choiceRow = try XCTUnwrap((370..<520).first { y in (300..<450).contains { isAccentFill($0, y) } })
+        let choiceLeft = try XCTUnwrap((150..<450).first { isAccentFill($0, choiceRow + 4) })
+        // The Speaker setup dropdown (y 220): its dark field starts at the column's edge.
+        let dropdownLeft = try XCTUnwrap((150..<450).first { pixels.luminance(at: CGPoint(x: $0, y: 220)) < 15 })
+        XCTAssertGreaterThanOrEqual(CGFloat(choiceLeft), CGFloat(dropdownLeft), "the stacked control keeps to the control column")
+    }
+
+    func testShortcutFieldDrawsTheCommandGlyphAtKeySize() throws {
+        // S64 (C-bridge note): DM Mono has no ⌘, and font fallback drew it about half as tall as "F".
+        let size = CGSize(width: Theme.Metric.SettingsDetail.shortcutFieldWidth, height: Theme.Metric.SettingsDetail.shortcutFieldHeight)
+        let field = ShortcutKeyField(text: "⌘F", isRecording: false, width: size.width, label: "Hotkey",
+                                     start: {}, onKey: { _ in }, onCancel: {})
+        let pixels = try draw(field.background(Color.black), size: size, scale: 2)
+        // Ink columns of the centred text (the edit icon sits in the trailing 34 pt).
+        let columns = (0..<Int((size.width - 40) * 2)).filter { x in
+            (0..<Int(size.height * 2)).contains { pixels.luminance(at: CGPoint(x: CGFloat(x) / 2, y: CGFloat($0) / 2)) > 60 }
+        }
+        var runs: [ClosedRange<Int>] = []
+        for x in columns {
+            if let last = runs.last, x - last.upperBound <= 2 { runs[runs.count - 1] = last.lowerBound...x } else { runs.append(x...x) }
+        }
+        XCTAssertEqual(runs.count, 2, "⌘ and F")
+        guard runs.count == 2 else { return }
+        func inkHeight(_ run: ClosedRange<Int>) -> Int {
+            let rows = (0..<Int(size.height * 2)).filter { y in
+                run.contains { pixels.luminance(at: CGPoint(x: CGFloat($0) / 2, y: CGFloat(y) / 2)) > 60 }
+            }
+            return (rows.last ?? 0) - (rows.first ?? 0) + 1
+        }
+        let command = inkHeight(runs[0]), key = inkHeight(runs[1])
+        XCTAssertGreaterThanOrEqual(Double(command), Double(key) * 0.8, "⌘ is \(command) px tall, F \(key) px")
     }
 
     func testReplayGainPreampIsAFloatInTheMock() throws {

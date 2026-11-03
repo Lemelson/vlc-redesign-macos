@@ -61,27 +61,33 @@ private struct MXRAppComposition: View {
                 // Frame bands and empty chrome move the window (D022), also in Hide UI.
                 MXRWindowDragArea(onMouseDown: dismissPopup)
                     .background(Theme.Color.bgA3)
-                if interface.library == .full && !interface.isUIHidden {
-                    fullLibrary(size: size)
-                } else {
-                    MXRPlayerView(videoView: videoView, style: style, controlHeight: controlHeight,
-                                  reservesBars: !app.player.isFullscreen && !interface.isUIHidden)
-                        .frame(width: size.width, height: size.height)
-                        .overlay {
-                            if app.player.isPictureInPicture {
-                                pictureInPicturePlaceholder(style: style)
+                ZStack(alignment: .topLeading) {
+                    if interface.library == .full && !interface.isUIHidden {
+                        fullLibrary(size: size)
+                    } else {
+                        MXRPlayerView(videoView: videoView, style: style, controlHeight: controlHeight,
+                                      reservesBars: !app.player.isFullscreen && !interface.isUIHidden)
+                            .frame(width: size.width, height: size.height)
+                            .overlay {
+                                if app.player.isPictureInPicture {
+                                    pictureInPicturePlaceholder(style: style)
+                                }
                             }
-                        }
-                    // §15: Customize keeps the paused video visible behind the translucent palette
-                    // (Player - customize uses the same video fill as Player; 19m12.4). No scrim.
+                        // §15: Customize keeps the paused video visible behind the translucent palette
+                        // (Player - customize uses the same video fill as Player; 19m12.4). No scrim.
+                    }
                 }
+                // Only the swap between the player and the full library animates here. Every other
+                // layer animates its own appearance, so a change that moves the media canvas (Hide UI,
+                // fullscreen, Customize) lands in one step and the vout never sees in-between sizes.
+                .animation(popupMotion, value: interface.library == .full)
                 if interface.hasTransientPopup && !interface.isUIHidden {
                     // D024: a click outside closes the popup and is not also a play/pause click.
                     Color.clear.contentShape(Rectangle())
                         .onTapGesture { _ = dismissPopup() }
                         .accessibilityHidden(true)
                 }
-                if !interface.isUIHidden {
+                ZStack(alignment: .topLeading) {
                     if libraryWidth(in: size.width) > 0 {
                         MXRLibraryView(compact: true)
                             .frame(width: libraryWidth(in: size.width),
@@ -89,15 +95,10 @@ private struct MXRAppComposition: View {
                             .offset(y: topBarBottom)
                             .mxrPopupTransition(from: .leading, reduceMotion: reduceMotion)
                     }
-                    bars(size: size)
-                    if let panel = interface.rightPanel, let frame = rightPanelFrame(in: size) {
-                        MXRRightPanelView()
-                            .frame(width: frame.width, height: frame.height)
-                            .offset(x: frame.minX, y: frame.minY)
-                            .id(panelFamily(panel))
-                            .mxrPopupTransition(from: panelEdge(panel), reduceMotion: reduceMotion)
-                    }
                 }
+                .animation(popupMotion, value: libraryWidth(in: size.width) > 0)
+                if !interface.isUIHidden { bars(size: size) }
+                rightPanelLayer(size: size)
                 if interface.isCustomizing { customization(size: size) }
                 overlays(size: size)
             }
@@ -115,8 +116,6 @@ private struct MXRAppComposition: View {
             .onChange(of: size.width, initial: true) { _, width in
                 interface.reconcileLibraryAndPanel(fit: libraryFitsBesidePanel(width))
             }
-            .animation(reduceMotion ? nil : .easeOut(duration: Theme.Popup.appearDuration), value: interface.rightPanel.map(panelFamily))
-            .animation(reduceMotion ? nil : .easeOut(duration: Theme.Popup.appearDuration), value: interface.library)
             // D023/WT-11: SwiftUI hover stops at the embedded vout NSView, so the pointer comes from an
             // AppKit tracking area behind every layer (tracking areas ignore z-order) that never takes clicks.
             .background {
@@ -141,8 +140,8 @@ private struct MXRAppComposition: View {
         }
     }
 
-    /// The control bar overlays the picture only where the canvas runs under it (fullscreen,
-    /// Customize); between pinned bars nothing covers the subtitles.
+    /// The control bar overlays the picture only in fullscreen; between pinned bars (also in
+    /// Customize, D055) nothing covers the subtitles.
     private var subtitleSafeInset: Double {
         guard !interface.isUIHidden, interface.library != .full, !app.player.isAudioOnly,
               interface.isControlBarVisible else { return 0 }
@@ -263,6 +262,28 @@ private struct MXRAppComposition: View {
         .accessibilityHint(MXRPlayerCopy.pictureInPictureReturn)
     }
 
+    /// The open right panel. It draws the panel it was inserted with, so the one just closed still
+    /// shows while it fades out (D024; live run 2 C4: the model is already nil during the removal, and
+    /// a panel read from it drew nothing, so panels vanished in one frame while menus faded).
+    @ViewBuilder
+    private func rightPanelLayer(size: CGSize) -> some View {
+        ZStack(alignment: .topLeading) {
+            if let panel = interface.rightPanel, let frame = rightPanelFrame(in: size) {
+                MXRRightPanelLayer(panel: panel)
+                    .frame(width: frame.width, height: frame.height)
+                    .offset(x: frame.minX, y: frame.minY)
+                    .id(panelFamily(panel))
+                    .mxrPopupTransition(from: panelEdge(panel), reduceMotion: reduceMotion)
+            }
+        }
+        // Switching tabs keeps the panel in place; changing family (tracks ↔ sidebar ↔ queue) animates.
+        .animation(popupMotion, value: interface.isUIHidden ? nil : interface.rightPanel.map(panelFamily))
+    }
+
+    /// D024: the popup transition carries its own 0.15 s in / 0.1 s out curves; this only marks the
+    /// change as animated (none under Reduce Motion).
+    private var popupMotion: Animation? { reduceMotion ? nil : .easeOut(duration: MXRPopupMotion.insertion) }
+
     private func rightPanelFrame(in size: CGSize) -> CGRect? {
         guard let panel = interface.rightPanel, interface.library != .full, !interface.isUIHidden else { return nil }
         return PlayerGeometry.rightPanelFrame(panel, in: size, controlHeight: controlHeight, leadingInset: libraryWidth(in: size.width),
@@ -303,7 +324,6 @@ private struct MXRAppComposition: View {
         PlayerGeometry.compactLibraryWidth(windowWidth: width, panelOpen: true) > 0
     }
 
-    /// Switching tabs keeps the panel in place; changing family (tracks ↔ sidebar ↔ queue) animates.
     private func panelFamily(_ panel: RightPanel) -> Int {
         switch panel {
         case .tracks: 0
@@ -315,6 +335,24 @@ private struct MXRAppComposition: View {
     /// The track popover rises from the bar; the sidebar and queue come in from the right edge.
     private func panelEdge(_ panel: RightPanel) -> Edge {
         if case .tracks = panel { .bottom } else { .trailing }
+    }
+}
+
+/// One right panel drawn from a fixed value rather than ``InterfaceModel/rightPanel``, so it still
+/// draws while its removal transition plays (D024).
+struct MXRRightPanelLayer: View {
+    @Environment(InterfaceModel.self) private var interface
+    let panel: RightPanel
+
+    var body: some View {
+        Group {
+            switch panel {
+            case .tracks(let tab): MXRTrackPopoverView(tab: tab)
+            case .sidebar(let tab): MXRSettingsSidebarView(tab: tab)
+            case .queue(let tab): MXRQueuePanelView(tab: tab)
+            }
+        }
+        .onExitCommand { interface.closeRightPanel() }
     }
 }
 

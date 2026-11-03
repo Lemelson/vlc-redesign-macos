@@ -109,8 +109,15 @@ public struct MXRControlBar: View {
             if usesOpaqueVideoBackground && colorScheme == .dark && !app.player.isAudioOnly && !app.interface.isCustomizing {
                 Rectangle().fill(Theme.Color.bgA3)
             } else {
-                MXRBackdropSurface(tint: Theme.Color.bgA3Transparent, material: .headerView,
-                                   overCanvasBase: besidePicture)
+                if musicBarOverOwnBackdrop {
+                    // D056: the dark music bar lies over the player's own blurred artwork or the
+                    // black canvas; Figma's background blur of that is the content itself, so the
+                    // tint is drawn over it without the material's own colour (#191919 → #171717).
+                    MXRBackdropSurface(tint: Theme.Color.bgA3Transparent).mxrNativeBackdropEnabled(false)
+                } else {
+                    MXRBackdropSurface(tint: Theme.Color.bgA3Transparent, material: .headerView,
+                                       overCanvasBase: besidePicture)
+                }
             }
         }
         .accessibilityElement(children: .contain)
@@ -124,6 +131,9 @@ public struct MXRControlBar: View {
         }
     }
     /// 2115:7285: time, seek bar and duration are outlined as one group in edit mode (CMP-13).
+    private var musicBarOverOwnBackdrop: Bool {
+        colorScheme == .dark && app.player.isAudioOnly && !app.interface.isCustomizing && !besidePicture
+    }
     private func outline(at index: Int, in items: [LayoutItem]) -> MXRLayoutOutline {
         let group: Set<PlayerControl> = [.currentTime, .seekBar, .duration]
         guard group.contains(items[index].control) else { return .single }

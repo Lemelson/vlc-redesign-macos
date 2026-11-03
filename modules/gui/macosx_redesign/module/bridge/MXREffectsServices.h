@@ -13,6 +13,9 @@ NS_ASSUME_NONNULL_BEGIN
 /// relative text scale) to the current video. Pixel sizes become VLC's text scale for the
 /// video height. Returns YES when the scale changed. Main thread, player unlocked.
 - (BOOL)applySubtitleSizePreference;
+/// Main thread, on every player state change: a subtitle size changed while paused redraws the
+/// cue on screen once playback resumes (any other state forgets it).
+- (void)playerStateChanged:(enum vlc_player_state)state;
 /// After a successful setSubtitleStyle: the change includes values VLC's text renderer reads
 /// only when it is created (font, bold, opacity, outline colour, shadow), so it shows from
 /// the next video. They are saved and applied to the current outputs.

@@ -8,6 +8,19 @@ public final class VideoEffectsModel {
     public private(set) var effects: VideoEffects = .default
 
     @ObservationIgnored public let backend: any PlayerBackend
+    /// The values of a slider drag in progress (``edit(_:)``); `nil` between drags.
+    @ObservationIgnored private var burst: VideoEffects?
+    /// The last value a drag wrote to the engine.
+    @ObservationIgnored private var burstWritten: VideoEffects?
+    @ObservationIgnored private var burstDirty = false
+    @ObservationIgnored private var writeTask: Task<Void, Never>?
+    @ObservationIgnored private var settleTask: Task<Void, Never>?
+
+    /// Live run 2 (Essential card): a fast Brightness drag sent one filter-chain write per pointer
+    /// event and crashed VLC's vout. A drag reaches the engine at most once per `writeInterval`
+    /// (latest value wins) and ends `settleInterval` after its last change.
+    public static let writeInterval: Duration = .milliseconds(50)
+    public static let settleInterval: Duration = .milliseconds(400)
 
     public init(backend: any PlayerBackend) {
         self.backend = backend
@@ -21,29 +34,79 @@ public final class VideoEffectsModel {
     /// Replaces all video effects, limited to what the engine accepts (``VideoEffects/sanitized``),
     /// so one unsupported legacy value cannot make the whole set fail to apply.
     public func set(_ effects: VideoEffects) {
+        endBurst()
         let effects = effects.sanitized
         guard effects != backend.videoEffects else { return }
         backend.setVideoEffects(effects)
         reload()
     }
 
-    /// Edits in place: `video.update { $0.flip = .horizontal }`. Starts from the engine's value, so
-    /// quick successive edits made before the change event arrives are not lost.
+    /// Edits in place: `video.update { $0.flip = .horizontal }`. Starts from the engine's value (or
+    /// the drag in progress), so quick successive edits made before the change event arrives are
+    /// not lost. Applied at once; slider drags use ``edit(_:)``.
     public func update(_ change: (inout VideoEffects) -> Void) {
-        var copy = backend.videoEffects
+        var copy = burst ?? backend.videoEffects
         change(&copy)
         set(copy)
     }
 
+    /// A slider's continuous edit: shown at once, written to the engine coalesced (see
+    /// ``writeInterval``). While the drag lasts VLC's `adjust` filter stays in the chain even when
+    /// the values pass neutral, so the chain is not rebuilt under the values being written; it is
+    /// removed when the drag settles at neutral.
+    public func edit(_ change: (inout VideoEffects) -> Void) {
+        if burst == nil { burstWritten = backend.videoEffects }
+        var next = burst ?? backend.videoEffects
+        change(&next)
+        next = next.sanitized
+        burst = next
+        if effects != next { effects = next }
+        burstDirty = true
+        if writeTask == nil {
+            writeTask = Task { @MainActor [weak self] in
+                while !Task.isCancelled, let model = self, model.burstDirty {
+                    model.burstDirty = false
+                    model.writeBurst()
+                    try? await Task.sleep(for: Self.writeInterval)
+                }
+                self?.writeTask = nil
+            }
+        }
+        settleTask?.cancel()
+        settleTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: Self.settleInterval)
+            guard !Task.isCancelled, let self else { return }
+            self.settleTask = nil
+            self.update { _ in } // writes the drag's final value, `adjust` off if it ended at neutral
+        }
+    }
+
+    /// Ends a slider drag now: the final value goes out with the next ``set(_:)``.
+    private func endBurst() {
+        writeTask?.cancel(); writeTask = nil
+        settleTask?.cancel(); settleTask = nil
+        burst = nil; burstWritten = nil; burstDirty = false
+    }
+
+    private func writeBurst() {
+        guard var value = burst else { return }
+        if burstWritten?.essential.isEnabled == true { value.essential.isEnabled = true }
+        guard value != burstWritten else { return }
+        burstWritten = value
+        backend.setVideoEffects(value)
+    }
+
     private func reload() {
+        guard burst == nil else { return } // the drag's own values until it settles
         if backend.videoEffects != effects { effects = backend.videoEffects }
     }
 
     /// Edits the Essential card. VLC's `adjust` filter is switched on exactly while the picture
     /// values differ from neutral (``EssentialVideoFilters/adjustsPicture``): the card has no enable
-    /// switch (536:1860), and moving a slider back to neutral removes the filter again.
+    /// switch (536:1860), and moving a slider back to neutral removes the filter again (once the
+    /// drag settles, ``edit(_:)``).
     public func updateEssential(_ change: (inout EssentialVideoFilters) -> Void) {
-        update { effects in
+        edit { effects in
             change(&effects.essential)
             effects.essential.isEnabled = effects.essential.adjustsPicture
         }
@@ -56,7 +119,7 @@ public final class VideoEffectsModel {
     /// Sets "Sepia Intensity": 0 removes the sepia filter, any other value applies it at that intensity.
     public func setSepiaIntensity(_ value: Int) {
         let value = min(max(value, 0), 255)
-        update { effects in
+        edit { effects in
             effects.colors.sepia = value > 0
             if value > 0 { effects.colors.sepiaIntensity = value }
         }
@@ -80,6 +143,19 @@ public final class AudioEffectsModel {
     /// Presets for the Equalizer dropdown (with preview curves).
     @ObservationIgnored public let equalizerPresets: [EqualizerPreset] = EqualizerPreset.builtIn
     @ObservationIgnored public let backend: any PlayerBackend
+    /// The values of a slider drag in progress (``edit(_:)``); `nil` between drags.
+    @ObservationIgnored private var burst: VideoEffects?
+    /// The last value a drag wrote to the engine.
+    @ObservationIgnored private var burstWritten: VideoEffects?
+    @ObservationIgnored private var burstDirty = false
+    @ObservationIgnored private var writeTask: Task<Void, Never>?
+    @ObservationIgnored private var settleTask: Task<Void, Never>?
+
+    /// Live run 2 (Essential card): a fast Brightness drag sent one filter-chain write per pointer
+    /// event and crashed VLC's vout. A drag reaches the engine at most once per `writeInterval`
+    /// (latest value wins) and ends `settleInterval` after its last change.
+    public static let writeInterval: Duration = .milliseconds(50)
+    public static let settleInterval: Duration = .milliseconds(400)
 
     public init(backend: any PlayerBackend) {
         self.backend = backend
@@ -171,6 +247,19 @@ public final class ChaptersModel {
     public private(set) var programs: [MediaProgram] = []
 
     @ObservationIgnored public let backend: any PlayerBackend
+    /// The values of a slider drag in progress (``edit(_:)``); `nil` between drags.
+    @ObservationIgnored private var burst: VideoEffects?
+    /// The last value a drag wrote to the engine.
+    @ObservationIgnored private var burstWritten: VideoEffects?
+    @ObservationIgnored private var burstDirty = false
+    @ObservationIgnored private var writeTask: Task<Void, Never>?
+    @ObservationIgnored private var settleTask: Task<Void, Never>?
+
+    /// Live run 2 (Essential card): a fast Brightness drag sent one filter-chain write per pointer
+    /// event and crashed VLC's vout. A drag reaches the engine at most once per `writeInterval`
+    /// (latest value wins) and ends `settleInterval` after its last change.
+    public static let writeInterval: Duration = .milliseconds(50)
+    public static let settleInterval: Duration = .milliseconds(400)
 
     public init(backend: any PlayerBackend) {
         self.backend = backend
@@ -236,15 +325,27 @@ public final class BookmarksModel {
     /// "2 Bookmarks".
     public var summary: String { bookmarks.count == 1 ? "1 Bookmark" : "\(bookmarks.count) Bookmarks" }
 
-    /// Adds a bookmark at the current time, named "<title> <n>" ("DON’T BLINK 1").
-    public func addAtCurrentTime() {
-        guard let media = player.currentMedia else { return }
+    /// Called when adding a bookmark fails (the app shows the error).
+    @ObservationIgnored public var errorHandler: (@MainActor (Error) -> Void)?
+
+    /// Adds a bookmark at the current time, named "<title> <n>" ("DON’T BLINK 1"). `completion`
+    /// gets `true` only once the library stored it (live run 2: ⌘B on a file outside the library
+    /// reported "Bookmark added" while nothing was stored); a failure also goes to ``errorHandler``.
+    public func addAtCurrentTime(completion: (@MainActor (Bool) -> Void)? = nil) {
+        guard let media = player.currentMedia else { completion?(false); return }
         let time = clock.currentTime
         let name = "\(media.displayTitle) \(bookmarks.count + 1)"
         let library = self.library
         Task { @MainActor [weak self] in
-            _ = try? await library.addBookmark(mediaID: media.id, time: time, name: name)
-            self?.reload()
+            do {
+                _ = try await library.addBookmark(mediaID: media.id, time: time, name: name)
+                self?.reload()
+                completion?(true)
+            } catch {
+                self?.reload()
+                self?.errorHandler?(error)
+                completion?(false)
+            }
         }
     }
 

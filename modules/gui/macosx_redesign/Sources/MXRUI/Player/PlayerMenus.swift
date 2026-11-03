@@ -115,8 +115,12 @@ public enum MXRPlayerMenus {
         return items
     }
 
+    /// The local (no cast) renderer: Figma's Render dropdown reads "Local" (Frame 117), VLC's Qt
+    /// renderer menu "<Local>". The Video sidebar's Render dropdown uses the same word.
+    static let localRendererTitle = "Local"
+
     static func renderers(_ app: AppModel) -> [MXRMenuItem] {
-        var items = [MXRMenuItem("This Mac", isChecked: app.renderers.selectedID == nil) {
+        var items = [MXRMenuItem(localRendererTitle, isChecked: app.renderers.selectedID == nil) {
             do { try app.renderers.select(id: nil) } catch { app.osd.show(error.localizedDescription) }
         }]
         for renderer in app.renderers.items {
@@ -466,8 +470,8 @@ public struct MXRPlayerBarMenu<Label: View>: View {
     }
 
     public var body: some View {
-        Button { isOpen.toggle() } label: { label.contentShape(.rect) }
-            .buttonStyle(.plain)
+        Button { isOpen.toggle() } label: { label.modifier(MXRBarHoverTile()).contentShape(.rect) }
+            .buttonStyle(MXRBarButtonStyle())
             .focusEffectDisabled()
             .mxrPopupMenu(isPresented: $isOpen, placement: .above(.center), style: .textMenu) { [app, kind] in
                 switch kind {
@@ -506,9 +510,10 @@ public struct MXRPlayerOverflowButton: View {
         Button { isOpen.toggle() } label: {
             MXRIcon(.more).frame(width: Theme.Metric.ControlBar.iconButton.width,
                                  height: Theme.Metric.ControlBar.iconButton.height)
+                .modifier(MXRBarHoverTile())
                 .contentShape(.rect)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(MXRBarButtonStyle())
         .focusEffectDisabled()
         .mxrPopupMenu(isPresented: $isOpen, placement: .above(.trailing), style: .rightClickMenu) { [app, commands, controls, onPictureInPicture] in
             MXRPlayerMenus.overflowMenu(controls, commands: commands, app: app, onPictureInPicture: onPictureInPicture)

@@ -158,6 +158,10 @@ public struct MXRLibraryView: View {
                 .focusable()
                 .focusEffectDisabled()
                 .focused($listFocused)
+                // The app's key monitor runs before SwiftUI: it must know the list has the keyboard,
+                // or ↓ runs VLC's nav-down (a volume step) instead of moving the selection.
+                .onChange(of: listFocused) { _, focused in app.interface.libraryListHasKeyboardFocus = focused }
+                .onDisappear { app.interface.libraryListHasKeyboardFocus = false }
                 // ↑/↓ move by a row (a grid row holds `columns` entries), ←/→ by one entry.
                 .onKeyPress(keys: [.upArrow, .downArrow, .leftArrow, .rightArrow], phases: [.down, .repeat]) { press in
                     guard let offset = Self.arrowOffset(press.key, columns: columns(width: width)) else { return .ignored }

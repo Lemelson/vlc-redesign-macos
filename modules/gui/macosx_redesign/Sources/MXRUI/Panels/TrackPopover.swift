@@ -2,24 +2,6 @@ import MXRCore
 import MXRDesign
 import SwiftUI
 
-/// The right-side panel family. The player shell supplies positioning; this view follows the
-/// single open panel in InterfaceModel, so track/preferences/queue transitions stay exclusive.
-public struct MXRRightPanelView: View {
-    @Environment(InterfaceModel.self) private var ui
-    public init() {}
-    public var body: some View {
-        Group {
-            switch ui.rightPanel {
-            case .tracks(let tab): MXRTrackPopoverView(tab: tab)
-            case .sidebar(let tab): MXRSettingsSidebarView(tab: tab)
-            case .queue(let tab): MXRQueuePanelView(tab: tab)
-            case nil: EmptyView()
-            }
-        }
-        .onExitCommand { ui.closeRightPanel() }
-    }
-}
-
 public struct MXRTrackPopoverView: View {
     public let tab: TrackPanelTab
     @Environment(TracksModel.self) private var tracks
@@ -71,10 +53,10 @@ public struct MXRTrackPopoverView: View {
                                 // pencil edits the matches of the whole folder, like the library's "Edit
                                 // Subtitle Tracks", and of this file outside the library.
                                 PanelIconButton(icon: .edit, label: editSubtitlesLabel, width: Theme.Metric.iconSize, tint: Theme.Color.fgA3) {
-                                    app.presentAddSubtitles(media: [], scope: editSubtitlesScope)
+                                    addSubtitles(scope: editSubtitlesScope)
                                 }.disabled(player.media == nil)
                                 PanelIconButton(icon: .add, label: "Add subtitles to this video", width: Theme.Metric.iconSize, tint: Theme.Color.fgA3) {
-                                    app.presentAddSubtitles(media: [], scope: .file)
+                                    addSubtitles(scope: .file)
                                 }.disabled(player.media == nil)
                             }
                             VStack(spacing: PanelMetric.gap) {
@@ -97,6 +79,15 @@ public struct MXRTrackPopoverView: View {
         }.frame(maxWidth: popup.width, maxHeight: popup.height)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(tab.title) tracks")
+        // Live run 2: the popover lists the tracks of the media it was opened for; a new file closes it.
+        .onChange(of: player.media?.id) { ui.closeRightPanel() }
+    }
+
+    /// The popover is a transient popup: the Add Subtitles dialog replaces it (06m02.5 shows the
+    /// dialog with no popover; live run 2 found it drawn behind the dialog in Light).
+    private func addSubtitles(scope: AddSubtitlesScope) {
+        ui.closeRightPanel()
+        app.presentAddSubtitles(media: [], scope: scope)
     }
 
     /// 2410:13482 / 496:2631: the actions are 24 pt FG/A3 icons 20 pt apart (6059:13202), flush with the

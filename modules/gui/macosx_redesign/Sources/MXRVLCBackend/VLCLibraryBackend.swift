@@ -90,7 +90,13 @@ final class VLCLibraryBackend: LibraryBackend {
     @discardableResult func importFiles(urls: [URL]) async throws -> [MediaItem] {
         // VLC types an external file only when it parses it; type it now so it lists under Videos or Songs.
         let result = try await transport.request(.importFiles, service: .library, arguments: ["urls": urls.map(\.absoluteString), "kinds": urls.map { MediaItem.kind(of: $0).rawValue }])
-        return result.dictionaries("media").compactMap(VLCWire.media)
+        let imported = result.dictionaries("media").compactMap(VLCWire.media)
+        let rejected = (result["rejected"] as? [String] ?? []).compactMap(URL.init(string:))
+        if !rejected.isEmpty { throw LibraryImportError(imported: imported, rejected: rejected) }
+        return imported
+    }
+    func removeImportedMedia(ids: [String]) async throws {
+        _ = try await transport.request(.removeImportedMedia, service: .library, arguments: ["mediaIDs": ids]); events.send(.contentChanged)
     }
     func removeFromPlaylist(id: String, occurrences: [PlaylistOccurrence]) async throws {
         guard let revision = occurrences.first?.revision, occurrences.allSatisfy({ $0.playlistID == id && $0.revision == revision }) else { throw BackendOperationError.invalidInput("Reload the playlist before removing items.") }

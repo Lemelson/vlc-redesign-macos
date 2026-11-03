@@ -122,11 +122,16 @@ final class WindowFinalPolishTests: XCTestCase {
         let toast = Theme.Metric.Dialogs.resumeToast
         let y = Int(area.maxY - toast.height / 2)
         let accent = (Int(area.minX)..<Int(area.maxX)).filter { pixels.isAccent(x: $0, y: y) }
-        XCTAssertFalse(accent.isEmpty, "the toast shows in the 480 pt window")
-        // A truncated label fills all the room the toast leaves; "Continue" hugs its label.
+        let first = try XCTUnwrap(accent.first, "the toast shows in the 480 pt window"), last = try XCTUnwrap(accent.last)
+        // The button's fill spans the whole label: measure its extent, not its pixel count (the label's
+        // glyphs break the fill on any one row). "Continue" hugs its label with the button's own side
+        // padding; the reverted bug ("Continue Watchi…") and a stretched "Continue" both fill the room.
+        let label = NSAttributedString(string: MXRPlayerCopy.continueShort, attributes: Theme.Font.button.attributes()).size().width
+        let hugging = label + 2 * Theme.Metric.Dialogs.resumeContinueButton.padding.leading
+        XCTAssertEqual(CGFloat(last - first + 1), hugging, accuracy: 3, "the button hugs VLC's short label \"Continue\"")
         let room = area.width - toast.padding.leading - toast.padding.trailing - Theme.Spacing.gap10
             - Theme.Metric.Dialogs.resumeCloseButton.width
-        XCTAssertLessThan(CGFloat(accent.count), room - Theme.Spacing.gap8, "the button hugs VLC's short label")
+        XCTAssertLessThan(CGFloat(last - first + 1), room - Theme.Spacing.gap8, "and leaves room in the toast")
     }
 
     // MARK: D042/D053 PiP placeholder in Light
@@ -147,24 +152,30 @@ final class WindowFinalPolishTests: XCTestCase {
     // MARK: D055 fullscreen strip
 
     func testStripTrackerFollowsTheStripWithoutNotifications() async throws {
-        var inset = 0.0
-        var reported: [Double] = []
-        let tracker = MXRSystemStripTracker(sample: { inset }, report: { reported.append($0) })
+        let strip = StripProbe()
+        let tracker = MXRSystemStripTracker(sample: { strip.inset }, report: { strip.reported.append($0) })
         tracker.start(interval: 0.01)
-        XCTAssertEqual(reported, [0], "the first sample reports at once")
+        XCTAssertEqual(strip.reported, [0], "the first sample reports at once")
         // AppKit slides the strip down and posts nothing: the timer still sees it.
-        inset = 52
+        strip.inset = 52
         try await Task.sleep(for: .milliseconds(150))
-        XCTAssertEqual(reported, [0, 52])
-        inset = 0
+        XCTAssertEqual(strip.reported, [0, 52])
+        strip.inset = 0
         try await Task.sleep(for: .milliseconds(150))
-        XCTAssertEqual(reported, [0, 52, 0], "each change is reported once")
+        XCTAssertEqual(strip.reported, [0, 52, 0], "each change is reported once")
         tracker.stop()
         XCTAssertFalse(tracker.isRunning)
-        inset = 52
+        strip.inset = 52
         try await Task.sleep(for: .milliseconds(100))
-        XCTAssertEqual(reported, [0, 52, 0], "nothing is sampled outside fullscreen")
+        XCTAssertEqual(strip.reported, [0, 52, 0], "nothing is sampled outside fullscreen")
     }
+}
+
+/// The strip's inset and what the tracker reported, read and written on the main actor.
+@MainActor
+private final class StripProbe {
+    var inset = 0.0
+    var reported: [Double] = []
 }
 
 private struct Pixels {

@@ -6,6 +6,7 @@
 #include <vlc_common.h>
 #include <vlc_interface.h>
 #include <vlc_playlist.h>
+#include <vlc_configuration.h>
 #include <signal.h>
 #include <execinfo.h>
 #include <sys/socket.h>
@@ -90,9 +91,11 @@ int main(int argc, const char *argv[])
         require(argc == 4, @"pass a local transport-stream fixture, output directory and isolated extension marker");
         NSString *extensionMarker = [NSString stringWithUTF8String:argv[3]];
         require(![NSFileManager.defaultManager fileExistsAtPath:extensionMarker], @"per-run extension marker starts absent");
-        const char *options[] = {"MXRMediaServicesRuntimeTests", "--ignore-config", "--no-media-library", "--no-auto-preparse", "--no-video-title-show", "--verbose=0"};
+        /* Dummy outputs: a stream's local copy plays here without a window or sound. */
+        const char *options[] = {"MXRMediaServicesRuntimeTests", "--ignore-config", "--no-media-library", "--no-auto-preparse", "--no-video-title-show", "--verbose=0",
+                                 "--vout=dummy", "--aout=adummy"};
         libvlc_int_t *vlc = libvlc_InternalCreate();
-        require(vlc != NULL && libvlc_InternalInit(vlc, 6, options) == VLC_SUCCESS, @"VLC initializes");
+        require(vlc != NULL && libvlc_InternalInit(vlc, ARRAY_SIZE(options), options) == VLC_SUCCESS, @"VLC initializes");
         require(var_InheritBool(vlc, "ignore-config"), @"user configuration and config autosave are disabled");
         libvlc_InternalPlay(vlc);
         intf_thread_t *intf = vlc_object_create(vlc, sizeof(*intf));
@@ -167,6 +170,16 @@ int main(int argc, const char *argv[])
         result = startOutput(service, @{@"sourceURL": source.absoluteString, @"destinationURL": [NSURL fileURLWithPath:existing].absoluteString,
                                         @"profile": @"audio", @"mode": @"convert"}, &error);
         require(result == nil && error.code == EEXIST, @"an existing destination is not replaced without overwrite");
+        /* Live J-overwrite: Replace in the Convert alert sends `overwrite`; VLC then writes over it. */
+        error = nil;
+        result = startOutput(service, @{@"sourceURL": source.absoluteString, @"destinationURL": [NSURL fileURLWithPath:existing].absoluteString,
+                                        @"profile": @"audio", @"mode": @"convert", @"overwrite": @YES}, &error);
+        require(result != nil && error == nil, @"Replace starts a conversion over the existing destination");
+        job = waitForOutput(service, 30);
+        require([job[@"state"] isEqual:@"completed"], [NSString stringWithFormat:@"the replacing conversion completes: %@", job]);
+        require([streamTypes(probe(existing)) isEqual:@[@"audio"]],
+                [NSString stringWithFormat:@"the existing file now holds the new output: %@", streamTypes(probe(existing))]);
+        require(noPartialFiles(directory), @"a replacing job leaves no partial file");
 
         /* J-05, J-11: Stop reports `stopping` until the engine has closed the output, and a stopped
          * conversion leaves neither the destination nor its partial file. */
@@ -218,6 +231,20 @@ int main(int argc, const char *argv[])
                 @"running stream can be stopped");
         job = waitForOutput(service, 10);
         require([job[@"state"] isEqual:@"cancelled"], [NSString stringWithFormat:@"stop reports cancelled: %@", job]);
+
+        /* Live run 2: with Play locally on, an HTTP stream sent 52 s of media in 4 s. A stream is
+         * paced to its input clock with or without the local copy: the 4 s fixture takes about
+         * 4 s to send (the unpaced duplicate chain sent it in about 0.5 s). */
+        config_PutInt("sout-display", 1);
+        NSDate *streamStart = [NSDate date];
+        result = startOutput(service, @{@"sourceURL": source.absoluteString,
+            @"streamURL": @"udp://127.0.0.1:19099", @"profile": @"copy", @"mode": @"stream"}, &error);
+        require(result != nil && error == nil, @"a stream with a local copy starts");
+        job = waitForOutput(service, 20);
+        NSTimeInterval sent = -streamStart.timeIntervalSinceNow;
+        require([job[@"state"] isEqual:@"completed"], [NSString stringWithFormat:@"the paced stream completes: %@", job]);
+        require(sent > 2.5, [NSString stringWithFormat:@"a stream played locally is paced to real time (4 s sent in %.2f s)", sent]);
+        config_PutInt("sout-display", 0);
         close(udpSocket);
 
         [NSFileManager.defaultManager removeItemAtPath:[outPath stringByAppendingString:@".missing"] error:nil];

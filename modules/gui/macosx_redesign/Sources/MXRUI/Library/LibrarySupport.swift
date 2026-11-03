@@ -256,16 +256,19 @@ extension LibraryEntry {
     var mxrSubtitle: String? {
         switch self {
         case .media(let media): media.artist
-        case .folder(let folder): folder.itemCount.map { "\($0) items" }
-        case .playlist(let playlist): "\(playlist.itemCount) items"
+        case .folder(let folder): folder.itemCount.map { Self.count($0, "item") }
+        case .playlist(let playlist): Self.count(playlist.itemCount, "item")
         case .album(let album): [album.artist, album.year.map(String.init)].compactMap { $0 }.joined(separator: " · ")
-        case .artist(let artist): "\(artist.albumCount) albums · \(artist.trackCount) tracks"
-        case .genre(let genre): "\(genre.trackCount) tracks"
-        case .show(let show): "\(show.seasonCount) seasons"
-        case .stream(let stream): stream.itemCount.map { "\($0) items" }
+        case .artist(let artist): "\(Self.count(artist.albumCount, "album")) · \(Self.count(artist.trackCount, "track"))"
+        case .genre(let genre): Self.count(genre.trackCount, "track")
+        case .show(let show): Self.count(show.seasonCount, "season")
+        case .stream(let stream): stream.itemCount.map { Self.count($0, "item") }
         case .link: nil
         }
     }
+
+    /// "1 item", "2 items" (live run 2: Network cards read "1 items").
+    static func count(_ value: Int, _ noun: String) -> String { value == 1 ? "1 \(noun)" : "\(value) \(noun)s" }
 
     var mxrArtworkMedia: MediaItem? {
         if let media { return media }

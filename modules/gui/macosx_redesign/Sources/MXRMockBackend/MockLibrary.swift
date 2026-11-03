@@ -161,8 +161,14 @@ public final class MockLibrary: LibraryBackend {
         guard !urls.isEmpty, urls.allSatisfy(\.isFileURL) else { throw MockLibraryError.notFound }
         let ids = try resolvePlaylistMediaIDs(urls.map(\.absoluteString))
         for id in ids where !importedIDs.contains(id) { importedIDs.append(id) }
+        for id in ids { db.update(id) { $0.importedFile = true } }
         events.send(.contentChanged)
         return ids.compactMap { db.media[$0] }
+    }
+    public func removeImportedMedia(ids: [String]) async throws {
+        importedIDs.removeAll { ids.contains($0) }
+        for id in ids { db.update(id) { $0.importedFile = nil } }
+        events.send(.contentChanged)
     }
     public func removeFromPlaylist(id: String, occurrences: [PlaylistOccurrence]) async throws {
         guard let index = db.playlists.firstIndex(where: { $0.playlist.id == id }) else { throw MockLibraryError.notFound }
@@ -209,6 +215,23 @@ public final class MockLibrary: LibraryBackend {
     /// which hold no media of their own. This gallery fixture lists those three folders instead.
     public func useFigmaHomeFolders() {
         db.figmaHomeFolderIDs = ["shows", "films", "anime"]
+        events.send(.contentChanged)
+    }
+
+    /// Figma's compact Home (S40, nodes 1107:5930/5934/5938) draws the three Continue Watching bars
+    /// 6, 4 and 7 pt long on the 28 pt bar track, while its full Home (S43) draws the same episodes at
+    /// the mock's 0.072 / 0.016 / 0.016. This gallery fixture sets S40's lengths (D030: product untouched).
+    public func useFigmaCompactHomeProgress() {
+        for (episode, progress) in [5: 6.0 / 28, 6: 4.0 / 28, 7: 7.0 / 28] {
+            db.update(MockDatabase.wandID(season: 1, episode: episode)) { $0.progress = progress }
+        }
+        events.send(.contentChanged)
+    }
+
+    /// Figma's Network page (S35, 858:5294) lists the two seeded streams, Podcasts and Radio. The mock
+    /// also saves "TV Channels" (an expanded m3u) for Home's Latest Streams; this fixture leaves it out.
+    public func useFigmaNetworkStreams() {
+        db.streams.removeAll { $0.stream.id == "stream-tv" }
         events.send(.contentChanged)
     }
 

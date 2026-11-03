@@ -31,3 +31,4 @@
 #import "MXRVideoOutput.h"
 #import "MXRInterfaceBridge.h"
 #import "MXRPlatformServices.h"
+#import "MXRUpdaterBridge.h"

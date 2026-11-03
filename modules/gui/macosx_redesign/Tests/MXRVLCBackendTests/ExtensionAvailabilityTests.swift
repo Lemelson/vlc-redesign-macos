@@ -101,8 +101,8 @@ final class ExtensionAvailabilityTests: XCTestCase {
     // Startup flags deliberately stay false; live extension snapshots decide availability.
     let capabilities: [String: Any] = ["extensions": false, "extensionInstall": false, "extensionRemove": false]
     func snapshot(for service: MXRBridgeService) -> [String: Any] { let service = service.rawValue; return service == "extensions" ? state : [:] }
-    func perform(_ command: MXRBridgeCommand, service: MXRBridgeService, arguments: [String: Any]) throws { let command = command.rawValue; let service = service.rawValue;}
-    func request(_ request: MXRBridgeRequest, service: MXRBridgeService, arguments: [String: Any]) async throws -> [String: Any] { let request = request.rawValue; let service = service.rawValue;
+    func perform(_ command: MXRBridgeCommand, service: MXRBridgeService, arguments: [String: Any]) throws {}
+    func request(_ request: MXRBridgeRequest, service: MXRBridgeService, arguments: [String: Any]) async throws -> [String: Any] { let request = request.rawValue;
         requests.append(Request(name: request, arguments: arguments))
         if let failure { throw failure }
         return state

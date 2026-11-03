@@ -266,6 +266,60 @@ public enum MXRWindowControls {
     }
 }
 
+// MARK: - Player window
+
+/// The player window. Its minimum content size holds for every resize: the user's corner drag, zoom,
+/// an Accessibility or AppleScript `size`, and `setFrame`. AppKit applies `contentMinSize` only to
+/// live resizing, and an `NSHostingView` content view rewrites it from the SwiftUI minimum (0 × 32
+/// for the composition), which let the live window shrink to 201 × 161 (live run 2).
+@MainActor
+public final class MXRPlayerWindow: NSWindow {
+    public static let minimumContentSize = MXRPlayerMetrics.windowMinimumContentSize
+
+    /// The titled, resizable player window with the D022 top bar and `contentView`.
+    public static func make(contentRect: NSRect, contentView: NSView) -> MXRPlayerWindow {
+        let window = MXRPlayerWindow(contentRect: contentRect,
+                                     styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+                                     backing: .buffered, defer: false)
+        MXRWindowControls.configure(window)
+        window.isReleasedWhenClosed = false
+        window.collectionBehavior.insert(.fullScreenPrimary)
+        window.contentView = contentView
+        window.contentMinSize = minimumContentSize
+        return window
+    }
+
+    /// Never below ``minimumContentSize``, whoever sets it (the hosting view does on every layout).
+    public override var contentMinSize: NSSize {
+        get { super.contentMinSize }
+        set {
+            super.contentMinSize = NSSize(width: max(newValue.width, Self.minimumContentSize.width),
+                                          height: max(newValue.height, Self.minimumContentSize.height))
+        }
+    }
+
+    public override func setFrame(_ frameRect: NSRect, display flag: Bool) {
+        super.setFrame(constrainedToMinimum(frameRect), display: flag)
+    }
+
+    public override func setFrame(_ frameRect: NSRect, display displayFlag: Bool, animate animateFlag: Bool) {
+        super.setFrame(constrainedToMinimum(frameRect), display: displayFlag, animate: animateFlag)
+    }
+
+    /// Grows a frame below the minimum to it, keeping the top-left corner where it was asked for.
+    /// Fullscreen and tiled frames come from the system and are left alone.
+    private func constrainedToMinimum(_ frameRect: NSRect) -> NSRect {
+        guard !styleMask.contains(.fullScreen) else { return frameRect }
+        let minimum = self.frameRect(forContentRect: NSRect(origin: .zero, size: contentMinSize)).size
+        guard frameRect.width < minimum.width || frameRect.height < minimum.height else { return frameRect }
+        var frame = frameRect
+        frame.size.width = max(frameRect.width, minimum.width)
+        frame.size.height = max(frameRect.height, minimum.height)
+        frame.origin.y = frameRect.maxY - frame.height
+        return frame
+    }
+}
+
 // MARK: - Fullscreen strip (D055)
 
 /// D055: follows how far macOS's fullscreen strip (menu bar and titlebar, its own window) covers

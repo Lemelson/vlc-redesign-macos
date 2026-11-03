@@ -208,6 +208,30 @@ private struct ShortcutConflict {
 
 /// A key field that records in place. `onKey(nil)` clears (Delete); Esc or clicking away cancels.
 struct ShortcutKeyField: View {
+    /// The Mac modifier and arrow glyphs, which DM Mono (the keycap face) lacks.
+    private static let systemGlyphs: Set<Character> = ["⌃", "⌥", "⇧", "⌘", "←", "→", "↑", "↓"]
+
+    /// `text` in the keycap face, with the modifier and arrow glyphs in the system face at the same
+    /// size: left to font fallback they came from a face that draws ⌘ about half as tall (S64).
+    static func keyText(_ text: String) -> AttributedString {
+        var result = AttributedString()
+        var run = "", runIsGlyph = false
+        func flush() {
+            guard !run.isEmpty else { return }
+            var part = AttributedString(run)
+            if runIsGlyph { part.font = .system(size: Theme.Font.keycap.size) }
+            result += part
+            run = ""
+        }
+        for character in text {
+            let isGlyph = systemGlyphs.contains(character)
+            if isGlyph != runIsGlyph { flush(); runIsGlyph = isGlyph }
+            run.append(character)
+        }
+        flush()
+        return result
+    }
+
     let text: String
     let isRecording: Bool
     var isConflicting = false
@@ -220,7 +244,7 @@ struct ShortcutKeyField: View {
     var body: some View {
         Button(action: start) {
             ZStack(alignment: .trailing) {
-                Text(isRecording ? "Press keys…" : text)
+                Text(Self.keyText(isRecording ? "Press keys…" : text))
                     .mxrTextStyle(Theme.Font.keycap)
                     .foregroundStyle(isRecording ? Theme.Color.accentMain : Theme.Color.fg2)
                     .lineLimit(1).truncationMode(.middle)
@@ -296,9 +320,9 @@ final class SettingsKeyCaptureResponder: NSView {
         case 53 where plain: finish { cancel?() } // Esc keeps the old binding
         case 51 where plain, 117 where plain: finish { capture?(nil) } // Delete, Forward Delete clear it
         default:
-            // ⌘Q always quits (D026); every other combination is recorded.
-            if event.modifierFlags.contains(.command), event.charactersIgnoringModifiers?.lowercased() == "q" { return false }
+            // ⌘Q always quits (D026), on any layout; every other combination is recorded.
             guard let binding = KeyBinding(event: event) else { return false }
+            if binding.modifiers.contains(.command), binding.key == "q" { return false }
             finish { capture?(binding) }
         }
         return true

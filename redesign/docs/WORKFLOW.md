@@ -221,7 +221,7 @@ make -C "$BUILD/modules" check-macosx-redesign-app \
 ```
 
 Actual app verification uses only `/Applications/VLC Redesign.app`
-(`org.example.vlc-redesign.codex`), never the owner's stock VLC. Acquire the shared
+(`io.github.lemelson.vlc-redesign`), never the owner's stock VLC. Acquire the shared
 lock (`redesign/research/final-polish/workflows/lock.sh acquire <who>`, directory from
 `MXR_LOCK_DIR`; the same lock serializes native `make`, native suites and installs),
 wait for at least 120 s HID idle before mouse/keyboard (`wait-idle.sh`),

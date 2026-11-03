@@ -1,6 +1,8 @@
 #import <Foundation/Foundation.h>
 #include <vlc_common.h>
 #include <vlc_player.h>
+#include <vlc_playlist.h>
+#include <vlc_interface.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -26,6 +28,15 @@ NSArray<NSString *> *MXRSplitCommandLineOptions(NSString *text);
  * afterwards inherits, without writing vlcrc. Unknown and obsolete options are skipped with a
  * warning. Returns the number of options applied. */
 NSUInteger MXRApplyCommandLineOptions(vlc_object_t *object, NSString *text);
+/* The same, and also sets each option on every object in `earlier` that already holds its own
+ * variable of that name: objects the engine created before the options were applied (the main
+ * player and its dummy vout and aout) inherited their copy then, and that
+ * copy shadows the instance's for everything created under them, like the main vout. */
+NSUInteger MXRApplyCommandLineOptionsWithEarlierObjects(vlc_object_t *object, vlc_object_t *_Nullable const *_Nullable earlier,
+                                                        size_t earlierCount, NSString *text);
+/* Applies `text` to the instance of `intf` and to the objects its main player created before
+ * (see MXRApplyCommandLineOptionsWithEarlierObjects). */
+NSUInteger MXRApplyInterfaceCommandLineOptions(vlc_object_t *intf, NSString *text);
 /* Reads the saved `macosx-redesign-extra-args` and applies it to the VLC instance; called once
  * when the interface opens, before anything plays. */
 void MXRApplyStartupCommandLineOptions(vlc_object_t *intf);

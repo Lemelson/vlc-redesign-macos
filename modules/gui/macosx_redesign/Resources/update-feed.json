@@ -1,0 +1,7 @@
+{
+  "//": "Sparkle update feed of VLC Redesign (D059). tools/app-bundle-hook.sh writes these into Info.plist; tools/make-appcast.py signs with the matching private key, which never enters git.",
+  "feedURL": "https://github.com/Lemelson/vlc-redesign-macos/releases/latest/download/appcast.xml",
+  "releasesURL": "https://github.com/Lemelson/vlc-redesign-macos/releases",
+  "publicEDKey": "cj29JUYuTRrmVrzx5gmBV82+3/sgPJq3g7sNbC44vEA=",
+  "minimumSystemVersion": "14.0"
+}

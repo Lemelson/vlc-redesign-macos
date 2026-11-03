@@ -28,6 +28,10 @@ public struct FigmaDeviation: Sendable, Equatable {
         /// `offset` and compared there, pixel for pixel; only the part of its Figma box the moved
         /// box does not cover (what the product draws instead) is left out.
         case moved(node: String, offset: CGSize)
+        /// Rows the product adds right below Figma node `node`, `height` points in all. Everything
+        /// below the node in its column moves down by `height` in the reference and is compared
+        /// there; the added band itself has no reference and is not compared.
+        case inserted(after: String, height: CGFloat)
     }
 
     public let kind: Kind
@@ -56,10 +60,15 @@ public struct FigmaDeviation: Sendable, Equatable {
         FigmaDeviation(kind: .moved(node: FigmaIndex.normalizedID(node), offset: offset), decision: decision, reason: reason)
     }
 
+    /// The product adds `height` points of rows right below Figma node `node` (see `Kind.inserted`).
+    public static func inserted(after node: String, height: CGFloat, decision: String, _ reason: String) -> FigmaDeviation {
+        FigmaDeviation(kind: .inserted(after: FigmaIndex.normalizedID(node), height: height), decision: decision, reason: reason)
+    }
+
     /// The Figma node a deviation is anchored to, if any.
     public var node: String? {
         switch kind {
-        case let .removed(node, _), let .differsAt(node, _), let .moved(node, _): node
+        case let .removed(node, _), let .differsAt(node, _), let .moved(node, _), let .inserted(node, _): node
         case .differs: nil
         }
     }
@@ -75,6 +84,8 @@ public struct FigmaDeviation: Sendable, Equatable {
             return "differs at \(node)\(outset > 0 ? " (±\(Int(outset)) pt)" : "") — \(decision): \(reason)"
         case let .moved(node, offset):
             return "moved \(node) by \(Int(offset.width.rounded())),\(Int(offset.height.rounded())) pt — \(decision): \(reason)"
+        case let .inserted(node, height):
+            return "inserted \(Int(height)) pt after \(node) — \(decision): \(reason)"
         }
     }
 }
@@ -120,6 +131,17 @@ extension FigmaIndex {
             let rect = try box(of: id)
             cuts.append((rect, Int(((rect.height + gap) * scale).rounded())))
         }
+        // Bands the product adds, at the bottom edge of their node (Figma coordinates).
+        var inserts: [(rect: CGRect, band: Int)] = []
+        for deviation in deviations {
+            guard case let .inserted(id, extra) = deviation.kind else { continue }
+            inserts.append((try box(of: id), Int((extra * scale).rounded())))
+        }
+        func sameColumn(_ a: CGRect, _ b: CGRect) -> Bool { a.minX < b.maxX && b.minX < a.maxX }
+        /// Points an insert above `rect` (in its column) moves it down.
+        func insertShift(_ rect: CGRect) -> CGFloat {
+            inserts.filter { $0.rect.maxY <= rect.minY && sameColumn($0.rect, rect) }.reduce(0) { $0 + CGFloat($1.band) / scale }
+        }
         var differing: [CGRect] = []
         // Moves read the reference before any of them writes, so overlapping moves do not chain.
         let original = b
@@ -145,19 +167,40 @@ extension FigmaIndex {
         }
         for deviation in deviations {
             switch deviation.kind {
-            case .removed, .moved: continue
+            case .removed, .moved, .inserted: continue
             case let .differs(rect): differing.append(rect)
             case let .differsAt(id, outset):
                 let rect = try box(of: id)
                 // Where the product draws it: every cut above it in its column moves it up.
                 let shift = cuts.filter { $0.rect.minY < rect.minY && $0.rect.minX < rect.maxX && rect.minX < $0.rect.maxX }
                     .reduce(0) { $0 + CGFloat($1.band) / scale }
-                differing.append(rect.offsetBy(dx: 0, dy: -shift).insetBy(dx: -outset, dy: -outset))
+                differing.append(rect.offsetBy(dx: 0, dy: insertShift(rect) - shift).insetBy(dx: -outset, dy: -outset))
+            }
+        }
+        // Inserts open their band first, bottom-up (so each is still at its Figma position); the cuts
+        // below them then follow the shift.
+        for insert in inserts.sorted(by: { $0.rect.maxY > $1.rect.maxY }) {
+            let x0 = max(0, Int((insert.rect.minX * scale).rounded())), x1 = min(width, Int((insert.rect.maxX * scale).rounded()))
+            let y0 = max(0, Int((insert.rect.maxY * scale).rounded()))
+            guard x1 > x0, insert.band > 0, y0 < height else { continue }
+            var y = height - 1
+            while y >= y0 {
+                for x in x0..<x1 {
+                    let to = y * width + x
+                    if y - insert.band >= y0 {
+                        let from = (y - insert.band) * width + x
+                        for c in 0..<4 { b[to * 4 + c] = b[from * 4 + c] }
+                        excluded[to] = excluded[from]
+                    } else {
+                        excluded[to] = true
+                    }
+                }
+                y -= 1
             }
         }
         for cut in cuts.sorted(by: { $0.rect.minY > $1.rect.minY }) {
             let x0 = max(0, Int((cut.rect.minX * scale).rounded())), x1 = min(width, Int((cut.rect.maxX * scale).rounded()))
-            let y0 = max(0, Int((cut.rect.minY * scale).rounded()))
+            let y0 = max(0, Int(((cut.rect.minY + insertShift(cut.rect)) * scale).rounded()))
             guard x1 > x0, cut.band > 0 else { continue }
             var y = y0
             while y < height {

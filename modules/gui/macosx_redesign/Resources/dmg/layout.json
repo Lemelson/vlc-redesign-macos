@@ -1,0 +1,24 @@
+{
+  "comment": "Release DMG window (tools/package-dmg.sh). Read by tools/gen-dmg-background.swift and tools/gen-dmg-layout.py; points from the top left of the window content. Colors name design tokens as theme.token, text styles name typography tokens (redesign/design/tokens). Finder draws item labels in dark text on a picture background in both appearances, so every item and its label sit inside a light card.",
+  "volumeName": "VLC Redesign",
+  "window": {"x": 200, "y": 260, "width": 640, "height": 480, "titleBarHeight": 28},
+  "iconSize": 96,
+  "textSize": 13,
+  "items": {
+    "VLC Redesign.app": [170, 156],
+    "Applications": [470, 156],
+    "Read Me First.txt": [112, 336]
+  },
+  "background": "dark.bgA5",
+  "cards": [
+    {"left": 24, "top": 72, "right": 616, "bottom": 264, "radius": 16, "color": "light.bgA1", "stroke": "light.dividerDim"},
+    {"left": 24, "top": 280, "right": 616, "bottom": 424, "radius": 16, "color": "light.bgA1", "stroke": "light.dividerDim"}
+  ],
+  "arrow": {"fromX": 244, "toX": 396, "y": 156, "color": "dark.accentMain"},
+  "texts": [
+    {"text": "Drag VLC Redesign to Applications", "centerY": 38, "style": "homeSectionTitle", "color": "dark.fg1"},
+    {"text": "First launch? Read this first.", "x": 200, "centerY": 324, "style": "sectionHeader", "color": "light.fg1"},
+    {"text": "macOS asks you to confirm the app once.", "x": 200, "centerY": 350, "style": "body", "color": "light.fgA1"},
+    {"text": "Unofficial build · native macOS interface for VLC", "centerY": 452, "style": "caption", "color": "dark.fgA2"}
+  ]
+}

@@ -26,11 +26,16 @@ public final class RecentStore {
     @ObservationIgnored public var limit = 30
     /// Hosts clear their native recent-document history after the app list is persisted.
     @ObservationIgnored public var onCleared: (@MainActor () -> Void)?
-    @ObservationIgnored private let file: JSONFileStore<[RecentEntry]>
+    /// Entries decode one by one, so one unreadable entry costs only itself.
+    @ObservationIgnored private let file: JSONFileStore<LossyArray<RecentEntry>>
+    /// Entries another version wrote that this one cannot read; saved back until history is cleared.
+    @ObservationIgnored private var unreadable: [UnreadableEntry] = []
 
     public init(location: PersistenceLocation) {
         file = JSONFileStore(location: location, fileName: "recents.json")
-        entries = file.load() ?? []
+        let saved = file.load()
+        entries = saved?.elements ?? []
+        unreadable = saved?.unreadable ?? []
     }
 
     /// Records that `media` was opened now (moves it to the top).
@@ -39,25 +44,26 @@ public final class RecentStore {
         entries.removeAll { $0.media.id == media.id }
         entries.insert(RecentEntry(media: media, date: date), at: 0)
         if entries.count > limit { entries.removeLast(entries.count - limit) }
-        file.save(entries)
+        file.save(LossyArray(entries, unreadable: unreadable))
     }
 
     public func remove(_ entry: RecentEntry) {
         entries.removeAll { $0.id == entry.id }
-        file.save(entries)
+        file.save(LossyArray(entries, unreadable: unreadable))
     }
 
     /// "Clear history now" / "Clear Menu".
     public func clear() {
         entries = []
-        file.save(entries)
+        unreadable = []
+        file.save(LossyArray(entries, unreadable: unreadable))
         onCleared?()
     }
 
     /// Replaces the list (mock seeding).
     public func replaceAll(_ entries: [RecentEntry]) {
         self.entries = Array(entries.prefix(limit))
-        file.save(self.entries)
+        file.save(LossyArray(self.entries, unreadable: unreadable))
     }
 }
 
@@ -67,6 +73,13 @@ public enum PinTarget: Hashable, Sendable, Codable {
     case location(LibraryLocation)
     /// A single media, shown as its thumbnail.
     case media(MediaItem)
+
+    /// Same place or same media. Media compare by id: library state (progress, favorite, import
+    /// flag) changes after the pin is made and must not make the pin unrecognizable.
+    public func matches(_ other: PinTarget) -> Bool {
+        if case .media(let media) = self, case .media(let otherMedia) = other { return media.id == otherMedia.id }
+        return self == other
+    }
 }
 
 /// A pin in the library rail (S42): pinned folder, playlist or file.
@@ -87,22 +100,27 @@ public struct Pin: Identifiable, Hashable, Sendable, Codable {
 @Observable
 public final class PinStore {
     public private(set) var pins: [Pin] = []
-    @ObservationIgnored private let file: JSONFileStore<[Pin]>
+    /// Pins decode one by one, so one unreadable pin costs only itself.
+    @ObservationIgnored private let file: JSONFileStore<LossyArray<Pin>>
+    /// Pins another version wrote that this one cannot read; saved back in place.
+    @ObservationIgnored private var unreadable: [UnreadableEntry] = []
 
     public init(location: PersistenceLocation) {
         file = JSONFileStore(location: location, fileName: "pins.json")
-        pins = file.load() ?? []
+        let saved = file.load()
+        pins = saved?.elements ?? []
+        unreadable = saved?.unreadable ?? []
     }
 
-    public func isPinned(_ target: PinTarget) -> Bool { pins.contains { $0.target == target } }
+    public func isPinned(_ target: PinTarget) -> Bool { pins.contains { $0.target.matches(target) } }
 
     /// Pins a target (no-op when already pinned).
     @discardableResult
     public func pin(_ target: PinTarget, title: String) -> Pin {
-        if let existing = pins.first(where: { $0.target == target }) { return existing }
+        if let existing = pins.first(where: { $0.target.matches(target) }) { return existing }
         let pin = Pin(title: title, target: target)
         pins.append(pin)
-        file.save(pins)
+        file.save(LossyArray(pins, unreadable: unreadable))
         return pin
     }
 
@@ -116,12 +134,12 @@ public final class PinStore {
 
     public func unpin(_ pin: Pin) {
         pins.removeAll { $0.id == pin.id }
-        file.save(pins)
+        file.save(LossyArray(pins, unreadable: unreadable))
     }
 
     public func unpin(_ target: PinTarget) {
-        pins.removeAll { $0.target == target }
-        file.save(pins)
+        pins.removeAll { $0.target.matches(target) }
+        file.save(LossyArray(pins, unreadable: unreadable))
     }
 
     /// Reorders by drag.
@@ -132,7 +150,7 @@ public final class PinStore {
         let insertAt = destination - source.filter { $0 < destination }.count
         copy.insert(contentsOf: moving, at: max(0, min(insertAt, copy.count)))
         pins = copy
-        file.save(pins)
+        file.save(LossyArray(pins, unreadable: unreadable))
     }
 }
 
@@ -178,11 +196,39 @@ public final class ProfileStore {
     private struct Snapshot: Codable {
         var profiles: [Profile]
         var currentID: String
+        /// Profiles another version wrote that this one cannot read; saved back in place.
+        var unreadableProfiles: [UnreadableEntry]
+
+        init(profiles: [Profile], currentID: String, unreadableProfiles: [UnreadableEntry]) {
+            self.profiles = profiles
+            self.currentID = currentID
+            self.unreadableProfiles = unreadableProfiles
+        }
+
+        private enum CodingKeys: String, CodingKey { case profiles, currentID }
+
+        /// Profiles decode one by one; a missing current ID falls back to the first profile.
+        init(from decoder: any Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            let list = try c.decode(LossyArray<Profile>.self, forKey: .profiles)
+            profiles = list.elements
+            unreadableProfiles = list.unreadable
+            currentID = try c.decodeIfPresent(String.self, forKey: .currentID) ?? ""
+        }
+
+        func encode(to encoder: any Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            try c.encode(LossyArray(profiles, unreadable: unreadableProfiles), forKey: .profiles)
+            try c.encode(currentID, forKey: .currentID)
+        }
     }
+    @ObservationIgnored private var unreadableProfiles: [UnreadableEntry] = []
 
     public init(location: PersistenceLocation) {
         file = JSONFileStore(location: location, fileName: "profiles.json")
-        if let snapshot = file.load(), !snapshot.profiles.isEmpty {
+        let saved = file.load()
+        unreadableProfiles = saved?.unreadableProfiles ?? []
+        if let snapshot = saved, !snapshot.profiles.isEmpty {
             profiles = snapshot.profiles.map {
                 var profile = $0
                 profile.settings = Self.profileSettings(profile.settings)
@@ -194,7 +240,8 @@ public final class ProfileStore {
             profiles = [initial]
             currentID = initial.id
         }
-        // Migrate oversized legacy snapshots without touching the engine or profile/layout IDs.
+        // Migrate oversized legacy snapshots without touching the engine or profile/layout IDs. An
+        // unreadable file was moved aside by `load()`, so this never replaces it.
         persist()
     }
 
@@ -275,5 +322,5 @@ public final class ProfileStore {
         persist()
     }
 
-    private func persist() { file.save(Snapshot(profiles: profiles, currentID: currentID)) }
+    private func persist() { file.save(Snapshot(profiles: profiles, currentID: currentID, unreadableProfiles: unreadableProfiles)) }
 }

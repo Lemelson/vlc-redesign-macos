@@ -10,17 +10,21 @@ enum MXRKeyRouting {
         }
     }
 
-    /// - Parameter panelListFocused: a SwiftUI queue or bookmark row has keyboard focus. The window's
-    ///   first responder is then still the hosting view, so ``FocusedListKeys`` are let through here
-    ///   for the row's own handlers.
+    /// SwiftUI text fields use AppKit's field editor. Focused native controls retain arrows, space
+    /// and other keys for their own editing behavior.
+    @MainActor
+    static func isEditing(_ firstResponder: NSResponder?) -> Bool {
+        firstResponder is NSTextView || firstResponder is NSControl
+    }
+
+    /// The window key monitor's gate, ``WindowKeyPolicy/monitorHandles(_:hasSheet:isCapturing:isEditing:listFocused:)``.
+    /// - Parameter listFocused: a SwiftUI library, queue or bookmark list has keyboard focus
+    ///   (``InterfaceModel/listHasKeyboardFocus``).
     @MainActor
     static func shouldHandle(firstResponder: NSResponder?, hasSheet: Bool, isCapturing: Bool,
-                             panelListFocused: Bool = false, binding: KeyBinding? = nil) -> Bool {
-        guard !hasSheet, !isCapturing else { return false }
-        if panelListFocused, let binding, FocusedListKeys.contains(binding) { return false }
-        // SwiftUI text fields use AppKit's field editor. Focused native controls
-        // retain arrows, space and other keys for their own editing behavior.
-        return !(firstResponder is NSTextView) && !(firstResponder is NSControl)
+                             listFocused: Bool = false, binding: KeyBinding? = nil) -> Bool {
+        WindowKeyPolicy.monitorHandles(binding, hasSheet: hasSheet, isCapturing: isCapturing,
+                                       isEditing: isEditing(firstResponder), listFocused: listFocused)
     }
 
     /// Whether the menu bar may run `event` as a key equivalent (SD-09, D026): Command equivalents
@@ -28,10 +32,10 @@ enum MXRKeyRouting {
     /// text field; the shortcut recorder gets every key but ⌘Q. See ``MenuKeyEquivalentPolicy``.
     @MainActor
     static func shouldPerformMenuEquivalent(_ event: NSEvent, firstResponder: NSResponder?,
-                                            isCapturing: Bool, hasModal: Bool, panelListFocused: Bool = false) -> Bool {
+                                            isCapturing: Bool, hasModal: Bool, listFocused: Bool = false) -> Bool {
         guard let binding = KeyBinding(event: event) else { return true }
-        if panelListFocused, !isCapturing, FocusedListKeys.contains(binding) { return false }
-        let isEditing = firstResponder is NSTextView || firstResponder is NSControl
-        return MenuKeyEquivalentPolicy.allows(binding, isRecording: isCapturing, hasModal: hasModal, isEditing: isEditing)
+        if listFocused, !isCapturing, FocusedListKeys.contains(binding) { return false }
+        return MenuKeyEquivalentPolicy.allows(binding, isRecording: isCapturing, hasModal: hasModal,
+                                              isEditing: isEditing(firstResponder))
     }
 }

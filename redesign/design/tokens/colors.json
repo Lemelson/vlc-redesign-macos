@@ -215,7 +215,7 @@
       "styleId": "3654:12414",
       "usageCount": 0,
       "resolvedFrom": "palette/tokens.json (style not referenced by any node in figma_file.json)",
-      "note": "Defined but never used in the file; intended for modal scrims (spec-part2 token table)."
+      "note": "Defined but never used in the file; intended for modal scrims (spec-part2 token table). The product draws no scrim (D035 amendment, owner question open), so nothing uses it."
     },
     "dividerBright": {
       "hex": "#373737",
@@ -843,5 +843,12 @@
       ],
       "note": "hard diagonal split for the \"System\" theme tile"
     }
+  },
+  "macWindowControls": {
+    "note": "Not Figma: AppKit's own window buttons (D022), for pictures of the player window that cannot hold the real ones (onboarding player preview, S70; Figma 1902:3670 draws Windows controls there). The colours of an active window's close, minimise and zoom buttons, and their hairline edge. The real window always uses AppKit's buttons (MXRWindowControls).",
+    "close": { "hex": "#FF5F57", "alpha": 1 },
+    "minimize": { "hex": "#FEBC2E", "alpha": 1 },
+    "zoom": { "hex": "#28C840", "alpha": 1 },
+    "edge": { "hex": "#000000", "alpha": 0.12 }
   }
 }

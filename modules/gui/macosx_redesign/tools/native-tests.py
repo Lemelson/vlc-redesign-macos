@@ -22,6 +22,8 @@ PACKAGE = Path(__file__).resolve().parent.parent
 REPO = PACKAGE.parents[2]
 MODULE = PACKAGE / 'module'
 BRIDGE = MODULE / 'bridge'
+# Bridge files that need the whole interface (and Sparkle for the updater), never linked into a harness.
+NOT_HELPERS = ('MXRPlayerBridge.m', 'MXRInterfaceBridge.m', 'MXRUpdaterBridge.m')
 BRIDGE_KEYS = PACKAGE / 'Sources/MXRBridgeAPI/MXRBridgeKeys.m'
 
 
@@ -131,7 +133,7 @@ def run_suite(args, parser, engine, work):
                              ('media', 'MXRMediaServices'), ('extensions', 'MXRExtensionServices')]:
             source = 'MXRMediaServices' if helper == 'MXRExtensionServices' else helper
             compile(name, [BRIDGE / (source + '.m'), BRIDGE / 'tests' / (helper + 'RuntimeTests.m')])
-        helpers = [path for path in BRIDGE.glob('*.m') if path.name not in ('MXRPlayerBridge.m', 'MXRInterfaceBridge.m')]
+        helpers = [path for path in BRIDGE.glob('*.m') if path.name not in NOT_HELPERS]
         compile('bridge-smoke', [MODULE / 'tests/bridge-smoke.m'] + sorted(helpers), aliases=True)
     if suite in ('contracts', 'schema'):
         dump = compile('dumpconfig', [MODULE / 'tests/dumpconfig.m'])
@@ -159,7 +161,9 @@ def run_suite(args, parser, engine, work):
             env['VLC_PLUGIN_PATH'] = inherited_plugins
         for name, test in [('library-lifetime', 'NativeLibraryLifetimeRegression.m'),
                            ('library-import-sort', 'NativeLibraryImportSortRegression.m'),
-                           ('library-playlist-order', 'NativeLibraryPlaylistOrderRegression.m')]:
+                           ('library-playlist-order', 'NativeLibraryPlaylistOrderRegression.m'),
+                           ('library-natural-sort', 'NativeLibraryNaturalSortRegression.m'),
+                           ('library-import-removal', 'NativeLibraryImportRemovalRegression.m')]:
             binary = work / name
             run(flags + ['-fblocks', '-D__PLUGIN__', '-I' + str(REPO / 'compat'),
                          str(BRIDGE / 'MXRLibraryServices.m'), str(PACKAGE / 'Tests' / test), str(BRIDGE_KEYS),
@@ -215,8 +219,15 @@ def run_suite(args, parser, engine, work):
             run([compile('media-runtime', [BRIDGE / 'MXRMediaServices.m', BRIDGE / 'tests/MXRMediaServicesRuntimeTests.m']), ts, destination, marker])
             # Subtitle safe inset (live run 1): a dummy vout's real "sub-margin" under UI overlays.
             run([compile('effects-runtime', [BRIDGE / 'MXREffectsServices.m', BRIDGE / 'tests/MXREffectsServicesRuntimeTests.m']), ts])
+            # Live blocker final5: filter-option writes while the chain is rebuilt (fast Brightness drag).
+            run([compile('effects-filter-runtime', [BRIDGE / 'MXREffectsServices.m', BRIDGE / 'tests/MXREffectsFilterRuntimeTests.m']), ts])
+            # Live minor final5: a Font Size step redraws the cue already on screen (vmem frames).
+            run([compile('subtitle-rerender-runtime', [BRIDGE / 'MXREffectsServices.m', BRIDGE / 'tests/MXRSubtitleRerenderRuntimeTests.m']), work])
+            # Resume prompt time of an external file (real media library and services bridge).
+            helpers = [path for path in BRIDGE.glob('*.m') if path.name not in NOT_HELPERS]
+            run([compile('bridge-restore', [MODULE / 'tests/bridge-restore.m'] + sorted(helpers)), ts])
         if suite == 'fixture':
-            helpers = [path for path in BRIDGE.glob('*.m') if path.name not in ('MXRPlayerBridge.m', 'MXRInterfaceBridge.m')]
+            helpers = [path for path in BRIDGE.glob('*.m') if path.name not in NOT_HELPERS]
             binary = compile('bridge-smoke', [MODULE / 'tests/bridge-smoke.m'] + sorted(helpers), aliases=True)
             fixture = work / 'fixture.json'
             env.update(MXR_SMOKE_AMEM_VOLUME='1', MXR_SMOKE_APP_OPTIONS='1')

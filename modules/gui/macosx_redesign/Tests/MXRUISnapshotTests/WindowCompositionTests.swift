@@ -37,10 +37,10 @@ final class WindowCompositionTests: XCTestCase {
             XCTAssertEqual(style.insets(controlHeight: 54).top, 10)
             XCTAssertEqual(style.insets(controlHeight: 54).bottom, 10)
         }
-        // Fullscreen has no frame (§03); Customize draws the video under the bars; Light runs the canvas under them (D055).
+        // Fullscreen has no frame (§03); Light and Customize run the canvas under the bars, the picture between them (D055).
         XCTAssertEqual(PlayerCanvasStyle.resolve(fullscreen: true, uiHidden: true, customizing: false, light: false, autoHidesInWindow: false), .fullBleed)
         XCTAssertEqual(PlayerCanvasStyle.resolve(fullscreen: false, uiHidden: false, customizing: false, light: true, autoHidesInWindow: false), .underBars)
-        XCTAssertEqual(PlayerCanvasStyle.resolve(fullscreen: false, uiHidden: false, customizing: true, light: false, autoHidesInWindow: false), .fullBleed)
+        XCTAssertEqual(PlayerCanvasStyle.resolve(fullscreen: false, uiHidden: false, customizing: true, light: false, autoHidesInWindow: false), .underBars)
         XCTAssertEqual(PlayerCanvasStyle.fullBleed.insets(controlHeight: 54).top, 0)
     }
 

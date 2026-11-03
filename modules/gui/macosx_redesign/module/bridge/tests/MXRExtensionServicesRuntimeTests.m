@@ -103,6 +103,16 @@ int main(void)
         NSDictionary *catalog = request(service, @"list", @{}, &error);
         require(catalog != nil && error == nil && find(catalog, @"Stock fixture") != nil, @"real engine discovers isolated stock fixture");
 
+        /* Live run 2: a script copied into the user folder in Finder appeared only after a
+         * relaunch. The Extensions page and menu list on open; that list now sees it. */
+        NSString *dropped = [extensions stringByAppendingPathComponent:@"Dropped.lua"];
+        writeFile(dropped, fixture(@"Dropped fixture", [root stringByAppendingPathComponent:@"dropped-activation.txt"]));
+        catalog = request(service, @"list", @{}, &error);
+        require(catalog != nil && find(catalog, @"Dropped fixture") != nil, @"a script added to the user folder is listed without a relaunch");
+        require([NSFileManager.defaultManager removeItemAtPath:dropped error:&error], @"dropped fixture removed");
+        catalog = request(service, @"list", @{}, &error);
+        require(catalog != nil && find(catalog, @"Dropped fixture") == nil && find(catalog, @"Stock fixture") != nil, @"a script removed in Finder leaves the list");
+
         catalog = request(service, @"installExtension", @{@"url": [NSURL fileURLWithPath:source].absoluteString}, &error);
         require(catalog != nil && error == nil, [NSString stringWithFormat:@"local Lua installation succeeds: %@", error]);
         NSDictionary *item = find(catalog, @"Local managed fixture");
@@ -156,6 +166,15 @@ int main(void)
         require(request(service, @"triggerMenu", @{@"id": identifier}, &error) == nil && error.code == EINVAL, @"a menu trigger needs a menu item id");
         require(request(service, @"activate", @{@"id": identifier}, &error) != nil && error == nil, @"managed extension activates");
         require([waitForText(marker, @"A") isEqual:@"A"], @"activation runs the script's activate() once");
+        writeFile(dropped, fixture(@"Dropped fixture", [root stringByAppendingPathComponent:@"dropped-activation.txt"]));
+        catalog = request(service, @"list", @{}, &error);
+        NSDictionary *running = nil;
+        for (NSDictionary *entry in catalog[@"items"]) if ([entry[@"id"] isEqual:identifier]) running = entry;
+        require(catalog != nil && [running[@"active"] boolValue] &&
+                [[NSString stringWithContentsOfFile:marker encoding:NSUTF8StringEncoding error:nil] isEqual:@"A"],
+                [NSString stringWithFormat:@"a changed folder never reloads the manager under a running extension (%@, marker %@)",
+                 running, [NSString stringWithContentsOfFile:marker encoding:NSUTF8StringEncoding error:nil]]);
+        require([NSFileManager.defaultManager removeItemAtPath:dropped error:&error], @"dropped fixture removed again");
         require(request(service, @"activate", @{@"id": identifier}, &error) != nil && error == nil, @"activating an active extension is a no-op");
         require(request(service, @"deactivate", @{@"id": identifier}, &error) != nil && error == nil, @"active extension deactivates");
         require([waitForText(marker, @"AD") isEqual:@"AD"], @"deactivation runs the script's deactivate() once");
@@ -257,7 +276,9 @@ int main(void)
              "function activate() end\n"
              "function deactivate() end\n"
              "function menu() return {[1]=\"Work\"} end\n"
-             "function trigger_menu(id) local t = os.clock(); while os.clock() - t < 3 do end end\n");
+             /* Wall time: os.clock() counts the CPU time of every thread of the process, so under
+              * load the "3 s" loop ended before the other service was even asked. 3-4 s here. */
+             "function trigger_menu(id) local t = os.time(); while os.time() - t < 4 do end end\n");
         catalog = request(service, @"installExtension", @{@"url": [NSURL fileURLWithPath:busySource].absoluteString}, &error);
         NSString *busyID = find(catalog, @"Busy fixture")[@"id"];
         require(busyID != nil, @"installed busy extension is discoverable");

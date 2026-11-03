@@ -20,9 +20,7 @@ final class LibraryViewBehaviourTests: XCTestCase {
     // MARK: Hosting and accessibility
 
     private func host<V: View>(_ view: V, size: CGSize) async throws -> NSHostingView<AnyView> {
-        _ = NSApplication.shared
-        NSApp.accessibilitySetValue(true, forAttribute: NSAccessibility.Attribute(rawValue: "AXManualAccessibility"))
-        NSApp.accessibilitySetValue(true, forAttribute: NSAccessibility.Attribute(rawValue: "AXEnhancedUserInterface"))
+        enableAccessibilityTree()
         let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: .borderless, backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         windows.append(window)
@@ -138,7 +136,7 @@ final class LibraryViewBehaviourTests: XCTestCase {
         let row = try XCTUnwrap(buttons(host).first { label($0) == target.title })
         let actions = try XCTUnwrap(value(row, "accessibilityCustomActions") as? [NSAccessibilityCustomAction])
         let show = try XCTUnwrap(actions.first { $0.name == "Show actions" })
-        _ = show.handler?() ?? show.target?.perform(show.selector)
+        if let handler = show.handler { _ = handler() } else { _ = show.target?.perform(show.selector) }
         try await settle(host)
         XCTAssertEqual(brightRows(host, entries.map(\.title)), [target.title], "the open card brightens its own row")
 

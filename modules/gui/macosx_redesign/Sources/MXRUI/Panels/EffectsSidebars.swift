@@ -49,7 +49,7 @@ struct VideoSidebarContent: View {
                 PanelDropdownRow(title: "Crop", selected: video.effects.crop ?? "Default", choices: VideoEffects.cropChoices.map { value in
                     PanelChoice(id: value ?? "auto", title: value ?? "Default") { video.update { $0.crop = value } }
                 })
-                PanelDropdownRow(title: "Render", selected: app.renderers.items.first(where: { $0.id == app.renderers.selectedID })?.name ?? "Local", choices: rendererChoices)
+                PanelDropdownRow(title: "Render", selected: app.renderers.items.first(where: { $0.id == app.renderers.selectedID })?.name ?? MXRPlayerMenus.localRendererTitle, choices: rendererChoices)
                     .disabled(!app.capabilities.hasRenderers)
             }.padding(.horizontal, PanelSpace.xl).padding(.top, PanelMetric.settingsSectionPadding).padding(.bottom, Theme.Spacing.gap10)
             PanelDivider(consumesHeight: false)
@@ -69,7 +69,7 @@ struct VideoSidebarContent: View {
         } message: { Text(app.renderers.errorMessage ?? "") }
     }
     private var rendererChoices: [PanelChoice] {
-        var choices = [PanelChoice(id: "local", title: "Local") { try? app.renderers.select(id: nil) }]
+        var choices = [PanelChoice(id: "local", title: MXRPlayerMenus.localRendererTitle) { try? app.renderers.select(id: nil) }]
         choices += app.renderers.items.filter(\.canVideo).map { renderer in
             PanelChoice(id: renderer.id, title: renderer.name) { try? app.renderers.select(id: renderer.id) }
         }
@@ -371,7 +371,7 @@ struct VideoFilterCardRows: View {
         Binding(get: { video.effects[keyPath: path] }, set: { value in video.update { $0[keyPath: path] = value } })
     }
     private func intBinding(_ path: WritableKeyPath<VideoEffects, Int>) -> Binding<Double> {
-        Binding(get: { Double(video.effects[keyPath: path]) }, set: { value in video.update { $0[keyPath: path] = Int(value.rounded()) } })
+        Binding(get: { Double(video.effects[keyPath: path]) }, set: { value in video.edit { $0[keyPath: path] = Int(value.rounded()) } })
     }
 }
 

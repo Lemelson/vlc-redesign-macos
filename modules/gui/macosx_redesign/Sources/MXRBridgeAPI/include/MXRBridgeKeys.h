@@ -192,6 +192,7 @@ extern MXRBridgeRequest const MXRBridgeRequestRemoveBookmark;
 extern MXRBridgeRequest const MXRBridgeRequestRemoveExtension;
 extern MXRBridgeRequest const MXRBridgeRequestRemoveFolder;
 extern MXRBridgeRequest const MXRBridgeRequestRemoveFromPlaylist;
+extern MXRBridgeRequest const MXRBridgeRequestRemoveImportedMedia;
 extern MXRBridgeRequest const MXRBridgeRequestRemoveNetworkStream;
 extern MXRBridgeRequest const MXRBridgeRequestRenameBookmark;
 extern MXRBridgeRequest const MXRBridgeRequestRenameNetworkStream;

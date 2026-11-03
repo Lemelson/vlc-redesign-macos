@@ -1,0 +1,100 @@
+{
+ "status": "done",
+ "summary": "B-controls fixer. The live major is fixed at its root cause. Repeat turned on while an item plays did not loop the item. VLC's playlist picks the player's next media when an item starts, when the queue changes, or when the stop action is set. It does not do this when repeat or order changes (src/playlist/control.c). The single queued item therefore ended as if Repeat were off. The bridge's playlist listener now sets the unchanged stop action again on every repeat or order change, under the playlist lock. That public call makes the core pick the next media again, and it covers every path (queue commands, the Repeat setting, a VLC hotkey). A new bridge-smoke check covers it: one-item queue, Repeat All and then Repeat One turned on mid-item, seek near the end, expect the item to start again. Before the fix it fails with 'state 0' (stopped), both in the tree and in an isolated copy with the fix reverted; after the fix it passes. The headless dummy-interface probe confirmed the engine itself loops with --loop and --repeat. The pending arrow OSD slot is fixed too. Only an arrow the core will turn into a jump waits for a report: no changeable 360° viewpoint, and the title is not a menu or interactive (DVD/Blu-ray). A report in the wrong direction (for example an A-B loop's jump back) no longer takes the slot. A bridge-smoke check covers this; it fails without the fix. Critic P2: the music bar is now the tint over its own backdrop with no NSVisualEffectView material. The bar went from #191919 to #18 against Figma #171717 (Δ1). S34 flat colour dropped from 6.04 % to 3.91 % (Player/music), from 6.43 % to 3.92 % (music-waveform) and from 6.62 % to 4.11 % (App/music). What remains is the artwork backdrop (#1B vs #1D), not the bar. D056 is amended to say fixed, with MusicBarTintTests, which fails without the fix. Parity S01 hover: Play is now Accent/DIm under the pointer, as the video's hovered accent button reads; Pause keeps the iconHover tile. The test is updated and fails without the fix, and D056 is amended. A-window had already made Continue hover Accent/Dim, so the accent buttons now agree. PlayerMenus: D-menus had already replaced .plain with MXRBarButtonStyle, so the press dimming is gone. I added the missing Icon Wrapper hover tile to the speed, HDR and zoom menus and the compact '⋯' (MXRBarHoverTile, with a test). Player - Light gear: recorded in D049. Figma's partial conversion also leaves the previous/next arrows in Dark/FG/A2, while the other bar icons use Light/FG/A2 #2E2E2E. Running mxr-snapshot check --all gives PASS 31 · REVIEW 78 · FAIL 10, and no entry got worse than the integration baseline. One regression I introduced and fixed along the way: a forced env true made S01.ControlBar/default draw the material.",
+ "fixed": [
+  "(e)/(a) LIVE MAJOR, Repeat does not loop a single item: root cause in the core's next-media selection (vlc_playlist_SetPlaybackRepeat/Order never call vlc_playlist_UpdateNextMedia). Fix in MXRServicesBridge.m: QueueRepeat/QueueOrder call -refreshNextMedia:, which re-sets the playlist's own stop action (tracked under the playlist lock via QueueStopAction; -1 until the listener's initial state). bridge-smoke: 'repeat mode N turned on mid-item restarts the only queue item at its end'. Before: ../build/evidence/final6/fix/B-controls/native-fixture-before.log ('FAIL: repeat mode 2 ... (state 0)'). Isolated revert: native-fixture-revert.log (same FAIL). After: native-fixture-after.log (PASS: fixture). The UI already shows the state: menu .on/.mixed, ⋯ 'Repeat All/One', active queue and bar icon.",
+  "(e) Arrow pending OSD slot (verify open[2]): an arrow adds a slot only when ArrowWillJump. That means no vout with viewpoint-changeable, and a selected title without VLC_PLAYER_TITLE_MENU or VLC_PLAYER_TITLE_INTERACTIVE, the same rule the core uses in vlc_player_input_NavigationFallback. Slots are a FIFO of {direction, time at the key, 1 s deadline}. Expired slots drop, and a report the other way (A-B loop back) is not taken. bridge-smoke: 'a seek back is not shown as a right arrow's target' plus an 'arrow still shows its own target' check. Fails without the fix: native-fixture-revert-arrow.log; passes: native-fixture-after.log.",
+  "(b)/(d) Critic P2 D056 music-bar tint: the dark music bar (audio-only, not customizing, not beside the picture) draws BG/A3 Transparent over its own blurred artwork or black canvas, without the material. Bar #191919 -> #181818 (Figma #171717). S34.Player/music flat colour 6.04 % -> 3.91 %, music-waveform 6.43 % -> 3.92 %, App/music 6.62 % -> 4.11 %; the bar regions are gone. Evidence: s34-after/player_music_bar_right_cmp.png, s34-after/*/report.txt. Test MusicBarTintTests fails without the fix (reads 25,25,25: pkg-revert-tests.log). D056 amended.",
+  "(c) Parity S01 hover: Play hover is Accent/DIm (#AB6314; Light #965916) per video 14m09.8 and spec-part2. Pause keeps the iconHover tile. Test testPlayHoverIsAccentDimAndPauseHoverAddsTheBarHoverTile fails without the fix (214 vs 171: pkg-revert-tests.log). D056 amended. Continue was already Accent/Dim on hover (A-window), so the accent buttons are consistent.",
+  "(e)/(b) PlayerMenus speed/HDR/zoom menus and compact ⋯: the press dimming was already removed by D-menus (MXRBarButtonStyle). I added the bar hover state they lacked (MXRBarHoverTile: iconHover tile, glyph unchanged, none when disabled or in Customize). Test testBarMenuButtonsShowTheBarHoverTile. It is a new modifier, so the test cannot run without it.",
+  "(e)/(b)/(d) Player - Light gear Dark/FG/A2: recorded as a D049 amendment, which also notes that Figma's prev/next arrows carry Dark/FG/A2 while the other bar icons use Light/FG/A2 #2E2E2E (verified in figma_file.json fills and strokes).",
+  "Neighbour checks: S01.ControlBar/default PASS, S01.Window/shipping PASS, C.PlayButton/play PASS, C.SeekBar/default PASS, S72.Window/light REVIEW (was FAIL). The --all run gives PASS 31 · REVIEW 78 · FAIL 10, with no entry worse than ../build/evidence/final5/polish/integration/check-all.log (checkall.log)."
+ ],
+ "notFixed": [
+  {
+   "id": "S34 remaining FAIL: artwork backdrop #1B1B1B vs Figma #1D1D1D",
+   "why": "This is MXRMusicBackdrop in PlayerView.swift (not mine), already covered by D053/D056 (Figma's blurred-art fill). The bar part is fixed."
+  },
+  {
+   "id": "S34.App/music: seek bar region (solid bar vs Figma waveform) not masked",
+   "why": "AppGallery.swift (not mine) has no D028 waveform deviation, which S34.Player/music has. Left for the gallery owner (notesForOthers)."
+  },
+  {
+   "id": "C.VolumeCone/100 FAIL at 1.00 % flat colour",
+   "why": "Kept; D056 records it: the render equals 244:214's paint, and the rest is Figma's rasteriser and dither."
+  },
+  {
+   "id": "S13 OSD font (Inter vs VLC freetype sans)",
+   "why": "Kept under D027/D048 (provisional typography). Using VLC's freetype default font is an owner call."
+  },
+  {
+   "id": "S67 gear icon in Customize frames (plain gear 42:355)",
+   "why": "Kept; D057's last bullet: one control, one icon."
+  },
+  {
+   "id": "Live-only parts (pressed states flicker or focus ring, music bar tint in the real window, Repeat in the real window)",
+   "why": "No live UI in this wave; listed in liveChecks."
+  }
+ ],
+ "filesChanged": [
+  "modules/gui/macosx_redesign/module/bridge/MXRServicesBridge.m",
+  "modules/gui/macosx_redesign/module/tests/bridge-smoke.m",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerControls.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerBars.swift",
+  "modules/gui/macosx_redesign/Sources/MXRUI/Player/PlayerMenus.swift",
+  "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/ControlBarParityTests.swift",
+  "modules/gui/macosx_redesign/Tests/MXRUISnapshotTests/MusicBarTintTests.swift",
+  "redesign/docs/DECISIONS.md"
+ ],
+ "editsOutsideOwnership": [
+  "module/bridge/MXRServicesBridge.m (C-bridge): QueueRepeat/QueueOrder/QueueStopAction callbacks, the _engineStoppedAction ivar and -refreshNextMedia: (Repeat fix); the _pendingArrows FIFO, ArrowWillJump and -dropPendingArrows: replace _navigationSeeksPending/_navigationSeekDeadline",
+  "module/tests/bridge-smoke.m (C-bridge): repeat fixture and arrow-slot check, plus helpers StartedInputs/FeedbackText",
+  "Sources/MXRUI/Player/PlayerBars.swift (A-window): MXRControlBar background, music bar tint without material (musicBarOverOwnBackdrop)",
+  "Sources/MXRUI/Player/PlayerMenus.swift (D-menus): .modifier(MXRBarHoverTile()) on the MXRPlayerBarMenu label and the overflow ⋯ label",
+  "redesign/docs/DECISIONS.md: D056 (Play hover, music bar tint) and D049 (Light gear/arrows) amendments"
+ ],
+ "decisionsWritten": [
+  "D056 amended: Play/pause hover. Play is Accent/DIm under the pointer (video 14m09.8, spec-part2); Pause keeps the iconHover tile. Accepted (agent, 2026-10-17)",
+  "D056 amended: Music bar tint is now FIXED rather than excused. The tint over black is #171717; the extra #02 was the material's own colour, and the bar now draws no material. Accepted (agent, 2026-10-17)",
+  "D049 amended: Player - Light keeps the gear (491:1729) and prev/next (3603:12303/12306) in Dark/FG/A2 #8F8F8F, a partial conversion; the product draws every Light bar icon Light/FG/A2. Accepted (agent, 2026-10-17)"
+ ],
+ "ownerDecisions": [
+  "D056 Play hover now Accent/DIm (agent amendment, awaiting owner)",
+  "D056 music bar tint fix (agent amendment, awaiting owner)",
+  "D049 Light gear/arrows Light/FG/A2 (agent amendment, awaiting owner)",
+  "S13 OSD typeface: Inter (D027/D048 provisional) vs VLC's freetype default font. The owner decides."
+ ],
+ "liveChecks": [
+  {
+   "id": "LC-repeat-one-item",
+   "steps": "Queue only S01E01 (60 s). Turn on Playback ▸ Repeat once (Repeat All, menu checked), seek to 0:55 and let it end. Then click Repeat again (Repeat One, menu shows mixed/dash, ⋯ reads 'Repeat One'), seek to 0:55 again. Also test the 10-min S01E03 from natural play to the end.",
+   "expect": "Each time the item restarts at 0:00 and keeps playing (no stop at 0:59 / 9:59, CPU stays active). With Repeat off it stops at the end as before."
+  },
+  {
+   "id": "LC-music-bar",
+   "steps": "Play an audio file with cover art in the dark theme. Sample the empty control bar left of Previous and right of the queue icon.",
+   "expect": "About #171717 (#17–#18), not #191919, with no visible material grain. With Reduce Transparency on, opaque BG/A3."
+  },
+  {
+   "id": "LC-play-hover",
+   "steps": "Hover the Play button (paused), then the Pause button (playing). Hover and press the speed '1×', HDR, zoom and the compact '⋯' (narrow window).",
+   "expect": "Play darkens to Accent/DIm #AB6314 under the pointer, the same as the hovered Continue Watching. Pause and the four menu buttons get the faint 6 % hover tile. No press dimming or focus ring on any of them."
+  },
+  {
+   "id": "LC-arrow-osd",
+   "steps": "Play S01E03, press → and ← a few times quickly, and set an A-B loop and press → just before B.",
+   "expect": "Each arrow's OSD shows its own target time. The A-B jump back to A never shows as an arrow's target."
+  }
+ ],
+ "evidence": [
+  "../build/evidence/final6/fix/B-controls/native-fixture-before.log (repeat FAIL state 0 before the fix)",
+  "../build/evidence/final6/fix/B-controls/native-fixture-revert.log (isolated copy, bridge fix reverted: repeat FAIL)",
+  "../build/evidence/final6/fix/B-controls/native-fixture-revert-arrow.log (isolated copy: arrow-slot FAIL)",
+  "../build/evidence/final6/fix/B-controls/native-fixture-after.log (PASS: fixture)",
+  "../build/evidence/final6/fix/B-controls/pkg-revert-tests.log (Swift tests fail with the fixes reverted: Play hover 214 vs 171; music bar 25,25,25)",
+  "../build/evidence/final6/fix/B-controls/s34-before/report.txt and s34-after/*/report.txt, s34-after/player_music_bar_right_cmp.png, app_music_bar_left_cmp.png",
+  "../build/evidence/final6/fix/B-controls/checkall.log (PASS 31 · REVIEW 78 · FAIL 10, none worse than baseline)",
+  "swift test: ControlBarParityTests 15/15, MusicBarTintTests, LightBarBackdropTests, PlayerInteractionTests, OSDLayoutTests, SeekProgressRedrawTests, ConeScrollIsolationTests, PauseButtonContrastTests all pass"
+ ],
+ "notesForOthers": "Integrator: the Repeat fix and the arrow-slot change are in MXRServicesBridge.m, so they need the make/install build. Run the native fixture suite (bridge-smoke has two new checks). C-bridge: I made the backend part of the Repeat fix myself (refreshNextMedia in the queue listener); please don't add a second refresh. Not changed, worth a look: AppModel's player.endOfItemHook sets the stop action to .continue when the 'end of item' sleep timer ends or is cancelled. That overwrites a user's 'Stop after each item' or 'Quit VLC' setting and clears play-and-pause; it should restore the previous action. AppGallery owner: S34.App/music lacks the D028 waveform deviation that S34.Player/music carries, so its seek bar region (render solid bar vs Figma waveform at 332,1040) counts as a difference. H-design: the mxrNativeBackdropEnabled doc says it is for fixtures only; the music control bar now uses it (false) on purpose (D056)."
+}

@@ -42,6 +42,13 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)finishShutdown;
 @end
 
+@interface MXRUpdaterBridge ()
+/// nil when the plugin was built without Sparkle.
+- (nullable instancetype)initWithPlaylist:(vlc_playlist_t *)playlist NS_DESIGNATED_INITIALIZER;
+/// Drops the sink and observers; the Sparkle controller stays alive until the process exits.
+- (void)shutdown;
+@end
+
 /// The running interface's bridge. Main thread only. nil before start and after shutdown.
 MXRInterfaceBridge * _Nullable MXRCurrentInterfaceBridge(void);
 void MXRSetCurrentInterfaceBridge(MXRInterfaceBridge * _Nullable bridge);

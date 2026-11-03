@@ -110,6 +110,55 @@ final class OpenMediaIOTests: XCTestCase {
         XCTAssertTrue(form.isRunning(in: output))
     }
 
+    /// The alert as SwiftUI runs it: the alert goes away first (its binding is set to false), then
+    /// the chosen button's action runs. Replace must still overwrite the file the alert named
+    /// (live J-overwrite: Replace did nothing and the alert came back).
+    @MainActor func testReplaceOverwritesAfterTheAlertWentAway() async throws {
+        let backend = MockOutput()
+        backend.existingDestinations = [mp3]
+        let output = OutputModel(backend: backend)
+        let form = OutputForm(mode: .convert)
+        form.resume(in: output, pendingSource: movie)
+        form.chooseDestination(mp4, in: output)
+        form.selectFormat("audio", in: output)
+        await form.startOrStop(in: output)
+        XCTAssertTrue(form.isAskingToReplace)
+
+        form.isAskingToReplace = false          // SwiftUI dismisses the alert…
+        await form.replace(in: output)          // …then runs Replace.
+        XCTAssertEqual(output.jobs.map(\.destinationURL), [mp3], "Replace starts the conversion over the existing file")
+        XCTAssertFalse(form.isAskingToReplace, "the alert does not come back")
+        XCTAssertTrue(form.isRunning(in: output))
+
+        // Cancel the same way: dismissal, then Cancel; nothing starts and nothing is asked again.
+        backend.finish(try XCTUnwrap(output.jobs.last).id)
+        await form.startOrStop(in: output)
+        XCTAssertTrue(form.isAskingToReplace)
+        form.isAskingToReplace = false
+        form.keepExistingFile()
+        XCTAssertNil(form.replaceCandidate)
+        XCTAssertEqual(output.jobs.count, 1)
+    }
+
+    /// After a conversion finished, Convert asks, and Replace goes through: the finished job's
+    /// settling happens once, so it does not take the Replace confirmation back.
+    @MainActor func testReplaceAfterAFinishedConversionIsNotUndone() async throws {
+        let backend = MockOutput()
+        let output = OutputModel(backend: backend)
+        let form = OutputForm(mode: .convert)
+        form.resume(in: output, pendingSource: movie)
+        form.chooseDestination(mp4, in: output)
+        await form.startOrStop(in: output)
+        backend.finish(try XCTUnwrap(output.jobs.last).id)
+
+        await form.startOrStop(in: output)
+        XCTAssertEqual(form.replaceCandidate, mp4)
+        await form.replace(in: output)
+        XCTAssertNil(form.replaceCandidate, "Replace is not asked again")
+        XCTAssertEqual(output.jobs.count, 2, "the second conversion runs over the finished file")
+        XCTAssertTrue(form.isRunning(in: output))
+    }
+
     /// Reopening the dialog on a running conversion shows it, and its destination is not confirmed.
     @MainActor func testReopeningShowsTheRunningJobWithoutConfirmingItsFile() async throws {
         let backend = MockOutput()
