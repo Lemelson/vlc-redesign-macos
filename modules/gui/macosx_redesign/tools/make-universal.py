@@ -205,6 +205,24 @@ def verify_system_swift(app):
                          '--with-macosx-version-min=11.0:\n  ' + '\n  '.join(wrong))
 
 
+def verify_release_engine(app):
+    """libvlccore must come from a build.sh -d (--disable-debug) build: with run-time assertions on,
+    any failed assert() in the VLC 4 development engine aborts the app (1.0.0-1.0.2 shipped so)."""
+    core = sorted((app / 'Contents/Frameworks').glob('libvlccore*.dylib'))
+    wrong = []
+    for path in core:
+        if path.is_symlink():
+            continue
+        for arch in sorted(archs(path)):
+            imports = subprocess.run(['nm', '-u', '-arch', arch, str(path)], capture_output=True, text=True,
+                                     check=True).stdout.split()
+            if '___assert_rtn' in imports:
+                wrong.append(f'{path.relative_to(app)} ({arch})')
+    if wrong:
+        raise ValueError('engine built with assertions on; build it with extras/package/macosx/build.sh -d:\n  '
+                         + '\n  '.join(wrong))
+
+
 def verify_minimum_macos(app):
     """check-minimum-macos.py: no slice may need a newer macOS than LSMinimumSystemVersion."""
     spec = importlib.util.spec_from_file_location('check_minimum_macos', TOOLS / 'check-minimum-macos.py')
@@ -242,6 +260,7 @@ def make_universal(arm, intel, out_dir, cachegen, codesign='codesign'):
         verify_archs(stage)
         verify_system_swift(stage)
         verify_minimum_macos(stage)
+        verify_release_engine(stage)
         signs = []
         for path in signing_order(stage):
             signs += ['--sign', str(path)]

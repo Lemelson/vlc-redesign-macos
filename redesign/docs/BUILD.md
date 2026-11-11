@@ -317,7 +317,7 @@ export VLC_FORCE_KERNELVERSION=19
 export VLC_PREBUILT_CONTRIBS_URL=…                       # from §3
 export VLC_CONFIGURE_ARGS="--disable-macosx --disable-ncurses --enable-macosx-redesign \
   --with-macosx-redesign-bundle-id=io.github.lemelson.vlc-redesign"
-"$SRC/extras/package/macosx/build.sh" -a aarch64 -j 10
+"$SRC/extras/package/macosx/build.sh" -d -a aarch64 -j 10
 ```
 
 (corrected 2026-11-03 for release 1.0, D058) The bundle id is `io.github.lemelson.vlc-redesign`, configure's
@@ -551,10 +551,10 @@ export VLC_FORCE_KERNELVERSION=19
 ID=io.github.lemelson.vlc-redesign
 # 1. arm64 (§4)
 mkdir -p "$SRC/../build/codex-arm64" && cd "$SRC/../build/codex-arm64"
-VLC_PREBUILT_CONTRIBS_URL=https://artifacts.videolan.org/vlc/macos-arm64/vlc-contrib-aarch64-apple-darwin19-4ca4eb0c3e3d1181a48f1e216f4324c6e2670ef7.tar.zst VLC_CONFIGURE_ARGS="--disable-macosx --disable-ncurses --enable-macosx-redesign --with-macosx-redesign-bundle-id=$ID"   "$SRC/extras/package/macosx/build.sh" -a aarch64 -j 10
+VLC_PREBUILT_CONTRIBS_URL=https://artifacts.videolan.org/vlc/macos-arm64/vlc-contrib-aarch64-apple-darwin19-4ca4eb0c3e3d1181a48f1e216f4324c6e2670ef7.tar.zst VLC_CONFIGURE_ARGS="--disable-macosx --disable-ncurses --enable-macosx-redesign --with-macosx-redesign-bundle-id=$ID"   "$SRC/extras/package/macosx/build.sh" -d -a aarch64 -j 10
 # 2. x86_64: same recipe, Intel contribs, and an engine deployment target of 11.0 (see below)
 mkdir -p "$SRC/../build/codex-x86_64" && cd "$SRC/../build/codex-x86_64"
-VLC_PREBUILT_CONTRIBS_URL=https://artifacts.videolan.org/vlc/macos-x86_64/vlc-contrib-x86_64-apple-darwin19-4ca4eb0c3e3d1181a48f1e216f4324c6e2670ef7.tar.zst VLC_CONFIGURE_ARGS="--disable-macosx --disable-ncurses --enable-macosx-redesign --with-macosx-redesign-bundle-id=$ID --with-macosx-version-min=11.0"   "$SRC/extras/package/macosx/build.sh" -a x86_64 -j 10
+VLC_PREBUILT_CONTRIBS_URL=https://artifacts.videolan.org/vlc/macos-x86_64/vlc-contrib-x86_64-apple-darwin19-4ca4eb0c3e3d1181a48f1e216f4324c6e2670ef7.tar.zst VLC_CONFIGURE_ARGS="--disable-macosx --disable-ncurses --enable-macosx-redesign --with-macosx-redesign-bundle-id=$ID --with-macosx-version-min=11.0"   "$SRC/extras/package/macosx/build.sh" -d -a x86_64 -j 10
 # 3. merge: lipo every Mach-O pair, re-sign ad hoc, verify (writes <out>/VLC Redesign.app)
 python3 "$M/tools/make-universal.py" ../codex-arm64/VLC.app VLC.app "$SRC/../build/universal"   --cachegen "$SRC/../build/codex-x86_64/bin/vlc-cache-gen"
 # 4. install that app the safe way (a copy; the source app stays), then 5. the DMG
@@ -580,6 +580,9 @@ rm -rf "$SRC/../build/codex-arm64/VLC.app" "$SRC/../build/codex-x86_64/VLC.app" 
   after configure, `grep '^OBJC =' Makefile` must show them. `tools/check-minimum-macos.py <app>` reads
   `LC_BUILD_VERSION`/`LC_VERSION_MIN_MACOSX` of every slice and fails on any minimum above
   `LSMinimumSystemVersion`; `make-universal.py` and `package-dmg.sh` (before and after the mount) run it.
+- `-d` (`--disable-debug`) on both engines [verified 2026-11-11]: without it `build.sh` builds VLC with run-time
+  assertions and `-Og`, and any failed `assert()` in the 4.0 development engine aborts the app. 1.0.0-1.0.2
+  shipped that way. `make-universal.py` refuses a `libvlccore` that imports `__assert_rtn`.
 - `make-universal.py` requires the same file set and identical non-code files in both apps, with two listed
   exceptions: plugins built for one architecture only (`libdeinterlace_aarch64/sve`, `libdeinterlace_x86`,
   `libi420_rgb_sse2`; SIMD variants of portable plugins) are left out, because the other architecture would

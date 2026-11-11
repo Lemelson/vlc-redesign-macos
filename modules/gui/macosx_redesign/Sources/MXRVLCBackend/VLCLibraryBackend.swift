@@ -116,6 +116,13 @@ final class VLCLibraryBackend: LibraryBackend {
     func renameNetworkStream(id: String, name: String) async throws { _ = try await mutate(.renameNetworkStream, ["id": id, "name": name]) }
     func addFolder(url: URL) { transport.command(.addFolder, service: .library, arguments: ["url": url.absoluteString]) }
     func removeFolder(id: String) { transport.command(.removeFolder, service: .library, arguments: ["id": id]); events.send(.contentChanged) }
+    func rootFolders() async -> [URL] {
+        guard hasMediaLibrary else { return [] }
+        do {
+            let result = try await transport.request(.libraryRoots, service: .library, arguments: [:])
+            return ((result["roots"] as? [String]) ?? []).compactMap { URL(string: $0) }
+        } catch { transport.log(error); return [] }
+    }
     func rescan(folderID: String?) { transport.command(.rescan, service: .library, arguments: folderID.map { ["id": $0] } ?? [:]) }
     func bookmarks(mediaID: String) async -> [Bookmark] {
         guard hasMediaLibrary else { return [] }

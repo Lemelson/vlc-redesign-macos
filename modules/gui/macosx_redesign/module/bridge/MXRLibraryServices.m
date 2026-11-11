@@ -334,7 +334,8 @@ static void LibraryEvent(void *data,const vlc_ml_event_t *event) {
 - (NSMutableDictionary *)store {
     if(!_store) {
         NSData *data=[NSData dataWithContentsOfURL:[self.storeDirectory URLByAppendingPathComponent:@"library-store.json"]];
-        NSDictionary *saved=data?[NSJSONSerialization JSONObjectWithData:data options:0 error:nil]:nil;
+        id parsed=data?[NSJSONSerialization JSONObjectWithData:data options:0 error:nil]:nil;
+        NSDictionary *saved=[parsed isKindOfClass:NSDictionary.class]?parsed:nil;
         _store=[NSMutableDictionary dictionary];
         _store[@"titles"]=[([saved[@"titles"] isKindOfClass:NSDictionary.class]?saved[@"titles"]:@{}) mutableCopy];
         _store[@"networkPlaylists"]=[([saved[@"networkPlaylists"] isKindOfClass:NSArray.class]?saved[@"networkPlaylists"]:@[]) mutableCopy];
@@ -493,7 +494,8 @@ static void LibraryEvent(void *data,const vlc_ml_event_t *event) {
     }
     BOOL network=IsNetworkMRL(url);
     NSString *kind=media->i_type==VLC_ML_MEDIA_TYPE_AUDIO?@"audio":media->i_type==VLC_ML_MEDIA_TYPE_VIDEO?@"video":network?@"stream":@"unknown";
-    NSString *title=self.titles[url]?:LS(media->psz_title);
+    id stored=self.titles[url];
+    NSString *title=[stored isKindOfClass:NSString.class]?stored:LS(media->psz_title);
     NSMutableDictionary *d=[@{@"id":LID(media->i_id),@"url":url,@"title":title,@"kind":kind,
       @"isFavorite":@(media->b_is_favorite),@"playCount":@(media->i_playcount),@"lastPlayedDate":@(media->i_last_played_date)} mutableCopy];
     if(media->i_duration>0) d[@"duration"]=@(media->i_duration*1000);
@@ -1247,6 +1249,13 @@ static NSDictionary *Crumb(NSString *title,NSString *kind,NSString *identifier) 
         NSDictionary *limits=[args[@"limits"] isKindOfClass:NSDictionary.class]?args[@"limits"]:@{};
         return @{@"sections":[self homeSections:limits]};
     }
+    if([request isEqual:MXRBridgeRequestLibraryRoots]) {
+        /* The indexed root folders (entry points) as file URLs, for the interface's access check. */
+        [self ensureIndex];
+        NSMutableArray *roots=[NSMutableArray array];
+        for(NSDictionary *root in _entryPoints) if([root[@"key"] isKindOfClass:NSString.class]) [roots addObject:root[@"key"]];
+        return @{@"roots":roots};
+    }
     if([request isEqual:MXRBridgeRequestBreadcrumb]) return @{@"crumbs":[self breadcrumb:args[@"location"]?:@{@"kind":@"home"}]};
     atomic_store(&_queryDirty,true);
     int ret=VLC_SUCCESS; NSDictionary *result=@{};
@@ -1388,7 +1397,7 @@ static NSDictionary *Crumb(NSString *title,NSString *kind,NSString *identifier) 
             dispatch_async(dispatch_get_main_queue(),^{
                 if(atomic_load(&self->_stopped)) { completion(nil,LE(@"The VLC media library is shutting down.")); return; }
                 completion(result,error);
-                NSSet *reads=[NSSet setWithArray:@[@"page",@"allMedia",@"media",@"homeSections",@"breadcrumb",@"bookmarks",@"setThumbnailSize"]];
+                NSSet *reads=[NSSet setWithArray:@[@"page",@"allMedia",@"media",@"homeSections",@"breadcrumb",@"bookmarks",@"setThumbnailSize",@"libraryRoots"]];
                 if(!error && ![reads containsObject:operation]) {
                     BOOL stale=[self invalidateMedia:[NSSet set] everything:YES unknown:YES]>0;
                     /* A write changes content; do not replay the last burst's thumbnail ids. */

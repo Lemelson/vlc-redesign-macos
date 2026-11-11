@@ -181,6 +181,7 @@ extern MXRBridgeRequest const MXRBridgeRequestHomeSections;
 extern MXRBridgeRequest const MXRBridgeRequestImportFiles;
 extern MXRBridgeRequest const MXRBridgeRequestInstallAddon;
 extern MXRBridgeRequest const MXRBridgeRequestInstallExtension;
+extern MXRBridgeRequest const MXRBridgeRequestLibraryRoots;
 extern MXRBridgeRequest const MXRBridgeRequestList;
 extern MXRBridgeRequest const MXRBridgeRequestMedia;
 extern MXRBridgeRequest const MXRBridgeRequestMenu;

@@ -220,6 +220,26 @@ public final class LibraryModel {
     /// After an import of videos and songs together: the songs are listed under Music ▸ Songs, not
     /// in Videos where the import landed, so Videos says so (and offers to show them).
     public private(set) var importNotice: LibraryImportNotice?
+    /// Library folders macOS does not let the app read (``LibraryAccessCheck``); the library says so
+    /// and links to System Settings instead of looking empty.
+    public private(set) var accessProblems: [LibraryAccessProblem] = []
+    @ObservationIgnored private var accessCheck: Task<Void, Never>?
+
+    /// Re-reads which library folders macOS blocks. Runs off the main thread (a pending permission
+    /// prompt blocks the read); when access comes back, the blocked folders are scanned again.
+    public func checkAccess() {
+        guard accessCheck == nil else { return }
+        let backend = backend
+        accessCheck = Task { [weak self] in
+            let roots = await backend.rootFolders()
+            let found = await Task.detached(priority: .utility) { LibraryAccessCheck.problems(roots: roots) }.value
+            guard let self else { return }
+            let restored = !self.accessProblems.isEmpty && self.accessProblems.contains { old in !found.contains(old) }
+            if self.accessProblems != found { self.accessProblems = found }
+            if restored { backend.rescan(folderID: nil) }
+            self.accessCheck = nil
+        }
+    }
 
     // MARK: Loading
 

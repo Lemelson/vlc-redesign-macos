@@ -26,6 +26,13 @@ public struct MXROnboardingView: View {
 
     public init(initialStep: MXROnboardingStep = .welcome) { _step = State(initialValue: initialStep) }
     public static var preferredSize: CGSize { Theme.Metric.Dialogs.onboarding.size }
+    /// The window content size that shows the whole card at its design size: the dialog host keeps
+    /// the top bar and a panel inset above it and a panel inset on the other sides. The first-launch
+    /// window (960×540) is smaller, which left only the logo and the title visible above Next.
+    public static var fittingWindowContentSize: CGSize {
+        CGSize(width: preferredSize.width + Theme.Metric.panelInset * 2,
+               height: preferredSize.height + MXRDialogFrame.topClearance + Theme.Metric.panelInset)
+    }
 
     public var body: some View {
         // Stacks with the Figma gaps; the footer stays pinned at its Figma insets and the step

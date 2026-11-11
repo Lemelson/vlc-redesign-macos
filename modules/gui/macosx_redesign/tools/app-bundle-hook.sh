@@ -69,7 +69,15 @@ info.update(CFBundleShortVersionString=version, CFBundleVersion=version, MXREngi
 info.update(CFBundleIdentifier=bundle_id, CFBundleName=name, CFBundleDisplayName=name,
             LSMinimumSystemVersion='14.0', NSPrincipalClass='NSApplication',
             NSAppleScriptEnabled=False, CFBundleIconFile='VLCRedesign',
-            NSLocalNetworkUsageDescription='Find media servers and playback devices when you open Network or Cast.')
+            NSLocalNetworkUsageDescription='Find media servers and playback devices when you open Network or Cast.',
+            # macOS asks for "Apple Music and media library" access when VLC reads files in
+            # ~/Music/Music (the Music app's folder). Without a purpose string TCC may terminate
+            # the app instead of letting the read fail (GitHub issue #2).
+            NSAppleMusicUsageDescription='Play and list the music files you open or add to the library '
+                                         'from your Music folder. Without access, those files are skipped.',
+            # Same for the Photos library package under ~/Pictures, a browse root in the folder panel.
+            NSPhotoLibraryUsageDescription='Play the videos you open or add to the library from your '
+                                           'Photos library folder. Without access, those files are skipped.')
 for key in ('NSMainNibFile', 'NSAccentColorName', 'SUPublicDSAKeyFile'):
     info.pop(key, None)
 # Our Sparkle feed and EdDSA key replace VideoLAN's (D059); never ship theirs.

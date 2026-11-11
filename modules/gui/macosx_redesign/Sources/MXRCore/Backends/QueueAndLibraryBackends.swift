@@ -119,6 +119,8 @@ public protocol LibraryBackend: AnyObject {
     func removeFolder(id: String)
     /// Rescans a folder, or everything when `id` is nil ("Resync").
     func rescan(folderID: String?)
+    /// The indexed root folders (entry points), for ``LibraryAccessCheck``.
+    func rootFolders() async -> [URL]
 
     // MARK: Bookmarks
     func bookmarks(mediaID: String) async -> [Bookmark]
@@ -138,6 +140,7 @@ extension LibraryBackend {
     public func cachedPage(at location: LibraryLocation, query: LibraryQuery) -> LibraryPage? { nil }
     public func cachedHomeSections() -> [LibraryHomeSection]? { nil }
     public func cachedBreadcrumb(for location: LibraryLocation) -> [LibraryCrumb]? { nil }
+    public func rootFolders() async -> [URL] { [] }
     public func cachedBookmarks(mediaID: String) -> [Bookmark]? { nil }
     public func renameNetworkStream(id: String, name: String) async throws { throw BackendOperationError.unsupported("Renaming a saved stream") }
 }

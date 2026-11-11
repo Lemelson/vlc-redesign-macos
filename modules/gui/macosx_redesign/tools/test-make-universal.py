@@ -34,6 +34,14 @@ class MakeUniversalTests(unittest.TestCase):
                         '-framework', 'CoreMedia', '-o', str(old), str(root / 'media.c')], check=True)
         cls.backdeployed = old.read_bytes()
         # 1.0.0/1.0.1 (issue #2): Objective-C code linked without a deployment target needed the SDK's macOS.
+        (root / 'core.c').write_text('#include <assert.h>\nint vlc_core(int x) { assert(x > 0); return x; }\n')
+        cls.core = {}
+        for arch in ('arm64', 'x86_64'):
+            for flavor, defines in (('debug', []), ('release', ['-DNDEBUG'])):
+                out = root / f'core-{arch}-{flavor}'
+                subprocess.run(['xcrun', 'clang', '-arch', arch, '-mmacosx-version-min=14.0', '-dynamiclib', *defines,
+                                '-o', str(out), str(root / 'core.c')], check=True)
+                cls.core[arch, flavor] = out.read_bytes()
         cls.too_new = {}
         for arch in ('arm64', 'x86_64'):
             out = root / f'lib-{arch}-26'
@@ -180,6 +188,21 @@ class MakeUniversalTests(unittest.TestCase):
         self.assertIn('libother_plugin.dylib (arm64): minos 26.0', result.stderr)
         self.assertIn('libother_plugin.dylib (x86_64): minos 26.0', result.stderr)
         self.assertFalse((self.out / 'VLC Redesign.app').exists())
+
+    def test_rejects_an_engine_built_with_assertions(self):
+        for app, arch in ((self.arm, 'arm64'), (self.intel, 'x86_64')):
+            (app / 'Contents/Frameworks/libvlccore.9.dylib').write_bytes(self.core[arch, 'debug'])
+        result = self.run_tool()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('build.sh -d', result.stderr)
+        self.assertIn('libvlccore.9.dylib (arm64)', result.stderr)
+        self.assertFalse((self.out / 'VLC Redesign.app').exists())
+
+    def test_accepts_a_release_engine(self):
+        for app, arch in ((self.arm, 'arm64'), (self.intel, 'x86_64')):
+            (app / 'Contents/Frameworks/libvlccore.9.dylib').write_bytes(self.core[arch, 'release'])
+        result = self.run_tool()
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_rejects_a_file_present_in_one_app_only(self):
         (self.intel / 'Contents/Resources/extra.txt').write_text('x')

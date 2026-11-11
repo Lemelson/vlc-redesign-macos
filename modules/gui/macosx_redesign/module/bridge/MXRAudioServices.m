@@ -341,6 +341,9 @@ static void MXRWaveformCacheStore(NSString *key, NSDictionary *value)
     float *peaks = calloc((size_t)bins,sizeof(*peaks));
     if (peaks == NULL) { [reader cancelReading]; *error = AE(ENOMEM,@"Cannot allocate waveform peaks."); return nil; }
     float maximum = 0; uint64_t sampleCount = 0;
+    /* Strong local: `*error` is __autoreleasing, so an error stored there inside the loop's
+     * @autoreleasepool is freed when the pool drains and the caller then reads a dangling pointer. */
+    NSError *failure = nil;
     atomic_store(&_waveSamplesRead,0); atomic_store(&_waveActive,true);
     while (reader.status == AVAssetReaderStatusReading && ![self waveCancelled:generation]) { @autoreleasepool {
         CMSampleBufferRef buffer = [output copyNextSampleBuffer];
@@ -350,12 +353,12 @@ static void MXRWaveformCacheStore(NSString *key, NSDictionary *value)
         CMItemCount count = CMSampleBufferGetNumSamples(buffer);
         double start = CMTimeGetSeconds(CMSampleBufferGetPresentationTimeStamp(buffer));
         if (block == NULL || format == NULL || format->mChannelsPerFrame != 1 || format->mBitsPerChannel != 32 || !(format->mFormatFlags & kAudioFormatFlagIsFloat) || !isfinite(start)) {
-            CFRelease(buffer); *error = AE(ENOTSUP,@"The decoded audio format is unavailable."); break;
+            CFRelease(buffer); failure = AE(ENOTSUP,@"The decoded audio format is unavailable."); break;
         }
         float chunk[4096];
         for (CMItemCount offset = 0; offset < count; offset += 4096) {
             size_t length = (size_t)MIN((CMItemCount)4096,count-offset);
-            if (CMBlockBufferCopyDataBytes(block,(size_t)offset*sizeof(float),length*sizeof(float),chunk) != kCMBlockBufferNoErr) { *error = AE(EIO,@"Cannot read decoded audio samples."); break; }
+            if (CMBlockBufferCopyDataBytes(block,(size_t)offset*sizeof(float),length*sizeof(float),chunk) != kCMBlockBufferNoErr) { failure = AE(EIO,@"Cannot read decoded audio samples."); break; }
             /* Walk whole bins at a time: one division per bin instead of per sample. fmaxf
                ignores NaN, so non-finite samples never become peaks. */
             const double binFrames = duration * format->mSampleRate / (double)bins;
@@ -374,12 +377,13 @@ static void MXRWaveformCacheStore(NSString *key, NSDictionary *value)
             }
             sampleCount += length;
             atomic_store(&_waveSamplesRead,sampleCount);
-            if (*error != nil || [self waveCancelled:generation]) break;
+            if (failure != nil || [self waveCancelled:generation]) break;
         }
         CFRelease(buffer);
-        if (*error != nil) break;
+        if (failure != nil) break;
     }}
     atomic_store(&_waveActive,false);
+    *error = failure;
     if ([self waveCancelled:generation]) *error = AE(ECANCELED,@"Audio analysis cancelled.");
     else if (*error == nil && (reader.status != AVAssetReaderStatusCompleted || sampleCount == 0))
         *error = reader.error ?: AE(EIO,@"Could not read the complete audio waveform.");

@@ -285,11 +285,28 @@ final class MXRAppController: NSObject, NSApplicationDelegate, NSWindowDelegate,
             Task { @MainActor in self?.observeFirstLaunchOnboarding() }
         }
         switch action {
-        case .present: model.interface.present(.onboarding)
+        case .present:
+            growWindow(toContent: MXROnboardingView.fittingWindowContentSize)
+            model.interface.present(.onboarding)
         case .dismiss:
             if model.interface.sheet == .onboarding { model.interface.dismissSheet() }
         case .none: break
         }
+    }
+
+    /// Enlarges the main window (never shrinks it) so `size` fits, within the screen's visible area,
+    /// and keeps it on screen. Used before the first-launch onboarding, which is larger than the
+    /// default 960×540 window.
+    private func growWindow(toContent size: CGSize) {
+        guard let window, !window.styleMask.contains(.fullScreen),
+              let visible = (window.screen ?? NSScreen.main)?.visibleFrame else { return }
+        let current = window.contentRect(forFrameRect: window.frame).size
+        let chrome = NSSize(width: window.frame.width - current.width, height: window.frame.height - current.height)
+        let target = NSSize(width: max(current.width, min(size.width, visible.width - chrome.width)),
+                            height: max(current.height, min(size.height, visible.height - chrome.height)))
+        guard target != current else { return }
+        window.setContentSize(target)
+        window.center()
     }
 
     private func showMainWindow() {

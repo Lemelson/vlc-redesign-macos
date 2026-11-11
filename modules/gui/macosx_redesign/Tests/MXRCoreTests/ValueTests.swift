@@ -2,6 +2,19 @@ import XCTest
 @testable import MXRCore
 
 final class MediaTimeTests: XCTestCase {
+    /// Typed times and delays used to trap (Int64 conversion of infinity or overflow).
+    func testHugeOrInfiniteInputSaturatesInsteadOfTrapping() {
+        XCTAssertNil(MediaTime(parsing: "inf"))
+        XCTAssertNil(MediaTime(parsing: "1e400"))
+        XCTAssertNotNil(MediaTime(parsing: "99999999999999"))
+        XCTAssertNotNil(MediaTime(parsing: "9999999999:00:00"))
+        XCTAssertEqual(MediaTime.seconds(.infinity).microseconds, .max)
+        XCTAssertEqual(MediaTime.seconds(-.infinity).microseconds, .min)
+        XCTAssertEqual(MediaTime.seconds(.nan).microseconds, 0)
+        XCTAssertEqual((MediaTime(microseconds: 10) * .nan).microseconds, 0)
+        XCTAssertEqual((-MediaTime(microseconds: .min)).microseconds, .min)
+    }
+
     func testFormats() {
         XCTAssertEqual(MediaTime.hms(0, 2, 10).formatted(.hoursMinutesSeconds), "00:02:10")
         XCTAssertEqual((-MediaTime.hms(0, 23, 30)).formatted(.hoursMinutesSeconds), "-00:23:30")

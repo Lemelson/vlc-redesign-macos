@@ -148,6 +148,7 @@ MXRBridgeRequest const MXRBridgeRequestHomeSections = @"homeSections";
 MXRBridgeRequest const MXRBridgeRequestImportFiles = @"importFiles";
 MXRBridgeRequest const MXRBridgeRequestInstallAddon = @"installAddon";
 MXRBridgeRequest const MXRBridgeRequestInstallExtension = @"installExtension";
+MXRBridgeRequest const MXRBridgeRequestLibraryRoots = @"libraryRoots";
 MXRBridgeRequest const MXRBridgeRequestList = @"list";
 MXRBridgeRequest const MXRBridgeRequestMedia = @"media";
 MXRBridgeRequest const MXRBridgeRequestMenu = @"menu";

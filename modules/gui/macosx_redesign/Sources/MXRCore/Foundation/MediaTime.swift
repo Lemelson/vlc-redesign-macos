@@ -21,7 +21,17 @@ public struct MediaTime: Hashable, Comparable, Sendable, Codable, CustomStringCo
 
     /// A time of `seconds` seconds (fractions allowed).
     public static func seconds(_ seconds: Double) -> MediaTime {
-        MediaTime(microseconds: Int64((seconds * 1_000_000).rounded()))
+        MediaTime(microseconds: saturating(seconds * 1_000_000))
+    }
+
+    /// `Int64(_:)` traps on NaN, infinity and out-of-range values (typed times, delays,
+    /// positions computed from a zero width); clamp instead.
+    private static func saturating(_ microseconds: Double) -> Int64 {
+        guard !microseconds.isNaN else { return 0 }
+        // Double(Int64.max) rounds up to 2^63, which Int64(_:) cannot hold.
+        if microseconds >= 9_223_372_036_854_775_808.0 { return .max }
+        if microseconds <= -9_223_372_036_854_775_808.0 { return .min }
+        return Int64(microseconds.rounded())
     }
 
     /// A time of `milliseconds` milliseconds.
@@ -50,11 +60,11 @@ public struct MediaTime: Hashable, Comparable, Sendable, Codable, CustomStringCo
     public static func < (lhs: MediaTime, rhs: MediaTime) -> Bool { lhs.microseconds < rhs.microseconds }
     public static func + (lhs: MediaTime, rhs: MediaTime) -> MediaTime { MediaTime(microseconds: lhs.microseconds &+ rhs.microseconds) }
     public static func - (lhs: MediaTime, rhs: MediaTime) -> MediaTime { MediaTime(microseconds: lhs.microseconds &- rhs.microseconds) }
-    public static prefix func - (value: MediaTime) -> MediaTime { MediaTime(microseconds: -value.microseconds) }
+    public static prefix func - (value: MediaTime) -> MediaTime { MediaTime(microseconds: 0 &- value.microseconds) }
     public static func += (lhs: inout MediaTime, rhs: MediaTime) { lhs = lhs + rhs }
     public static func -= (lhs: inout MediaTime, rhs: MediaTime) { lhs = lhs - rhs }
     public static func * (lhs: MediaTime, rhs: Double) -> MediaTime {
-        MediaTime(microseconds: Int64((Double(lhs.microseconds) * rhs).rounded()))
+        MediaTime(microseconds: saturating(Double(lhs.microseconds) * rhs))
     }
 
     /// Clamps the value to `range`.
@@ -125,9 +135,10 @@ public struct MediaTime: Hashable, Comparable, Sendable, Codable, CustomStringCo
         guard (1...3).contains(parts.count) else { return nil }
         var total = 0.0
         for part in parts {
-            guard let value = Double(part), value >= 0 else { return nil }
+            guard let value = Double(part), value.isFinite, value >= 0 else { return nil }
             total = total * 60 + value
         }
+        guard total.isFinite else { return nil }
         self = .seconds(negative ? -total : total)
     }
 }

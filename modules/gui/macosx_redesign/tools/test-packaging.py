@@ -48,6 +48,7 @@ class PackagingTests(unittest.TestCase):
         self.assertEqual(info["NSPrincipalClass"], "NSApplication")
         self.assertFalse(info["NSAppleScriptEnabled"])
         self.assertIn("when you open Network or Cast", info["NSLocalNetworkUsageDescription"])
+        self.assertIn("Music folder", info["NSAppleMusicUsageDescription"])
         for key in ("NSMainNibFile", "NSAccentColorName", "SUPublicDSAKeyFile"):
             self.assertNotIn(key, info)
 

@@ -1,3 +1,4 @@
+import AppKit
 import MXRCore
 import MXRDesign
 import SwiftUI
@@ -28,6 +29,7 @@ public struct MXRLibraryView: View {
                     VStack(spacing: 0) {
                         LibraryDivider(header: true)
                         if searchVisible && narrow { search.padding(.top, Theme.Spacing.gap17) }
+                        if showsAccessNotice { accessNoticeRow.padding(.top, Theme.Spacing.gap10) }
                         content(width: contentWidth)
                     }
                 }
@@ -53,6 +55,12 @@ public struct MXRLibraryView: View {
             guard requested else { return }
             library.searchFieldRequested = false
             searchVisible = true; searchFocused = true
+        }
+        // Folders macOS blocks (privacy): checked when the library shows or reloads, and when the
+        // app comes back from System Settings.
+        .onChange(of: library.hasLoaded, initial: true) { _, loaded in if loaded { library.checkAccess() } }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            library.checkAccess()
         }
     }
 
@@ -290,6 +298,37 @@ public struct MXRLibraryView: View {
             .padding(.top, compact ? Theme.Spacing.gap20 : LibraryGeometry.homeSectionGap)
             .padding(.bottom, Theme.Spacing.gap20)
         }.scrollIndicators(.hidden)
+    }
+
+    /// Library places whose content comes from the indexed folders.
+    private var showsAccessNotice: Bool {
+        guard !library.accessProblems.isEmpty else { return false }
+        switch library.location {
+        case .network, .stream, .playlists, .playlist, .recent, .homeSection: return false
+        default: return true
+        }
+    }
+
+    /// macOS blocks a library folder (privacy): say which, and open the System Settings pane that
+    /// turns it back on. The folders are scanned again when the app becomes active with access.
+    private var accessNoticeRow: some View {
+        let problems = library.accessProblems
+        let names = problems.map { FileManager.default.displayName(atPath: $0.folder.path) }
+        let message = problems.count == 1
+            ? "macOS doesn’t let VLC Redesign read “\(names[0])”, so its files aren’t in the library."
+            : "macOS doesn’t let VLC Redesign read \(names.map { "“\($0)”" }.joined(separator: ", ")), so their files aren’t in the library."
+        return HStack(spacing: Theme.Spacing.gap10) {
+            MXRIcon(.info, tint: Theme.Color.fgA2)
+                .frame(width: Theme.Metric.Library.thumb.width, height: Theme.Metric.Library.thumb.height)
+            Text(message).mxrTextStyle(Theme.Font.body).foregroundStyle(Theme.Color.fgA2)
+                .lineLimit(3).fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            DialogButton(title: "Open Privacy Settings", primary: true, width: nil) {
+                NSWorkspace.shared.open(problems[0].settingsURL)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(message)
     }
 
     /// A mixed import lands in Videos; this row says where its songs went and opens them (selected).
