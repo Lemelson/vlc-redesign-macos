@@ -78,6 +78,7 @@ check-macosx-redesign: check-macosx-redesign-generated check-macosx-redesign-nat
 	python3 "$(srcdir)/$(MXR_DIR)/tools/test-install-app.py"
 	python3 "$(srcdir)/$(MXR_DIR)/tools/test-package-dmg.py"
 	python3 "$(srcdir)/$(MXR_DIR)/tools/test-make-universal.py"
+	python3 "$(srcdir)/$(MXR_DIR)/tools/test-check-minimum-macos.py"
 	python3 "$(srcdir)/$(MXR_DIR)/tools/test-updater-deferral.py"
 	python3 "$(srcdir)/$(MXR_DIR)/tools/test-schema-drift.py"
 	python3 "$(srcdir)/$(MXR_DIR)/tools/test-swift-results.py"

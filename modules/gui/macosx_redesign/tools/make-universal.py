@@ -14,7 +14,8 @@ is reported and nothing is written, with two exceptions that are listed in the o
   (Sparkle.framework resources, libbluray's .jar files, the skins2 .vlt archive) are taken from
   the arm64 app. The result is re-signed ad hoc in the order of
 extras/package/macosx/codesign.sh through finalize-app.py (code first, then a fresh plugins.dat,
-then the bundle seal) and verified: both architectures in every binary, `finalize-app.py
+then the bundle seal) and verified: both architectures in every binary, no slice newer than LSMinimumSystemVersion
+(check-minimum-macos.py), `finalize-app.py
 --verify-only`, `codesign --verify --deep --strict`.
 
 The cache generator may be either build's `bin/vlc-cache-gen` (an x86_64 one runs under
@@ -23,6 +24,7 @@ little-endian architectures. Writes `<out-dir>/VLC Redesign.app`; an existing on
 only when it carries the redesign identity.
 """
 import argparse
+import importlib.util
 from fnmatch import fnmatch
 import os
 from pathlib import Path
@@ -203,6 +205,14 @@ def verify_system_swift(app):
                          '--with-macosx-version-min=11.0:\n  ' + '\n  '.join(wrong))
 
 
+def verify_minimum_macos(app):
+    """check-minimum-macos.py: no slice may need a newer macOS than LSMinimumSystemVersion."""
+    spec = importlib.util.spec_from_file_location('check_minimum_macos', TOOLS / 'check-minimum-macos.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.check(app)
+
+
 def make_universal(arm, intel, out_dir, cachegen, codesign='codesign'):
     check_app(arm, 'arm64 app')
     check_app(intel, 'x86_64 app')
@@ -231,6 +241,7 @@ def make_universal(arm, intel, out_dir, cachegen, codesign='codesign'):
             (stage / relative).unlink(missing_ok=True)
         verify_archs(stage)
         verify_system_swift(stage)
+        verify_minimum_macos(stage)
         signs = []
         for path in signing_order(stage):
             signs += ['--sign', str(path)]

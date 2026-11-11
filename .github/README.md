@@ -10,13 +10,19 @@ macOS 14+ · Apple silicon and Intel · Swift 6 · SwiftUI + AppKit · VLC 4 eng
 
 ## Download
 
-**[Download VLC Redesign 1.0.1](https://github.com/Lemelson/vlc-redesign-macos/releases/latest)** (`VLC-Redesign-1.0.1-universal.dmg`): one file for any Mac with macOS 14 Sonoma or later, Apple silicon or Intel.
+**[Download VLC Redesign 1.0.2](https://github.com/Lemelson/vlc-redesign-macos/releases/latest)** (`VLC-Redesign-1.0.2-universal.dmg`): one file for any Mac with macOS 14 Sonoma or later, Apple silicon or Intel.
 
 <img src="media/install-dmg.jpg" width="560" alt="The disk image: drag VLC Redesign onto Applications">
 
 1. Open the DMG and drag **VLC Redesign** onto **Applications**.
 2. Open VLC Redesign from Applications.
 3. The first time, macOS asks you to confirm the app, because this build is not notarized by Apple. On macOS 14, Control-click the app and choose **Open**. On macOS 15 and later, open it once, then click **Open Anyway** in **System Settings > Privacy & Security**. The [release notes](https://github.com/Lemelson/vlc-redesign-macos/releases/latest) have the details.
+
+**It does not open?** Nothing else needs installing: the engine, codecs and updater are inside the app. 1.0.0 and 1.0.1 asked for macOS 27.2 by mistake (Finder showed the icon crossed out); 1.0.2 runs on macOS 14 and later again, so install it first. If it still fails, [open an issue](https://github.com/Lemelson/vlc-redesign-macos/issues) with the output of:
+
+```bash
+sw_vers; uname -m; xattr "/Applications/VLC Redesign.app"; defaults read "/Applications/VLC Redesign.app/Contents/Info" CFBundleShortVersionString
+```
 
 Updates come through the app itself (Sparkle, the updater the official VLC for Mac uses): on its second launch it asks whether to check for them automatically, and you can change that in Settings > General. It is a separate app and leaves an installed VLC untouched. The *Source code* files on the release page are the source, not the app.
 
@@ -160,7 +166,10 @@ The full guide, with sanity checks and troubleshooting, is in [`redesign/docs/BU
 
 ## Status
 
-**Release 1.0.1** (November 2026): one universal DMG for macOS 14+ with built-in updates. See the [release notes](https://github.com/Lemelson/vlc-redesign-macos/releases/latest).
+**Release 1.0.2** (November 2026): one universal DMG for macOS 14+ with built-in updates. See the [release notes](https://github.com/Lemelson/vlc-redesign-macos/releases/latest).
+
+**New in 1.0.2**: the app runs on macOS 14 to 26 again. In 1.0.0 and 1.0.1 the main program and 15 engine plugins written in Objective-C were marked as needing macOS 27.2, the version of the SDK they were built with, so older systems refused to open the app ([#2](https://github.com/Lemelson/vlc-redesign-macos/issues/2)). The cause was in the build: libtool dropped the minimum macOS version from the Objective-C compiler. `configure.m4` puts it back, and the release tools now refuse any app in which a single binary needs a newer macOS than the app promises.
+
 
 **New in 1.0.1**: an update check that falls during a video now runs once playback stops instead of the next day; About has a Licenses link (VLC's GPL and LGPL, Sparkle, the fonts); the update ⓘ says exactly what is sent; the DMG's Finder layout no longer carries data from the Mac that built it; "Play locally while streaming" shows the stream's own picture, in sync, from one open of the source.
 

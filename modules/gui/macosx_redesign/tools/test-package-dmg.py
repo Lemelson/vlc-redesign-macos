@@ -36,6 +36,9 @@ class PackageDMGTests(unittest.TestCase):
         for asset in (TOOLS.parent / 'Resources/dmg').iterdir():
             (assets / asset.name).write_bytes(asset.read_bytes())
         self.assets = assets
+        # The real check reads Mach-O load commands (test-check-minimum-macos.py); the fake bundle has none.
+        checker = tools / 'check-minimum-macos.py'
+        checker.write_text('import os,sys\nif os.getenv("FAIL")=="minos": sys.exit("FAIL: Contents/MacOS/VLC (arm64): minos 27.2")\n')
         self.script = tools / 'package-dmg.sh'
         fakebin = self.root / 'bin'
         fakebin.mkdir()
@@ -108,6 +111,12 @@ class PackageDMGTests(unittest.TestCase):
     def test_rejects_bundle_whose_signature_fails(self):
         result = self.run_package('verify')
         self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(list(self.out.glob('*.dmg')))
+
+    def test_rejects_an_app_that_needs_a_newer_macos(self):
+        result = self.run_package('minos')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('minos 27.2', result.stderr)
         self.assertFalse(list(self.out.glob('*.dmg')))
 
     def test_rejects_dirty_checkout_unless_allowed(self):

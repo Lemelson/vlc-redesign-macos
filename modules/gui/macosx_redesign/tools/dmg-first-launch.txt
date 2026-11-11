@@ -27,6 +27,14 @@ macOS 15 Sequoia and later (Control-click > Open no longer skips the check):
 Or, on any version, in Terminal:
   xattr -dr com.apple.quarantine "/Applications/VLC Redesign.app"
 
+IF IT STILL DOES NOT OPEN
+There is nothing else to install: the VLC engine, codecs and updater are all
+inside the app. Make sure you have the latest version (1.0.0 and 1.0.1 asked
+for macOS 27.2 by mistake; 1.0.2 fixed that). If it still fails, run this in
+Terminal and paste the output into a bug report:
+  sw_vers; uname -m; xattr "/Applications/VLC Redesign.app"
+  defaults read "/Applications/VLC Redesign.app/Contents/Info" CFBundleShortVersionString
+
 SOURCE
 Built from commit @COMMIT@ of @REPOSITORY@
 Licence: GPL-2.0-or-later (VLC engine and this interface). Design: Juxtopposed, CC BY 4.0.

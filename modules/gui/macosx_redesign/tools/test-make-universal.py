@@ -33,6 +33,13 @@ class MakeUniversalTests(unittest.TestCase):
         subprocess.run(['xcrun', 'clang', '-arch', 'x86_64', '-mmacosx-version-min=10.13', '-dynamiclib',
                         '-framework', 'CoreMedia', '-o', str(old), str(root / 'media.c')], check=True)
         cls.backdeployed = old.read_bytes()
+        # 1.0.0/1.0.1 (issue #2): Objective-C code linked without a deployment target needed the SDK's macOS.
+        cls.too_new = {}
+        for arch in ('arm64', 'x86_64'):
+            out = root / f'lib-{arch}-26'
+            subprocess.run(['xcrun', 'clang', '-arch', arch, '-mmacosx-version-min=26.0', '-dynamiclib',
+                            '-o', str(out), str(root / 'lib.c')], check=True)
+            cls.too_new[arch] = out.read_bytes()
 
     @classmethod
     def tearDownClass(cls):
@@ -70,7 +77,7 @@ class MakeUniversalTests(unittest.TestCase):
         with (contents / 'Info.plist').open('wb') as target:
             plistlib.dump({'CFBundleIdentifier': identity, 'CFBundleExecutable': 'VLC',
                            'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': '1.0.0',
-                           'SUFeedURL': 'https://example.invalid/appcast.xml'}, target)
+                           'LSMinimumSystemVersion': '14.0', 'SUFeedURL': 'https://example.invalid/appcast.xml'}, target)
         sparkle = self.sparkle(contents / 'Frameworks/Sparkle.framework', arch)
         # As a packaged app: every item in Frameworks carries its own signature before the seal.
         nested = [path for path in (contents / 'Frameworks').rglob('*')
@@ -162,6 +169,16 @@ class MakeUniversalTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('back-deployed Swift', result.stderr)
         self.assertIn('libother_plugin.dylib (x86_64)', result.stderr)
+        self.assertFalse((self.out / 'VLC Redesign.app').exists())
+
+    def test_rejects_a_slice_newer_than_the_app_minimum(self):
+        for app, arch in ((self.arm, 'arm64'), (self.intel, 'x86_64')):
+            (app / 'Contents/Frameworks/plugins/gui/libother_plugin.dylib').write_bytes(self.too_new[arch])
+        result = self.run_tool()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('need a newer macOS than 14.0', result.stderr)
+        self.assertIn('libother_plugin.dylib (arm64): minos 26.0', result.stderr)
+        self.assertIn('libother_plugin.dylib (x86_64): minos 26.0', result.stderr)
         self.assertFalse((self.out / 'VLC Redesign.app').exists())
 
     def test_rejects_a_file_present_in_one_app_only(self):

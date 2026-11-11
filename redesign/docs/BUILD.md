@@ -572,6 +572,14 @@ rm -rf "$SRC/../build/codex-arm64/VLC.app" "$SRC/../build/codex-x86_64/VLC.app" 
   postproc, soxr, chromaprint, cvpx and both VideoToolbox plugins then fail to load on Intel. arm64 is not
   affected (its minimum is already 11.0). Later `--with-macosx-version-min` wins over `build.sh`'s, and the
   module's Swift code always targets 14.0. `make-universal.py` refuses any slice that links `@rpath/libswift*`.
+- Deployment target of Objective-C code [verified 2026-11-11]: libtool 2.6.2 (extras/tools) configures its
+  Objective-C tags after configure.ac's darwin block and resets `OBJC`/`OBJCXX` to the bare cached `clang`, so
+  every `.m` file (`bin/darwinvlc.m`, the AVFoundation, CoreAnimation, notification and dialog plugins) was
+  built without `-isysroot`/`-mmacosx-version-min` and got the SDK's version as its minimum: 1.0.0 and 1.0.1
+  needed macOS 27.2 although Info.plist said 14.0 (GitHub issue #2). `configure.m4` re-appends both flags;
+  after configure, `grep '^OBJC =' Makefile` must show them. `tools/check-minimum-macos.py <app>` reads
+  `LC_BUILD_VERSION`/`LC_VERSION_MIN_MACOSX` of every slice and fails on any minimum above
+  `LSMinimumSystemVersion`; `make-universal.py` and `package-dmg.sh` (before and after the mount) run it.
 - `make-universal.py` requires the same file set and identical non-code files in both apps, with two listed
   exceptions: plugins built for one architecture only (`libdeinterlace_aarch64/sve`, `libdeinterlace_x86`,
   `libi420_rgb_sse2`; SIMD variants of portable plugins) are left out, because the other architecture would

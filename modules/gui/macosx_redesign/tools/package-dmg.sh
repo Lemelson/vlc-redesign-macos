@@ -41,6 +41,7 @@ verify_app() {
     test -f "$1/Contents/Frameworks/plugins/libmacosx_redesign_plugin.dylib" || {
         echo "application is missing the redesign interface: $1" >&2; return 1;
     }
+    python3 -I "$mxr_tools/check-minimum-macos.py" "$1"
     python3 "$mxr_tools/finalize-app.py" --verify-only "$1"
 }
 # The DMG's own parts: window layout, background, volume icon, Applications link, notes.

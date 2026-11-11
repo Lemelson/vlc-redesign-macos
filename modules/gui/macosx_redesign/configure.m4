@@ -17,6 +17,25 @@ AC_ARG_WITH([macosx-redesign-app-name],
     [name of the packaged app in the menu bar and Finder (default "VLC Redesign")]),
   [], [with_macosx_redesign_app_name="VLC Redesign"])
 
+dnl configure.ac's darwin block appends -isysroot and -mmacosx-version-min to CC, CXX, OBJC and
+dnl OBJCXX, but LT_INIT runs later, and libtool 2.5+ (extras/tools ships 2.6.2) configures its
+dnl Objective-C tags with AC_CHECK_TOOL, which resets OBJC and OBJCXX to the cached bare compiler.
+dnl Every .m file (bin/darwinvlc.m, the AVFoundation/CoreAnimation/notification plugins) was then
+dnl compiled and linked without a deployment target and required the SDK's macOS (27.2 for the
+dnl 1.0.0 and 1.0.1 releases, GitHub issue #2). Put the flags back where they are missing.
+AS_IF([test "${SYS}" = "darwin"], [
+  AS_IF([test -n "${with_macosx_sdk}"], [
+    AS_CASE([" ${OBJC} "], [*" -isysroot "*], [], [OBJC="${OBJC} -isysroot ${with_macosx_sdk}"])
+    AS_CASE([" ${OBJCXX} "], [*" -isysroot "*], [], [OBJCXX="${OBJCXX} -isysroot ${with_macosx_sdk}"])
+  ])
+  AS_IF([test -n "${with_macosx_version_min}"], [
+    AS_CASE([" ${OBJC} "], [*" -mmacosx-version-min="*], [],
+      [OBJC="${OBJC} -mmacosx-version-min=${with_macosx_version_min}"])
+    AS_CASE([" ${OBJCXX} "], [*" -mmacosx-version-min="*], [],
+      [OBJCXX="${OBJCXX} -mmacosx-version-min=${with_macosx_version_min}"])
+  ])
+])
+
 MXR_MIN_MACOS="14.0"
 MXR_SDK_PATH=""
 MXR_SWIFT_TOOLCHAIN_LIBDIR=""
