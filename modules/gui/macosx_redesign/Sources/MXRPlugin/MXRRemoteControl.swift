@@ -52,7 +52,7 @@ final class MXRRemoteControl {
     }
 
     private func register(_ command: MPRemoteCommand, action: Action) {
-        let token = command.addTarget { [weak self] event in
+        let token = command.addTarget { @Sendable [weak self] event in
             // Apple's handler can arrive off main. Extract scalar payloads before
             // hopping to the actor; the non-Sendable event never crosses threads.
             let requested: Action

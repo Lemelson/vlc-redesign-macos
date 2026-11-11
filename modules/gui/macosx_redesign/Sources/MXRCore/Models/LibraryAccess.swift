@@ -54,7 +54,6 @@ public enum LibraryAccessCheck {
     /// container inside a root. May block while macOS shows its permission prompt: call it off the
     /// main thread.
     public static func problems(roots: [URL], home: URL = FileManager.default.homeDirectoryForCurrentUser,
-                                exists: (URL) -> Bool = { FileManager.default.fileExists(atPath: $0.path) },
                                 isReadable: (URL) -> Bool = LibraryAccessCheck.isReadable) -> [LibraryAccessProblem] {
         let containers = protectedContainers(home: home)
         var found: [LibraryAccessProblem] = []
@@ -70,7 +69,7 @@ public enum LibraryAccessCheck {
             }
             for container in containers {
                 let path = container.url.standardizedFileURL.path
-                guard path.hasPrefix(rootPath.hasSuffix("/") ? rootPath : rootPath + "/"), exists(container.url) else { continue }
+                guard path.hasPrefix(rootPath.hasSuffix("/") ? rootPath : rootPath + "/") else { continue }
                 if !isReadable(container.url) { add(LibraryAccessProblem(folder: container.url, kind: container.kind)) }
             }
         }
