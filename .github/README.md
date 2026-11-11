@@ -10,7 +10,7 @@ macOS 14+ · Apple silicon and Intel · Swift 6 · SwiftUI + AppKit · VLC 4 eng
 
 ## Download
 
-**[Download VLC Redesign 1.0.3](https://github.com/Lemelson/vlc-redesign-macos/releases/latest)** (`VLC-Redesign-1.0.3-universal.dmg`): one file for any Mac with macOS 14 Sonoma or later, Apple silicon or Intel.
+**[Download VLC Redesign 1.0.4](https://github.com/Lemelson/vlc-redesign-macos/releases/latest)** (`VLC-Redesign-1.0.4-universal.dmg`): one file for any Mac with macOS 14 Sonoma or later, Apple silicon or Intel.
 
 <img src="media/install-dmg.jpg" width="560" alt="The disk image: drag VLC Redesign onto Applications">
 
@@ -166,7 +166,9 @@ The full guide, with sanity checks and troubleshooting, is in [`redesign/docs/BU
 
 ## Status
 
-**Release 1.0.3** (November 2026): one universal DMG for macOS 14+ with built-in updates. See the [release notes](https://github.com/Lemelson/vlc-redesign-macos/releases/latest).
+**Release 1.0.4** (November 2026): one universal DMG for macOS 14+ with built-in updates. See the [release notes](https://github.com/Lemelson/vlc-redesign-macos/releases/latest).
+
+**New in 1.0.4**: two fixes found in a second review. The library now also reports a folder macOS blocks so tightly that it looks missing (1.0.3 could skip the notice in that case), and the media keys and Control Center play/pause can no longer close the app if macOS sends them from a background thread.
 
 **New in 1.0.3**: steadier. The VLC engine is now built as a release (in 1.0.0–1.0.2 it kept VLC's development checks on, and any failed check closed the app at once). When macOS blocks a library folder (for example after "Don't Allow" for Apple Music and the media library), the library says which folder and opens the right System Settings pane instead of quietly leaving its files out; macOS's permission prompts now explain why VLC asks. Three crashes found in a code audit are fixed (typing "inf" or a huge number into the time field, an error while drawing the waveform of an unusual audio file, a damaged library-store.json), and the first-launch window is large enough for the whole welcome screen.
 
